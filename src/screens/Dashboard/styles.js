@@ -4,34 +4,55 @@ import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
   header: {
-    paddingVertical: verticalScale(40),
+    paddingTop: verticalScale(34),
+    paddingBottom: verticalScale(38),
     paddingHorizontal: moderateScale(20),
     alignItems: "center",
   },
 
-  bodyWrapper: {
-    flex: 1,
-    backgroundColor: colors.white,
-    marginTop: verticalScale(-20), // pulls up to create overlap
-    borderTopLeftRadius: moderateScale(30),
-    borderTopRightRadius: moderateScale(30),
-  },
-
-  container: {
-    flex:1,
-    padding: moderateScale(20),
+  logoWrap: {
+    backgroundColor: colors.glassWhite,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(10),
   },
 
   logo: {
-    width: moderateScale(120),
-    height: moderateScale(60),
-    marginBottom: verticalScale(8),
+    width: moderateScale(142),
+    height: moderateScale(56),
   },
 
   headerTitle: {
-    fontSize: moderateScale(18),
-    fontWeight: "600",
-    color: colors.white,
+    fontSize: moderateScale(17),
+    fontWeight: "700",
+    color: colors.primaryBlue,
+    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+
+  headerSubtitle: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(12),
+    color: colors.lightText,
+    textAlign: "center",
+  },
+
+  bodyWrapper: {
+    flex: 1,
+    backgroundColor: colors.surfaceBlueSheet,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    marginTop: verticalScale(-20),
+    borderTopLeftRadius: moderateScale(28),
+    borderTopRightRadius: moderateScale(28),
+  },
+
+  container: {
+    flex: 1,
+    padding: moderateScale(20),
   },
 
   sectionTitle: {
@@ -46,7 +67,9 @@ export default StyleSheet.create({
     borderRadius: moderateScale(24),
     padding: moderateScale(20),
     marginBottom: verticalScale(18),
-    elevation: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
 
   cardTop: {

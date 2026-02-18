@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,10 @@ import {
   Platform,
   KeyboardAvoidingView,
   Image,
-  Animated,
   TextInput,
+  TouchableOpacity,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../constants/colors";
@@ -18,40 +17,26 @@ import { moderateScale } from "../../constants/metrics";
 import WelcomeModal from "../../components/WelcomeModal";
 import { ROUTES } from "../../navigation/routes";
 
-const OtpScreen = ({ route, navigation }) => {
-  const { mobile } = route.params || {};
+const OTP_LENGTH = 6;
 
-  const [otp, setOtp] = useState(["", "", "", ""]);
+const OtpScreen = ({ route, navigation }) => {
+  const { mobile, identifier } = route.params || {};
+  const destination = identifier || mobile || "your registered number";
+
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
+  const scrollRef = useRef(null);
   const inputs = useRef([]);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  // Fade animation
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
+    setTimeout(() => {
+      inputs.current[0]?.focus();
+    }, 120);
   }, []);
 
-  useEffect(() => {
-    inputs.current[0]?.focus();
-  }, []);
-
-  useEffect(() => {
-    const joined = otp.join("");
-
-    if (joined.length === 4 && !joined.includes("")) {
-      handleSubmit(joined);
-    }
-  }, [otp]);
-
-  // Timer countdown
   useEffect(() => {
     if (timer === 0) {
       setCanResend(true);
@@ -65,38 +50,55 @@ const OtpScreen = ({ route, navigation }) => {
     return () => clearInterval(interval);
   }, [timer]);
 
+  const scrollToBottom = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 120);
+    });
+  };
+
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate(ROUTES.AUTH.LOGIN);
+  };
+
+  const goBackToLogin = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: ROUTES.AUTH.LOGIN }],
+    });
+  };
+
   const handleChange = (text, index) => {
-    if (!/^\d?$/.test(text)) return; // allow only single digit
+    if (!/^\d?$/.test(text)) return;
 
-    const newOtp = [...otp];
-    newOtp[index] = text;
-    setOtp(newOtp);
+    const nextOtp = [...otp];
+    nextOtp[index] = text;
+    setOtp(nextOtp);
 
-    // Move forward only if a digit was entered
-    if (text !== "" && index < 3) {
-      inputs.current[index + 1].focus();
-    }
-
-    // Auto submit only if all digits filled
-    if (newOtp.every((digit) => digit !== "")) {
-      handleSubmit(newOtp.join(""));
+    if (text && index < OTP_LENGTH - 1) {
+      inputs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyPress = (e, index) => {
-    if (e.nativeEvent.key === "Backspace") {
-      if (otp[index] === "" && index > 0) {
-        const newOtp = [...otp];
-        newOtp[index - 1] = "";
-        setOtp(newOtp);
-        inputs.current[index - 1].focus();
-      }
+  const handleKeyPress = (event, index) => {
+    if (event.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+      inputs.current[index - 1]?.focus();
     }
   };
 
-  const handleSubmit = (otpValue) => {
-    console.log("OTP Submitted:", otpValue);
-    // Show welcome first
+  const handleSubmit = () => {
+    const enteredOtp = otp.join("");
+
+    if (enteredOtp.length !== OTP_LENGTH || otp.some((digit) => digit === "")) {
+      return;
+    }
+
     setShowWelcome(true);
   };
 
@@ -105,66 +107,77 @@ const OtpScreen = ({ route, navigation }) => {
 
     setTimer(30);
     setCanResend(false);
-    console.log("OTP Resent");
+    setOtp(Array(OTP_LENGTH).fill(""));
+
+    setTimeout(() => {
+      inputs.current[0]?.focus();
+    }, 140);
   };
 
   return (
     <LinearGradient
-      colors={[colors.primaryBlue, colors.primaryGreen]}
+      colors={[colors.white, colors.surfaceBlue]}
       style={styles.container}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+        style={styles.container}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* TOP SECTION */}
-          <View style={styles.topSection}>
-            <IconButton
-              icon="arrow-left"
-              size={moderateScale(24)}
-              iconColor="#FFFFFF"
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            />
-            <Image
-              source={require("../../assets/images/logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.systemText}>Water Management System</Text>
-          </View>
+        <View style={styles.topSection}>
+          <IconButton
+            icon="arrow-left"
+            size={moderateScale(24)}
+            iconColor={colors.primaryBlueDark}
+            style={styles.backButton}
+            onPress={goBack}
+          />
 
-          {/* BOTTOM SHEET */}
-          <Animated.View style={[styles.sheet, { opacity: fadeAnim }]}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+
+          <Text style={styles.systemText}>Water Management System</Text>
+        </View>
+
+        <View style={styles.sheet}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.sheetContent}
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            overScrollMode="never"
+          >
             <Text style={styles.title}>OTP Verification</Text>
+            <Text style={styles.subtitle}>Enter the 6-digit OTP sent to {destination}.</Text>
 
-            <Text style={styles.subtitle}>OTP sent to {"8319592043"}</Text>
-
-            {/* OTP BOXES */}
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputs.current[index] = ref;
+                  }}
                   value={digit}
                   onChangeText={(text) => handleChange(text, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  onKeyPress={(event) => handleKeyPress(event, index)}
                   keyboardType="number-pad"
                   maxLength={1}
                   style={styles.otpBox}
+                  onFocus={scrollToBottom}
                 />
               ))}
             </View>
 
             <Button
               mode="contained"
-              onPress={() => handleSubmit(otp.join(""))}
-              style={styles.button}
-              contentStyle={{ height: 50 }}
+              onPress={handleSubmit}
+              style={styles.primaryButton}
+              contentStyle={styles.primaryButtonContent}
             >
               Verify OTP
             </Button>
@@ -176,16 +189,21 @@ const OtpScreen = ({ route, navigation }) => {
             <Button mode="text" onPress={handleResend} disabled={!canResend}>
               Resend OTP
             </Button>
-          </Animated.View>
-          <WelcomeModal
-            visible={showWelcome}
-            userName={"Ritesh Mehra"}
-            onClose={() => {
-              setShowWelcome(false);
-              navigation.replace(ROUTES.ROOT.APP_TABS);
-            }}
-          />
-        </ScrollView>
+
+            <TouchableOpacity style={styles.loginLinkButton} onPress={goBackToLogin}>
+              <Text style={styles.loginLinkText}>Back to Login</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        <WelcomeModal
+          visible={showWelcome}
+          userName={"Ritesh Mehra"}
+          onClose={() => {
+            setShowWelcome(false);
+            navigation.replace(ROUTES.ROOT.APP_TABS);
+          }}
+        />
       </KeyboardAvoidingView>
     </LinearGradient>
   );

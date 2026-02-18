@@ -4,13 +4,15 @@ import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceBlueSheet,
     paddingHorizontal: moderateScale(16),
   },
 
   tabBar: {
     flexDirection: "row",
     backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     borderRadius: moderateScale(24),
     height: verticalScale(60),
     alignItems: "center",

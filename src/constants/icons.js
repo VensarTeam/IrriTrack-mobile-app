@@ -5,6 +5,9 @@ import {
   AboutIcon,
   DashboardIcon,
   LogoutIcon,
+  DownIcon,
+  UpIcon,
+  DirectionIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -13,5 +16,8 @@ export const Icons = {
   login: LoginIcon,
   about: AboutIcon,
   dashboard: DashboardIcon,
-  logout: LogoutIcon
+  logout: LogoutIcon,
+  down: DownIcon,
+  up: UpIcon,
+  direction:DirectionIcon
 };

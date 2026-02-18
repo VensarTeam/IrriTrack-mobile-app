@@ -41,10 +41,10 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "red" }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* HEADER */}
       <LinearGradient
-        colors={[colors.primaryBlue, colors.primaryGreen]}
+        colors={[colors.appHeaderStart, colors.appHeaderEnd]}
         style={styles.header}
       >
         <View style={styles.avatar}>

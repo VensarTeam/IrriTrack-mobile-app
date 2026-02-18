@@ -44,25 +44,42 @@ export default StyleSheet.create({
   },
 
   sheetContent: {
-    flexGrow: 1,
     paddingHorizontal: moderateScale(22),
     paddingTop: verticalScale(22),
     paddingBottom: verticalScale(28),
+    flexGrow: 1,
   },
 
   title: {
     fontSize: typography.h1,
     fontWeight: "700",
-    marginBottom: verticalScale(4),
-    textAlign: "center",
     color: colors.textDark,
+    textAlign: "center",
+    marginBottom: verticalScale(4),
   },
 
-  subtitle: {
+  progressText: {
+    textAlign: "center",
+    color: colors.primaryBlue,
+    fontSize: typography.small,
+    fontWeight: "600",
+    marginBottom: verticalScale(16),
+  },
+
+  sectionTitle: {
+    color: colors.textDark,
+    fontSize: typography.body,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: verticalScale(6),
+  },
+
+  sectionSubtitle: {
     textAlign: "center",
     color: colors.textSecondary,
     fontSize: typography.small,
     marginBottom: verticalScale(14),
+    lineHeight: moderateScale(20),
   },
 
   switchRow: {
@@ -96,24 +113,60 @@ export default StyleSheet.create({
     color: colors.primaryBlue,
   },
 
-  forgotButton: {
-    alignSelf: "flex-end",
-    marginTop: verticalScale(2),
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: verticalScale(10),
   },
 
-  forgotText: {
+  otpBox: {
+    width: moderateScale(44),
+    height: verticalScale(52),
+    borderWidth: 1.5,
+    borderRadius: moderateScale(12),
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
+    textAlign: "center",
+    fontSize: moderateScale(20),
+    fontWeight: "700",
+    color: colors.textDark,
+  },
+
+  otpErrorText: {
+    color: colors.danger,
+    fontSize: typography.small,
+    marginBottom: verticalScale(8),
+    textAlign: "center",
+  },
+
+  primaryButton: {
+    marginTop: verticalScale(8),
+    borderRadius: moderateScale(14),
+  },
+
+  primaryButtonContent: {
+    height: verticalScale(50),
+  },
+
+  secondaryLink: {
+    alignSelf: "center",
+    marginTop: verticalScale(12),
+  },
+
+  secondaryLinkText: {
     color: colors.primaryBlue,
     fontSize: typography.small,
     fontWeight: "600",
   },
 
-  loginButton: {
-    marginTop: verticalScale(8),
-    borderRadius: moderateScale(14),
+  loginLinkButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(16),
   },
 
-  loginButtonContent: {
-    height: verticalScale(50),
+  loginLinkText: {
+    color: colors.textSecondary,
+    fontSize: typography.small,
+    fontWeight: "600",
   },
 });

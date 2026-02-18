@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { TextInput, HelperText } from "react-native-paper";
-import {
-  moderateScale,
-  verticalScale,
-} from "../constants/metrics";
+import { moderateScale, verticalScale } from "../constants/metrics";
 import colors from "../constants/colors";
 
 const FormInput = ({
@@ -16,7 +13,10 @@ const FormInput = ({
   onSubmitEditing,
   inputRef,
   leftIcon,
-  type
+  type,
+  onFocus,
+  onBlur,
+  ...restProps
 }) => {
   const [isSecure, setIsSecure] = useState(secure);
 
@@ -33,32 +33,29 @@ const FormInput = ({
         onSubmitEditing={onSubmitEditing}
         error={!!error}
         keyboardType={type}
-        left={
-          leftIcon ? (
-            <TextInput.Icon icon={leftIcon} />
-          ) : null
-        }
+        onFocus={onFocus}
+        onBlur={onBlur}
+        left={leftIcon ? <TextInput.Icon icon={leftIcon} /> : null}
         right={
           secure ? (
             <TextInput.Icon
               icon={isSecure ? "eye-off" : "eye"}
-              onPress={() =>
-                setIsSecure(!isSecure)
-              }
+              onPress={() => setIsSecure(!isSecure)}
             />
           ) : null
         }
         style={{
           marginBottom: verticalScale(6),
-          backgroundColor: "#F9FBFF",
+          backgroundColor: colors.inputBg,
         }}
         outlineStyle={{
           borderRadius: moderateScale(14),
           borderWidth: 1.5,
         }}
         activeOutlineColor={colors.primaryBlue}
-        outlineColor="#D0D7E2"
+        outlineColor={colors.inputOutline}
         textColor={colors.textDark}
+        {...restProps}
       />
 
       {error ? (

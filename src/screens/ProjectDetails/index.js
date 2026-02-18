@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   LayoutAnimation,
-  Platform,
-  UIManager,
   Image,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BarChart, PieChart } from "react-native-gifted-charts";
@@ -16,10 +16,11 @@ import { useNavigation } from "@react-navigation/native";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { ROUTES } from "../../navigation/routes";
+import { Icons } from "../../constants/icons";
 
-if (Platform.OS === "android") {
-  UIManager.setLayoutAnimationEnabledExperimental?.(true);
-}
+// if (Platform.OS === "android") {
+//   UIManager.setLayoutAnimationEnabledExperimental?.(true);
+// }
 
 const ProjectDetailsScreen = () => {
   const navigation = useNavigation();
@@ -27,6 +28,38 @@ const ProjectDetailsScreen = () => {
   const [expanded, setExpanded] = useState(null);
   const [chartType, setChartType] = useState("bar");
   const [selectedStage, setSelectedStage] = useState("All");
+
+  const chartAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    chartAnim.setValue(0);
+    Animated.timing(chartAnim, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [expanded, chartType, selectedStage, chartAnim]);
+
+  const chartAnimatedStyle = {
+    opacity: chartAnim,
+    transform: [
+      {
+        translateY: chartAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+      {
+        scale: chartAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.96, 1],
+        }),
+      },
+    ],
+  };
 
   const dataSet = {
     OMS: [
@@ -140,6 +173,9 @@ const ProjectDetailsScreen = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <BarChart
           data={barData}
+          isAnimated
+          animationDuration={700}
+          disablePress={true}
           barWidth={18}
           roundedTop
           hideRules={false}
@@ -187,7 +223,14 @@ const ProjectDetailsScreen = () => {
 
     return (
       <View style={styles.pieWrapper}>
-        <PieChart donut radius={100} innerRadius={60} data={data} />
+        <PieChart
+          donut
+          radius={100}
+          innerRadius={60}
+          data={data}
+          isAnimated
+          animationDuration={700}
+        />
 
         <View style={styles.pieCenter}>
           <Text style={styles.piePercent}>{percent}%</Text>
@@ -208,7 +251,7 @@ const ProjectDetailsScreen = () => {
   const getKpiStyle = (type) => {
     if (type === "OMS") {
       return {
-        bg: "#E3F2FD",
+        bg: colors.surfaceBlue,
         accent: colors.primaryBlue,
         value: 3842,
       };
@@ -216,15 +259,15 @@ const ProjectDetailsScreen = () => {
 
     if (type === "RMS") {
       return {
-        bg: "#E8F5E9",
+        bg: colors.surfaceGreenSoft,
         accent: colors.primaryGreen,
         value: 399,
       };
     }
 
     return {
-      bg: "#FFF8E1",
-      accent: "#FB8C00",
+      bg: colors.surfaceOrangeSoft,
+      accent: colors.primaryOrange,
       value: 45,
     };
   };
@@ -294,7 +337,7 @@ const ProjectDetailsScreen = () => {
                 >
                   <Text style={styles.sectionTitle}>{key} Status</Text>
                   <Text style={styles.sectionIcon}>
-                    {expanded === key ? "−" : "+"}
+                    {expanded === key ? <Icons.up width={14} height={14}/> : <Icons.down width={14} height={14} />}
                   </Text>
                 </TouchableOpacity>
 
@@ -343,9 +386,11 @@ const ProjectDetailsScreen = () => {
                     )}
 
                     <View style={styles.chartCard}>
-                      {chartType === "bar"
-                        ? renderBarChart(stages)
-                        : renderPieChart(stages)}
+                      <Animated.View style={chartAnimatedStyle}>
+                        {chartType === "bar"
+                          ? renderBarChart(stages)
+                          : renderPieChart(stages)}
+                      </Animated.View>
 
                       {/* LEGEND */}
                       <View style={styles.legendRow}>

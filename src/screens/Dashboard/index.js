@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { ROUTES } from "../../navigation/routes";
@@ -17,22 +16,22 @@ const projects = [
 
 const DashboardScreen = ({ navigation }) => {
   return (
-    <View style={{ flex: 1 }}>
-      {/* HEADER */}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LinearGradient
-        colors={[colors.primaryBlue, colors.primaryGreen]}
+        colors={[colors.white, colors.surfaceBluePale]}
         style={styles.header}
       >
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
 
         <Text style={styles.headerTitle}>Water Management System</Text>
       </LinearGradient>
 
-      {/* BODY */}
       <View style={styles.bodyWrapper}>
         <ScrollView
           contentContainerStyle={styles.container}
@@ -41,7 +40,7 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Active Projects</Text>
 
           {projects.map((item) => (
-            <ProjectCard key={item.id} item={item} navigation={navigation}/>
+            <ProjectCard key={item.id} item={item} navigation={navigation} />
           ))}
         </ScrollView>
       </View>
@@ -51,9 +50,12 @@ const DashboardScreen = ({ navigation }) => {
 
 export default DashboardScreen;
 
-const ProjectCard = ({ item,navigation }) => {
+const ProjectCard = ({ item, navigation }) => {
   return (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(ROUTES.ROOT.PROJECT_DETAILS)}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate(ROUTES.ROOT.PROJECT_DETAILS)}
+    >
       <View style={styles.cardTop}>
         <Image
           source={require("../../assets/images/gov_logo.png")}

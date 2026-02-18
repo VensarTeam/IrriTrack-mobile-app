@@ -32,7 +32,9 @@ export default StyleSheet.create({
   },
 
   badge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: colors.glassWhite,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(6),
     borderRadius: moderateScale(50),
@@ -45,8 +47,10 @@ export default StyleSheet.create({
 
   detailsContainer: {
     flex: 1,
-    backgroundColor: colors.white,
-    marginTop: verticalScale(-20),
+    backgroundColor: colors.surfaceBlueSheet,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    marginTop: verticalScale(-24),
     borderTopLeftRadius: moderateScale(30),
     borderTopRightRadius: moderateScale(30),
     padding: moderateScale(20),

@@ -48,7 +48,9 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(18),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(18),
-    elevation: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: "hidden",
   },
 
@@ -76,7 +78,9 @@ export default StyleSheet.create({
     marginBottom: verticalScale(15),
     borderRadius: moderateScale(18),
     padding: moderateScale(16),
-    elevation: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
 
   sectionHeader: {
@@ -187,7 +191,9 @@ export default StyleSheet.create({
   },
 
   stageCard: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     borderRadius: moderateScale(14),
     padding: moderateScale(14),
     marginBottom: verticalScale(12),

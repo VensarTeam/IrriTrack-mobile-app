@@ -5,6 +5,8 @@ import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
 import UnitListScreen from "../screens/UnitListScreen";
+import UnitDetailsScreen from "../screens/UnitDetails";
+import UnitStatusUpdateScreen from "../screens/UnitStatusUpdate";
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +25,20 @@ const RootNavigator = () => {
       <Stack.Screen
         name={ROUTES.ROOT.UNIT_LIST_SCREEN}
         component={UnitListScreen}
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.ROOT.UNIT_DETAILS}
+        component={UnitDetailsScreen}
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.ROOT.UNIT_STATUS_UPDATE}
+        component={UnitStatusUpdateScreen}
         options={{
           animation: "slide_from_right",
         }}

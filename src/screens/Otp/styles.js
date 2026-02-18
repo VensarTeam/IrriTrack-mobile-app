@@ -8,84 +8,107 @@ export default StyleSheet.create({
     flex: 1,
   },
 
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "space-between",
+  topSection: {
+    alignItems: "center",
+    paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(24),
+    paddingHorizontal: moderateScale(16),
   },
 
-  topSection: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: verticalScale(60),
+  backButton: {
+    position: "absolute",
+    left: moderateScale(4),
+    top: verticalScale(8),
   },
 
   logo: {
-    width: moderateScale(300),
-    height: moderateScale(80),
-    marginBottom: verticalScale(12),
+    width: moderateScale(240),
+    height: moderateScale(68),
+    marginBottom: verticalScale(8),
   },
 
   systemText: {
-    color: colors.white,
+    color: colors.primaryBlueDark,
     fontSize: typography.h2,
+    fontWeight: "500",
+    textAlign: "center",
   },
 
   sheet: {
-    backgroundColor: colors.white,
-    padding: moderateScale(24),
-    paddingBottom: verticalScale(40),
+    flex: 1,
+    backgroundColor: colors.surfaceBlueSheet,
+    borderTopWidth: 1,
+    borderColor: colors.border,
     borderTopLeftRadius: moderateScale(28),
     borderTopRightRadius: moderateScale(28),
+  },
+
+  sheetContent: {
+    flexGrow: 1,
+    paddingHorizontal: moderateScale(22),
+    paddingTop: verticalScale(22),
+    paddingBottom: verticalScale(28),
   },
 
   title: {
     fontSize: typography.h1,
     fontWeight: "700",
+    marginBottom: verticalScale(4),
     textAlign: "center",
-    marginBottom: verticalScale(10),
     color: colors.textDark,
   },
 
   subtitle: {
     textAlign: "center",
-    marginBottom: verticalScale(30),
     color: colors.textSecondary,
-    fontSize: typography.body,
+    fontSize: typography.small,
+    marginBottom: verticalScale(14),
   },
 
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: verticalScale(30),
+    marginBottom: verticalScale(12),
   },
 
   otpBox: {
-    width: moderateScale(60),
-    height: verticalScale(60),
+    width: moderateScale(44),
+    height: verticalScale(52),
     borderWidth: 1.5,
+    borderRadius: moderateScale(12),
     borderColor: colors.border,
-    borderRadius: moderateScale(14),
-    textAlign: "center",
-    fontSize: typography.h1,
-    color: colors.textDark,
     backgroundColor: colors.inputBg,
+    textAlign: "center",
+    fontSize: moderateScale(20),
+    fontWeight: "700",
+    color: colors.textDark,
   },
 
-  button: {
-    marginBottom: verticalScale(20),
+  primaryButton: {
+    marginTop: verticalScale(8),
+    borderRadius: moderateScale(14),
   },
 
-  backButton: {
-    position: "absolute",
-    left: moderateScale(10),
-    top: verticalScale(-10),
+  primaryButtonContent: {
+    height: verticalScale(50),
   },
 
   timerText: {
     textAlign: "center",
-    marginBottom: verticalScale(8),
+    marginTop: verticalScale(12),
+    marginBottom: verticalScale(4),
     color: colors.textSecondary,
     fontSize: typography.small,
+  },
+
+  loginLinkButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(12),
+  },
+
+  loginLinkText: {
+    color: colors.primaryBlue,
+    fontSize: typography.small,
+    fontWeight: "600",
   },
 });

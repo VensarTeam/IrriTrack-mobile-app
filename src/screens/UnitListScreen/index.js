@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../constants/colors";
-import { Icon } from "react-native-paper";
+import { Icons } from "../../constants/icons";
+import { ROUTES } from "../../navigation/routes";
 
 const zones = Array.from({ length: 21 }, (_, i) => `Zone-${i + 1}`);
 const distributors = ["Minor", "Sub Minor"];
@@ -26,10 +27,7 @@ const UnitListScreen = ({ navigation, route }) => {
   const [zone, setZone] = useState("All");
   const [distributor, setDistributor] = useState("All");
   const [village, setVillage] = useState("All");
-
   const [filterType, setFilterType] = useState(null);
-
-  /* ================= DUMMY DATA ================= */
 
   const data = [
     {
@@ -64,8 +62,6 @@ const UnitListScreen = ({ navigation, route }) => {
     },
   ];
 
-  /* ================= FILTER LOGIC ================= */
-
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       return (
@@ -77,26 +73,68 @@ const UnitListScreen = ({ navigation, route }) => {
     });
   }, [search, zone, distributor, village]);
 
-  /* ================= MAP ================= */
+  const hasActiveFilters =
+    !!search.trim() || zone !== "All" || distributor !== "All" || village !== "All";
 
   const openMap = (lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url);
   };
 
-  /* ================= CARD ================= */
+  const getActiveFilterValue = () => {
+    if (filterType === "zone") return zone;
+    if (filterType === "distributor") return distributor;
+    if (filterType === "village") return village;
+    return "";
+  };
+
+  const applyFilter = (item) => {
+    if (filterType === "zone") setZone(item);
+    if (filterType === "distributor") setDistributor(item);
+    if (filterType === "village") setVillage(item);
+    setFilterType(null);
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setZone("All");
+    setDistributor("All");
+    setVillage("All");
+  };
 
   const renderCard = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.unitNo}>{item.unitNo}</Text>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.9}
+      onPress={() =>
+        navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
+          module,
+          unit: item,
+          projectName: "Kayampur Sitamau P.M.I.P",
+        })
+      }
+    >
+      <View style={styles.cardTopRow}>
+        <View style={styles.unitInfoBlock}>
+          <View style={styles.unitBadge}>
+            <Text style={styles.unitBadgeText}>{module}</Text>
+          </View>
+          <Text style={styles.unitNo}>{item.unitNo}</Text>
+        </View>
 
         <TouchableOpacity
           style={styles.directionBtn}
           onPress={() => openMap(item.latitude, item.longitude)}
         >
+          <Icons.direction width={14} height={14} />
           <Text style={styles.directionText}>Direction</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.metaRow}>
+        <Meta label="Zone" value={item.zone} />
+        <Meta label="Distributor" value={item.distributor} />
+        <Meta label="Village" value={item.village} />
       </View>
 
       <View style={styles.statusGrid}>
@@ -107,46 +145,59 @@ const UnitListScreen = ({ navigation, route }) => {
         <Status label="Dry Comm." value={item.dry} />
         <Status label="Wet Comm." value={item.wet} />
       </View>
+    </TouchableOpacity>
+  );
 
-      <View style={styles.metaRow}>
-        <Meta label="Zone" value={item.zone} />
-        <Meta label="Distributor" value={item.distributor} />
-        <Meta label="Village" value={item.village} />
+  const renderEmptyState = () => (
+    <View style={styles.emptyWrapper}>
+      <View style={styles.emptyIconWrap}>
+        <Icons.down width={16} height={16} />
       </View>
+
+      <Text style={styles.emptyTitle}>No units found</Text>
+      <Text style={styles.emptySubtitle}>
+        No data matches your current search and filters.
+      </Text>
+
+      {hasActiveFilters ? (
+        <TouchableOpacity style={styles.emptyActionBtn} onPress={clearFilters}>
+          <Text style={styles.emptyActionText}>Clear Filters</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
-  const FilterButton = ({ icon, label, active, onPress }) => {
+  const FilterButton = ({ title, label, active, onPress }) => {
     return (
       <TouchableOpacity
         style={[styles.filterBtn, active && styles.filterBtnActive]}
         onPress={onPress}
       >
-        <Icon
-          source={icon}
-          size={18}
-          color={active ? colors.white : colors.primaryBlue}
-        />
-        <Text
-          style={[styles.filterText, active && styles.filterTextActive]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
+        <View style={styles.filterTextBlock}>
+          <Text style={styles.filterTitle}>{title}</Text>
+          <Text
+            style={[styles.filterValue, active && styles.filterValueActive]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        </View>
+
+        <View style={styles.filterArrowWrap}>
+          <Icons.down width={10} height={10} />
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
         <Text style={styles.headerTitle}>{module} Units</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* SEARCH */}
       <TextInput
         placeholder={`Search ${module} No...`}
         placeholderTextColor={colors.textSecondary}
@@ -155,40 +206,41 @@ const UnitListScreen = ({ navigation, route }) => {
         style={styles.searchInput}
       />
 
-      {/* FILTER CHIPS */}
       <View style={styles.filterContainer}>
         <FilterButton
-          icon="map-marker-outline"
+          title="Zone"
           label={zone}
           active={zone !== "All"}
           onPress={() => setFilterType("zone")}
         />
 
         <FilterButton
-          icon="domain"
+          title="Distributor"
           label={distributor}
           active={distributor !== "All"}
           onPress={() => setFilterType("distributor")}
         />
 
         <FilterButton
-          icon="home-city-outline"
+          title="Village"
           label={village}
           active={village !== "All"}
           onPress={() => setFilterType("village")}
         />
       </View>
 
-      {/* LIST */}
       <FlatList
         data={filteredData}
         keyExtractor={(item) => item.id}
         renderItem={renderCard}
+        ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={[
+          styles.listContent,
+          filteredData.length === 0 && styles.listEmptyContent,
+        ]}
       />
 
-      {/* FILTER MODAL */}
       <Modal visible={!!filterType} transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -203,15 +255,20 @@ const UnitListScreen = ({ navigation, route }) => {
               ).map((item) => (
                 <TouchableOpacity
                   key={item}
-                  style={styles.modalItem}
-                  onPress={() => {
-                    if (filterType === "zone") setZone(item);
-                    if (filterType === "distributor") setDistributor(item);
-                    if (filterType === "village") setVillage(item);
-                    setFilterType(null);
-                  }}
+                  style={[
+                    styles.modalItem,
+                    item === getActiveFilterValue() && styles.modalItemActive,
+                  ]}
+                  onPress={() => applyFilter(item)}
                 >
-                  <Text style={styles.modalText}>{item}</Text>
+                  <Text
+                    style={[
+                      styles.modalText,
+                      item === getActiveFilterValue() && styles.modalTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -228,20 +285,22 @@ const UnitListScreen = ({ navigation, route }) => {
 
 export default UnitListScreen;
 
-/* ================= SUB COMPONENTS ================= */
+const getStatusColor = (value) => {
+  if (value === "Completed") return colors.completed;
+  if (value === "Pending") return colors.pending;
+  return colors.partial;
+};
 
 const Status = ({ label, value }) => {
-  const getColor = () => {
-    if (value === "Completed") return colors.completed;
-    if (value === "Pending") return colors.pending;
-    return colors.partial;
-  };
+  const statusColor = getStatusColor(value);
 
   return (
-    <View style={styles.statusItem}>
-      <View style={[styles.statusDot, { backgroundColor: getColor() }]} />
-      <Text style={styles.statusLabel}>{label}</Text>
-      <Text style={styles.statusValue}>{value}</Text>
+    <View style={[styles.statusItem, { backgroundColor: `${statusColor}1A` }]}>
+      <View style={styles.statusHeader}>
+        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+        <Text style={styles.statusLabel}>{label}</Text>
+      </View>
+      <Text style={[styles.statusValue, { color: statusColor }]}>{value}</Text>
     </View>
   );
 };
@@ -251,10 +310,4 @@ const Meta = ({ label, value }) => (
     <Text style={styles.metaLabel}>{label}</Text>
     <Text style={styles.metaValue}>{value}</Text>
   </View>
-);
-
-const FilterChip = ({ label, onPress }) => (
-  <TouchableOpacity style={styles.filterChip} onPress={onPress}>
-    <Text style={styles.filterChipText}>{label}</Text>
-  </TouchableOpacity>
 );
