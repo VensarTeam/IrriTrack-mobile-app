@@ -1,48 +1,15 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "./styles";
 import colors from "../../constants/colors";
-import { ROUTES } from "../../navigation/routes";
+import useProfileViewModel from "../../viewmodels/useProfileViewModel";
 
 const ProfileScreen = ({ navigation }) => {
-  const user = {
-    name: "Ritesh Mehra",
-    mobile: "9876543210",
-    email: "ritesh.mehra@wms.in",
-    designation: "Site Engineer",
-  };
-
-  const initials = user.name.split(" ")[0][0] + user.name.split(" ")[1][0];
-
-  const handleLogout = () => {
-    Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
-            });
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  };
+  const { user, initials, handleLogout } = useProfileViewModel(navigation);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* HEADER */}
       <LinearGradient
         colors={[colors.appHeaderStart, colors.appHeaderEnd]}
         style={styles.header}
@@ -58,16 +25,12 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </LinearGradient>
 
-      {/* DETAILS SECTION */}
       <View style={styles.detailsContainer}>
         <InfoRow label="Mobile" value={user.mobile} />
         <InfoRow label="Email" value={user.email} />
         <InfoRow label="Designation" value={user.designation} />
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 

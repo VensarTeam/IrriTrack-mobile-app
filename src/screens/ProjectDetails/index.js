@@ -1,13 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  LayoutAnimation,
   Image,
   Animated,
-  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BarChart, PieChart } from "react-native-gifted-charts";
@@ -15,159 +13,30 @@ import { IconButton } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import styles from "./styles";
 import colors from "../../constants/colors";
-import { ROUTES } from "../../navigation/routes";
 import { Icons } from "../../constants/icons";
-
-// if (Platform.OS === "android") {
-//   UIManager.setLayoutAnimationEnabledExperimental?.(true);
-// }
+import useProjectDetailsViewModel from "../../viewmodels/useProjectDetailsViewModel";
 
 const ProjectDetailsScreen = () => {
   const navigation = useNavigation();
-
-  const [expanded, setExpanded] = useState(null);
-  const [chartType, setChartType] = useState("bar");
-  const [selectedStage, setSelectedStage] = useState("All");
-
-  const chartAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!expanded) return;
-
-    chartAnim.setValue(0);
-    Animated.timing(chartAnim, {
-      toValue: 1,
-      duration: 420,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [expanded, chartType, selectedStage, chartAnim]);
-
-  const chartAnimatedStyle = {
-    opacity: chartAnim,
-    transform: [
-      {
-        translateY: chartAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [18, 0],
-        }),
-      },
-      {
-        scale: chartAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.96, 1],
-        }),
-      },
-    ],
-  };
-
-  const dataSet = {
-    OMS: [
-      {
-        label: "Inlet Pipe Laying",
-        completed: 3700,
-        pending: 40,
-        partial: 102,
-      },
-      {
-        label: "Outlet Pipe Laying",
-        completed: 2000,
-        pending: 1000,
-        partial: 842,
-      },
-      {
-        label: "Mechanical Installation",
-        completed: 1000,
-        pending: 842,
-        partial: 2000,
-      },
-      {
-        label: "Controller Installation",
-        completed: 1000,
-        pending: 842,
-        partial: 2000,
-      },
-      {
-        label: "Dry Commissioning",
-        completed: 842,
-        pending: 1000,
-        partial: 2000,
-      },
-      {
-        label: "Wet Commissioning",
-        completed: 842,
-        pending: 1000,
-        partial: 2000,
-      },
-    ],
-    RMS: [
-      { label: "Inlet Pipe Laying", completed: 200, pending: 100, partial: 99 },
-      {
-        label: "Outlet Pipe Laying",
-        completed: 100,
-        pending: 200,
-        partial: 99,
-      },
-      {
-        label: "Mechanical Installation",
-        completed: 79,
-        pending: 300,
-        partial: 20,
-      },
-      {
-        label: "Controller Installation",
-        completed: 79,
-        pending: 300,
-        partial: 20,
-      },
-      { label: "Dry Commissioning", completed: 19, pending: 350, partial: 30 },
-      { label: "Wet Commissioning", completed: 19, pending: 350, partial: 30 },
-    ],
-    GW: [],
-  };
-
-  const toggleSection = (key) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded(expanded === key ? null : key);
-  };
-
-  const getShortLabel = (label) => {
-    if (label.includes("Inlet")) return "Inlet";
-    if (label.includes("Outlet")) return "Outlet";
-    if (label.includes("Mechanical")) return "Mechanical";
-    if (label.includes("Controller")) return "Controller";
-    if (label.includes("Dry")) return "Dry";
-    if (label.includes("Wet")) return "Wet";
-
-    return label.length > 8 ? label.substring(0, 6) + "..." : label;
-  };
+  const {
+    dataSet,
+    expanded,
+    chartType,
+    selectedStage,
+    chartAnimatedStyle,
+    toggleSection,
+    setChartType,
+    setSelectedStage,
+    buildBarChartData,
+    buildPieChartData,
+    getStagePercent,
+    kpiCards,
+    handleBack,
+    openModuleList,
+  } = useProjectDetailsViewModel(navigation);
 
   const renderBarChart = (stages) => {
-    const barData = [];
-
-    stages.forEach((stage) => {
-      // First bar (Completed)
-      barData.push({
-        value: stage.completed,
-        frontColor: colors.completed,
-        spacing: 4,
-      });
-
-      // Second bar (Pending) — THIS GETS LABEL
-      barData.push({
-        value: stage.pending,
-        frontColor: colors.pending,
-        label: stage.label.split(" ")[0], // short label
-        spacing: 4,
-      });
-
-      // Third bar (Partial)
-      barData.push({
-        value: stage.partial,
-        frontColor: colors.partial,
-        spacing: 25, // gap before next stage group
-      });
-    });
+    const barData = buildBarChartData(stages);
 
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -187,39 +56,16 @@ const ProjectDetailsScreen = () => {
           xAxisLabelTextStyle={{
             color: colors.textSecondary,
             fontSize: 10,
-            width: 40
+            width: 40,
           }}
-          xAxisLabelWidth={80} // IMPORTANT
+          xAxisLabelWidth={80}
         />
       </ScrollView>
     );
   };
 
   const renderPieChart = (stages) => {
-    let data;
-
-    if (selectedStage === "All") {
-      const totalCompleted = stages.reduce((s, i) => s + i.completed, 0);
-      const totalPending = stages.reduce((s, i) => s + i.pending, 0);
-      const totalPartial = stages.reduce((s, i) => s + i.partial, 0);
-
-      data = [
-        { value: totalCompleted, color: colors.completed },
-        { value: totalPending, color: colors.pending },
-        { value: totalPartial, color: colors.partial },
-      ];
-    } else {
-      const stage = stages.find((s) => s.label === selectedStage);
-
-      data = [
-        { value: stage.completed, color: colors.completed },
-        { value: stage.pending, color: colors.pending },
-        { value: stage.partial, color: colors.partial },
-      ];
-    }
-
-    const total = data.reduce((s, i) => s + i.value, 0);
-    const percent = total ? Math.round((data[0].value / total) * 100) : 0;
+    const { data, percent } = buildPieChartData(stages);
 
     return (
       <View style={styles.pieWrapper}>
@@ -248,40 +94,11 @@ const ProjectDetailsScreen = () => {
     </View>
   );
 
-  const getKpiStyle = (type) => {
-    if (type === "OMS") {
-      return {
-        bg: colors.surfaceBlue,
-        accent: colors.primaryBlue,
-        value: 3842,
-      };
-    }
-
-    if (type === "RMS") {
-      return {
-        bg: colors.surfaceGreenSoft,
-        accent: colors.primaryGreen,
-        value: 399,
-      };
-    }
-
-    return {
-      bg: colors.surfaceOrangeSoft,
-      accent: colors.primaryOrange,
-      value: 45,
-    };
-  };
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.container}>
-        {/* HEADER */}
         <View style={styles.header}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            onPress={() => navigation.goBack()}
-          />
+          <IconButton icon="arrow-left" size={24} onPress={handleBack} />
           <View>
             <Image
               source={require("../../assets/images/logo.png")}
@@ -294,37 +111,31 @@ const ProjectDetailsScreen = () => {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* KPI NAVIGATION CARDS */}
           <View style={styles.kpiContainer}>
-            {["OMS", "RMS", "GW"].map((item) => {
-              const config = getKpiStyle(item);
-
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.kpiCard,
-                    {
-                      backgroundColor: config.bg,
-                      borderLeftWidth: 5,
-                      borderLeftColor: config.accent,
-                    },
-                  ]}
-                  onPress={() => navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, { module: "OMS" })}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.kpiContent}>
-                    <Text style={styles.kpiTitle}>{item}</Text>
-                    <Text style={[styles.kpiValue, { color: config.accent }]}>
-                      {config.value}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            {kpiCards.map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[
+                  styles.kpiCard,
+                  {
+                    backgroundColor: item.bg,
+                    borderLeftWidth: 5,
+                    borderLeftColor: item.accent,
+                  },
+                ]}
+                onPress={() => openModuleList("OMS")}
+                activeOpacity={0.85}
+              >
+                <View style={styles.kpiContent}>
+                  <Text style={styles.kpiTitle}>{item.key}</Text>
+                  <Text style={[styles.kpiValue, { color: item.accent }]}>
+                    {item.value}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* EXPANDABLE SECTIONS */}
           {Object.keys(dataSet).map((key) => {
             const stages = dataSet[key];
             if (!stages.length) return null;
@@ -337,7 +148,11 @@ const ProjectDetailsScreen = () => {
                 >
                   <Text style={styles.sectionTitle}>{key} Status</Text>
                   <Text style={styles.sectionIcon}>
-                    {expanded === key ? <Icons.up width={14} height={14}/> : <Icons.down width={14} height={14} />}
+                    {expanded === key ? (
+                      <Icons.up width={14} height={14} />
+                    ) : (
+                      <Icons.down width={14} height={14} />
+                    )}
                   </Text>
                 </TouchableOpacity>
 
@@ -392,28 +207,19 @@ const ProjectDetailsScreen = () => {
                           : renderPieChart(stages)}
                       </Animated.View>
 
-                      {/* LEGEND */}
                       <View style={styles.legendRow}>
                         <Legend color={colors.completed} label="Completed" />
                         <Legend color={colors.pending} label="Pending" />
                         <Legend color={colors.partial} label="Partial" />
                       </View>
 
-                      {/* STAGE BREAKDOWN */}
                       <View style={styles.stageList}>
                         {stages.map((stage) => {
-                          const total =
-                            stage.completed + stage.pending + stage.partial;
-
-                          const percent = total
-                            ? Math.round((stage.completed / total) * 100)
-                            : 0;
+                          const percent = getStagePercent(stage);
 
                           return (
                             <View key={stage.label} style={styles.stageCard}>
-                              <Text style={styles.stageTitle}>
-                                {stage.label}
-                              </Text>
+                              <Text style={styles.stageTitle}>{stage.label}</Text>
 
                               <View style={styles.stageRow}>
                                 <StatusItem
@@ -465,8 +271,6 @@ const ProjectDetailsScreen = () => {
 };
 
 export default ProjectDetailsScreen;
-
-/* COMPONENTS */
 
 const ToggleButton = ({ label, active, onPress }) => (
   <TouchableOpacity

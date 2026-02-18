@@ -110,6 +110,9 @@ export default StyleSheet.create({
   statusListHeader: {
     marginTop: verticalScale(2),
     marginBottom: verticalScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   statusListTitle: {
@@ -122,6 +125,21 @@ export default StyleSheet.create({
     marginTop: verticalScale(2),
     fontSize: moderateScale(11),
     color: colors.textSecondary,
+  },
+
+  viewAllButton: {
+    backgroundColor: colors.surfaceBlueSoft,
+    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  viewAllText: {
+    fontSize: moderateScale(11),
+    fontWeight: "600",
+    color: colors.primaryBlue,
   },
 
   statusCard: {
@@ -142,10 +160,41 @@ export default StyleSheet.create({
     marginBottom: verticalScale(6),
   },
 
+  sectionToggleButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  chevronWrap: {
+    marginLeft: moderateScale(2),
+  },
+
+  chevronWrapExpanded: {
+    transform: [{ rotate: "180deg" }],
+  },
+
   statusCardTitle: {
     fontSize: moderateScale(14),
     fontWeight: "700",
     color: colors.textDark,
+  },
+
+  updateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.lightGreen,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(14),
+    borderColor: colors.primaryGreen,
+    borderWidth: 1,
+  },
+
+  updateButtonText: {
+    fontSize: moderateScale(11),
+    fontWeight: "600",
+    color: colors.primaryGreen,
   },
 
   statusCardDescription: {
@@ -154,23 +203,78 @@ export default StyleSheet.create({
     lineHeight: moderateScale(16),
   },
 
-  chipsRow: {
+  subStatusList: {
+    marginTop: verticalScale(10),
+  },
+
+  subStatusItem: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: verticalScale(8),
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: verticalScale(8),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
 
-  subChip: {
-    backgroundColor: colors.surfaceBluePale,
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: moderateScale(8),
+  subStatusItemLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+
+  subStatusLabel: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontWeight: "600",
+    flex: 1,
+    paddingRight: moderateScale(10),
+  },
+
+  statusPill: {
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(4),
     borderRadius: moderateScale(12),
-    marginRight: moderateScale(6),
-    marginBottom: verticalScale(6),
   },
 
-  subChipText: {
+  statusPillText: {
     fontSize: moderateScale(10),
+    fontWeight: "600",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(20),
+  },
+
+  modalCard: {
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(18),
+    padding: moderateScale(18),
+  },
+
+  modalTitle: {
+    fontSize: moderateScale(14),
+    fontWeight: "700",
+    color: colors.textDark,
+    marginBottom: verticalScale(10),
+  },
+
+  modalItem: {
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+
+  modalText: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+  },
+
+  closeText: {
+    textAlign: "center",
+    marginTop: verticalScale(12),
+    fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontWeight: "600",
   },

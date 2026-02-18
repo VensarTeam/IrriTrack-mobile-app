@@ -3,18 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
-import { ROUTES } from "../../navigation/routes";
-
-const projects = [
-  {
-    id: 1,
-    client: "Government of Madhya Pradesh",
-    name: "Kayampur Sitamau P.M.I.P",
-    area: "112124 Ha",
-  },
-];
+import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 
 const DashboardScreen = ({ navigation }) => {
+  const { projects, openProject } = useDashboardViewModel(navigation);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LinearGradient
@@ -40,7 +33,7 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Active Projects</Text>
 
           {projects.map((item) => (
-            <ProjectCard key={item.id} item={item} navigation={navigation} />
+            <ProjectCard key={item.id} item={item} onPress={openProject} />
           ))}
         </ScrollView>
       </View>
@@ -50,12 +43,9 @@ const DashboardScreen = ({ navigation }) => {
 
 export default DashboardScreen;
 
-const ProjectCard = ({ item, navigation }) => {
+const ProjectCard = ({ item, onPress }) => {
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate(ROUTES.ROOT.PROJECT_DETAILS)}
-    >
+    <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.cardTop}>
         <Image
           source={require("../../assets/images/gov_logo.png")}

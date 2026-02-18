@@ -189,6 +189,27 @@ export default StyleSheet.create({
     fontWeight: "700",
   },
 
+  photoPreviewWrap: {
+    marginTop: verticalScale(10),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    overflow: "hidden",
+    backgroundColor: colors.background,
+  },
+
+  photoPreviewImage: {
+    width: "100%",
+    height: verticalScale(170),
+  },
+
+  photoPreviewHint: {
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    paddingVertical: verticalScale(6),
+    textAlign: "center",
+  },
+
   photoMetaCard: {
     marginTop: verticalScale(8),
     borderWidth: 1,
@@ -321,6 +342,46 @@ export default StyleSheet.create({
   },
 
   modalCloseText: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
+  },
+
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(16),
+  },
+
+  previewCloseArea: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  previewCard: {
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(10),
+    maxHeight: "80%",
+  },
+
+  previewImage: {
+    width: "100%",
+    height: verticalScale(360),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.background,
+  },
+
+  previewCloseBtn: {
+    marginTop: verticalScale(10),
+    alignSelf: "center",
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(16),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlueSoft,
+  },
+
+  previewCloseText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontWeight: "700",

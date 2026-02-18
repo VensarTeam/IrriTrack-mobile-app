@@ -1,0 +1,17 @@
+export const createUnit = (data) => ({
+  id: data.id,
+  unitNo: data.unitNo,
+  zone: data.zone,
+  distributor: data.distributor,
+  village: data.village,
+  latitude: data.latitude,
+  longitude: data.longitude,
+  inlet: data.inlet,
+  outlet: data.outlet,
+  mechanical: data.mechanical,
+  controller: data.controller,
+  dry: data.dry,
+  wet: data.wet,
+  area: data.area,
+  chakArea: data.chakArea,
+});

@@ -4,6 +4,7 @@ const colors = {
   primaryBlueDark: "#16324F",
   primaryGreen: "#5DAE84",
   primaryOrange: "#E79A4A",
+  lightGreen: "#d5f1e2",
 
   // Premium app shell tones
   appHeaderStart: "#162F49",

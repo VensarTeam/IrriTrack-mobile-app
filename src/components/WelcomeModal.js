@@ -38,7 +38,6 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
         <Animated.View
           style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
-          <Text style={styles.logoText}>WMS</Text>
 
           <Text style={styles.title}>Welcome Back</Text>
 

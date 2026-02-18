@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -15,104 +15,26 @@ import styles from "./styles";
 import colors from "../../constants/colors";
 import { moderateScale } from "../../constants/metrics";
 import WelcomeModal from "../../components/WelcomeModal";
-import { ROUTES } from "../../navigation/routes";
-
-const OTP_LENGTH = 6;
+import useOtpViewModel from "../../viewmodels/useOtpViewModel";
 
 const OtpScreen = ({ route, navigation }) => {
-  const { mobile, identifier } = route.params || {};
-  const destination = identifier || mobile || "your registered number";
-
-  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
-  const [timer, setTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-
-  const scrollRef = useRef(null);
-  const inputs = useRef([]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      inputs.current[0]?.focus();
-    }, 120);
-  }, []);
-
-  useEffect(() => {
-    if (timer === 0) {
-      setCanResend(true);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setTimer((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [timer]);
-
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 120);
-    });
-  };
-
-  const goBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
-    navigation.navigate(ROUTES.AUTH.LOGIN);
-  };
-
-  const goBackToLogin = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: ROUTES.AUTH.LOGIN }],
-    });
-  };
-
-  const handleChange = (text, index) => {
-    if (!/^\d?$/.test(text)) return;
-
-    const nextOtp = [...otp];
-    nextOtp[index] = text;
-    setOtp(nextOtp);
-
-    if (text && index < OTP_LENGTH - 1) {
-      inputs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (event, index) => {
-    if (event.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
-      inputs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleSubmit = () => {
-    const enteredOtp = otp.join("");
-
-    if (enteredOtp.length !== OTP_LENGTH || otp.some((digit) => digit === "")) {
-      return;
-    }
-
-    setShowWelcome(true);
-  };
-
-  const handleResend = () => {
-    if (!canResend) return;
-
-    setTimer(30);
-    setCanResend(false);
-    setOtp(Array(OTP_LENGTH).fill(""));
-
-    setTimeout(() => {
-      inputs.current[0]?.focus();
-    }, 140);
-  };
+  const {
+    destination,
+    otp,
+    timer,
+    canResend,
+    showWelcome,
+    scrollRef,
+    inputs,
+    handleChange,
+    handleKeyPress,
+    handleSubmit,
+    handleResend,
+    goBack,
+    goBackToLogin,
+    scrollToBottom,
+    handleWelcomeClose,
+  } = useOtpViewModel(route, navigation);
 
   return (
     <LinearGradient
@@ -153,7 +75,9 @@ const OtpScreen = ({ route, navigation }) => {
             overScrollMode="never"
           >
             <Text style={styles.title}>OTP Verification</Text>
-            <Text style={styles.subtitle}>Enter the 6-digit OTP sent to {destination}.</Text>
+            <Text style={styles.subtitle}>
+              Enter the 6-digit OTP sent to {destination}.
+            </Text>
 
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
@@ -190,7 +114,10 @@ const OtpScreen = ({ route, navigation }) => {
               Resend OTP
             </Button>
 
-            <TouchableOpacity style={styles.loginLinkButton} onPress={goBackToLogin}>
+            <TouchableOpacity
+              style={styles.loginLinkButton}
+              onPress={goBackToLogin}
+            >
               <Text style={styles.loginLinkText}>Back to Login</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -199,10 +126,7 @@ const OtpScreen = ({ route, navigation }) => {
         <WelcomeModal
           visible={showWelcome}
           userName={"Ritesh Mehra"}
-          onClose={() => {
-            setShowWelcome(false);
-            navigation.replace(ROUTES.ROOT.APP_TABS);
-          }}
+          onClose={handleWelcomeClose}
         />
       </KeyboardAvoidingView>
     </LinearGradient>

@@ -18,7 +18,7 @@ export const MODULE_STATUS_SECTIONS = [
   {
     key: "pipeLaying",
     title: "Pipe Laying Status",
-    description: "Update inlet/outlet laying progress and node location finalization.",
+    description: "Update inlet/outlet laying progress and location finalization.",
     subOptions: [
       {
         id: "inletPipeLaying",
@@ -34,17 +34,10 @@ export const MODULE_STATUS_SECTIONS = [
       },
       {
         id: "locationFinalization",
-        label: "Node Location Finalization",
+        label: "Location Finalization",
         needsLocationActions: true,
         hideStatusRemark: true,
         canUpdateLocation: true,
-      },
-      {
-        id: "nodeLocationCheck",
-        label: "Check Node Location",
-        hideStatusRemark: true,
-        needsLocationActions: true,
-        canUpdateLocation: false,
       },
     ],
   },

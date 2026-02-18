@@ -6,8 +6,10 @@ export const ROUTES = {
     UNIT_LIST_SCREEN: "UnitListScreen",
     UNIT_DETAILS: "UnitDetails",
     UNIT_STATUS_UPDATE: "UnitStatusUpdate",
+    UNIT_STATUS_OVERVIEW: "UnitStatusOverview",
     MODULE_DETAILS: "UnitDetails",
     MODULE_STATUS_UPDATE: "UnitStatusUpdate",
+    MODULE_STATUS_OVERVIEW: "UnitStatusOverview",
     // Backward aliases
     OMS_DETAILS: "UnitDetails",
     OMS_STATUS_UPDATE: "UnitStatusUpdate",

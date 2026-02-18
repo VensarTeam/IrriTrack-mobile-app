@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -7,112 +7,43 @@ import {
   TextInput,
   Modal,
   ScrollView,
-  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { Icons } from "../../constants/icons";
-import { ROUTES } from "../../navigation/routes";
-
-const zones = Array.from({ length: 21 }, (_, i) => `Zone-${i + 1}`);
-const distributors = ["Minor", "Sub Minor"];
-const villages = ["Village-A", "Village-B", "Village-C", "Village-D"];
+import useUnitListViewModel from "../../viewmodels/useUnitListViewModel";
 
 const UnitListScreen = ({ navigation, route }) => {
-  const module = route?.params?.module || "OMS";
-
-  const [search, setSearch] = useState("");
-  const [zone, setZone] = useState("All");
-  const [distributor, setDistributor] = useState("All");
-  const [village, setVillage] = useState("All");
-  const [filterType, setFilterType] = useState(null);
-
-  const data = [
-    {
-      id: "1",
-      unitNo: `${module}-001`,
-      zone: "Zone-1",
-      distributor: "Sub Minor",
-      village: "Village-A",
-      latitude: 23.18,
-      longitude: 75.78,
-      inlet: "Completed",
-      outlet: "Pending",
-      mechanical: "Partial",
-      controller: "Completed",
-      dry: "Completed",
-      wet: "Pending",
-    },
-    {
-      id: "2",
-      unitNo: `${module}-002`,
-      zone: "Zone-2",
-      distributor: "Minor",
-      village: "Village-B",
-      latitude: 23.19,
-      longitude: 75.77,
-      inlet: "Completed",
-      outlet: "Completed",
-      mechanical: "Completed",
-      controller: "Pending",
-      dry: "Partial",
-      wet: "Pending",
-    },
-  ];
-
-  const filteredData = useMemo(() => {
-    return data.filter((item) => {
-      return (
-        item.unitNo.toLowerCase().includes(search.toLowerCase()) &&
-        (zone === "All" || item.zone === zone) &&
-        (distributor === "All" || item.distributor === distributor) &&
-        (village === "All" || item.village === village)
-      );
-    });
-  }, [search, zone, distributor, village]);
-
-  const hasActiveFilters =
-    !!search.trim() || zone !== "All" || distributor !== "All" || village !== "All";
-
-  const openMap = (lat, lng) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    Linking.openURL(url);
-  };
-
-  const getActiveFilterValue = () => {
-    if (filterType === "zone") return zone;
-    if (filterType === "distributor") return distributor;
-    if (filterType === "village") return village;
-    return "";
-  };
-
-  const applyFilter = (item) => {
-    if (filterType === "zone") setZone(item);
-    if (filterType === "distributor") setDistributor(item);
-    if (filterType === "village") setVillage(item);
-    setFilterType(null);
-  };
-
-  const clearFilters = () => {
-    setSearch("");
-    setZone("All");
-    setDistributor("All");
-    setVillage("All");
-  };
+  const {
+    module,
+    zones,
+    distributors,
+    villages,
+    search,
+    zone,
+    distributor,
+    village,
+    filterType,
+    setSearch,
+    setFilterType,
+    filteredData,
+    hasActiveFilters,
+    openMap,
+    openGallery,
+    getActiveFilterValue,
+    applyFilter,
+    clearFilters,
+    openUnitDetails,
+    handleBack,
+  } = useUnitListViewModel(navigation, route);
 
   const renderCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.9}
-      onPress={() =>
-        navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
-          module,
-          unit: item,
-          projectName: "Kayampur Sitamau P.M.I.P",
-        })
-      }
+      onPress={() => openUnitDetails(item)}
     >
       <View style={styles.cardTopRow}>
         <View style={styles.unitInfoBlock}>
@@ -122,13 +53,27 @@ const UnitListScreen = ({ navigation, route }) => {
           <Text style={styles.unitNo}>{item.unitNo}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.directionBtn}
-          onPress={() => openMap(item.latitude, item.longitude)}
-        >
-          <Icons.direction width={14} height={14} />
-          <Text style={styles.directionText}>Direction</Text>
-        </TouchableOpacity>
+        <View style={styles.cardActionsRow}>
+          <TouchableOpacity
+            style={styles.galleryBtn}
+            onPress={() => openGallery(item.unitNo)}
+          >
+            <IconButton
+              icon="image-multiple-outline"
+              size={16}
+              iconColor={colors.primaryBlue}
+              style={styles.galleryIconButton}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.directionBtn}
+            onPress={() => openMap(item.latitude, item.longitude)}
+          >
+            <Icons.direction width={14} height={14} />
+            <Text style={styles.directionText}>Direction</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.metaRow}>
@@ -193,7 +138,7 @@ const UnitListScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
+        <IconButton icon="arrow-left" onPress={handleBack} />
         <Text style={styles.headerTitle}>{module} Units</Text>
         <View style={{ width: 40 }} />
       </View>

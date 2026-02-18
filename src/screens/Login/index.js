@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -12,73 +12,24 @@ import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import FormInput from "../../components/FormInput";
 import { Button } from "react-native-paper";
-import { ROUTES } from "../../navigation/routes";
 import colors from "../../constants/colors";
+import useLoginViewModel from "../../viewmodels/useLoginViewModel";
 
 const LoginScreen = ({ navigation }) => {
-  const scrollRef = useRef(null);
-  const passwordRef = useRef(null);
-
-  const [loginType, setLoginType] = useState("mobile");
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({});
-
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 120);
-    });
-  };
-
-  const validateIdentifier = () => {
-    const trimmed = identifier.trim();
-
-    if (!trimmed) {
-      return loginType === "mobile"
-        ? "Mobile number is required"
-        : "Email is required";
-    }
-
-    if (loginType === "mobile" && !/^\d{10}$/.test(trimmed)) {
-      return "Enter a valid 10-digit mobile number";
-    }
-
-    if (
-      loginType === "email" &&
-      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmed)
-    ) {
-      return "Enter a valid email address";
-    }
-
-    return null;
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    const identifierError = validateIdentifier();
-
-    if (identifierError) newErrors.identifier = identifierError;
-    if (!password) newErrors.password = "Password is required";
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      navigation.navigate(ROUTES.AUTH.OTP, {
-        type: loginType,
-        identifier: identifier.trim(),
-      });
-    } else {
-      scrollToBottom();
-    }
-  };
-
-  const switchType = (type) => {
-    setLoginType(type);
-    setIdentifier("");
-    setErrors({});
-  };
+  const {
+    scrollRef,
+    passwordRef,
+    loginType,
+    identifier,
+    setIdentifier,
+    password,
+    setPassword,
+    errors,
+    switchType,
+    validate,
+    scrollToBottom,
+    goToForgotPassword,
+  } = useLoginViewModel(navigation);
 
   return (
     <LinearGradient
@@ -91,7 +42,6 @@ const LoginScreen = ({ navigation }) => {
         style={styles.container}
       >
         <View style={styles.topSection}>
-
           <Image
             source={require("../../assets/images/logo.png")}
             style={styles.logo}
@@ -111,7 +61,9 @@ const LoginScreen = ({ navigation }) => {
             overScrollMode="never"
           >
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Login using mobile number or email.</Text>
+            <Text style={styles.subtitle}>
+              Login using mobile number or email.
+            </Text>
 
             <View style={styles.switchRow}>
               <TouchableOpacity
@@ -174,10 +126,7 @@ const LoginScreen = ({ navigation }) => {
               onFocus={scrollToBottom}
             />
 
-            <TouchableOpacity
-              style={styles.forgotButton}
-              onPress={() => navigation.navigate(ROUTES.AUTH.FORGOT_PASSWORD)}
-            >
+            <TouchableOpacity style={styles.forgotButton} onPress={goToForgotPassword}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 

@@ -194,6 +194,27 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
+  cardActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  galleryBtn: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: moderateScale(8),
+  },
+
+  galleryIconButton: {
+    margin: 0,
+  },
+
   directionBtn: {
     backgroundColor: colors.primaryBlue,
     paddingHorizontal: moderateScale(12),
