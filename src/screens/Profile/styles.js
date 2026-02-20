@@ -21,13 +21,13 @@ export default StyleSheet.create({
   initials: {
     fontSize: moderateScale(28),
     fontWeight: "700",
-    color: colors.primaryBlue,
+    color: colors.navyFreshDark,
   },
 
   name: {
     fontSize: moderateScale(20),
     fontWeight: "600",
-    color: colors.white,
+    color: colors.navyFreshDark,
     marginBottom: verticalScale(8),
   },
 
@@ -41,18 +41,19 @@ export default StyleSheet.create({
   },
 
   badgeText: {
-    color: colors.white,
+    color: colors.navyFreshDark,
     fontSize: moderateScale(12),
   },
 
   detailsContainer: {
     flex: 1,
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "transparent",
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.loginSheetBorderLight,
     marginTop: verticalScale(-24),
     borderTopLeftRadius: moderateScale(30),
     borderTopRightRadius: moderateScale(30),
+    overflow: "hidden",
     padding: moderateScale(20),
   },
 

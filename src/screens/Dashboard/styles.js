@@ -28,7 +28,7 @@ export default StyleSheet.create({
   headerTitle: {
     fontSize: moderateScale(17),
     fontWeight: "700",
-    color: colors.primaryBlue,
+    color: colors.navyFreshDark,
     letterSpacing: 0.2,
     textAlign: "center",
   },
@@ -36,18 +36,19 @@ export default StyleSheet.create({
   headerSubtitle: {
     marginTop: verticalScale(4),
     fontSize: moderateScale(12),
-    color: colors.lightText,
+    color: colors.textSecondary,
     textAlign: "center",
   },
 
   bodyWrapper: {
     flex: 1,
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "transparent",
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.loginSheetBorderLight,
     marginTop: verticalScale(-20),
     borderTopLeftRadius: moderateScale(28),
     borderTopRightRadius: moderateScale(28),
+    overflow: "hidden",
   },
 
   container: {
@@ -59,17 +60,22 @@ export default StyleSheet.create({
     fontSize: moderateScale(18),
     fontWeight: "700",
     marginBottom: verticalScale(18),
-    color: colors.textDark,
+    color: colors.navyFreshDark,
+  },
+
+  cardShadow: {
+    marginBottom: verticalScale(20),
+    borderRadius: moderateScale(28),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
   },
 
   card: {
-    backgroundColor: colors.white,
-    borderRadius: moderateScale(24),
-    padding: moderateScale(20),
-    marginBottom: verticalScale(18),
-    elevation: 3,
+    borderRadius: moderateScale(28),
+    padding: moderateScale(22),
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: "#E4F1FB",
   },
 
   cardTop: {
@@ -78,23 +84,32 @@ export default StyleSheet.create({
     marginBottom: verticalScale(14),
   },
 
+  logoContainer: {
+    width: moderateScale(56),
+    height: moderateScale(56),
+    borderRadius: moderateScale(18),
+    backgroundColor: "#EAF4FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: moderateScale(14),
+  },
+
   govLogo: {
-    width: moderateScale(50),
-    height: moderateScale(50),
-    marginRight: moderateScale(12),
+    width: moderateScale(34),
+    height: moderateScale(34),
   },
 
   clientText: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(13),
     color: colors.textSecondary,
     flex: 1,
   },
 
   projectName: {
-    fontSize: moderateScale(16),
-    fontWeight: "600",
-    marginBottom: verticalScale(18),
-    color: colors.textDark,
+    fontSize: moderateScale(18),
+    fontWeight: "700",
+    color: colors.navyFreshDark,
+    marginBottom: verticalScale(20),
   },
 
   cardBottom: {
@@ -103,34 +118,39 @@ export default StyleSheet.create({
     alignItems: "center",
   },
 
-  areaPill: {
-    backgroundColor: colors.primaryBlue,
+  areaContainer: {
+    backgroundColor: "#EAF4FF",
     paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(6),
-    borderRadius: moderateScale(50),
-  },
-
-  areaText: {
-    color: colors.white,
-    fontSize: moderateScale(12),
-    fontWeight: "500",
-  },
-
-  arrow: {
-    fontSize: moderateScale(24),
-    color: colors.primaryBlue,
+    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(16),
   },
 
   areaLabel: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     color: colors.textSecondary,
     letterSpacing: 1,
     marginBottom: verticalScale(2),
   },
 
   areaValue: {
-    fontSize: moderateScale(18),
+    fontSize: moderateScale(16),
     fontWeight: "700",
-    color: colors.primaryBlue,
+    color: colors.navyFresh,
+  },
+
+  arrowContainer: {
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.navyFresh,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  arrow: {
+    fontSize: moderateScale(20),
+    color: "#FFFFFF",
+    fontWeight: "600",
+    backgroundColor:'red',
   },
 });

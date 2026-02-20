@@ -33,7 +33,10 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.white, colors.surfaceBlue]}
+      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
+      locations={[0, 0.42, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -50,7 +53,13 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.systemText}>Water Management System</Text>
         </View>
 
-        <View style={styles.sheet}>
+        <LinearGradient
+          colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
+          locations={[0, 0.56, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.sheet}
+        >
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={styles.sheetContent}
@@ -112,6 +121,8 @@ const LoginScreen = ({ navigation }) => {
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
               onFocus={scrollToBottom}
+              activeOutlineColor={colors.navyFreshDark}
+              outlineColor={colors.switchBgFresh}
             />
 
             <FormInput
@@ -124,6 +135,8 @@ const LoginScreen = ({ navigation }) => {
               returnKeyType="done"
               inputRef={passwordRef}
               onFocus={scrollToBottom}
+              activeOutlineColor={colors.navyFreshDark}
+              outlineColor={colors.switchBgFresh}
             />
 
             <TouchableOpacity style={styles.forgotButton} onPress={goToForgotPassword}>
@@ -135,11 +148,13 @@ const LoginScreen = ({ navigation }) => {
               onPress={validate}
               style={styles.loginButton}
               contentStyle={styles.loginButtonContent}
+              buttonColor={colors.navyFresh}
+              textColor={colors.white}
             >
               Log In
             </Button>
           </ScrollView>
-        </View>
+        </LinearGradient>
       </KeyboardAvoidingView>
     </LinearGradient>
   );

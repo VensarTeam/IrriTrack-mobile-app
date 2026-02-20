@@ -48,6 +48,7 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(18),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(18),
+    backgroundColor: colors.white,
     elevation: 3,
     borderWidth: 1,
     borderColor: colors.cardBorder,

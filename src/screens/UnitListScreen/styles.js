@@ -48,9 +48,9 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
-    marginHorizontal: moderateScale(4),
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: moderateScale(8),
+    marginHorizontal: moderateScale(3),
+    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(6),
     borderRadius: moderateScale(14),
     elevation: 2,
   },
@@ -60,18 +60,40 @@ export default StyleSheet.create({
     backgroundColor: colors.surfaceBlueSoft,
   },
 
+  filterLeftSection: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  filterIconWrap: {
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlue,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  filterIconWrapActive: {
+    backgroundColor: colors.white,
+  },
+
   filterTextBlock: {
     flex: 1,
+    minWidth: 0,
+    marginLeft: moderateScale(5),
   },
 
   filterTitle: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(11),
     color: colors.textSecondary,
     marginBottom: verticalScale(1),
   },
 
   filterValue: {
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(11),
     color: colors.textDark,
     fontWeight: "600",
   },
@@ -81,13 +103,13 @@ export default StyleSheet.create({
   },
 
   filterArrowWrap: {
-    width: moderateScale(18),
-    height: moderateScale(18),
-    borderRadius: moderateScale(9),
+    width: moderateScale(16),
+    height: moderateScale(16),
+    borderRadius: moderateScale(8),
     backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: moderateScale(6),
+    marginLeft: moderateScale(4),
   },
 
   listContent: {
@@ -183,7 +205,7 @@ export default StyleSheet.create({
   },
 
   unitBadgeText: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontWeight: "700",
   },
@@ -226,7 +248,7 @@ export default StyleSheet.create({
 
   directionText: {
     color: colors.white,
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(12),
     fontWeight: "600",
     marginLeft: moderateScale(6),
   },
@@ -247,12 +269,12 @@ export default StyleSheet.create({
   },
 
   metaLabel: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(12),
     color: colors.textSecondary,
   },
 
   metaValue: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(14),
     fontWeight: "600",
     color: colors.textDark,
     marginTop: verticalScale(2),
@@ -285,7 +307,7 @@ export default StyleSheet.create({
   },
 
   statusLabel: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(12),
     color: colors.textSecondary,
   },
 

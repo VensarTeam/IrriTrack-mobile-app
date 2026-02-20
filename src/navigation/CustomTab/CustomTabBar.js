@@ -40,8 +40,8 @@ const CustomTabBar = ({ state, navigation }) => {
                 size={22}
                 color={
                   isFocused
-                    ? colors.primaryBlue
-                    : colors.textSecondary
+                    ? colors.tabActive
+                    : colors.tabInactive
                 }
               />
 
@@ -50,8 +50,8 @@ const CustomTabBar = ({ state, navigation }) => {
                   styles.label,
                   {
                     color: isFocused
-                      ? colors.primaryBlue
-                      : colors.textSecondary,
+                      ? colors.tabActive
+                      : colors.tabInactive,
                   },
                 ]}
               >

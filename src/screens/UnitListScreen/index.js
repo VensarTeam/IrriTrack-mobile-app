@@ -70,7 +70,7 @@ const UnitListScreen = ({ navigation, route }) => {
             style={styles.directionBtn}
             onPress={() => openMap(item.latitude, item.longitude)}
           >
-            <Icons.direction width={14} height={14} />
+            <Icons.googleIcon width={14} height={14} />
             <Text style={styles.directionText}>Direction</Text>
           </TouchableOpacity>
         </View>
@@ -112,20 +112,36 @@ const UnitListScreen = ({ navigation, route }) => {
     </View>
   );
 
-  const FilterButton = ({ title, label, active, onPress }) => {
+  const FilterButton = ({ title, label, active, onPress, icon: FilterIcon }) => {
     return (
       <TouchableOpacity
         style={[styles.filterBtn, active && styles.filterBtnActive]}
         onPress={onPress}
       >
-        <View style={styles.filterTextBlock}>
-          <Text style={styles.filterTitle}>{title}</Text>
-          <Text
-            style={[styles.filterValue, active && styles.filterValueActive]}
-            numberOfLines={1}
-          >
-            {label}
-          </Text>
+        <View style={styles.filterLeftSection}>
+          <View style={[styles.filterIconWrap, active && styles.filterIconWrapActive]}>
+            {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+          </View>
+
+          <View style={styles.filterTextBlock}>
+            <Text
+              style={styles.filterTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              {title}
+            </Text>
+            <Text
+              style={[styles.filterValue, active && styles.filterValueActive]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              ellipsizeMode="tail"
+            >
+              {label}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.filterArrowWrap}>
@@ -155,6 +171,7 @@ const UnitListScreen = ({ navigation, route }) => {
         <FilterButton
           title="Zone"
           label={zone}
+          icon={Icons.zone}
           active={zone !== "All"}
           onPress={() => setFilterType("zone")}
         />
@@ -162,6 +179,7 @@ const UnitListScreen = ({ navigation, route }) => {
         <FilterButton
           title="Distributor"
           label={distributor}
+          icon={Icons.distributor}
           active={distributor !== "All"}
           onPress={() => setFilterType("distributor")}
         />
@@ -169,6 +187,7 @@ const UnitListScreen = ({ navigation, route }) => {
         <FilterButton
           title="Village"
           label={village}
+          icon={Icons.village}
           active={village !== "All"}
           onPress={() => setFilterType("village")}
         />

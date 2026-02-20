@@ -9,11 +9,14 @@ const ProfileScreen = ({ navigation }) => {
   const { user, initials, handleLogout } = useProfileViewModel(navigation);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <LinearGradient
-        colors={[colors.appHeaderStart, colors.appHeaderEnd]}
-        style={styles.header}
-      >
+    <LinearGradient
+      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
+      locations={[0, 0.42, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={{ flex: 1 }}
+    >
+      <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.initials}>{initials}</Text>
         </View>
@@ -23,9 +26,14 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{user.designation}</Text>
         </View>
-      </LinearGradient>
+      </View>
 
-      <View style={styles.detailsContainer}>
+      <LinearGradient
+        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
+        locations={[0, 0.56, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.detailsContainer}>
         <InfoRow label="Mobile" value={user.mobile} />
         <InfoRow label="Email" value={user.email} />
         <InfoRow label="Designation" value={user.designation} />
@@ -35,8 +43,8 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <Text style={styles.version}>App Version 1.0.0</Text>
-      </View>
-    </View>
+      </LinearGradient>
+    </LinearGradient>
   );
 };
 

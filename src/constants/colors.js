@@ -1,43 +1,52 @@
 const colors = {
-  // Brand base
-  primaryBlue: "#1F3E63",
-  primaryBlueDark: "#16324F",
-  primaryGreen: "#5DAE84",
-  primaryOrange: "#E79A4A",
-  lightGreen: "#d5f1e2",
+  // Brand
+  primaryBlue: "#123B63",
+  primaryGreen: "#32A874",
+  primaryOrange: "#F49B3F",
+  lightGreen: "#DCF7EA",
 
-  // Premium app shell tones
-  appHeaderStart: "#162F49",
-  appHeaderEnd: "#2A4C6B",
-  appSurface: "#F5F7FB",
-  cardBorder: "#E3E8F0",
-  glassWhite: "rgba(255,255,255,0.22)",
-  glassBorder: "rgba(255,255,255,0.36)",
+  // Shared app theme
+  vibrantGradientTop: "#61D4FF",
+  vibrantGradientMid: "#AEE6FF",
+  vibrantGradientBlend: "#EAF8FF",
+  navyFresh: "#123B63",
+  navyFreshDark: "#0C2E4D",
+  switchBgFresh: "#EAF4FF",
+  loginBottomLight: "#D5E9FC",
+  loginSheetBorderLight: "#D7EAF9",
+
+  // Tabs
+  tabShellBg: "#E8F3FF",
+  tabBarBg: "#FFFFFF",
+  tabActive: "#123B63",
+  tabInactive: "#6A7D93",
+
+  // Shell
+  cardBorder: "#D9E7F5",
+  glassWhite: "rgba(255,255,255,0.24)",
+  glassBorder: "rgba(255,255,255,0.4)",
 
   // Surfaces and text
   white: "#FFFFFF",
-  lightText: "#E8F0FA",
-  darkText: "#1E1E1E",
-  textDark: "#1B2B3D",
-  textSecondary: "#647488",
-  background: "#FAFCFF",
-  border: "#D6DFE9",
-  inputBg: "#F7FAFD",
-  inputOutline: "#CFD8E4",
-  danger: "#D94B4B",
+  textDark: "#163048",
+  textSecondary: "#617991",
+  background: "#F4FAFF",
+  border: "#D9E8F5",
+  inputBg: "#F6FBFF",
+  inputOutline: "#C9DDF0",
+  danger: "#E05252",
 
-  // Light accent surfaces
-  surfaceBlue: "#E7EFF8",
-  surfaceBlueSheet: "#DCE7F3",
-  surfaceBlueSoft: "#ECF3FA",
-  surfaceBluePale: "#F2F7FC",
-  surfaceGreenSoft: "#EAF5EE",
-  surfaceOrangeSoft: "#FFF4E8",
+  // Accent surfaces
+  surfaceBlue: "#EAF3FF",
+  surfaceBlueSoft: "#EFF6FF",
+  surfaceBluePale: "#F4F9FF",
+  surfaceGreenSoft: "#EDF7FF",
+  surfaceOrangeSoft: "#F2F7FF",
 
-  // Status colors
-  completed: "#3fb576",
-  pending: "#df8627",
-  partial: "#e4b653",
+  // Status
+  completed: "#1abf75",
+  pending: "#ef8f28",
+  partial: "#E3B24F",
 };
 
 export default colors;

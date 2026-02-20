@@ -4,16 +4,25 @@ import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
+import { Icons } from "../../constants/icons";
+import { Icon } from "react-native-paper";
 
 const DashboardScreen = ({ navigation }) => {
   const { projects, openProject } = useDashboardViewModel(navigation);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <LinearGradient
-        colors={[colors.white, colors.surfaceBluePale]}
-        style={styles.header}
-      >
+    <LinearGradient
+      colors={[
+        colors.vibrantGradientTop,
+        colors.vibrantGradientMid,
+        colors.vibrantGradientBlend,
+      ]}
+      locations={[0, 0.42, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={{ flex: 1 }}
+    >
+      <View style={styles.header}>
         <View style={styles.logoWrap}>
           <Image
             source={require("../../assets/images/logo.png")}
@@ -23,9 +32,19 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
         <Text style={styles.headerTitle}>Water Management System</Text>
-      </LinearGradient>
+      </View>
 
-      <View style={styles.bodyWrapper}>
+      <LinearGradient
+        colors={[
+          colors.vibrantGradientBlend,
+          colors.loginBottomLight,
+          colors.white,
+        ]}
+        locations={[0, 0.56, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.bodyWrapper}
+      >
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
@@ -36,8 +55,8 @@ const DashboardScreen = ({ navigation }) => {
             <ProjectCard key={item.id} item={item} onPress={openProject} />
           ))}
         </ScrollView>
-      </View>
-    </View>
+      </LinearGradient>
+    </LinearGradient>
   );
 };
 
@@ -45,28 +64,42 @@ export default DashboardScreen;
 
 const ProjectCard = ({ item, onPress }) => {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-      <View style={styles.cardTop}>
-        <Image
-          source={require("../../assets/images/gov_logo.png")}
-          style={styles.govLogo}
-          resizeMode="contain"
-        />
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.cardShadow}
+      onPress={() => onPress(item)}
+    >
+      <LinearGradient
+        colors={["#FFFFFF", "#F2FAFF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.card}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("../../assets/images/gov_logo.png")}
+              style={styles.govLogo}
+              resizeMode="contain"
+            />
+          </View>
 
-        <Text style={styles.clientText}>{item.client}</Text>
-      </View>
-
-      <Text style={styles.projectName}>{item.name}</Text>
-
-      <View style={styles.cardBottom}>
-        <View>
-          <Text style={styles.areaLabel}>TOTAL AREA</Text>
-
-          <Text style={styles.areaValue}>{item.area}</Text>
+          <Text style={styles.clientText}>{item.client}</Text>
         </View>
 
-        <Text style={styles.arrow}>›</Text>
-      </View>
+        <Text style={styles.projectName}>{item.name}</Text>
+
+        <View style={styles.cardBottom}>
+          <View style={styles.areaContainer}>
+            <Text style={styles.areaLabel}>TOTAL AREA</Text>
+            <Text style={styles.areaValue}>{item.area}</Text>
+          </View>
+
+          <View style={styles.arrowContainer}>
+            <Icon source="chevron-right" size={22} color={colors.white} />
+          </View>
+        </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 };

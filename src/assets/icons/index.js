@@ -6,6 +6,10 @@ import LogoutIcon from "./logout.svg";
 import DirectionIcon from "./direction.svg";
 import DownIcon from "./down_arrow.svg";
 import UpIcon from "./up_arrow.svg";
+import GoogleMapIcon from './google-map.svg';
+import ZoneIcon from "./zone.svg";
+import DistributorIcon from "./distributor.svg";
+import VillageIcon from "./village.svg";
 
 export {
   PersonIcon,
@@ -15,5 +19,9 @@ export {
   LogoutIcon,
   DirectionIcon,
   DownIcon,
-  UpIcon
+  UpIcon,
+  GoogleMapIcon,
+  ZoneIcon,
+  DistributorIcon,
+  VillageIcon
 };

@@ -28,7 +28,7 @@ export default StyleSheet.create({
   },
 
   systemText: {
-    color: colors.primaryBlueDark,
+    color: colors.navyFresh,
     fontSize: typography.h2,
     fontWeight: "500",
     textAlign: "center",
@@ -36,11 +36,12 @@ export default StyleSheet.create({
 
   sheet: {
     flex: 1,
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "transparent",
     borderTopWidth: 1,
-    borderColor: colors.border,
-    borderTopLeftRadius: moderateScale(28),
-    borderTopRightRadius: moderateScale(28),
+    borderColor: colors.loginSheetBorderLight,
+    borderTopLeftRadius: moderateScale(24),
+    borderTopRightRadius: moderateScale(24),
+    overflow: "hidden",
   },
 
   sheetContent: {
@@ -67,7 +68,7 @@ export default StyleSheet.create({
 
   switchRow: {
     flexDirection: "row",
-    backgroundColor: colors.surfaceBlue,
+    backgroundColor: colors.switchBgFresh,
     borderRadius: moderateScale(14),
     padding: moderateScale(4),
     marginBottom: verticalScale(14),
@@ -82,7 +83,9 @@ export default StyleSheet.create({
   },
 
   switchButtonActive: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.loginBottomLight,
+    borderWidth: 1,
+    borderColor: colors.navyFreshDark,
     elevation: 2,
   },
 
@@ -93,7 +96,7 @@ export default StyleSheet.create({
   },
 
   switchTextActive: {
-    color: colors.primaryBlue,
+    color: colors.navyFreshDark,
   },
 
   forgotButton: {
@@ -103,7 +106,7 @@ export default StyleSheet.create({
   },
 
   forgotText: {
-    color: colors.primaryBlue,
+    color: colors.navyFresh,
     fontSize: typography.small,
     fontWeight: "600",
   },
@@ -111,6 +114,9 @@ export default StyleSheet.create({
   loginButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.navyFreshDark,
+    overflow: "hidden",
   },
 
   loginButtonContent: {

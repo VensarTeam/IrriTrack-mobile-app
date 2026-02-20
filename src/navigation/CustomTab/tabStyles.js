@@ -4,15 +4,15 @@ import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
   container: {
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "white",
     paddingHorizontal: moderateScale(16),
   },
 
   tabBar: {
     flexDirection: "row",
-    backgroundColor: colors.white,
+    backgroundColor: colors.tabBarBg,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.loginSheetBorderLight,
     borderRadius: moderateScale(24),
     height: verticalScale(60),
     alignItems: "center",
@@ -31,7 +31,7 @@ export default StyleSheet.create({
   },
 
   activeTab: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.tabActive,
   },
 
   activeLabel: {

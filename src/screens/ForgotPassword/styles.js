@@ -28,7 +28,7 @@ export default StyleSheet.create({
   },
 
   systemText: {
-    color: colors.primaryBlueDark,
+    color: colors.navyFresh,
     fontSize: typography.h2,
     fontWeight: "500",
     textAlign: "center",
@@ -36,11 +36,12 @@ export default StyleSheet.create({
 
   sheet: {
     flex: 1,
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "transparent",
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.loginSheetBorderLight,
     borderTopLeftRadius: moderateScale(28),
     borderTopRightRadius: moderateScale(28),
+    overflow: "hidden",
   },
 
   sheetContent: {
@@ -60,7 +61,7 @@ export default StyleSheet.create({
 
   progressText: {
     textAlign: "center",
-    color: colors.primaryBlue,
+    color: colors.navyFresh,
     fontSize: typography.small,
     fontWeight: "600",
     marginBottom: verticalScale(16),
@@ -84,7 +85,7 @@ export default StyleSheet.create({
 
   switchRow: {
     flexDirection: "row",
-    backgroundColor: colors.surfaceBlue,
+    backgroundColor: colors.switchBgFresh,
     borderRadius: moderateScale(14),
     padding: moderateScale(4),
     marginBottom: verticalScale(14),
@@ -99,7 +100,9 @@ export default StyleSheet.create({
   },
 
   switchButtonActive: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.loginBottomLight,
+    borderWidth: 1,
+    borderColor: colors.navyFreshDark,
     elevation: 2,
   },
 
@@ -110,7 +113,7 @@ export default StyleSheet.create({
   },
 
   switchTextActive: {
-    color: colors.primaryBlue,
+    color: colors.navyFreshDark,
   },
 
   otpContainer: {
@@ -124,8 +127,8 @@ export default StyleSheet.create({
     height: verticalScale(52),
     borderWidth: 1.5,
     borderRadius: moderateScale(12),
-    borderColor: colors.border,
-    backgroundColor: colors.inputBg,
+    borderColor: colors.vibrantGradientMid,
+    backgroundColor: colors.white,
     textAlign: "center",
     fontSize: moderateScale(20),
     fontWeight: "700",
@@ -142,6 +145,8 @@ export default StyleSheet.create({
   primaryButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.navyFreshDark,
   },
 
   primaryButtonContent: {
@@ -154,7 +159,7 @@ export default StyleSheet.create({
   },
 
   secondaryLinkText: {
-    color: colors.primaryBlue,
+    color: colors.navyFresh,
     fontSize: typography.small,
     fontWeight: "600",
   },

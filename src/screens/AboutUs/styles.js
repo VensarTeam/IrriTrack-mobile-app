@@ -28,24 +28,25 @@ export default StyleSheet.create({
   headerTitle: {
     fontSize: moderateScale(18),
     fontWeight: "700",
-    color: colors.primaryBlue,
+    color: colors.navyFreshDark,
   },
 
   headerSubtitle: {
     marginTop: verticalScale(4),
-    color: colors.lightText,
+    color: colors.textSecondary,
     fontSize: moderateScale(12),
     textAlign: "center",
   },
 
   bodyWrapper: {
     flex: 1,
-    backgroundColor: colors.surfaceBlueSheet,
+    backgroundColor: "transparent",
     borderTopWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.loginSheetBorderLight,
     marginTop: verticalScale(-20),
     borderTopLeftRadius: moderateScale(30),
     borderTopRightRadius: moderateScale(30),
+    overflow: "hidden",
   },
 
   container: {
@@ -66,12 +67,12 @@ export default StyleSheet.create({
     fontSize: moderateScale(16),
     fontWeight: "700",
     marginBottom: verticalScale(10),
-    color: colors.primaryBlue,
+    color: colors.navyFresh,
   },
 
   cardText: {
     fontSize: moderateScale(14),
     lineHeight: verticalScale(22),
-    color: colors.textSecondary,
+    color: colors.textDark,
   },
 });

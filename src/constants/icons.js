@@ -8,6 +8,10 @@ import {
   DownIcon,
   UpIcon,
   DirectionIcon,
+  GoogleMapIcon,
+  ZoneIcon,
+  DistributorIcon,
+  VillageIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -19,5 +23,9 @@ export const Icons = {
   logout: LogoutIcon,
   down: DownIcon,
   up: UpIcon,
-  direction:DirectionIcon
+  direction:DirectionIcon,
+  googleIcon: GoogleMapIcon,
+  zone: ZoneIcon,
+  distributor: DistributorIcon,
+  village: VillageIcon
 };

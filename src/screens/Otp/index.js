@@ -38,7 +38,10 @@ const OtpScreen = ({ route, navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.white, colors.surfaceBlue]}
+      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
+      locations={[0, 0.44, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -50,7 +53,7 @@ const OtpScreen = ({ route, navigation }) => {
           <IconButton
             icon="arrow-left"
             size={moderateScale(24)}
-            iconColor={colors.primaryBlueDark}
+            iconColor={colors.navyFreshDark}
             style={styles.backButton}
             onPress={goBack}
           />
@@ -64,7 +67,13 @@ const OtpScreen = ({ route, navigation }) => {
           <Text style={styles.systemText}>Water Management System</Text>
         </View>
 
-        <View style={styles.sheet}>
+        <LinearGradient
+          colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
+          locations={[0, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.sheet}
+        >
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={styles.sheetContent}
@@ -102,6 +111,8 @@ const OtpScreen = ({ route, navigation }) => {
               onPress={handleSubmit}
               style={styles.primaryButton}
               contentStyle={styles.primaryButtonContent}
+              buttonColor={colors.navyFresh}
+              textColor={colors.white}
             >
               Verify OTP
             </Button>
@@ -110,7 +121,12 @@ const OtpScreen = ({ route, navigation }) => {
               {canResend ? "Didn't receive OTP?" : `Resend OTP in ${timer}s`}
             </Text>
 
-            <Button mode="text" onPress={handleResend} disabled={!canResend}>
+            <Button
+              mode="text"
+              onPress={handleResend}
+              disabled={!canResend}
+              textColor={colors.navyFresh}
+            >
               Resend OTP
             </Button>
 
@@ -121,7 +137,7 @@ const OtpScreen = ({ route, navigation }) => {
               <Text style={styles.loginLinkText}>Back to Login</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </LinearGradient>
 
         <WelcomeModal
           visible={showWelcome}

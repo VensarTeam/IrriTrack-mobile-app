@@ -98,6 +98,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         autoCapitalize="none"
         returnKeyType="done"
         onFocus={scrollToBottom}
+        activeOutlineColor={colors.navyFreshDark}
+        outlineColor={colors.switchBgFresh}
       />
 
       <Button
@@ -105,6 +107,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         onPress={goToOtpStep}
         style={styles.primaryButton}
         contentStyle={styles.primaryButtonContent}
+        buttonColor={colors.navyFresh}
+        textColor={colors.white}
       >
         Send OTP
       </Button>
@@ -115,7 +119,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     <>
       <Text style={styles.sectionTitle}>Enter OTP</Text>
       <Text style={styles.sectionSubtitle}>
-        We sent a 6-digit OTP to your{" "}
+        We sent a 6-digit OTP to your {" "}
         {contactType === "mobile" ? "mobile number" : "email"}.
       </Text>
 
@@ -144,6 +148,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         onPress={verifyOtpAndContinue}
         style={styles.primaryButton}
         contentStyle={styles.primaryButtonContent}
+        buttonColor={colors.navyFresh}
+        textColor={colors.white}
       >
         Verify OTP
       </Button>
@@ -174,6 +180,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         returnKeyType="next"
         onSubmitEditing={() => confirmPasswordRef.current?.focus()}
         onFocus={scrollToBottom}
+        activeOutlineColor={colors.navyFreshDark}
+        outlineColor={colors.switchBgFresh}
       />
 
       <FormInput
@@ -186,6 +194,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         inputRef={confirmPasswordRef}
         returnKeyType="done"
         onFocus={scrollToBottom}
+        activeOutlineColor={colors.navyFreshDark}
+        outlineColor={colors.switchBgFresh}
       />
 
       <Button
@@ -193,6 +203,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         onPress={handleResetPassword}
         style={styles.primaryButton}
         contentStyle={styles.primaryButtonContent}
+        buttonColor={colors.navyFresh}
+        textColor={colors.white}
       >
         Reset Password
       </Button>
@@ -205,7 +217,10 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.surfaceBlueSoft, colors.surfaceBlue]}
+      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
+      locations={[0, 0.4, 1]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -217,7 +232,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           <IconButton
             icon="arrow-left"
             size={24}
-            iconColor={colors.primaryBlueDark}
+            iconColor={colors.navyFreshDark}
             style={styles.backButton}
             onPress={handleBackPress}
           />
@@ -230,7 +245,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
           <Text style={styles.systemText}>Water Management System</Text>
         </View>
 
-        <View style={styles.sheet}>
+        <LinearGradient
+          colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
+          locations={[0, 0.56, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.sheet}
+        >
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={styles.sheetContent}
@@ -253,7 +274,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
               <Text style={styles.loginLinkText}>Back to Login</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </LinearGradient>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
