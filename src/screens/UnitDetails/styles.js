@@ -43,7 +43,7 @@ export default StyleSheet.create({
 
   projectLabel: {
     color: colors.textSecondary,
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(12),
     marginBottom: verticalScale(4),
   },
 
@@ -96,7 +96,7 @@ export default StyleSheet.create({
   },
 
   detailLabel: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(12),
     color: colors.textSecondary,
     marginBottom: verticalScale(4),
   },

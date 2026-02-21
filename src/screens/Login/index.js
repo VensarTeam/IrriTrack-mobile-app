@@ -50,7 +50,7 @@ const LoginScreen = ({ navigation }) => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.systemText}>Water Management System</Text>
+          <Text style={styles.systemText}>Project Management Tools</Text>
         </View>
 
         <LinearGradient

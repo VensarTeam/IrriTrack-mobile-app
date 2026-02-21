@@ -63,7 +63,7 @@ const useUnitListViewModel = (navigation, route) => {
     navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
       module,
       unit,
-      projectName: "Kayampur Sitamau P.M.I.P",
+      projectName: "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project",
     });
   };
 

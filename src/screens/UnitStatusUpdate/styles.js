@@ -45,10 +45,10 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(12),
-    elevation: 1,
+    elevation: 2,
   },
 
   projectLabel: {
@@ -63,8 +63,14 @@ export default StyleSheet.create({
     fontWeight: "700",
   },
 
+  projectMetaRow: {
+    marginTop: verticalScale(6),
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+
   projectMeta: {
-    marginTop: verticalScale(3),
     fontSize: moderateScale(11),
     color: colors.primaryBlue,
     fontWeight: "600",
@@ -122,24 +128,48 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(16),
+    borderRadius: moderateScale(18),
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(14),
-    elevation: 1,
+    elevation: 2,
+  },
+
+  formHeadingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: verticalScale(6),
   },
 
   formTitle: {
+    flex: 1,
     fontSize: moderateScale(15),
     color: colors.textDark,
     fontWeight: "700",
-    marginBottom: verticalScale(10),
+    marginRight: moderateScale(8),
+  },
+
+  progressPill: {
+    backgroundColor: colors.lightGreen,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(4),
+  },
+
+  progressPillText: {
+    fontSize: moderateScale(10),
+    color: colors.primaryGreen,
+    fontWeight: "700",
+  },
+
+  fieldBlock: {
+    marginTop: verticalScale(8),
   },
 
   fieldLabel: {
     fontSize: moderateScale(11),
     color: colors.textSecondary,
     marginBottom: verticalScale(5),
-    marginTop: verticalScale(8),
   },
 
   selectField: {
@@ -154,9 +184,90 @@ export default StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  selectFieldError: {
+    borderColor: colors.danger,
+  },
+
   selectValue: {
+    flex: 1,
+    marginRight: moderateScale(10),
     fontSize: moderateScale(12),
     color: colors.textDark,
+    fontWeight: "600",
+  },
+
+  selectPlaceholder: {
+    color: colors.textSecondary,
+    fontWeight: "500",
+  },
+
+  checklistCard: {
+    marginTop: verticalScale(12),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.surfaceBluePale,
+    padding: moderateScale(10),
+  },
+
+  checklistTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
+    marginBottom: verticalScale(6),
+  },
+
+  checkItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(6),
+  },
+
+  checkItemChecked: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: colors.lightGreen,
+  },
+
+  checkbox: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(5),
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: verticalScale(1),
+  },
+
+  checkboxChecked: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: colors.primaryGreen,
+  },
+
+  checkboxMark: {
+    color: colors.white,
+    fontSize: moderateScale(11),
+    fontWeight: "700",
+    lineHeight: moderateScale(12),
+  },
+
+  checkItemText: {
+    flex: 1,
+    marginLeft: moderateScale(8),
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    lineHeight: moderateScale(15),
+  },
+
+  checkItemTextChecked: {
+    color: colors.navyFreshDark,
     fontWeight: "600",
   },
 
@@ -172,30 +283,83 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
+  photoSection: {
+    marginTop: verticalScale(12),
+  },
+
+  photoSectionTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
+    marginBottom: verticalScale(6),
+  },
+
+  photoSlotCard: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.surfaceBluePale,
+    padding: moderateScale(10),
+    marginBottom: verticalScale(8),
+  },
+
+  photoSlotCardError: {
+    borderColor: colors.danger,
+  },
+
+  photoSlotHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(6),
+  },
+
+  photoSlotTitle: {
+    flex: 1,
+    marginRight: moderateScale(8),
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontWeight: "600",
+  },
+
+  photoRemoveBtn: {
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(3),
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+
+  photoRemoveBtnText: {
+    fontSize: moderateScale(10),
+    color: colors.danger,
+    fontWeight: "700",
+  },
+
   uploadButton: {
     borderWidth: 1,
     borderColor: colors.primaryBlue,
-    borderRadius: moderateScale(12),
-    backgroundColor: colors.surfaceBluePale,
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlue,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: verticalScale(11),
-    marginTop: verticalScale(3),
+    paddingVertical: verticalScale(10),
   },
 
   uploadButtonText: {
     color: colors.primaryBlue,
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(11),
     fontWeight: "700",
   },
 
   photoPreviewWrap: {
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(12),
+    borderRadius: moderateScale(10),
     overflow: "hidden",
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
 
   photoPreviewImage: {
@@ -203,35 +367,53 @@ export default StyleSheet.create({
     height: verticalScale(170),
   },
 
-  photoPreviewHint: {
-    fontSize: moderateScale(10),
-    color: colors.textSecondary,
-    paddingVertical: verticalScale(6),
-    textAlign: "center",
+  videoPreviewPlaceholder: {
+    height: verticalScale(140),
+    backgroundColor: colors.surfaceBlue,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  videoPreviewText: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
   },
 
   photoMetaCard: {
-    marginTop: verticalScale(8),
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: moderateScale(12),
     paddingVertical: verticalScale(8),
     paddingHorizontal: moderateScale(10),
     backgroundColor: colors.background,
   },
 
   photoMetaText: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     color: colors.textDark,
     marginBottom: verticalScale(2),
   },
 
+  photoEmptyText: {
+    marginTop: verticalScale(6),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+  },
+
+  locationSection: {
+    marginTop: verticalScale(12),
+  },
+
+  locationTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
+    marginBottom: verticalScale(6),
+  },
+
   locationCard: {
-    marginTop: verticalScale(4),
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: moderateScale(12),
-    backgroundColor: colors.background,
+    backgroundColor: colors.inputBg,
     paddingVertical: verticalScale(8),
     paddingHorizontal: moderateScale(10),
   },
@@ -277,8 +459,9 @@ export default StyleSheet.create({
   },
 
   submitButton: {
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
     borderRadius: moderateScale(12),
+    backgroundColor: colors.primaryBlue,
   },
 
   submitButtonContent: {
@@ -372,6 +555,12 @@ export default StyleSheet.create({
     backgroundColor: colors.background,
   },
 
+  previewMetaText: {
+    marginTop: verticalScale(8),
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+  },
+
   previewCloseBtn: {
     marginTop: verticalScale(10),
     alignSelf: "center",
@@ -385,5 +574,21 @@ export default StyleSheet.create({
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontWeight: "700",
+  },
+
+  videoPreviewModalPlaceholder: {
+    height: verticalScale(220),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(16),
+  },
+
+  videoPreviewModalText: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontWeight: "700",
+    textAlign: "center",
   },
 });

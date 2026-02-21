@@ -105,7 +105,7 @@ const ProjectDetailsScreen = () => {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.headerTitle}>Kayampur Sitamau P.M.I.P</Text>
+            <Text style={styles.headerTitle}>Kayampur Sitamau P.M.L.M.I.P</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>

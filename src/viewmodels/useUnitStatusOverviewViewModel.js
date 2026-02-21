@@ -17,6 +17,7 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     wetCommissioning: unit.wet || "Pending",
     mechanicalRectification: unit.mechanicalRectification || "Pending",
     controllerRectification: unit.controllerRectification || "Pending",
+    theftDamageReinstallation: unit.theftDamageReinstallation || "Pending",
     locationFinalization: unit.locationUpdatedAt ? "Updated" : "Pending",
   };
 

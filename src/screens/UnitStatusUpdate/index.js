@@ -29,22 +29,63 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     activeValues,
     activeErrors,
     shouldHideStatusRemark,
+    checklistItems,
+    photoRequirements,
+    selectFields,
     pickerState,
     openSelectModal,
     selectPickerValue,
     closePicker,
     updateActiveValues,
+    toggleChecklistItem,
+    getChecklistProgress,
     getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
     showUploadOptions,
+    removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,
     getSubOptionLabel,
-    photoPreviewVisible,
+    photoPreviewState,
     openPhotoPreview,
     closePhotoPreview,
+    statusOptions,
+    pipeSizeOptions,
+    contractorOptions,
   } = useUnitStatusUpdateViewModel(navigation, route);
+
+  const checklistProgress = getChecklistProgress();
+
+  const renderSelectField = ({
+    label,
+    field,
+    value,
+    options,
+    placeholder,
+    error,
+  }) => (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity
+        style={[styles.selectField, error && styles.selectFieldError]}
+        onPress={() =>
+          openSelectModal({
+            field,
+            title: label,
+            options,
+          })
+        }
+        activeOpacity={0.86}
+      >
+        <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>
+          {value || placeholder}
+        </Text>
+        <Icons.down width={12} height={12} />
+      </TouchableOpacity>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,12 +109,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           <View style={styles.projectCard}>
             <Text style={styles.projectLabel}>Project</Text>
             <Text style={styles.projectText}>{projectName}</Text>
-            <Text style={styles.projectMeta}>Unit: {unitLabel}</Text>
+            <View style={styles.projectMetaRow}>
+              <Text style={styles.projectMeta}>Unit: {unitLabel}</Text>
+              {/* <Text style={styles.projectMeta}>Field Ready Form</Text> */}
+            </View>
           </View>
 
           <View style={styles.stepHeaderRow}>
-            <Text style={styles.stepTitle}>Sub Options</Text>
-            <Text style={styles.stepSubtitle}>One view at a time</Text>
+            <Text style={styles.stepTitle}>Update Steps</Text>
+            <Text style={styles.stepSubtitle}>Tap and continue</Text>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stepScroll}>
@@ -85,6 +129,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   sub.id === activeSubOptionId && styles.stepChipActive,
                 ]}
                 onPress={() => setActiveSubOptionId(sub.id)}
+                activeOpacity={0.85}
               >
                 <Text
                   style={[
@@ -99,49 +144,90 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           </ScrollView>
 
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>{activeSubOptionLabel}</Text>
-
-            {!shouldHideStatusRemark ? (
-              <>
-                <Text style={styles.fieldLabel}>Status</Text>
-                <TouchableOpacity
-                  style={styles.selectField}
-                  onPress={() => openSelectModal("status")}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.selectValue}>
-                    {activeValues.status || "Select Status"}
+            <View style={styles.formHeadingRow}>
+              <Text style={styles.formTitle}>{activeSubOptionLabel}</Text>
+              {checklistProgress.total ? (
+                <View style={styles.progressPill}>
+                  <Text style={styles.progressPillText}>
+                    {checklistProgress.completed}/{checklistProgress.total} Done
                   </Text>
-                  <Icons.down width={12} height={12} />
-                </TouchableOpacity>
-                {activeErrors.status ? (
-                  <Text style={styles.errorText}>{activeErrors.status}</Text>
-                ) : null}
-              </>
+                </View>
+              ) : null}
+            </View>
+
+            {!shouldHideStatusRemark
+              ? renderSelectField({
+                  label: activeSubOption.statusLabel || "Status",
+                  field: "status",
+                  value: activeValues.status,
+                  options: statusOptions,
+                  placeholder: "Select Status",
+                  error: activeErrors.status,
+                })
+              : null}
+
+            {activeSubOption.needsPipeSize
+              ? renderSelectField({
+                  label: activeSubOption.pipeSizeLabel || "Pipe Size",
+                  field: "pipeSize",
+                  value: activeValues.pipeSize,
+                  options: pipeSizeOptions,
+                  placeholder: "Select Pipe Size",
+                  error: activeErrors.pipeSize,
+                })
+              : null}
+
+            {activeSubOption.needsContractor
+              ? renderSelectField({
+                  label: activeSubOption.contractorLabel || "Activity Done By Contractor",
+                  field: "contractor",
+                  value: activeValues.contractor,
+                  options: contractorOptions,
+                  placeholder: "Select Contractor",
+                  error: activeErrors.contractor,
+                })
+              : null}
+
+            {selectFields.map((field) =>
+              renderSelectField({
+                label: field.label,
+                field: field.key,
+                value: activeValues[field.key],
+                options: field.options,
+                placeholder: field.placeholder || "Select Option",
+                error: activeErrors[field.key],
+              })
+            )}
+
+            {checklistItems.length ? (
+              <View style={styles.checklistCard}>
+                <Text style={styles.checklistTitle}>Checklist</Text>
+
+                {checklistItems.map((item) => {
+                  const checked = !!activeValues.checks?.[item.id];
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.checkItem, checked && styles.checkItemChecked]}
+                      onPress={() => toggleChecklistItem(item.id)}
+                      activeOpacity={0.86}
+                    >
+                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                        {checked ? <Icons.tickGreen width={14} height={14} /> : null}
+                      </View>
+                      <Text style={[styles.checkItemText, checked && styles.checkItemTextChecked]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             ) : null}
 
-            {activeSubOption.needsPipeSize ? (
-              <>
-                <Text style={styles.fieldLabel}>Pipe Size</Text>
-                <TouchableOpacity
-                  style={styles.selectField}
-                  onPress={() => openSelectModal("pipeSize")}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.selectValue}>
-                    {activeValues.pipeSize || "Select Pipe Size"}
-                  </Text>
-                  <Icons.down width={12} height={12} />
-                </TouchableOpacity>
-                {activeErrors.pipeSize ? (
-                  <Text style={styles.errorText}>{activeErrors.pipeSize}</Text>
-                ) : null}
-              </>
-            ) : null}
-
             {!shouldHideStatusRemark ? (
-              <>
-                <Text style={styles.fieldLabel}>Remark</Text>
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{activeSubOption.remarkLabel || "Remark"}</Text>
                 <TextInput
                   style={styles.remarkInput}
                   placeholder="Write remarks"
@@ -151,59 +237,94 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   onChangeText={(text) => updateActiveValues({ remark: text })}
                   textAlignVertical="top"
                 />
-              </>
+              </View>
             ) : null}
 
-            {activeSubOption.needsPhoto ? (
-              <>
-                <Text style={styles.fieldLabel}>Photo Upload</Text>
-                <TouchableOpacity
-                  style={styles.uploadButton}
-                  onPress={showUploadOptions}
-                  activeOpacity={0.88}
-                >
-                  <Text style={styles.uploadButtonText}>
-                    Choose Camera or Gallery
-                  </Text>
-                </TouchableOpacity>
+            {photoRequirements.length ? (
+              <View style={styles.photoSection}>
+                <Text style={styles.photoSectionTitle}>Photos with Timestamp</Text>
 
-                {activeValues.photo?.uri ? (
-                  <TouchableOpacity
-                    style={styles.photoPreviewWrap}
-                    onPress={openPhotoPreview}
-                    activeOpacity={0.9}
-                  >
-                    <Image
-                      source={{ uri: activeValues.photo.uri }}
-                      style={styles.photoPreviewImage}
-                      resizeMode="cover"
-                    />
-                    <Text style={styles.photoPreviewHint}>Tap to view photo</Text>
-                  </TouchableOpacity>
-                ) : null}
+                {photoRequirements.map((requirement, index) => {
+                  const media = activeValues.photos?.[requirement.id];
+                  const slotError = activeErrors.photoSlots?.[requirement.id];
 
-                {activeValues.photo ? (
-                  <View style={styles.photoMetaCard}>
-                    <Text style={styles.photoMetaText}>File: {activeValues.photo.name}</Text>
-                    <Text style={styles.photoMetaText}>Source: {activeValues.photo.source}</Text>
-                    <Text style={styles.photoMetaText}>
-                      Size: {activeValues.photo.sizeKb ? `${activeValues.photo.sizeKb}KB` : "Unknown"}
-                    </Text>
-                  </View>
-                ) : null}
+                  return (
+                    <View
+                      key={requirement.id}
+                      style={[styles.photoSlotCard, slotError && styles.photoSlotCardError]}
+                    >
+                      <View style={styles.photoSlotHeader}>
+                        <Text style={styles.photoSlotTitle}>
+                          {index + 1}. {requirement.label}
+                        </Text>
+                        {media ? (
+                          <TouchableOpacity
+                            style={styles.photoRemoveBtn}
+                            onPress={() => removeSelectedPhoto(requirement.id)}
+                          >
+                            <Text style={styles.photoRemoveBtnText}>Remove</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
 
-                {activeErrors.photo ? (
-                  <Text style={styles.errorText}>{activeErrors.photo}</Text>
+                      <TouchableOpacity
+                        style={styles.uploadButton}
+                        onPress={() => showUploadOptions(requirement)}
+                        activeOpacity={0.88}
+                      >
+                        <Text style={styles.uploadButtonText}>
+                          {media ? "Replace File" : "Upload File"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {media?.uri ? (
+                        <TouchableOpacity
+                          style={styles.photoPreviewWrap}
+                          onPress={() => openPhotoPreview(requirement.id)}
+                          activeOpacity={0.9}
+                        >
+                          {media.mediaType === "video" ? (
+                            <View style={styles.videoPreviewPlaceholder}>
+                              <Text style={styles.videoPreviewText}>Video Selected</Text>
+                            </View>
+                          ) : (
+                            <Image
+                              source={{ uri: media.uri }}
+                              style={styles.photoPreviewImage}
+                              resizeMode="cover"
+                            />
+                          )}
+
+                          <View style={styles.photoMetaCard}>
+                            <Text style={styles.photoMetaText}>File: {media.name}</Text>
+                            <Text style={styles.photoMetaText}>Source: {media.source}</Text>
+                            <Text style={styles.photoMetaText}>
+                              Size: {media.sizeKb ? `${media.sizeKb}KB` : "Unknown"}
+                            </Text>
+                            <Text style={styles.photoMetaText}>Time: {media.takenAt}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.photoEmptyText}>No file selected</Text>
+                      )}
+
+                      {slotError ? <Text style={styles.errorText}>{slotError}</Text> : null}
+                    </View>
+                  );
+                })}
+
+                {activeErrors.photos ? (
+                  <Text style={styles.errorText}>{activeErrors.photos}</Text>
                 ) : null}
-              </>
+              </View>
             ) : null}
 
             {activeSubOption.needsLocationActions ? (
-              <>
-                <Text style={styles.fieldLabel}>Node Location</Text>
+              <View style={styles.locationSection}>
+                <Text style={styles.locationTitle}>Node Location</Text>
                 <View style={styles.locationCard}>
                   <Text style={styles.locationText}>
-                    Default: {activeValues.defaultLocation.latitude},{" "}
+                    Default: {activeValues.defaultLocation.latitude}, {" "}
                     {activeValues.defaultLocation.longitude}
                   </Text>
                   <Text style={styles.locationText}>
@@ -213,7 +334,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       : "Not updated"}
                   </Text>
                   <Text style={styles.locationText}>
-                    Time: {activeValues.updatedAt ? activeValues.updatedAt : "Not updated"}
+                    Time: {activeValues.updatedAt || "Not updated"}
                   </Text>
                 </View>
 
@@ -235,12 +356,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     onPress={() => openMapForLocation(getCurrentLocation())}
                     activeOpacity={0.88}
                   >
-                    <Text style={styles.locationBtnSecondaryText}>
-                      Check on Google Map
-                    </Text>
+                    <Text style={styles.locationBtnSecondaryText}>Check on Google Map</Text>
                   </TouchableOpacity>
                 </View>
-              </>
+              </View>
             ) : null}
 
             <Button
@@ -249,7 +368,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               style={styles.submitButton}
               contentStyle={styles.submitButtonContent}
             >
-              Submit {activeSubOptionLabel}
+              Submit
             </Button>
           </View>
         </ScrollView>
@@ -290,17 +409,30 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      <Modal visible={photoPreviewVisible} transparent animationType="fade">
+      <Modal visible={photoPreviewState.visible} transparent animationType="fade">
         <View style={styles.previewOverlay}>
           <TouchableOpacity style={styles.previewCloseArea} onPress={closePhotoPreview} />
           <View style={styles.previewCard}>
-            {activeValues.photo?.uri ? (
-              <Image
-                source={{ uri: activeValues.photo.uri }}
-                style={styles.previewImage}
-                resizeMode="contain"
-              />
+            {photoPreviewState.media?.uri ? (
+              photoPreviewState.media.mediaType === "video" ? (
+                <View style={styles.videoPreviewModalPlaceholder}>
+                  <Text style={styles.videoPreviewModalText}>
+                    Video preview is not available in-app yet.
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: photoPreviewState.media.uri }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
+              )
             ) : null}
+
+            {photoPreviewState.media ? (
+              <Text style={styles.previewMetaText}>Captured: {photoPreviewState.media.takenAt}</Text>
+            ) : null}
+
             <TouchableOpacity style={styles.previewCloseBtn} onPress={closePhotoPreview}>
               <Text style={styles.previewCloseText}>Close</Text>
             </TouchableOpacity>

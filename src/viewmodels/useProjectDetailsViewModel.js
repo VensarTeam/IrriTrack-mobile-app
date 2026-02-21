@@ -119,7 +119,7 @@ const useProjectDetailsViewModel = (navigation) => {
       key: "OMS",
       bg: colors.surfaceBlue,
       accent: colors.primaryBlue,
-      value: 3842,
+      value: 3841,
     },
     {
       key: "RMS",

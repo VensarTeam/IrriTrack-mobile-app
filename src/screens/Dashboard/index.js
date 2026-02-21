@@ -31,7 +31,7 @@ const DashboardScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.headerTitle}>Water Management System</Text>
+        <Text style={styles.headerTitle}>Project Management Tools</Text>
       </View>
 
       <LinearGradient

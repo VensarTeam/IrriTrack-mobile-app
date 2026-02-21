@@ -10,6 +10,8 @@ import GoogleMapIcon from './google-map.svg';
 import ZoneIcon from "./zone.svg";
 import DistributorIcon from "./distributor.svg";
 import VillageIcon from "./village.svg";
+import TickIcon from "./tick.svg";
+import GalleryIcon from "./gallery.svg"
 
 export {
   PersonIcon,
@@ -23,5 +25,7 @@ export {
   GoogleMapIcon,
   ZoneIcon,
   DistributorIcon,
-  VillageIcon
+  VillageIcon,
+  TickIcon,
+  GalleryIcon
 };

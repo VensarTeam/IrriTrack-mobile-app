@@ -10,7 +10,7 @@ export const getProjectStatusDataSet = () => ({
       label: "Outlet Pipe Laying",
       completed: 2000,
       pending: 1000,
-      partial: 842,
+      partial: 841,
     },
     {
       label: "Mechanical Installation",

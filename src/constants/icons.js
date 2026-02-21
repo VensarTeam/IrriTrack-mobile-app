@@ -12,6 +12,8 @@ import {
   ZoneIcon,
   DistributorIcon,
   VillageIcon,
+  TickIcon,
+  GalleryIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -27,5 +29,7 @@ export const Icons = {
   googleIcon: GoogleMapIcon,
   zone: ZoneIcon,
   distributor: DistributorIcon,
-  village: VillageIcon
+  village: VillageIcon,
+  tickGreen: TickIcon,
+  gallery: GalleryIcon
 };

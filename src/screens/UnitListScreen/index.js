@@ -58,12 +58,13 @@ const UnitListScreen = ({ navigation, route }) => {
             style={styles.galleryBtn}
             onPress={() => openGallery(item.unitNo)}
           >
-            <IconButton
+            {/* <IconButton
               icon="image-multiple-outline"
               size={16}
               iconColor={colors.primaryBlue}
               style={styles.galleryIconButton}
-            />
+            /> */}
+            <Icons.gallery height={16} width={16} />
           </TouchableOpacity>
 
           <TouchableOpacity

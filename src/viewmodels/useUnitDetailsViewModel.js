@@ -6,13 +6,13 @@ import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
 const useUnitDetailsViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
-  const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
+  const projectName = route?.params?.projectName || "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
 
   const detailItems = [
     { label: "Unit Number", value: unit.unitNo || `${module}-001` },
     { label: "Village", value: unit.village || "Village-A" },
-    { label: "Area", value: unit.area || "30 ha" },
-    { label: "Chak Area", value: unit.chakArea || "30 ha" },
+    { label: "Chak Area", value: unit.area || "30 ha" },
+    { label: "Sub Chak Area", value: unit.chakArea || "5.0 ha" },
   ];
 
   const [updatePicker, setUpdatePicker] = useState({
@@ -35,6 +35,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
       wetCommissioning: unit.wet || "Pending",
       mechanicalRectification: unit.mechanicalRectification || "Pending",
       controllerRectification: unit.controllerRectification || "Pending",
+      theftDamageReinstallation: unit.theftDamageReinstallation || "Pending",
     }),
     [unit]
   );

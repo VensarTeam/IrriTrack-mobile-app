@@ -23,11 +23,11 @@ const AndroidSplash = ({ onLayout }) => {
       />
 
       <Text style={styles.title}>
-        Water Management System
+        Project Management Tools
       </Text>
 
       <Text style={styles.subtitle}>
-        Vensar WMS
+        Vensar PMT
       </Text>
 
       <ActivityIndicator

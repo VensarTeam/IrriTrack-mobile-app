@@ -225,7 +225,7 @@ export default StyleSheet.create({
     width: moderateScale(36),
     height: moderateScale(36),
     borderRadius: moderateScale(18),
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: colors.primaryBlue,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     alignItems: "center",
