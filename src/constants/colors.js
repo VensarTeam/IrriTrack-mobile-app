@@ -6,6 +6,7 @@ const colors = {
   lightGreen: "#DCF7EA",
   rmsColor: "#511b05",
   gwColor:"#cf540c",
+  darkGreen:'#418f05',
 
   // Shared app theme
   vibrantGradientTop: "#05b3f3",
@@ -35,7 +36,7 @@ const colors = {
   background: "#F4FAFF",
   border: "#D9E8F5",
   inputBg: "#F6FBFF",
-  inputOutline: "#C9DDF0",
+  inputOutline: "#4ba8fe",
   danger: "#E05252",
 
   // Accent surfaces

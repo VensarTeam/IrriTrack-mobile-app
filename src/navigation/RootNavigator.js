@@ -8,6 +8,7 @@ import UnitListScreen from "../screens/UnitListScreen";
 import UnitDetailsScreen from "../screens/UnitDetails";
 import UnitStatusUpdateScreen from "../screens/UnitStatusUpdate";
 import UnitStatusOverviewScreen from "../screens/UnitStatusOverview";
+import UnitGalleryScreen from "../screens/UnitGallery";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,13 @@ const RootNavigator = () => {
       <Stack.Screen
         name={ROUTES.ROOT.UNIT_STATUS_OVERVIEW}
         component={UnitStatusOverviewScreen}
+        options={{
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.ROOT.UNIT_GALLERY}
+        component={UnitGalleryScreen}
         options={{
           animation: "slide_from_right",
         }}

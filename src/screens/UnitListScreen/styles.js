@@ -23,16 +23,30 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
-  searchInput: {
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.white,
     marginHorizontal: moderateScale(15),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(12),
     borderRadius: moderateScale(14),
     marginBottom: verticalScale(10),
     borderWidth: 1,
     borderColor: colors.border,
+    paddingHorizontal: moderateScale(12),
+  },
+
+  searchIcon: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    resizeMode: "contain",
+    marginRight: moderateScale(8),
+  },
+
+  searchInput: {
+    flex: 1,
+    paddingVertical: verticalScale(12),
     color: colors.textDark,
+    fontSize: moderateScale(13),
   },
 
   filterContainer: {

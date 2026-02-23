@@ -56,14 +56,8 @@ const UnitListScreen = ({ navigation, route }) => {
         <View style={styles.cardActionsRow}>
           <TouchableOpacity
             style={styles.galleryBtn}
-            onPress={() => openGallery(item.unitNo)}
+            onPress={() => openGallery(item)}
           >
-            {/* <IconButton
-              icon="image-multiple-outline"
-              size={16}
-              iconColor={colors.primaryBlue}
-              style={styles.galleryIconButton}
-            /> */}
             <Icons.gallery height={16} width={16} />
           </TouchableOpacity>
 
@@ -113,14 +107,25 @@ const UnitListScreen = ({ navigation, route }) => {
     </View>
   );
 
-  const FilterButton = ({ title, label, active, onPress, icon: FilterIcon }) => {
+  const FilterButton = ({
+    title,
+    label,
+    active,
+    onPress,
+    icon: FilterIcon,
+  }) => {
     return (
       <TouchableOpacity
         style={[styles.filterBtn, active && styles.filterBtnActive]}
         onPress={onPress}
       >
         <View style={styles.filterLeftSection}>
-          <View style={[styles.filterIconWrap, active && styles.filterIconWrapActive]}>
+          <View
+            style={[
+              styles.filterIconWrap,
+              active && styles.filterIconWrapActive,
+            ]}
+          >
             {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
           </View>
 
@@ -160,13 +165,25 @@ const UnitListScreen = ({ navigation, route }) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <TextInput
+      <View style={styles.searchContainer}>
+        <Icons.search
+          width={22}
+          height={22}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          placeholder={`Search ${module} No...`}
+          placeholderTextColor="#999"
+          style={styles.searchInput}
+        />
+      </View>
+      {/* <TextInput
         placeholder={`Search ${module} No...`}
         placeholderTextColor={colors.textSecondary}
         value={search}
         onChangeText={setSearch}
         style={styles.searchInput}
-      />
+      /> */}
 
       <View style={styles.filterContainer}>
         <FilterButton

@@ -18,6 +18,7 @@ import {
   DeleteIcon,
   SupportIcon,
   LocationIcon,
+  SearchIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -39,5 +40,6 @@ export const Icons = {
   uploadfile: UploadfileIcon,
   delete: DeleteIcon,
   support: SupportIcon,
-  location: LocationIcon
+  location: LocationIcon,
+  search: SearchIcon
 };

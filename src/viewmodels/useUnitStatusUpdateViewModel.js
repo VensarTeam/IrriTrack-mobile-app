@@ -54,6 +54,40 @@ const formatGeocodeAddress = (place = {}) => {
   return parts.join(", ");
 };
 
+const applyModuleText = (value, module) => {
+  if (typeof value !== "string" || !module) return value;
+
+  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
+};
+
+const getModuleAwareSections = (module) =>
+  MODULE_STATUS_SECTIONS.map((section) => ({
+    ...section,
+    title: applyModuleText(section.title, module),
+    description: applyModuleText(section.description, module),
+    subOptions: (section.subOptions || []).map((sub) => ({
+      ...sub,
+      label: applyModuleText(sub.label, module),
+      statusLabel: applyModuleText(sub.statusLabel, module),
+      pipeSizeLabel: applyModuleText(sub.pipeSizeLabel, module),
+      contractorLabel: applyModuleText(sub.contractorLabel, module),
+      remarkLabel: applyModuleText(sub.remarkLabel, module),
+      checklistItems: (sub.checklistItems || []).map((item) => ({
+        ...item,
+        label: applyModuleText(item.label, module),
+      })),
+      photoRequirements: (sub.photoRequirements || []).map((requirement) => ({
+        ...requirement,
+        label: applyModuleText(requirement.label, module),
+      })),
+      selectFields: (sub.selectFields || []).map((field) => ({
+        ...field,
+        label: applyModuleText(field.label, module),
+        placeholder: applyModuleText(field.placeholder, module),
+      })),
+    })),
+  }));
+
 const getInitialFormValues = (section, unit) => {
   const baseLocation = {
     latitude: unit?.latitude || DEFAULT_NODE_LOCATION.latitude,
@@ -81,15 +115,15 @@ const getInitialFormValues = (section, unit) => {
 };
 
 const useUnitStatusUpdateViewModel = (navigation, route) => {
-  const module = route?.params?.module || "OMS";
+  const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
+  const sections = useMemo(() => getModuleAwareSections(module), [module]);
 
   const section =
-    MODULE_STATUS_SECTIONS.find((item) => item.key === sectionKey) ||
-    MODULE_STATUS_SECTIONS[0];
+    sections.find((item) => item.key === sectionKey) || sections[0];
 
   const initialSubOptionId =
     section.subOptions.find((sub) => sub.id === requestedSubOptionId)?.id ||

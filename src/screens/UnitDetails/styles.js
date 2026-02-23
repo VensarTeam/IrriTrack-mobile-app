@@ -188,14 +188,14 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(6),
     borderRadius: moderateScale(14),
-    borderColor: colors.primaryGreen,
+    borderColor: colors.darkGreen,
     borderWidth: 1,
   },
 
   updateButtonText: {
     fontSize: moderateScale(11),
     fontFamily: fonts.medium,
-    color: colors.primaryGreen,
+    color: colors.darkGreen,
   },
 
   statusCardDescription: {

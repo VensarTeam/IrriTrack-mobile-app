@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { getFilterOptions, getUnits } from "../repositories/unitRepository";
-import { showAppAlert } from "../services/alertService";
 import { openDirections } from "../services/mapService";
 
 const useUnitListViewModel = (navigation, route) => {
@@ -15,6 +14,8 @@ const useUnitListViewModel = (navigation, route) => {
   const [filterType, setFilterType] = useState(null);
 
   const data = getUnits(module);
+  const projectName =
+    "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -34,11 +35,11 @@ const useUnitListViewModel = (navigation, route) => {
     openDirections(lat, lng);
   };
 
-  const openGallery = (unitNo) => {
-    showAppAlert({
-      type: "info",
-      title: "Gallery",
-      message: `Gallery for ${unitNo} will be available soon.`,
+  const openGallery = (unit) => {
+    navigation.navigate(ROUTES.ROOT.UNIT_GALLERY, {
+      module,
+      unit,
+      projectName,
     });
   };
 
@@ -67,7 +68,7 @@ const useUnitListViewModel = (navigation, route) => {
     navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
       module,
       unit,
-      projectName: "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project",
+      projectName,
     });
   };
 

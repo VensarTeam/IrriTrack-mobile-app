@@ -123,7 +123,7 @@ const ProjectDetailsScreen = () => {
                     borderLeftColor: item.accent,
                   },
                 ]}
-                onPress={() => openModuleList("OMS")}
+                onPress={() => openModuleList(item.key)}
                 activeOpacity={0.85}
               >
                 <View style={styles.kpiContent}>

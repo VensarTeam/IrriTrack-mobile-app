@@ -7,6 +7,8 @@ export const ROUTES = {
     UNIT_DETAILS: "UnitDetails",
     UNIT_STATUS_UPDATE: "UnitStatusUpdate",
     UNIT_STATUS_OVERVIEW: "UnitStatusOverview",
+    UNIT_GALLERY: "UnitGallery",
+    MODULE_GALLERY: "UnitGallery",
     MODULE_DETAILS: "UnitDetails",
     MODULE_STATUS_UPDATE: "UnitStatusUpdate",
     MODULE_STATUS_OVERVIEW: "UnitStatusOverview",
