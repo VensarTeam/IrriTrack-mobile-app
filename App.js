@@ -51,7 +51,7 @@ const App = () => {
       try {
         await Promise.all([
           runAndroidStartupTasks(),
-          new Promise((resolve) => setTimeout(resolve, 1200)),
+          new Promise((resolve) => setTimeout(resolve, 3000)),
         ]);
       } finally {
         if (isMounted) {

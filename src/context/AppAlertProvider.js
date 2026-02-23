@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import PremiumAlert from "../components/PremiumAlert";
+import CustomAlert from "../components/CustomAlert";
 import { registerAlertHandler } from "../services/alertService";
 
 const AppAlertContext = createContext({
@@ -58,7 +58,7 @@ const AppAlertProvider = ({ children }) => {
   return (
     <AppAlertContext.Provider value={contextValue}>
       {children}
-      <PremiumAlert
+      <CustomAlert
         visible={alertState.visible}
         title={alertState.title}
         message={alertState.message}

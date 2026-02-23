@@ -40,7 +40,7 @@ const TYPE_MAP = {
   },
 };
 
-const PremiumAlert = ({
+const CustomAlert = ({
   visible,
   title,
   message,
@@ -117,7 +117,7 @@ const PremiumAlert = ({
   );
 };
 
-export default PremiumAlert;
+export default CustomAlert;
 
 const styles = StyleSheet.create({
   overlay: {

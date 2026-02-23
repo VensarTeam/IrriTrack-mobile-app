@@ -175,6 +175,8 @@ const UnitListScreen = ({ navigation, route }) => {
           placeholder={`Search ${module} No...`}
           placeholderTextColor="#999"
           style={styles.searchInput}
+          onChangeText={setSearch}
+          value={search}
         />
       </View>
       {/* <TextInput
