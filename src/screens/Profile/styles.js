@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -20,13 +21,13 @@ export default StyleSheet.create({
 
   initials: {
     fontSize: moderateScale(28),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.navyFreshDark,
   },
 
   name: {
     fontSize: moderateScale(20),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.navyFreshDark,
     marginBottom: verticalScale(8),
   },
@@ -71,23 +72,26 @@ export default StyleSheet.create({
 
   infoValue: {
     fontSize: moderateScale(15),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     marginTop: verticalScale(4),
     color: colors.textDark,
   },
 
   logoutButton: {
+    flexDirection:'row',
+    gap:4,
     marginTop: verticalScale(30),
     backgroundColor: colors.danger,
     paddingVertical: verticalScale(14),
     borderRadius: moderateScale(14),
     alignItems: "center",
+    justifyContent:'center'
   },
 
   logoutText: {
     color: colors.white,
     fontSize: moderateScale(15),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   version: {

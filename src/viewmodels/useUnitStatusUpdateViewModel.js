@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
@@ -10,6 +9,7 @@ import {
   STATUS_OPTIONS,
 } from "../constants/moduleStatusConfig";
 import { openLocation } from "../services/mapService";
+import { showAppAlert } from "../services/alertService";
 
 const buildChecklistState = (checklistItems = []) =>
   checklistItems.reduce((acc, item) => {
@@ -29,6 +29,31 @@ const buildSelectFieldState = (selectFields = []) =>
     return acc;
   }, {});
 
+const formatCoordinates = (location = {}) =>
+  `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
+
+const buildUnitAddressSummary = (unit = {}, baseLocation = DEFAULT_NODE_LOCATION) => {
+  const address = [unit.village, unit.distributor, unit.zone]
+    .filter(Boolean)
+    .join(", ");
+
+  return address || formatCoordinates(baseLocation);
+};
+
+const formatGeocodeAddress = (place = {}) => {
+  const parts = [
+    place.name,
+    place.street,
+    place.district,
+    place.city || place.subregion,
+    place.region,
+    place.postalCode,
+    place.country,
+  ].filter(Boolean);
+
+  return parts.join(", ");
+};
+
 const getInitialFormValues = (section, unit) => {
   const baseLocation = {
     latitude: unit?.latitude || DEFAULT_NODE_LOCATION.latitude,
@@ -44,7 +69,9 @@ const getInitialFormValues = (section, unit) => {
       checks: buildChecklistState(sub.checklistItems),
       photos: buildPhotoState(sub.photoRequirements),
       defaultLocation: baseLocation,
+      defaultAddress: buildUnitAddressSummary(unit, baseLocation),
       updatedLocation: null,
+      updatedAddress: "",
       updatedAt: null,
       ...buildSelectFieldState(sub.selectFields),
     };
@@ -83,6 +110,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     visible: false,
     media: null,
   });
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
 
   const activeSubOption = useMemo(
     () =>
@@ -124,14 +152,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return { completed, total };
   };
 
-  const updateActiveValues = (updates) => {
+  const updateValuesForSubOption = (subOptionId, updates) => {
     setFormValues((prev) => ({
       ...prev,
-      [activeSubOption.id]: {
-        ...prev[activeSubOption.id],
+      [subOptionId]: {
+        ...prev[subOptionId],
         ...updates,
       },
     }));
+  };
+
+  const updateActiveValues = (updates) => {
+    updateValuesForSubOption(activeSubOption.id, updates);
   };
 
   const clearFieldError = (field) => {
@@ -183,23 +215,46 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "Location permission is needed to update current location."
-      );
+      showAppAlert({
+        type: "warning",
+        title: "Permission required",
+        message: "Location permission is needed to update current location.",
+      });
       return false;
     }
 
     return true;
   };
 
+  const getReadableAddress = async (latitude, longitude, timeoutMs = 2500) => {
+    try {
+      const places = await Promise.race([
+        Location.reverseGeocodeAsync({ latitude, longitude }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("geocode-timeout")), timeoutMs)
+        ),
+      ]);
+
+      const candidate = places?.[0];
+      if (!candidate) return "";
+
+      return formatGeocodeAddress(candidate);
+    } catch (error) {
+      return "";
+    }
+  };
+
   const updateNodeLocation = async () => {
+    if (isUpdatingLocation) return;
+
+    setIsUpdatingLocation(true);
+
     try {
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) return;
 
       const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
       });
 
       const nextLocation = {
@@ -207,15 +262,33 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         longitude: Number(position.coords.longitude.toFixed(6)),
       };
 
-      updateActiveValues({
+      const currentSubOptionId = activeSubOption.id;
+      const capturedAt = new Date().toLocaleString();
+
+      // Persist core location immediately for fast field feedback,
+      // then resolve address in background.
+      updateValuesForSubOption(currentSubOptionId, {
         updatedLocation: nextLocation,
-        updatedAt: new Date().toLocaleString(),
+        updatedAt: capturedAt,
+        updatedAddress: "Resolving address...",
+      });
+
+      void getReadableAddress(
+        nextLocation.latitude,
+        nextLocation.longitude
+      ).then((address) => {
+        updateValuesForSubOption(currentSubOptionId, {
+          updatedAddress: address || "Address unavailable (offline/network issue)",
+        });
       });
     } catch (error) {
-      Alert.alert(
-        "Location unavailable",
-        "Unable to fetch current location. Please check location settings."
-      );
+      showAppAlert({
+        type: "danger",
+        title: "Location unavailable",
+        message: "Unable to fetch current location. Please check location settings.",
+      });
+    } finally {
+      setIsUpdatingLocation(false);
     }
   };
 
@@ -224,7 +297,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
       if (status !== "granted") {
-        Alert.alert("Permission required", "Camera permission is required.");
+        showAppAlert({
+          type: "warning",
+          title: "Permission required",
+          message: "Camera permission is required.",
+        });
         return false;
       }
 
@@ -234,7 +311,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert("Permission required", "Gallery permission is required.");
+      showAppAlert({
+        type: "warning",
+        title: "Permission required",
+        message: "Gallery permission is required.",
+      });
       return false;
     }
 
@@ -322,11 +403,27 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const showUploadOptions = (requirement) => {
-    Alert.alert(requirement.label, "Choose source", [
-      { text: "Camera", onPress: () => pickFromCamera(requirement) },
-      { text: "Gallery", onPress: () => pickFromGallery(requirement) },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    showAppAlert({
+      type: "info",
+      title: requirement.label,
+      message: "Choose source",
+      actions: [
+        {
+          label: "Camera",
+          variant: "primary",
+          onPress: () => pickFromCamera(requirement),
+        },
+        {
+          label: "Gallery",
+          variant: "secondary",
+          onPress: () => pickFromGallery(requirement),
+        },
+        {
+          label: "Cancel",
+          variant: "secondary",
+        },
+      ],
+    });
   };
 
   const removeSelectedPhoto = (requirementId) => {
@@ -440,18 +537,24 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     );
     const hasNext = activeIndex < section.subOptions.length - 1;
 
-    Alert.alert("Submitted", `${activeSubOptionLabel} saved successfully.`, [
-      {
-        text: hasNext ? "Next" : "Done",
-        onPress: () => {
-          if (hasNext) {
-            setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
-          } else {
-            navigation.goBack();
-          }
+    showAppAlert({
+      type: "success",
+      title: "Submitted",
+      message: `${activeSubOptionLabel} saved successfully.`,
+      actions: [
+        {
+          label: hasNext ? "Next" : "Done",
+          variant: "primary",
+          onPress: () => {
+            if (hasNext) {
+              setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
+            } else {
+              navigation.goBack();
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   };
 
   const handleBack = () => {
@@ -484,6 +587,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
+    isUpdatingLocation,
     showUploadOptions,
     removeSelectedPhoto,
     submitActiveSubOption,

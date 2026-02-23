@@ -1,6 +1,6 @@
-import { Alert } from "react-native";
 import { ROUTES } from "../navigation/routes";
 import { getCurrentUser } from "../repositories/userRepository";
+import { showAppAlert } from "../services/alertService";
 
 const useProfileViewModel = (navigation) => {
   const user = getCurrentUser();
@@ -10,17 +10,18 @@ const useProfileViewModel = (navigation) => {
     .join("");
 
   const handleLogout = () => {
-    Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to logout?",
-      [
+    showAppAlert({
+      type: "warning",
+      title: "Confirm Logout",
+      message: "Are you sure you want to logout?",
+      actions: [
         {
-          text: "Cancel",
-          style: "cancel",
+          label: "Cancel",
+          variant: "secondary",
         },
         {
-          text: "Logout",
-          style: "destructive",
+          label: "Logout",
+          variant: "danger",
           onPress: () => {
             navigation.reset({
               index: 0,
@@ -29,8 +30,8 @@ const useProfileViewModel = (navigation) => {
           },
         },
       ],
-      { cancelable: true }
-    );
+      cancelable: true,
+    });
   };
 
   return {

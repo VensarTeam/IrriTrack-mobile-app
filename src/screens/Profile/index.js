@@ -4,6 +4,7 @@ import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
+import { Icons } from "../../constants/icons";
 
 const ProfileScreen = ({ navigation }) => {
   const { user, initials, handleLogout } = useProfileViewModel(navigation);
@@ -39,6 +40,7 @@ const ProfileScreen = ({ navigation }) => {
         <InfoRow label="Designation" value={user.designation} />
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Icons.logout height={22} width={22}/>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 

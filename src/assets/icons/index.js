@@ -11,7 +11,11 @@ import ZoneIcon from "./zone.svg";
 import DistributorIcon from "./distributor.svg";
 import VillageIcon from "./village.svg";
 import TickIcon from "./tick.svg";
-import GalleryIcon from "./gallery.svg"
+import GalleryIcon from "./gallery.svg";
+import DeleteIcon from "./delete.svg";
+import UploadfileIcon from "./upload_file.svg";
+import SupportIcon from "./support.svg";
+import LocationIcon from "./location.svg";
 
 export {
   PersonIcon,
@@ -27,5 +31,9 @@ export {
   DistributorIcon,
   VillageIcon,
   TickIcon,
-  GalleryIcon
+  GalleryIcon,
+  DeleteIcon,
+  UploadfileIcon,
+  SupportIcon,
+  LocationIcon
 };

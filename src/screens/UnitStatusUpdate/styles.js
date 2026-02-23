@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -22,7 +23,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(15),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
     textAlign: "center",
     flex: 1,
@@ -60,7 +61,7 @@ export default StyleSheet.create({
   projectText: {
     fontSize: moderateScale(13),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   projectMetaRow: {
@@ -73,7 +74,7 @@ export default StyleSheet.create({
   projectMeta: {
     fontSize: moderateScale(11),
     color: colors.primaryBlue,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   stepHeaderRow: {
@@ -86,7 +87,7 @@ export default StyleSheet.create({
   stepTitle: {
     fontSize: moderateScale(15),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   stepSubtitle: {
@@ -117,7 +118,7 @@ export default StyleSheet.create({
   stepChipText: {
     fontSize: moderateScale(11),
     color: colors.textSecondary,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   stepChipTextActive: {
@@ -145,7 +146,7 @@ export default StyleSheet.create({
     flex: 1,
     fontSize: moderateScale(15),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginRight: moderateScale(8),
   },
 
@@ -159,7 +160,7 @@ export default StyleSheet.create({
   progressPillText: {
     fontSize: moderateScale(10),
     color: colors.primaryGreen,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   fieldBlock: {
@@ -193,12 +194,12 @@ export default StyleSheet.create({
     marginRight: moderateScale(10),
     fontSize: moderateScale(12),
     color: colors.textDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   selectPlaceholder: {
     color: colors.textSecondary,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
   },
 
   checklistCard: {
@@ -213,7 +214,7 @@ export default StyleSheet.create({
   checklistTitle: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(6),
   },
 
@@ -254,7 +255,7 @@ export default StyleSheet.create({
   checkboxMark: {
     color: colors.white,
     fontSize: moderateScale(11),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     lineHeight: moderateScale(12),
   },
 
@@ -268,7 +269,7 @@ export default StyleSheet.create({
 
   checkItemTextChecked: {
     color: colors.navyFreshDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   remarkInput: {
@@ -290,7 +291,7 @@ export default StyleSheet.create({
   photoSectionTitle: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(6),
   },
 
@@ -319,10 +320,12 @@ export default StyleSheet.create({
     marginRight: moderateScale(8),
     fontSize: moderateScale(11),
     color: colors.textDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   photoRemoveBtn: {
+    flexDirection:'row',
+    gap:4,
     paddingHorizontal: moderateScale(8),
     paddingVertical: verticalScale(3),
     borderRadius: moderateScale(8),
@@ -332,12 +335,14 @@ export default StyleSheet.create({
   },
 
   photoRemoveBtnText: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(12),
     color: colors.danger,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   uploadButton: {
+    flexDirection:'row',
+    gap:4,
     borderWidth: 1,
     borderColor: colors.primaryBlue,
     borderRadius: moderateScale(10),
@@ -349,8 +354,8 @@ export default StyleSheet.create({
 
   uploadButtonText: {
     color: colors.primaryBlue,
-    fontSize: moderateScale(11),
-    fontWeight: "700",
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
   },
 
   photoPreviewWrap: {
@@ -377,7 +382,7 @@ export default StyleSheet.create({
   videoPreviewText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   photoMetaCard: {
@@ -405,7 +410,7 @@ export default StyleSheet.create({
   locationTitle: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(6),
   },
 
@@ -416,6 +421,30 @@ export default StyleSheet.create({
     backgroundColor: colors.inputBg,
     paddingVertical: verticalScale(8),
     paddingHorizontal: moderateScale(10),
+  },
+
+  locationLabel: {
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    marginTop: verticalScale(4),
+    marginBottom: verticalScale(4),
+    fontFamily: fonts.medium,
+  },
+
+  locationHighlight: {
+    borderWidth: 1,
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.surfaceBlueSoft,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(6),
+  },
+
+  locationHighlightText: {
+    fontSize: moderateScale(11),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   locationText: {
@@ -429,6 +458,8 @@ export default StyleSheet.create({
   },
 
   locationBtn: {
+    flexDirection:'row',
+    gap:4,
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(10),
     alignItems: "center",
@@ -440,10 +471,14 @@ export default StyleSheet.create({
     backgroundColor: colors.primaryBlue,
   },
 
+  locationBtnDisabled: {
+    opacity: 0.75,
+  },
+
   locationBtnPrimaryText: {
     fontSize: moderateScale(12),
     color: colors.white,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   locationBtnSecondary: {
@@ -455,7 +490,7 @@ export default StyleSheet.create({
   locationBtnSecondaryText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   submitButton: {
@@ -494,7 +529,7 @@ export default StyleSheet.create({
   modalTitle: {
     fontSize: moderateScale(14),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(8),
   },
 
@@ -515,7 +550,7 @@ export default StyleSheet.create({
 
   modalOptionTextActive: {
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   modalCloseBtn: {
@@ -527,7 +562,7 @@ export default StyleSheet.create({
   modalCloseText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   previewOverlay: {
@@ -573,7 +608,7 @@ export default StyleSheet.create({
   previewCloseText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   videoPreviewModalPlaceholder: {
@@ -588,7 +623,7 @@ export default StyleSheet.create({
   videoPreviewModalText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     textAlign: "center",
   },
 });

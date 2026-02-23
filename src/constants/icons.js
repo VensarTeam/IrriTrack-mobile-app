@@ -14,6 +14,10 @@ import {
   VillageIcon,
   TickIcon,
   GalleryIcon,
+  UploadfileIcon,
+  DeleteIcon,
+  SupportIcon,
+  LocationIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -31,5 +35,9 @@ export const Icons = {
   distributor: DistributorIcon,
   village: VillageIcon,
   tickGreen: TickIcon,
-  gallery: GalleryIcon
+  gallery: GalleryIcon,
+  uploadfile: UploadfileIcon,
+  delete: DeleteIcon,
+  support: SupportIcon,
+  location: LocationIcon
 };

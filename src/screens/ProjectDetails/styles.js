@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import {
   moderateScale,
   verticalScale,
@@ -23,7 +24,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(18),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.textDark,
   },
 
@@ -67,7 +68,7 @@ export default StyleSheet.create({
 
   kpiValue: {
     fontSize: moderateScale(22),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     letterSpacing: moderateScale(0.5),
   },
 
@@ -92,13 +93,13 @@ export default StyleSheet.create({
 
   sectionTitle: {
     fontSize: moderateScale(16),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.textDark,
   },
 
   sectionIcon: {
     fontSize: moderateScale(20),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.primaryBlue,
   },
 
@@ -128,7 +129,7 @@ export default StyleSheet.create({
 
   toggleTextActive: {
     color: colors.white,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
   },
 
   /* ================= CHART ================= */
@@ -176,7 +177,7 @@ export default StyleSheet.create({
 
   piePercent: {
     fontSize: moderateScale(20),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -202,7 +203,7 @@ export default StyleSheet.create({
 
   stageTitle: {
     fontSize: moderateScale(14),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.textDark,
     marginBottom: verticalScale(10),
   },
@@ -232,7 +233,7 @@ export default StyleSheet.create({
 
   statusValue: {
     fontSize: moderateScale(13),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.textDark,
   },
 
@@ -281,6 +282,6 @@ export default StyleSheet.create({
 
   stageTabTextActive: {
     color: colors.white,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
   },
 });

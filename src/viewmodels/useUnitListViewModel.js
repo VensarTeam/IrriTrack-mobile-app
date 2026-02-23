@@ -1,7 +1,7 @@
-import { Alert } from "react-native";
 import { useMemo, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { getFilterOptions, getUnits } from "../repositories/unitRepository";
+import { showAppAlert } from "../services/alertService";
 import { openDirections } from "../services/mapService";
 
 const useUnitListViewModel = (navigation, route) => {
@@ -35,7 +35,11 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const openGallery = (unitNo) => {
-    Alert.alert("Gallery", `Gallery for ${unitNo} will be available soon.`);
+    showAppAlert({
+      type: "info",
+      title: "Gallery",
+      message: `Gallery for ${unitNo} will be available soon.`,
+    });
   };
 
   const getActiveFilterValue = () => {

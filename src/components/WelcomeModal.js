@@ -7,13 +7,17 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "../constants/colors";
+import fonts from "../constants/fonts";
 import typography from "../constants/typography";
 import { moderateScale, verticalScale } from "../constants/metrics";
 
 const WelcomeModal = ({ visible, onClose, userName }) => {
+  const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const bottomInset = Math.max(insets.bottom, verticalScale(12));
 
   useEffect(() => {
     if (visible) {
@@ -30,20 +34,29 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, slideAnim, fadeAnim]);
 
   return (
-    <Modal transparent visible={visible} animationType="none">
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
+          style={[
+            styles.sheet,
+            {
+              paddingBottom: moderateScale(28) + bottomInset,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
         >
-
           <Text style={styles.title}>Welcome Back</Text>
 
           {userName && <Text style={styles.userName}>{userName}</Text>}
-
-          {/* <Text style={styles.subtitle}>Smart Water Management System</Text> */}
 
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Continue</Text>
@@ -65,21 +78,22 @@ const styles = StyleSheet.create({
 
   sheet: {
     backgroundColor: colors.white,
-    padding: moderateScale(28),
+    paddingTop: moderateScale(28),
+    paddingHorizontal: moderateScale(28),
     borderTopLeftRadius: moderateScale(28),
     borderTopRightRadius: moderateScale(28),
   },
 
   logoText: {
     fontSize: moderateScale(32),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.primaryBlue,
     textAlign: "center",
   },
 
   title: {
     fontSize: typography.h1,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginTop: verticalScale(12),
     textAlign: "center",
     color: colors.textDark,
@@ -103,12 +117,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   userName: {
     fontSize: moderateScale(20),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     textAlign: "center",
     marginTop: verticalScale(8),
     color: colors.primaryBlue,

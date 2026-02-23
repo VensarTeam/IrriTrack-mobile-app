@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -27,7 +28,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(17),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     letterSpacing: 0.2,
     textAlign: "center",
@@ -58,7 +59,7 @@ export default StyleSheet.create({
 
   sectionTitle: {
     fontSize: moderateScale(18),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(18),
     color: colors.navyFreshDark,
   },
@@ -107,7 +108,7 @@ export default StyleSheet.create({
 
   projectName: {
     fontSize: moderateScale(18),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     marginBottom: verticalScale(20),
   },
@@ -134,7 +135,7 @@ export default StyleSheet.create({
 
   areaValue: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.navyFresh,
   },
 
@@ -150,7 +151,7 @@ export default StyleSheet.create({
   arrow: {
     fontSize: moderateScale(20),
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     backgroundColor:'red',
   },
 });

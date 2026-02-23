@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -18,7 +19,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -51,14 +52,14 @@ export default StyleSheet.create({
   projectName: {
     color: colors.textDark,
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   projectMeta: {
     marginTop: verticalScale(3),
     fontSize: moderateScale(11),
     color: colors.primaryBlue,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   sectionCard: {
@@ -74,7 +75,7 @@ export default StyleSheet.create({
 
   sectionTitle: {
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -101,7 +102,7 @@ export default StyleSheet.create({
     flex: 1,
     fontSize: moderateScale(12),
     color: colors.textDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     paddingRight: moderateScale(8),
   },
 
@@ -113,7 +114,7 @@ export default StyleSheet.create({
 
   statusPillText: {
     fontSize: moderateScale(10),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   actionsCard: {
@@ -138,7 +139,7 @@ export default StyleSheet.create({
   reportButtonText: {
     color: colors.primaryBlue,
     fontSize: moderateScale(12),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   certificateButton: {
@@ -153,6 +154,6 @@ export default StyleSheet.create({
   certificateButtonText: {
     color: colors.white,
     fontSize: moderateScale(12),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 });

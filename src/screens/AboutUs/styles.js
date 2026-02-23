@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -27,7 +28,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(18),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.navyFreshDark,
   },
 
@@ -65,7 +66,7 @@ export default StyleSheet.create({
 
   cardTitle: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(10),
     color: colors.navyFresh,
   },

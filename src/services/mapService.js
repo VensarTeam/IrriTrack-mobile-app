@@ -1,4 +1,11 @@
-import { Alert, Linking } from "react-native";
+import { Linking } from "react-native";
+import { showAppAlert } from "./alertService";
+
+const MAP_ERROR_CONFIG = {
+  type: "warning",
+  title: "Unable to open map",
+  message: "Please check map availability on your device.",
+};
 
 export const openDirections = async (latitude, longitude) => {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
@@ -6,7 +13,7 @@ export const openDirections = async (latitude, longitude) => {
   try {
     await Linking.openURL(url);
   } catch (error) {
-    Alert.alert("Unable to open map", "Please check map availability on your device.");
+    showAppAlert(MAP_ERROR_CONFIG);
   }
 };
 
@@ -16,6 +23,6 @@ export const openLocation = async (latitude, longitude) => {
   try {
     await Linking.openURL(url);
   } catch (error) {
-    Alert.alert("Unable to open map", "Please check map availability on your device.");
+    showAppAlert(MAP_ERROR_CONFIG);
   }
 };

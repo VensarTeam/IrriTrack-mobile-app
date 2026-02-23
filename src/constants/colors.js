@@ -4,9 +4,11 @@ const colors = {
   primaryGreen: "#32A874",
   primaryOrange: "#F49B3F",
   lightGreen: "#DCF7EA",
+  rmsColor: "#511b05",
+  gwColor:"#cf540c",
 
   // Shared app theme
-  vibrantGradientTop: "#61D4FF",
+  vibrantGradientTop: "#05b3f3",
   vibrantGradientMid: "#AEE6FF",
   vibrantGradientBlend: "#EAF8FF",
   navyFresh: "#123B63",

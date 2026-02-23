@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
 import { ROUTES } from "../navigation/routes";
+import { showAppAlert } from "../services/alertService";
 
 const OTP_LENGTH = 6;
 const STEPS = {
@@ -146,16 +146,19 @@ const useForgotPasswordViewModel = (navigation) => {
       return;
     }
 
-    Alert.alert(
-      "Password Updated",
-      "Your password has been reset successfully.",
-      [
+    showAppAlert({
+      type: "success",
+      title: "Password Updated",
+      message: "Your password has been reset successfully.",
+      actions: [
         {
-          text: "Back to Login",
+          label: "Back to Login",
+          variant: "primary",
           onPress: () => goToLoginRoot(),
         },
-      ]
-    );
+      ],
+      cancelable: false,
+    });
   };
 
   const switchContactType = (type) => {

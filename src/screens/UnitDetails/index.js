@@ -52,7 +52,7 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
         <View style={styles.sectionHeadingRow}>
           <Text style={styles.sectionHeading}>Unit Details</Text>
           <TouchableOpacity style={styles.helperButton} onPress={openHelper}>
-            <IconButton icon="eye-outline" size={18} iconColor={colors.primaryBlue} />
+            <Icons.support height={22} width={22} />
           </TouchableOpacity>
         </View>
 

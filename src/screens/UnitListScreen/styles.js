@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -18,7 +19,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -95,7 +96,7 @@ export default StyleSheet.create({
   filterValue: {
     fontSize: moderateScale(11),
     color: colors.textDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   filterValueActive: {
@@ -146,7 +147,7 @@ export default StyleSheet.create({
 
   emptyTitle: {
     fontSize: moderateScale(15),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
     marginBottom: verticalScale(4),
   },
@@ -169,7 +170,7 @@ export default StyleSheet.create({
   emptyActionText: {
     color: colors.white,
     fontSize: moderateScale(12),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   card: {
@@ -207,12 +208,12 @@ export default StyleSheet.create({
   unitBadgeText: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   unitNo: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -249,7 +250,7 @@ export default StyleSheet.create({
   directionText: {
     color: colors.white,
     fontSize: moderateScale(12),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     marginLeft: moderateScale(6),
   },
 
@@ -275,7 +276,7 @@ export default StyleSheet.create({
 
   metaValue: {
     fontSize: moderateScale(14),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.textDark,
     marginTop: verticalScale(2),
   },
@@ -313,7 +314,7 @@ export default StyleSheet.create({
 
   statusValue: {
     fontSize: moderateScale(11),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginTop: verticalScale(3),
   },
 
@@ -333,7 +334,7 @@ export default StyleSheet.create({
 
   modalTitle: {
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     marginBottom: verticalScale(10),
     color: colors.textDark,
   },
@@ -355,13 +356,13 @@ export default StyleSheet.create({
 
   modalTextActive: {
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   closeText: {
     textAlign: "center",
     marginTop: verticalScale(15),
     color: colors.primaryBlue,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 });

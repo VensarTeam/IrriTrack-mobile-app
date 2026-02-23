@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import typography from "../../constants/typography";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
@@ -30,7 +31,7 @@ export default StyleSheet.create({
   systemText: {
     color: colors.navyFresh,
     fontSize: typography.h2,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     textAlign: "center",
   },
 
@@ -53,7 +54,7 @@ export default StyleSheet.create({
 
   title: {
     fontSize: typography.h1,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
     textAlign: "center",
     marginBottom: verticalScale(4),
@@ -63,14 +64,14 @@ export default StyleSheet.create({
     textAlign: "center",
     color: colors.navyFresh,
     fontSize: typography.small,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     marginBottom: verticalScale(16),
   },
 
   sectionTitle: {
     color: colors.textDark,
     fontSize: typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     textAlign: "center",
     marginBottom: verticalScale(6),
   },
@@ -109,7 +110,7 @@ export default StyleSheet.create({
   switchText: {
     color: colors.textSecondary,
     fontSize: typography.small,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   switchTextActive: {
@@ -131,7 +132,7 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
     textAlign: "center",
     fontSize: moderateScale(20),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -161,7 +162,7 @@ export default StyleSheet.create({
   secondaryLinkText: {
     color: colors.navyFresh,
     fontSize: typography.small,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   loginLinkButton: {
@@ -172,6 +173,6 @@ export default StyleSheet.create({
   loginLinkText: {
     color: colors.textSecondary,
     fontSize: typography.small,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 });

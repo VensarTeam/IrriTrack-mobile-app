@@ -124,13 +124,13 @@ const useProjectDetailsViewModel = (navigation) => {
     {
       key: "RMS",
       bg: colors.surfaceGreenSoft,
-      accent: colors.primaryGreen,
+      accent: colors.rmsColor,
       value: 399,
     },
     {
       key: "GW",
       bg: colors.surfaceOrangeSoft,
-      accent: colors.primaryOrange,
+      accent: colors.gwColor,
       value: 45,
     },
   ];

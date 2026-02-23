@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import colors from "../constants/colors";
+import fonts from "../constants/fonts";
 import typography from "../constants/typography";
 import {
   moderateScale,
@@ -58,14 +59,14 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: typography.h1 || moderateScale(24),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
     textAlign: "center",
   },
 
   subtitle: {
     fontSize: typography.body || moderateScale(14),
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: colors.primaryBlue,
     marginTop: verticalScale(8),
     textAlign: "center",

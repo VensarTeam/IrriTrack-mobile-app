@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Alert } from "react-native";
-import { ROUTES } from "../navigation/routes";
 import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
+import { ROUTES } from "../navigation/routes";
+import { showAppAlert } from "../services/alertService";
 
 const useUnitDetailsViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
@@ -67,7 +67,11 @@ const useUnitDetailsViewModel = (navigation, route) => {
   };
 
   const openHelper = () => {
-    Alert.alert("Helper", "Support videos and photos will be added here.");
+    showAppAlert({
+      type: "info",
+      title: "Helper",
+      message: "Support videos and photos will be added here.",
+    });
   };
 
   const handleBack = () => {

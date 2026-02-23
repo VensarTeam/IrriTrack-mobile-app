@@ -1,5 +1,5 @@
-import { Alert } from "react-native";
 import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
+import { showAppAlert } from "../services/alertService";
 
 const COMPLETED_STATES = ["Completed", "Updated"];
 
@@ -47,17 +47,19 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
   };
 
   const downloadReportPdf = () => {
-    Alert.alert(
-      "Report PDF",
-      "Report download will be connected when API integration is done."
-    );
+    showAppAlert({
+      type: "info",
+      title: "Report PDF",
+      message: "Report download will be connected when API integration is done.",
+    });
   };
 
   const downloadCertificate = () => {
-    Alert.alert(
-      "Completion Certificate",
-      "Certificate download will be connected when API integration is done."
-    );
+    showAppAlert({
+      type: "info",
+      title: "Completion Certificate",
+      message: "Certificate download will be connected when API integration is done.",
+    });
   };
 
   return {

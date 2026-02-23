@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
@@ -18,7 +19,7 @@ export default StyleSheet.create({
 
   headerTitle: {
     fontSize: moderateScale(16),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -50,7 +51,7 @@ export default StyleSheet.create({
   projectName: {
     color: colors.textDark,
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   sectionHeadingRow: {
@@ -64,11 +65,11 @@ export default StyleSheet.create({
   sectionHeading: {
     color: colors.textDark,
     fontSize: moderateScale(17),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   helperButton: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: colors.white,
     borderRadius: moderateScale(14),
     width: moderateScale(40),
     height: moderateScale(40),
@@ -104,7 +105,7 @@ export default StyleSheet.create({
   detailValue: {
     fontSize: moderateScale(13),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   statusListHeader: {
@@ -118,7 +119,7 @@ export default StyleSheet.create({
   statusListTitle: {
     fontSize: moderateScale(16),
     color: colors.textDark,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
 
   statusListSubtitle: {
@@ -138,7 +139,7 @@ export default StyleSheet.create({
 
   viewAllText: {
     fontSize: moderateScale(11),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.primaryBlue,
   },
 
@@ -176,7 +177,7 @@ export default StyleSheet.create({
 
   statusCardTitle: {
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -193,7 +194,7 @@ export default StyleSheet.create({
 
   updateButtonText: {
     fontSize: moderateScale(11),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     color: colors.primaryGreen,
   },
 
@@ -224,7 +225,7 @@ export default StyleSheet.create({
   subStatusLabel: {
     fontSize: moderateScale(12),
     color: colors.textDark,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
     flex: 1,
     paddingRight: moderateScale(10),
   },
@@ -237,7 +238,7 @@ export default StyleSheet.create({
 
   statusPillText: {
     fontSize: moderateScale(10),
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 
   modalOverlay: {
@@ -255,7 +256,7 @@ export default StyleSheet.create({
 
   modalTitle: {
     fontSize: moderateScale(14),
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textDark,
     marginBottom: verticalScale(10),
   },
@@ -276,6 +277,6 @@ export default StyleSheet.create({
     marginTop: verticalScale(12),
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
-    fontWeight: "600",
+    fontFamily: fonts.medium,
   },
 });
