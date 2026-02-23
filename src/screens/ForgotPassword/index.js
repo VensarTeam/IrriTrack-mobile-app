@@ -2,15 +2,13 @@ import React from "react";
 import {
   View,
   Text,
-  ScrollView,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
   TextInput,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { Button, IconButton } from "react-native-paper";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import FormInput from "../../components/FormInput";
 import styles from "./styles";
 import colors from "../../constants/colors";
@@ -223,59 +221,53 @@ const ForgotPasswordScreen = ({ navigation }) => {
       end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
-        style={styles.container}
+      <View style={styles.topSection}>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          iconColor={colors.navyFreshDark}
+          style={styles.backButton}
+          onPress={handleBackPress}
+        />
+
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.systemText}>Project Management Tools</Text>
+      </View>
+
+      <LinearGradient
+        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
+        locations={[0, 0.56, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.sheet}
       >
-        <View style={styles.topSection}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            iconColor={colors.navyFreshDark}
-            style={styles.backButton}
-            onPress={handleBackPress}
-          />
-
-          <Image
-            source={require("../../assets/images/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.systemText}>Project Management Tools</Text>
-        </View>
-
-        <LinearGradient
-          colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
-          locations={[0, 0.56, 1]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.sheet}
+        <KeyboardAwareScrollView
+          innerRef={(ref) => {
+            scrollRef.current = ref;
+          }}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          enableAutomaticScroll
+          extraScrollHeight={24}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+          bounces={false}
         >
-          <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="always"
-            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
-            showsVerticalScrollIndicator={false}
-            overScrollMode="never"
-            bounces={false}
-          >
-            <Text style={styles.title}>Forgot Password</Text>
+          <Text style={styles.title}>Forgot Password</Text>
 
-            {step === STEPS.IDENTIFIER ? renderIdentifierStep() : null}
-            {step === STEPS.OTP ? renderOtpStep() : null}
-            {step === STEPS.PASSWORD ? renderPasswordStep() : null}
+          {step === STEPS.IDENTIFIER ? renderIdentifierStep() : null}
+          {step === STEPS.OTP ? renderOtpStep() : null}
+          {step === STEPS.PASSWORD ? renderPasswordStep() : null}
 
-            <TouchableOpacity
-              style={styles.loginLinkButton}
-              onPress={() => goToLoginRoot()}
-            >
-              <Text style={styles.loginLinkText}>Back to Login</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </LinearGradient>
-      </KeyboardAvoidingView>
+          <TouchableOpacity style={styles.loginLinkButton} onPress={() => goToLoginRoot()}>
+            <Text style={styles.loginLinkText}>Back to Login</Text>
+          </TouchableOpacity>
+        </KeyboardAwareScrollView>
+      </LinearGradient>
     </LinearGradient>
   );
 };

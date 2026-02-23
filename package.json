@@ -1,5 +1,5 @@
 {
-  "name": "vensarwmsapp",
+  "name": "pmtapp",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gifted-charts": "^1.4.74",
+    "react-native-keyboard-aware-scroll-view": "file:packages/react-native-keyboard-aware-scroll-view",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-paper": "^5.15.0",
     "react-native-safe-area-context": "^5.6.2",

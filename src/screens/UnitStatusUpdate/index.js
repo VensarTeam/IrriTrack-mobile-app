@@ -1,9 +1,7 @@
 import React from "react";
 import {
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -12,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, IconButton } from "react-native-paper";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { Icons } from "../../constants/icons";
@@ -89,22 +88,21 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={styles.keyboardContainer}>
         <View style={styles.header}>
           <IconButton icon="arrow-left" onPress={handleBack} />
           <Text style={styles.headerTitle}>{section.title}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          enableAutomaticScroll
+          extraScrollHeight={24}
         >
           <View style={styles.projectCard}>
             <Text style={styles.projectLabel}>Project</Text>
@@ -371,8 +369,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               Submit
             </Button>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
 
       <Modal visible={pickerState.visible} transparent animationType="fade">
         <View style={styles.modalOverlay}>

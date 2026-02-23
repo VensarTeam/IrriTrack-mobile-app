@@ -1,4 +1,4 @@
-package com.vensarosmapp
+package com.pmtapp
 
 import android.app.Application
 import android.content.res.Configuration
