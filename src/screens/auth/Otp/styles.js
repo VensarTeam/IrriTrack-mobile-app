@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
-import colors from "../../constants/colors";
-import fonts from "../../constants/fonts";
-import typography from "../../constants/typography";
-import { moderateScale, verticalScale } from "../../constants/metrics";
+import colors from "../../../constants/colors";
+import fonts from "../../../constants/fonts";
+import typography from "../../../constants/typography";
+import { moderateScale, verticalScale } from "../../../constants/metrics";
 
 export default StyleSheet.create({
   container: {
@@ -40,8 +40,8 @@ export default StyleSheet.create({
     backgroundColor: "transparent",
     borderTopWidth: 1,
     borderColor: colors.loginSheetBorderLight,
-    borderTopLeftRadius: moderateScale(24),
-    borderTopRightRadius: moderateScale(24),
+    borderTopLeftRadius: moderateScale(28),
+    borderTopRightRadius: moderateScale(28),
     overflow: "hidden",
   },
 
@@ -67,60 +67,52 @@ export default StyleSheet.create({
     marginBottom: verticalScale(14),
   },
 
-  switchRow: {
+  otpContainer: {
     flexDirection: "row",
-    backgroundColor: colors.switchBgFresh,
-    borderRadius: moderateScale(14),
-    padding: moderateScale(4),
-    marginBottom: verticalScale(14),
+    justifyContent: "space-between",
+    marginBottom: verticalScale(12),
   },
 
-  switchButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(10),
+  otpBox: {
+    width: moderateScale(44),
+    height: verticalScale(52),
+    borderWidth: 1.5,
+    borderRadius: moderateScale(12),
+    borderColor: colors.vibrantGradientMid,
+    backgroundColor: colors.white,
+    textAlign: "center",
+    fontSize: moderateScale(20),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
   },
 
-  switchButtonActive: {
-    backgroundColor: colors.loginBottomLight,
-    borderWidth: 1,
-    borderColor: colors.navyFreshDark,
-    elevation: 2,
-  },
-
-  switchText: {
-    color: colors.textSecondary,
-    fontSize: typography.small,
-    fontFamily: fonts.medium,
-  },
-
-  switchTextActive: {
-    color: colors.navyFreshDark,
-  },
-
-  forgotButton: {
-    alignSelf: "flex-end",
-    marginTop: verticalScale(2),
-    marginBottom: verticalScale(10),
-  },
-
-  forgotText: {
-    color: colors.navyFresh,
-    fontSize: typography.small,
-    fontFamily: fonts.medium,
-  },
-
-  loginButton: {
+  primaryButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(14),
     borderWidth: 1,
     borderColor: colors.navyFreshDark,
-    overflow: "hidden",
   },
 
-  loginButtonContent: {
+  primaryButtonContent: {
     height: verticalScale(50),
+  },
+
+  timerText: {
+    textAlign: "center",
+    marginTop: verticalScale(12),
+    marginBottom: verticalScale(4),
+    color: colors.textSecondary,
+    fontSize: typography.small,
+  },
+
+  loginLinkButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(12),
+  },
+
+  loginLinkText: {
+    color: colors.navyFresh,
+    fontSize: typography.small,
+    fontFamily: fonts.medium,
   },
 });

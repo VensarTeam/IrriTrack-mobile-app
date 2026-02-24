@@ -13,9 +13,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, IconButton } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import styles from "./styles";
-import colors from "../../constants/colors";
-import { Icons } from "../../constants/icons";
-import useUnitStatusUpdateViewModel from "../../viewmodels/useUnitStatusUpdateViewModel";
+import colors from "../../../constants/colors";
+import { Icons } from "../../../constants/icons";
+import useUnitStatusUpdateViewModel from "../../../viewmodels/useUnitStatusUpdateViewModel";
 
 const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   const {

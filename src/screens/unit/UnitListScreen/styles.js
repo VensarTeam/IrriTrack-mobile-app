@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import colors from "../../constants/colors";
-import fonts from "../../constants/fonts";
-import { moderateScale, verticalScale } from "../../constants/metrics";
+import colors from "../../../constants/colors";
+import fonts from "../../../constants/fonts";
+import { moderateScale, verticalScale } from "../../../constants/metrics";
 
 export default StyleSheet.create({
   container: {

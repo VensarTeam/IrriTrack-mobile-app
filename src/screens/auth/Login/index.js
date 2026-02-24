@@ -3,10 +3,10 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import styles from "./styles";
-import FormInput from "../../components/FormInput";
+import FormInput from "../../../components/FormInput";
 import { Button } from "react-native-paper";
-import colors from "../../constants/colors";
-import useLoginViewModel from "../../viewmodels/useLoginViewModel";
+import colors from "../../../constants/colors";
+import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
 
 const LoginScreen = ({ navigation }) => {
   const {
@@ -34,7 +34,7 @@ const LoginScreen = ({ navigation }) => {
     >
       <View style={styles.topSection}>
         <Image
-          source={require("../../assets/images/logo.png")}
+          source={require("../../../assets/images/logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />

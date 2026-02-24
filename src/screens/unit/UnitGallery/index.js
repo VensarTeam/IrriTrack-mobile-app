@@ -13,8 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
-import { Icons } from "../../constants/icons";
-import useUnitGalleryViewModel from "../../viewmodels/useUnitGalleryViewModel";
+import { Icons } from "../../../constants/icons";
+import useUnitGalleryViewModel from "../../../viewmodels/useUnitGalleryViewModel";
 
 const UnitGalleryScreen = ({ navigation, route }) => {
   const {

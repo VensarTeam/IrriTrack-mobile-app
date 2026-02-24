@@ -10,10 +10,10 @@ import LinearGradient from "react-native-linear-gradient";
 import { Button, IconButton } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import styles from "./styles";
-import colors from "../../constants/colors";
-import { moderateScale } from "../../constants/metrics";
-import WelcomeModal from "../../components/WelcomeModal";
-import useOtpViewModel from "../../viewmodels/useOtpViewModel";
+import colors from "../../../constants/colors";
+import { moderateScale } from "../../../constants/metrics";
+import WelcomeModal from "../../../components/WelcomeModal";
+import useOtpViewModel from "../../../viewmodels/useOtpViewModel";
 
 const OtpScreen = ({ route, navigation }) => {
   const {
@@ -52,7 +52,7 @@ const OtpScreen = ({ route, navigation }) => {
         />
 
         <Image
-          source={require("../../assets/images/logo.png")}
+          source={require("../../../assets/images/logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />

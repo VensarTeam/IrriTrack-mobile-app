@@ -11,9 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
-import colors from "../../constants/colors";
-import { Icons } from "../../constants/icons";
-import useUnitListViewModel from "../../viewmodels/useUnitListViewModel";
+import colors from "../../../constants/colors";
+import { Icons } from "../../../constants/icons";
+import useUnitListViewModel from "../../../viewmodels/useUnitListViewModel";
 
 const UnitListScreen = ({ navigation, route }) => {
   const {

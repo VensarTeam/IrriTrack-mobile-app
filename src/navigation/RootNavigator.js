@@ -4,11 +4,11 @@ import AuthStack from "./AuthStack";
 import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
-import UnitListScreen from "../screens/UnitListScreen";
-import UnitDetailsScreen from "../screens/UnitDetails";
-import UnitStatusUpdateScreen from "../screens/UnitStatusUpdate";
-import UnitStatusOverviewScreen from "../screens/UnitStatusOverview";
-import UnitGalleryScreen from "../screens/UnitGallery";
+import UnitListScreen from "../screens/unit/UnitListScreen";
+import UnitDetailsScreen from "../screens/unit/UnitDetails";
+import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
+import UnitStatusOverviewScreen from "../screens/unit/UnitStatusOverview";
+import UnitGalleryScreen from "../screens/unit/UnitGallery";
 
 const Stack = createNativeStackNavigator();
 

@@ -9,10 +9,10 @@ import {
 import LinearGradient from "react-native-linear-gradient";
 import { Button, IconButton } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import FormInput from "../../components/FormInput";
+import FormInput from "../../../components/FormInput";
 import styles from "./styles";
-import colors from "../../constants/colors";
-import useForgotPasswordViewModel from "../../viewmodels/useForgotPasswordViewModel";
+import colors from "../../../constants/colors";
+import useForgotPasswordViewModel from "../../../viewmodels/useForgotPasswordViewModel";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const {
@@ -231,7 +231,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         />
 
         <Image
-          source={require("../../assets/images/logo.png")}
+          source={require("../../../assets/images/logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />

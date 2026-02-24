@@ -3,10 +3,10 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
-import colors from "../../constants/colors";
-import { Icons } from "../../constants/icons";
-import { moderateScale } from "../../constants/metrics";
-import useUnitDetailsViewModel from "../../viewmodels/useUnitDetailsViewModel";
+import colors from "../../../constants/colors";
+import { Icons } from "../../../constants/icons";
+import { moderateScale } from "../../../constants/metrics";
+import useUnitDetailsViewModel from "../../../viewmodels/useUnitDetailsViewModel";
 
 const getStatusColor = (value) => {
   if (value === "Completed" || value === "Updated") return colors.completed;
