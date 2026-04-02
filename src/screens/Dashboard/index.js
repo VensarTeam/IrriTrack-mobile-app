@@ -13,11 +13,13 @@ const DashboardScreen = ({ navigation }) => {
   return (
     <LinearGradient
       colors={[
-        colors.vibrantGradientTop,
-        colors.vibrantGradientMid,
-        colors.vibrantGradientBlend,
+        colors.loginHeroGradientStart,
+        colors.loginHeroGradientMid,
+        colors.loginHeroGradientEnd,
+        colors.loginPageGradientMid,
+        colors.loginPageGradientEnd,
       ]}
-      locations={[0, 0.42, 1]}
+      locations={[0, 0.2, 0.42, 0.72, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={{ flex: 1 }}
@@ -34,17 +36,7 @@ const DashboardScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>Project Management Tools</Text>
       </View>
 
-      <LinearGradient
-        colors={[
-          colors.vibrantGradientBlend,
-          colors.loginBottomLight,
-          colors.white,
-        ]}
-        locations={[0, 0.56, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.bodyWrapper}
-      >
+      <View style={styles.bodyWrapper}>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
@@ -55,7 +47,7 @@ const DashboardScreen = ({ navigation }) => {
             <ProjectCard key={item.id} item={item} onPress={openProject} />
           ))}
         </ScrollView>
-      </LinearGradient>
+      </View>
     </LinearGradient>
   );
 };

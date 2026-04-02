@@ -37,7 +37,7 @@ export default StyleSheet.create({
 
   sheet: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: colors.sheetSurface,
     borderTopWidth: 1,
     borderColor: colors.loginSheetBorderLight,
     borderTopLeftRadius: moderateScale(28),

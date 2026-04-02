@@ -11,8 +11,14 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
-      locations={[0, 0.42, 1]}
+      colors={[
+        colors.loginHeroGradientStart,
+        colors.loginHeroGradientMid,
+        colors.loginHeroGradientEnd,
+        colors.loginPageGradientMid,
+        colors.loginPageGradientEnd,
+      ]}
+      locations={[0, 0.2, 0.42, 0.72, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={{ flex: 1 }}
@@ -29,12 +35,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <LinearGradient
-        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
-        locations={[0, 0.56, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.detailsContainer}>
+      <View style={styles.detailsContainer}>
         <InfoRow label="Mobile" value={user.mobile} />
         <InfoRow label="Email" value={user.email} />
         <InfoRow label="Designation" value={user.designation} />
@@ -45,7 +46,7 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <Text style={styles.version}>App Version 1.0.0</Text>
-      </LinearGradient>
+      </View>
     </LinearGradient>
   );
 };

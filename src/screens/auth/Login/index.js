@@ -26,28 +26,30 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
-      locations={[0, 0.42, 1]}
+      colors={[
+        colors.loginHeroGradientStart,
+        colors.loginHeroGradientMid,
+        colors.loginHeroGradientEnd,
+        colors.loginPageGradientMid,
+        colors.loginPageGradientEnd,
+      ]}
+      locations={[0, 0.2, 0.42, 0.72, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
       <View style={styles.topSection}>
-        <Image
-          source={require("../../../assets/images/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require("../../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.systemText}>Project Management Tools</Text>
       </View>
 
-      <LinearGradient
-        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
-        locations={[0, 0.56, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.sheet}
-      >
+      <View style={styles.sheet}>
         <KeyboardAwareScrollView
           innerRef={(ref) => {
             scrollRef.current = ref;
@@ -143,7 +145,7 @@ const LoginScreen = ({ navigation }) => {
             Log In
           </Button>
         </KeyboardAwareScrollView>
-      </LinearGradient>
+      </View>
     </LinearGradient>
   );
 };

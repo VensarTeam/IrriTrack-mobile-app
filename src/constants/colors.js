@@ -9,9 +9,14 @@ const colors = {
   darkGreen:'#418f05',
 
   // Shared app theme
-  vibrantGradientTop: "#05b3f3",
-  vibrantGradientMid: "#AEE6FF",
-  vibrantGradientBlend: "#EAF8FF",
+  vibrantGradientTop: "#CAE4F8",
+  vibrantGradientMid: "#A7F4D5",
+  vibrantGradientBlend: "#A8BCF3",
+  loginPageGradientMid: "#EEF2FF",
+  loginPageGradientEnd: "#FFFFFF",
+  loginHeroGradientStart: "#CAE4F8",
+  loginHeroGradientMid: "#A7F4D5",
+  loginHeroGradientEnd: "#A8BCF3",
   navyFresh: "#123B63",
   navyFreshDark: "#0C2E4D",
   switchBgFresh: "#EAF4FF",
@@ -28,6 +33,7 @@ const colors = {
   cardBorder: "#D9E7F5",
   glassWhite: "rgba(255,255,255,0.24)",
   glassBorder: "rgba(255,255,255,0.4)",
+  sheetSurface: "rgba(255,255,255,0.97)",
 
   // Surfaces and text
   white: "#FFFFFF",

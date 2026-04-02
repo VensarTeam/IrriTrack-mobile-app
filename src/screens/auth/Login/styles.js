@@ -16,6 +16,16 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(16),
   },
 
+  logoWrap: {
+    backgroundColor: colors.glassWhite,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(10),
+  },
+
   backButton: {
     position: "absolute",
     left: moderateScale(4),
@@ -23,21 +33,21 @@ export default StyleSheet.create({
   },
 
   logo: {
-    width: moderateScale(240),
-    height: moderateScale(68),
-    marginBottom: verticalScale(8),
+    width: moderateScale(142),
+    height: moderateScale(56),
   },
 
   systemText: {
     color: colors.navyFresh,
-    fontSize: typography.h2,
-    fontFamily: fonts.medium,
+    fontSize: moderateScale(17),
+    fontFamily: fonts.bold,
+    letterSpacing: 0.2,
     textAlign: "center",
   },
 
   sheet: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: colors.sheetSurface,
     borderTopWidth: 1,
     borderColor: colors.loginSheetBorderLight,
     borderTopLeftRadius: moderateScale(24),

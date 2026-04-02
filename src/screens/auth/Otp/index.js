@@ -36,8 +36,14 @@ const OtpScreen = ({ route, navigation }) => {
 
   return (
     <LinearGradient
-      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
-      locations={[0, 0.44, 1]}
+      colors={[
+        colors.loginHeroGradientStart,
+        colors.loginHeroGradientMid,
+        colors.loginHeroGradientEnd,
+        colors.loginPageGradientMid,
+        colors.loginPageGradientEnd,
+      ]}
+      locations={[0, 0.2, 0.42, 0.72, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={styles.container}
@@ -60,13 +66,7 @@ const OtpScreen = ({ route, navigation }) => {
         <Text style={styles.systemText}>Project Management Tools</Text>
       </View>
 
-      <LinearGradient
-        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
-        locations={[0, 0.58, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.sheet}
-      >
+      <View style={styles.sheet}>
         <KeyboardAwareScrollView
           innerRef={(ref) => {
             scrollRef.current = ref;
@@ -128,7 +128,7 @@ const OtpScreen = ({ route, navigation }) => {
             <Text style={styles.loginLinkText}>Back to Login</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
-      </LinearGradient>
+      </View>
 
       <WelcomeModal
         visible={showWelcome}

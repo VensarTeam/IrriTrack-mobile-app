@@ -48,7 +48,7 @@ export default StyleSheet.create({
 
   detailsContainer: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: colors.sheetSurface,
     borderTopWidth: 1,
     borderColor: colors.loginSheetBorderLight,
     marginTop: verticalScale(-24),

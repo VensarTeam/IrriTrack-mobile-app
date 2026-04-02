@@ -10,8 +10,14 @@ const AboutScreen = () => {
 
   return (
     <LinearGradient
-      colors={[colors.vibrantGradientTop, colors.vibrantGradientMid, colors.vibrantGradientBlend]}
-      locations={[0, 0.42, 1]}
+      colors={[
+        colors.loginHeroGradientStart,
+        colors.loginHeroGradientMid,
+        colors.loginHeroGradientEnd,
+        colors.loginPageGradientMid,
+        colors.loginPageGradientEnd,
+      ]}
+      locations={[0, 0.2, 0.42, 0.72, 1]}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={{ flex: 1 }}
@@ -28,12 +34,7 @@ const AboutScreen = () => {
         <Text style={styles.headerTitle}>About Us</Text>
       </View>
 
-      <LinearGradient
-        colors={[colors.vibrantGradientBlend, colors.loginBottomLight, colors.white]}
-        locations={[0, 0.56, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.bodyWrapper}>
+      <View style={styles.bodyWrapper}>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
@@ -46,7 +47,7 @@ const AboutScreen = () => {
             />
           ))}
         </ScrollView>
-      </LinearGradient>
+      </View>
     </LinearGradient>
   );
 };

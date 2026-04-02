@@ -35,7 +35,7 @@ const RootNavigator = () => {
         name={ROUTES.ROOT.UNIT_DETAILS}
         component={UnitDetailsScreen}
         options={{
-          animation: "slide_from_right",
+          animation:'slide_from_right'
         }}
       />
       <Stack.Screen
