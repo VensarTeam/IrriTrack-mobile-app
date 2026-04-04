@@ -2,11 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, LayoutAnimation } from "react-native";
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
-import { getProjectStatusDataSet } from "../repositories/projectStatusRepository";
+import {
+  getProjectStatusDataSet,
+  MODULE_TOTALS,
+} from "../repositories/projectStatusRepository";
+
+const moduleThemes = {
+  OMS: {
+    accent: "#255B8E",
+    text: "#173B5C",
+    bg: "#EEF5FC",
+    soft: "#D7E6F4",
+    chipBg: "#E4EFFA",
+  },
+  RMS: {
+    accent: "#8A5A34",
+    text: "#6A4125",
+    bg: "#FCF4ED",
+    soft: "#EFDCCB",
+    chipBg: "#F7EADF",
+  },
+  GW: {
+    accent: "#5C5AA5",
+    text: "#41407A",
+    bg: "#F3F2FD",
+    soft: "#DEDCF8",
+    chipBg: "#ECEAFE",
+  },
+};
 
 const useProjectDetailsViewModel = (navigation) => {
   const [expanded, setExpanded] = useState(null);
-  const [chartType, setChartType] = useState("bar");
   const [selectedStage, setSelectedStage] = useState("All");
   const chartAnim = useRef(new Animated.Value(0)).current;
 
@@ -22,7 +48,7 @@ const useProjectDetailsViewModel = (navigation) => {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [expanded, chartType, selectedStage, chartAnim]);
+  }, [expanded, chartAnim]);
 
   const chartAnimatedStyle = {
     opacity: chartAnim,
@@ -44,96 +70,120 @@ const useProjectDetailsViewModel = (navigation) => {
 
   const toggleSection = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSelectedStage("All");
     setExpanded(expanded === key ? null : key);
   };
 
-  const buildBarChartData = (stages) => {
-    const barData = [];
+  const getStageSummary = (stages, stageLabel = selectedStage) => {
+    if (stageLabel === "All") {
+      const completed = stages.reduce((sum, item) => sum + item.completed, 0);
+      const pending = stages.reduce((sum, item) => sum + item.pending, 0);
+      const partial = stages.reduce((sum, item) => sum + item.partial, 0);
+      const total = completed + pending + partial;
 
-    stages.forEach((stage) => {
-      barData.push({
-        value: stage.completed,
-        frontColor: colors.completed,
-        spacing: 4,
-      });
-
-      barData.push({
-        value: stage.pending,
-        frontColor: colors.pending,
-        label: stage.label.split(" ")[0],
-        spacing: 4,
-      });
-
-      barData.push({
-        value: stage.partial,
-        frontColor: colors.partial,
-        spacing: 25,
-      });
-    });
-
-    return barData;
-  };
-
-  const buildPieChartData = (stages) => {
-    let data;
-
-    if (selectedStage === "All") {
-      const totalCompleted = stages.reduce((s, i) => s + i.completed, 0);
-      const totalPending = stages.reduce((s, i) => s + i.pending, 0);
-      const totalPartial = stages.reduce((s, i) => s + i.partial, 0);
-
-      data = [
-        { value: totalCompleted, color: colors.completed },
-        { value: totalPending, color: colors.pending },
-        { value: totalPartial, color: colors.partial },
-      ];
-    } else {
-      const stage = stages.find((s) => s.label === selectedStage);
-
-      data = stage
-        ? [
-            { value: stage.completed, color: colors.completed },
-            { value: stage.pending, color: colors.pending },
-            { value: stage.partial, color: colors.partial },
-          ]
-        : [
-            { value: 0, color: colors.completed },
-            { value: 0, color: colors.pending },
-            { value: 0, color: colors.partial },
-          ];
+      return {
+        label: "All",
+        completed,
+        pending,
+        partial,
+        total,
+        percent: total ? Math.round((completed / total) * 100) : 0,
+      };
     }
 
-    const total = data.reduce((s, i) => s + i.value, 0);
-    const percent = total ? Math.round((data[0].value / total) * 100) : 0;
+    const stage = stages.find((item) => item.label === stageLabel);
 
-    return { data, percent };
+    if (!stage) {
+      return {
+        label: stageLabel,
+        completed: 0,
+        pending: 0,
+        partial: 0,
+        total: 0,
+        percent: 0,
+      };
+    }
+
+    const total = stage.completed + stage.pending + stage.partial;
+
+    return {
+      label: stage.label,
+      completed: stage.completed,
+      pending: stage.pending,
+      partial: stage.partial,
+      total,
+      percent: total ? Math.round((stage.completed / total) * 100) : 0,
+    };
   };
 
-  const getStagePercent = (stage) => {
-    const total = stage.completed + stage.pending + stage.partial;
-    return total ? Math.round((stage.completed / total) * 100) : 0;
+  const buildPieChartData = (stages, stageLabel = selectedStage) => {
+    const summary = getStageSummary(stages, stageLabel);
+    const data = [
+      { value: summary.completed, color: colors.completed },
+      { value: summary.pending, color: colors.pending },
+      { value: summary.partial, color: colors.partial },
+    ];
+
+    return { data, percent: summary.percent };
+  };
+
+  const getSectionHighlights = (stages) => {
+    const totalUnits = stages[0]
+      ? stages[0].completed + stages[0].pending + stages[0].partial
+      : 0;
+    const installedStage =
+      stages.find((item) => item.label === "Automation Inst.") || stages[0];
+    const commissionedStage =
+      stages.find((item) => item.label === "Wet commissioning") ||
+      stages[stages.length - 1];
+
+    const installed = installedStage?.completed || 0;
+    const installationBalance = Math.max(totalUnits - installed, 0);
+    const commissioned = commissionedStage?.completed || 0;
+    const commissioningBalance = Math.max(totalUnits - commissioned, 0);
+
+    return [
+      { key: "installed", label: "Installed", value: installed, color: colors.completed },
+      {
+        key: "installation-balance",
+        label: "Installation Balance",
+        value: installationBalance,
+        color: colors.pending,
+      },
+      {
+        key: "commissioned",
+        label: "Commissioned",
+        value: commissioned,
+        color: colors.completed,
+      },
+      {
+        key: "commissioning-balance",
+        label: "Commissioning Balance",
+        value: commissioningBalance,
+        color: colors.pending,
+      },
+    ];
   };
 
   const kpiCards = [
     {
       key: "OMS",
-      bg: colors.surfaceBlue,
-      accent: colors.primaryBlue,
-      value: 3841,
+      value: MODULE_TOTALS.OMS,
+      ...moduleThemes.OMS,
     },
     {
       key: "RMS",
-      bg: colors.surfaceGreenSoft,
-      accent: colors.rmsColor,
-      value: 399,
+      value: MODULE_TOTALS.RMS,
+      ...moduleThemes.RMS,
     },
     {
       key: "GW",
-      bg: colors.surfaceOrangeSoft,
-      accent: colors.gwColor,
-      value: 45,
+      value: MODULE_TOTALS.GW,
+      ...moduleThemes.GW,
     },
   ];
+
+  const getModuleTheme = (module) => moduleThemes[module] || moduleThemes.OMS;
 
   const handleBack = () => navigation.goBack();
 
@@ -144,16 +194,15 @@ const useProjectDetailsViewModel = (navigation) => {
   return {
     dataSet,
     expanded,
-    chartType,
     selectedStage,
     chartAnimatedStyle,
     toggleSection,
-    setChartType,
     setSelectedStage,
-    buildBarChartData,
     buildPieChartData,
-    getStagePercent,
+    getStageSummary,
+    getSectionHighlights,
     kpiCards,
+    getModuleTheme,
     handleBack,
     openModuleList,
   };

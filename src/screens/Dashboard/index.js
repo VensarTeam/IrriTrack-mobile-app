@@ -4,7 +4,6 @@ import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
-import { Icons } from "../../constants/icons";
 import { Icon } from "react-native-paper";
 
 const DashboardScreen = ({ navigation }) => {
@@ -62,33 +61,39 @@ const ProjectCard = ({ item, onPress }) => {
       onPress={() => onPress(item)}
     >
       <LinearGradient
-        colors={["#FFFFFF", "#F2FAFF"]}
+        colors={["#FCFFFD", "#EAF8EF"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
         <View style={styles.cardTop}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require("../../assets/images/gov_logo.png")}
-              style={styles.govLogo}
-              resizeMode="contain"
-            />
-          </View>
+          <View style={styles.cardTopLeft}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../assets/images/gov_logo.png")}
+                style={styles.govLogo}
+                resizeMode="contain"
+              />
+            </View>
 
-          <Text style={styles.clientText}>{item.client}</Text>
+            <View style={styles.titleGroup}>
+              <Text style={styles.projectName} numberOfLines={2}>
+                {item.name}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <Text style={styles.projectName}>{item.name}</Text>
+        <View style={styles.divider} />
 
         <View style={styles.cardBottom}>
           <View style={styles.areaContainer}>
-            <Text style={styles.areaLabel}>TOTAL AREA</Text>
+            <Text style={styles.areaLabel}>Project Area</Text>
             <Text style={styles.areaValue}>{item.area}</Text>
           </View>
 
           <View style={styles.arrowContainer}>
-            <Icon source="chevron-right" size={22} color={colors.white} />
+            <Icon source="chevron-right" size={18} color={colors.white} />
           </View>
         </View>
       </LinearGradient>

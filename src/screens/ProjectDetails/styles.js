@@ -2,6 +2,7 @@ import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 import {
+  fontScale,
   moderateScale,
   verticalScale,
 } from "../../constants/metrics";
@@ -9,7 +10,7 @@ import {
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
 
   /* ================= HEADER ================= */
@@ -18,12 +19,14 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(10),
+    backgroundColor: colors.sheetSurface,
+    borderBottomLeftRadius: moderateScale(20),
+    borderBottomRightRadius: moderateScale(20),
   },
 
   headerTitle: {
-    fontSize: moderateScale(18),
+    fontSize: fontScale(18),
     fontFamily: fonts.medium,
     color: colors.textDark,
   },
@@ -46,28 +49,57 @@ export default StyleSheet.create({
   kpiCard: {
     flex: 1,
     marginHorizontal: moderateScale(6),
-    paddingVertical: verticalScale(18),
+    paddingVertical: verticalScale(16),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(18),
     backgroundColor: colors.white,
-    elevation: 3,
+    elevation: 2,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: "hidden",
   },
 
-  kpiContent: {
-    alignItems: "center",
+  kpiAccentBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: verticalScale(4),
   },
 
-  kpiTitle: {
-    fontSize: moderateScale(13),
-    color: colors.textSecondary,
+  kpiContent: {
+    justifyContent: "center",
+  },
+
+  kpiHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: verticalScale(6),
   },
 
+  kpiArrowWrap: {
+    width: moderateScale(24),
+    height: moderateScale(24),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  kpiKey: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.bold,
+    letterSpacing: 0.5,
+  },
+
+  kpiTitle: {
+    fontSize: fontScale(11),
+    color: colors.textSecondary,
+    marginTop: verticalScale(4),
+  },
+
   kpiValue: {
-    fontSize: moderateScale(22),
+    fontSize: fontScale(22),
     fontFamily: fonts.bold,
     letterSpacing: moderateScale(0.5),
   },
@@ -79,7 +111,7 @@ export default StyleSheet.create({
     marginHorizontal: moderateScale(15),
     marginBottom: verticalScale(15),
     borderRadius: moderateScale(18),
-    padding: moderateScale(16),
+    padding: moderateScale(14),
     elevation: 2,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -89,77 +121,166 @@ export default StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderRadius: moderateScale(14),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(12),
+  },
+
+  sectionTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  sectionAccent: {
+    width: moderateScale(4),
+    alignSelf: "stretch",
+    borderRadius: moderateScale(999),
+    marginRight: moderateScale(10),
   },
 
   sectionTitle: {
-    fontSize: moderateScale(16),
+    fontSize: fontScale(16),
     fontFamily: fonts.medium,
     color: colors.textDark,
   },
 
-  sectionIcon: {
-    fontSize: moderateScale(20),
-    fontFamily: fonts.medium,
-    color: colors.primaryBlue,
-  },
-
-  /* ================= SWITCH ================= */
-
-  switchContainer: {
-    flexDirection: "row",
-    marginVertical: verticalScale(15),
-  },
-
-  toggleButton: {
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(18),
-    borderRadius: moderateScale(25),
-    backgroundColor: colors.inputBg,
-    marginRight: moderateScale(10),
-  },
-
-  toggleActive: {
-    backgroundColor: colors.primaryBlue,
-  },
-
-  toggleText: {
-    fontSize: moderateScale(13),
+  sectionSubtitle: {
+    fontSize: moderateScale(11),
     color: colors.textSecondary,
+    marginTop: verticalScale(2),
   },
 
-  toggleTextActive: {
-    color: colors.white,
+  sectionIconWrap: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  highlightGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: verticalScale(12),
+  },
+
+  highlightCard: {
+    width: "48.5%",
+    borderWidth: 1,
+    borderRadius: moderateScale(14),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(7),
+    marginBottom: verticalScale(7),
+  },
+
+  highlightLabel: {
+    fontSize: fontScale(9),
+    color: colors.textSecondary,
+    marginBottom: verticalScale(4),
     fontFamily: fonts.medium,
+  },
+
+  highlightValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  highlightDot: {
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(3.5),
+    marginRight: moderateScale(6),
+  },
+
+  highlightValue: {
+    fontSize: fontScale(14),
+    fontFamily: fonts.bold,
   },
 
   /* ================= CHART ================= */
 
   chartCard: {
-    marginTop: verticalScale(5),
+    marginTop: verticalScale(12),
+    overflow: "hidden",
   },
 
-  legendRow: {
+  chartSlide: {
+    paddingRight: 0,
+  },
+
+  chartSummaryCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderRadius: moderateScale(18),
+    padding: moderateScale(14),
+    marginRight: moderateScale(8),
+  },
+
+  chartSummaryHeader: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: verticalScale(15),
-    marginBottom: verticalScale(10),
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: verticalScale(14),
   },
 
-  legendItem: {
+  chartSummaryTitle: {
+    flex: 1,
+    fontSize: fontScale(14),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+    marginRight: moderateScale(10),
+  },
+
+  chartSummaryPercent: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.bold,
+  },
+
+  chartSummaryBody: {
     flexDirection: "row",
     alignItems: "center",
   },
 
-  legendDot: {
+  summaryList: {
+    flex: 1,
+    marginLeft: moderateScale(12),
+  },
+
+  summaryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: moderateScale(14),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    marginBottom: verticalScale(10),
+    backgroundColor: colors.white,
+  },
+
+  summaryDot: {
     width: moderateScale(10),
     height: moderateScale(10),
     borderRadius: moderateScale(5),
-    marginRight: moderateScale(6),
+    marginRight: moderateScale(10),
   },
 
-  legendText: {
-    fontSize: moderateScale(12),
+  summaryTextWrap: {
+    flex: 1,
+  },
+
+  summaryLabel: {
+    fontSize: fontScale(10),
     color: colors.textSecondary,
+    marginBottom: verticalScale(2),
+    fontFamily: fonts.medium,
+  },
+
+  summaryValue: {
+    fontSize: fontScale(17),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
   },
 
   /* ================= PIE ================= */
@@ -167,7 +288,7 @@ export default StyleSheet.create({
   pieWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: verticalScale(20),
+    marginVertical: verticalScale(6),
   },
 
   pieCenter: {
@@ -176,112 +297,89 @@ export default StyleSheet.create({
   },
 
   piePercent: {
-    fontSize: moderateScale(20),
+    fontSize: fontScale(18),
     fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
   pieLabel: {
-    fontSize: moderateScale(12),
+    fontSize: fontScale(11),
     color: colors.textSecondary,
-  },
-
-  /* ================= STAGE LIST ================= */
-
-  stageList: {
-    marginTop: verticalScale(10),
-  },
-
-  stageCard: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(14),
-    padding: moderateScale(14),
-    marginBottom: verticalScale(12),
-  },
-
-  stageTitle: {
-    fontSize: moderateScale(14),
-    fontFamily: fonts.medium,
-    color: colors.textDark,
-    marginBottom: verticalScale(10),
-  },
-
-  stageRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(10),
-  },
-
-  statusItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-
-  statusDot: {
-    width: moderateScale(8),
-    height: moderateScale(8),
-    borderRadius: moderateScale(4),
-    marginBottom: verticalScale(4),
-  },
-
-  statusLabel: {
-    fontSize: moderateScale(11),
-    color: colors.textSecondary,
-  },
-
-  statusValue: {
-    fontSize: moderateScale(13),
-    fontFamily: fonts.medium,
-    color: colors.textDark,
-  },
-
-  /* ================= PROGRESS ================= */
-
-  progressBackground: {
-    height: verticalScale(6),
-    backgroundColor: colors.border,
-    borderRadius: moderateScale(4),
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: verticalScale(6),
-    borderRadius: moderateScale(4),
-  },
-
-  percentText: {
-    fontSize: moderateScale(11),
-    color: colors.textSecondary,
-    marginTop: verticalScale(6),
   },
 
   /* ================= PIE STAGE TABS ================= */
 
-  stageTabContainer: {
+  stageTabShell: {
+    marginTop: verticalScale(10),
     marginBottom: verticalScale(15),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(6),
+    paddingTop: moderateScale(6),
+    paddingBottom: moderateScale(4),
+  },
+
+  stageTabHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(4),
+    marginBottom: verticalScale(6),
+  },
+
+  stageTabHeading: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.bold,
+  },
+
+  stageTabCaption: {
+    fontSize: fontScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  stageTabContainer: {
+    flexGrow: 0,
+  },
+
+  stageTabContent: {
+    paddingHorizontal: moderateScale(2),
+    paddingBottom: verticalScale(1),
   },
 
   stageTab: {
-    paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(14),
-    borderRadius: moderateScale(20),
-    backgroundColor: colors.inputBg,
+    minWidth: moderateScale(98),
+    minHeight: verticalScale(52),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
     marginRight: moderateScale(8),
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    justifyContent: "center",
+    alignItems: "flex-start",
   },
 
   stageTabActive: {
     backgroundColor: colors.primaryBlue,
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
   },
 
   stageTabText: {
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
+    fontSize: fontScale(11),
+    fontFamily: fonts.medium,
+    color: colors.textDark,
+    lineHeight: moderateScale(14),
   },
 
   stageTabTextActive: {
     color: colors.white,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.bold,
   },
 });

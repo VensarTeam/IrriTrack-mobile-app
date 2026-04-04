@@ -7,21 +7,32 @@ import FormInput from "../../../components/FormInput";
 import { Button } from "react-native-paper";
 import colors from "../../../constants/colors";
 import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
+import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
+import WelcomeModal from "../../../components/WelcomeModal";
 
 const LoginScreen = ({ navigation }) => {
   const {
     scrollRef,
     passwordRef,
-    loginType,
     identifier,
     setIdentifier,
     password,
     setPassword,
     errors,
-    switchType,
     validate,
     scrollToBottom,
     goToForgotPassword,
+    isVerificationVisible,
+    faceImage,
+    faceError,
+    showWelcome,
+    welcomeName,
+    closeVerificationSheet,
+    handleFaceCaptured,
+    retakeFaceVerification,
+    handleFaceCaptureError,
+    continueAfterFaceVerification,
+    handleWelcomeClose,
   } = useLoginViewModel(navigation);
 
   return (
@@ -63,52 +74,15 @@ const LoginScreen = ({ navigation }) => {
           overScrollMode="never"
         >
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Login using mobile number or email.</Text>
-
-          <View style={styles.switchRow}>
-            <TouchableOpacity
-              style={[
-                styles.switchButton,
-                loginType === "mobile" && styles.switchButtonActive,
-              ]}
-              onPress={() => switchType("mobile")}
-            >
-              <Text
-                style={[
-                  styles.switchText,
-                  loginType === "mobile" && styles.switchTextActive,
-                ]}
-              >
-                Mobile
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.switchButton,
-                loginType === "email" && styles.switchButtonActive,
-              ]}
-              onPress={() => switchType("email")}
-            >
-              <Text
-                style={[
-                  styles.switchText,
-                  loginType === "email" && styles.switchTextActive,
-                ]}
-              >
-                Email
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.subtitle}>Login with your mobile number and password.</Text>
 
           <FormInput
-            label={loginType === "mobile" ? "Mobile Number" : "Email Address"}
+            label="Mobile Number"
             value={identifier}
             onChangeText={setIdentifier}
             error={errors.identifier}
-            leftIcon={loginType === "mobile" ? "cellphone" : "email-outline"}
-            type={loginType === "mobile" ? "phone-pad" : "email-address"}
-            autoCapitalize="none"
+            leftIcon="cellphone"
+            type="phone-pad"
             returnKeyType="next"
             onSubmitEditing={() => passwordRef.current?.focus()}
             onFocus={scrollToBottom}
@@ -146,6 +120,23 @@ const LoginScreen = ({ navigation }) => {
           </Button>
         </KeyboardAwareScrollView>
       </View>
+
+      <FaceVerificationSheet
+        visible={isVerificationVisible}
+        faceImage={faceImage}
+        error={faceError}
+        onClose={closeVerificationSheet}
+        onCapture={handleFaceCaptured}
+        onRetake={retakeFaceVerification}
+        onCaptureError={handleFaceCaptureError}
+        onContinue={continueAfterFaceVerification}
+      />
+
+      <WelcomeModal
+        visible={showWelcome}
+        userName={welcomeName}
+        onClose={handleWelcomeClose}
+      />
     </LinearGradient>
   );
 };

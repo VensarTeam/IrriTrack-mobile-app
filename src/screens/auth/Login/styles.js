@@ -74,40 +74,7 @@ export default StyleSheet.create({
     textAlign: "center",
     color: colors.textSecondary,
     fontSize: typography.small,
-    marginBottom: verticalScale(14),
-  },
-
-  switchRow: {
-    flexDirection: "row",
-    backgroundColor: colors.switchBgFresh,
-    borderRadius: moderateScale(14),
-    padding: moderateScale(4),
-    marginBottom: verticalScale(14),
-  },
-
-  switchButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(10),
-  },
-
-  switchButtonActive: {
-    backgroundColor: colors.loginBottomLight,
-    borderWidth: 1,
-    borderColor: colors.navyFreshDark,
-    elevation: 2,
-  },
-
-  switchText: {
-    color: colors.textSecondary,
-    fontSize: typography.small,
-    fontFamily: fonts.medium,
-  },
-
-  switchTextActive: {
-    color: colors.navyFreshDark,
+    marginBottom: verticalScale(18),
   },
 
   forgotButton: {
@@ -128,6 +95,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.navyFreshDark,
     overflow: "hidden",
+    marginBottom: verticalScale(8),
   },
 
   loginButtonContent: {

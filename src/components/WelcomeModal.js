@@ -56,7 +56,7 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
         >
           <Text style={styles.title}>Welcome Back</Text>
 
-          {userName && <Text style={styles.userName}>{userName}</Text>}
+          {userName && <Text style={styles.userName}>{"Ritesh Mehra"}</Text>}
 
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Continue</Text>

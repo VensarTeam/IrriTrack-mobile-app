@@ -1,18 +1,42 @@
-import { Dimensions, PixelRatio } from "react-native";
-
-const { width, height } = Dimensions.get("window");
+import { Dimensions, PixelRatio, Platform } from "react-native";
 
 const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 
-export const scale = size =>
-  (width / guidelineBaseWidth) * size;
+const MAX_IOS_WIDTH_SCALE = 1.08;
+const MAX_IOS_HEIGHT_SCALE = 1.08;
 
-export const verticalScale = size =>
-  (height / guidelineBaseHeight) * size;
+const getScaleFactors = () => {
+  const { width, height } = Dimensions.get("window");
+  const widthScale = width / guidelineBaseWidth;
+  const heightScale = height / guidelineBaseHeight;
 
-export const moderateScale = (size, factor = 0.5) =>
-  size + (scale(size) - size) * factor;
+  if (Platform.OS !== "ios") {
+    return { widthScale, heightScale };
+  }
 
-export const fontScale = size =>
-  size * PixelRatio.getFontScale();
+  return {
+    widthScale: Math.min(widthScale, MAX_IOS_WIDTH_SCALE),
+    heightScale: Math.min(heightScale, MAX_IOS_HEIGHT_SCALE),
+  };
+};
+
+const round = (value) => PixelRatio.roundToNearestPixel(value);
+
+export const scale = (size) => {
+  const { widthScale } = getScaleFactors();
+  return round(size * widthScale);
+};
+
+export const verticalScale = (size) => {
+  const { heightScale } = getScaleFactors();
+  return round(size * heightScale);
+};
+
+export const moderateScale = (size, factor = 0.5) => {
+  const scaled = scale(size);
+  return round(size + (scaled - size) * factor);
+};
+
+export const fontScale = (size) =>
+  round(size * PixelRatio.getFontScale());

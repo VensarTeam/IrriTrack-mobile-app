@@ -1,12 +1,16 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
-import { moderateScale, verticalScale } from "../../constants/metrics";
+import {
+  fontScale,
+  moderateScale,
+  verticalScale,
+} from "../../constants/metrics";
 
 export default StyleSheet.create({
   header: {
     paddingTop: verticalScale(34),
-    paddingBottom: verticalScale(38),
+    paddingBottom: verticalScale(28),
     paddingHorizontal: moderateScale(20),
     alignItems: "center",
   },
@@ -27,7 +31,7 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: moderateScale(17),
+    fontSize: fontScale(17),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     letterSpacing: 0.2,
@@ -45,113 +49,142 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: colors.sheetSurface,
     borderTopWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    marginTop: verticalScale(-20),
-    borderTopLeftRadius: moderateScale(28),
-    borderTopRightRadius: moderateScale(28),
+    borderColor: "rgba(50, 168, 116, 0.16)",
+    marginTop: verticalScale(-14),
+    borderTopLeftRadius: moderateScale(24),
+    borderTopRightRadius: moderateScale(24),
     overflow: "hidden",
   },
 
   container: {
-    flex: 1,
-    padding: moderateScale(20),
+    padding: moderateScale(18),
+    paddingBottom: verticalScale(24),
   },
 
   sectionTitle: {
-    fontSize: moderateScale(18),
+    fontSize: fontScale(18),
     fontFamily: fonts.bold,
-    marginBottom: verticalScale(18),
+    marginBottom: verticalScale(14),
     color: colors.navyFreshDark,
   },
 
   cardShadow: {
-    marginBottom: verticalScale(20),
-    borderRadius: moderateScale(28),
+    marginBottom: verticalScale(14),
+    borderRadius: moderateScale(24),
     shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
 
   card: {
-    borderRadius: moderateScale(28),
-    padding: moderateScale(22),
+    borderRadius: moderateScale(24),
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: verticalScale(16),
     borderWidth: 1,
-    borderColor: "#E4F1FB",
+    borderColor: "rgba(50, 168, 116, 0.16)",
   },
 
   cardTop: {
+    alignItems: "flex-start",
+    marginBottom: verticalScale(10),
+  },
+
+  cardTopLeft: {
+    flex: 1,
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: verticalScale(14),
+    alignItems: "flex-start",
+    width: "100%",
   },
 
   logoContainer: {
-    width: moderateScale(56),
-    height: moderateScale(56),
-    borderRadius: moderateScale(18),
-    backgroundColor: "#EAF4FF",
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(16),
+    backgroundColor: "rgba(255,255,255,0.92)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: moderateScale(14),
+    borderWidth: 1,
+    borderColor: "rgba(50, 168, 116, 0.12)",
+    marginRight: moderateScale(12),
   },
 
   govLogo: {
-    width: moderateScale(34),
-    height: moderateScale(34),
+    width: moderateScale(28),
+    height: moderateScale(28),
   },
 
-  clientText: {
-    fontSize: moderateScale(13),
-    color: colors.textSecondary,
+  titleGroup: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    minHeight: moderateScale(48),
+    paddingRight: moderateScale(2),
   },
 
   projectName: {
-    fontSize: moderateScale(18),
+    flexShrink: 1,
+    fontSize: fontScale(16),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
-    marginBottom: verticalScale(20),
+    lineHeight: fontScale(21),
+    includeFontPadding: false,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(50, 168, 116, 0.12)",
+    marginBottom: verticalScale(12),
   },
 
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: verticalScale(2),
   },
 
   areaContainer: {
-    backgroundColor: "#EAF4FF",
+    flex: 1,
+    minWidth: 0,
+    marginRight: moderateScale(10),
+    backgroundColor: "rgba(255,255,255,0.86)",
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(10),
     borderRadius: moderateScale(16),
+    borderWidth: 1,
+    borderColor: "rgba(50, 168, 116, 0.14)",
   },
 
   areaLabel: {
-    fontSize: moderateScale(10),
+    fontSize: fontScale(10),
     color: colors.textSecondary,
-    letterSpacing: 1,
-    marginBottom: verticalScale(2),
+    letterSpacing: 0.6,
+    marginBottom: verticalScale(3),
+    fontFamily: fonts.medium,
   },
 
   areaValue: {
-    fontSize: moderateScale(16),
+    fontSize: fontScale(14),
     fontFamily: fonts.bold,
-    color: colors.navyFresh,
+    color: colors.darkGreen,
+    lineHeight: fontScale(18),
+    includeFontPadding: false,
   },
 
   arrowContainer: {
-    width: moderateScale(40),
-    height: moderateScale(40),
-    borderRadius: moderateScale(14),
-    backgroundColor: colors.navyFresh,
+    width: moderateScale(38),
+    height: moderateScale(38),
+    flexShrink: 0,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.primaryGreen,
     justifyContent: "center",
     alignItems: "center",
-  },
-
-  arrow: {
-    fontSize: moderateScale(20),
-    color: "#FFFFFF",
-    fontFamily: fonts.medium,
-    backgroundColor:'red',
+    shadowColor: colors.primaryGreen,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 3,
   },
 });
