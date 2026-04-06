@@ -12,15 +12,38 @@ export default StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: moderateScale(10),
+
     paddingVertical: verticalScale(10),
+  },
+
+  headerActionSlot: {
+    width: moderateScale(44),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   headerTitle: {
     fontSize: moderateScale(16),
     fontFamily: fonts.bold,
     color: colors.textDark,
+    textAlign: "center",
+  },
+
+  headerInfoButton: {
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EFF5FB",
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
   },
 
   searchContainer: {
@@ -329,20 +352,10 @@ export default StyleSheet.create({
   },
 
   statusHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-
-  statusDot: {
-    width: moderateScale(6),
-    height: moderateScale(6),
-    borderRadius: moderateScale(3),
-    marginRight: moderateScale(4),
-    marginTop: verticalScale(3),
+    justifyContent: "flex-start",
   },
 
   statusLabel: {
-    flex: 1,
     fontSize: moderateScale(9.5),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
@@ -385,11 +398,82 @@ export default StyleSheet.create({
     maxHeight: "70%",
   },
 
+  infoModalCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: moderateScale(24),
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(18),
+    paddingBottom: moderateScale(14),
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
+  },
+
   modalTitle: {
     fontSize: moderateScale(14),
     fontFamily: fonts.bold,
     marginBottom: verticalScale(10),
     color: colors.textDark,
+  },
+
+  infoModalSubtitle: {
+    fontSize: moderateScale(12),
+    lineHeight: moderateScale(18),
+    color: colors.textSecondary,
+    marginTop: verticalScale(-4),
+    marginBottom: verticalScale(12),
+  },
+
+  legendList: {
+    marginTop: verticalScale(2),
+  },
+
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEF3F8",
+  },
+
+  legendSwatch: {
+    width: moderateScale(12),
+    height: moderateScale(12),
+    borderRadius: moderateScale(6),
+    marginTop: verticalScale(4),
+    marginRight: moderateScale(10),
+  },
+
+  legendTextWrap: {
+    flex: 1,
+  },
+
+  legendTitle: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+  },
+
+  legendSubtitle: {
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    marginTop: verticalScale(2),
+  },
+
+  infoModalCloseButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(12),
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EFF5FB",
+  },
+
+  infoModalCloseText: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
   },
 
   modalItem: {

@@ -41,7 +41,6 @@ export default StyleSheet.create({
 
   filterPanel: {
     marginHorizontal: moderateScale(15),
-    marginTop: verticalScale(14),
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(10),
     borderRadius: moderateScale(18),

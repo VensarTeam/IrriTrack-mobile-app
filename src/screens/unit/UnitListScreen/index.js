@@ -17,6 +17,7 @@ import { Icons } from "../../../constants/icons";
 import useUnitListViewModel from "../../../viewmodels/useUnitListViewModel";
 
 const UnitListScreen = ({ navigation, route }) => {
+  const [showStatusInfo, setShowStatusInfo] = React.useState(false);
   const {
     module,
     zones,
@@ -180,9 +181,21 @@ const UnitListScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <IconButton icon="arrow-left" onPress={handleBack} />
-        <Text style={styles.headerTitle}>{module} Units</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerActionSlot}>
+          <IconButton icon="arrow-left" onPress={handleBack} />
+        </View>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>{module} Units</Text>
+        </View>
+        <View style={styles.headerActionSlot}>
+          <TouchableOpacity
+            style={styles.headerInfoButton}
+            onPress={() => setShowStatusInfo(true)}
+            activeOpacity={0.85}
+          >
+            <Icons.support width={16} height={16} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -283,6 +296,47 @@ const UnitListScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showStatusInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusInfo(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.infoModalCard}>
+            <Text style={styles.modalTitle}>Status Indicator Info</Text>
+            <Text style={styles.infoModalSubtitle}>
+              Color meaning used in unit status chips.
+            </Text>
+
+            <View style={styles.legendList}>
+              <LegendItem
+                color={colors.completed}
+                title="Completed / Updated"
+                subtitle="Work is fully completed."
+              />
+              <LegendItem
+                color={colors.pending}
+                title="Pending"
+                subtitle="Work is not started or still waiting."
+              />
+              <LegendItem
+                color={colors.partial}
+                title="Partially Completed"
+                subtitle="Work is in progress but not finished."
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.infoModalCloseButton}
+              onPress={() => setShowStatusInfo(false)}
+            >
+              <Text style={styles.infoModalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -306,7 +360,6 @@ const Status = ({ label, value, width }) => {
       ]}
     >
       <View style={styles.statusHeader}>
-        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         <Text style={styles.statusLabel} numberOfLines={2}>
           {label}
         </Text>
@@ -329,5 +382,15 @@ const InlineMeta = ({ icon: MetaIcon, value }) => (
     <Text style={styles.inlineMetaValue} numberOfLines={1}>
       {value}
     </Text>
+  </View>
+);
+
+const LegendItem = ({ color, title, subtitle }) => (
+  <View style={styles.legendItem}>
+    <View style={[styles.legendSwatch, { backgroundColor: color }]} />
+    <View style={styles.legendTextWrap}>
+      <Text style={styles.legendTitle}>{title}</Text>
+      <Text style={styles.legendSubtitle}>{subtitle}</Text>
+    </View>
   </View>
 );
