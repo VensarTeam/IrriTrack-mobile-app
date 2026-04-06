@@ -6,7 +6,7 @@ import { moderateScale, verticalScale } from "../../../constants/metrics";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
 
   header: {
@@ -26,13 +26,18 @@ export default StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: "#FCFDFE",
     marginHorizontal: moderateScale(15),
     borderRadius: moderateScale(14),
     marginBottom: verticalScale(10),
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#DCE7F3",
     paddingHorizontal: moderateScale(12),
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
 
   searchIcon: {
@@ -54,25 +59,35 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(15),
     marginBottom: verticalScale(12),
     justifyContent: "space-between",
+    paddingVertical: verticalScale(6),
+    backgroundColor: "#F7FAFE",
+    borderRadius: moderateScale(18),
+    marginHorizontal: moderateScale(15),
+    borderWidth: 1,
+    borderColor: "#E2EBF5",
   },
 
   filterBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: "#FCFDFE",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#DCE7F3",
     marginHorizontal: moderateScale(3),
-    paddingVertical: verticalScale(7),
-    paddingHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(7),
     borderRadius: moderateScale(14),
     elevation: 2,
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
   },
 
   filterBtnActive: {
     borderColor: colors.primaryBlue,
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: "#EEF5FD",
   },
 
   filterLeftSection: {
@@ -86,13 +101,13 @@ export default StyleSheet.create({
     width: moderateScale(20),
     height: moderateScale(20),
     borderRadius: moderateScale(10),
-    backgroundColor: colors.surfaceBlue,
+    backgroundColor: "#EAF2FB",
     alignItems: "center",
     justifyContent: "center",
   },
 
   filterIconWrapActive: {
-    backgroundColor: colors.white,
+    backgroundColor: "#DCEBFB",
   },
 
   filterTextBlock: {
@@ -121,7 +136,7 @@ export default StyleSheet.create({
     width: moderateScale(16),
     height: moderateScale(16),
     borderRadius: moderateScale(8),
-    backgroundColor: colors.white,
+    backgroundColor: "#F2F7FC",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: moderateScale(4),
@@ -188,19 +203,23 @@ export default StyleSheet.create({
   },
 
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: "#FCFEFF",
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: "#D9E4F2",
     marginHorizontal: moderateScale(15),
     marginBottom: verticalScale(12),
-    padding: moderateScale(14),
+    padding: moderateScale(12),
     borderRadius: moderateScale(18),
     elevation: 2,
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
   },
 
   cardTopRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: verticalScale(10),
   },
@@ -210,36 +229,61 @@ export default StyleSheet.create({
     marginRight: moderateScale(10),
   },
 
-  unitBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.surfaceBlue,
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(3),
-    borderRadius: moderateScale(10),
-    marginBottom: verticalScale(6),
-  },
-
-  unitBadgeText: {
-    fontSize: moderateScale(12),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-  },
-
   unitNo: {
     fontSize: moderateScale(16),
     fontFamily: fonts.bold,
     color: colors.textDark,
+    marginBottom: verticalScale(6),
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+
+  inlineMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 0,
+    flexShrink: 1,
+  },
+
+  inlineMetaIcon: {
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
+    backgroundColor: "#EEF4FB",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: moderateScale(6),
+  },
+
+  inlineMetaValue: {
+    fontSize: moderateScale(11),
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
+    maxWidth: moderateScale(94),
+  },
+
+  locationDivider: {
+    width: moderateScale(4),
+    height: moderateScale(4),
+    borderRadius: moderateScale(2),
+    backgroundColor: colors.border,
+    marginHorizontal: moderateScale(8),
   },
 
   cardActionsRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: verticalScale(1),
   },
 
   galleryBtn: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(18),
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
     backgroundColor: colors.primaryBlue,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -254,7 +298,7 @@ export default StyleSheet.create({
 
   directionBtn: {
     backgroundColor: colors.primaryBlue,
-    paddingHorizontal: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(8),
     borderRadius: moderateScale(20),
     flexDirection: "row",
@@ -263,36 +307,9 @@ export default StyleSheet.create({
 
   directionText: {
     color: colors.white,
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(11),
     fontFamily: fonts.medium,
     marginLeft: moderateScale(6),
-  },
-
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(10),
-  },
-
-  metaItem: {
-    width: "32%",
-    backgroundColor: colors.background,
-    borderRadius: moderateScale(12),
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: moderateScale(6),
-    alignItems: "center",
-  },
-
-  metaLabel: {
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
-  },
-
-  metaValue: {
-    fontSize: moderateScale(14),
-    fontFamily: fonts.medium,
-    color: colors.textDark,
-    marginTop: verticalScale(2),
   },
 
   statusGrid: {
@@ -302,16 +319,18 @@ export default StyleSheet.create({
   },
 
   statusItem: {
-    width: "48.5%",
+    borderWidth: 1,
     marginBottom: verticalScale(6),
     borderRadius: moderateScale(12),
+    minHeight: verticalScale(54),
     paddingVertical: verticalScale(7),
-    paddingHorizontal: moderateScale(8),
+    paddingHorizontal: moderateScale(7),
+    justifyContent: "space-between",
   },
 
   statusHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
 
   statusDot: {
@@ -319,17 +338,37 @@ export default StyleSheet.create({
     height: moderateScale(6),
     borderRadius: moderateScale(3),
     marginRight: moderateScale(4),
+    marginTop: verticalScale(3),
   },
 
   statusLabel: {
-    fontSize: moderateScale(12),
+    flex: 1,
+    fontSize: moderateScale(9.5),
     color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(12),
   },
 
   statusValue: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     fontFamily: fonts.bold,
-    marginTop: verticalScale(3),
+    marginTop: verticalScale(4),
+  },
+
+  certificateButton: {
+    marginTop: verticalScale(4),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.completed,
+    backgroundColor: colors.lightGreen,
+    paddingVertical: verticalScale(9),
+    alignItems: "center",
+  },
+
+  certificateButtonText: {
+    color: colors.darkGreen,
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
   },
 
   modalOverlay: {

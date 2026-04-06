@@ -1,9 +1,3 @@
-export const MODULE_TOTALS = {
-  OMS: 3841,
-  RMS: 399,
-  GW: 45,
-};
-
 const moduleStageData = {
   OMS: [
     { label: "Inlet pipe conn.", completed: 3465, pending: 228, partial: 148 },
@@ -37,4 +31,107 @@ const moduleStageData = {
   ],
 };
 
-export const getProjectStatusDataSet = () => moduleStageData;
+const locationWeights = [
+  { zone: "Zone-1", village: "Village-A", weight: 0.22 },
+  { zone: "Zone-1", village: "Village-B", weight: 0.18 },
+  { zone: "Zone-2", village: "Village-C", weight: 0.16 },
+  { zone: "Zone-2", village: "Village-D", weight: 0.14 },
+  { zone: "Zone-3", village: "Village-E", weight: 0.17 },
+  { zone: "Zone-3", village: "Village-F", weight: 0.13 },
+];
+
+const cloneStageSet = (dataSet) =>
+  Object.keys(dataSet).reduce((acc, moduleKey) => {
+    acc[moduleKey] = dataSet[moduleKey].map((stage) => ({ ...stage }));
+    return acc;
+  }, {});
+
+const emptyStageSet = () =>
+  Object.keys(moduleStageData).reduce((acc, moduleKey) => {
+    acc[moduleKey] = moduleStageData[moduleKey].map((stage) => ({
+      label: stage.label,
+      completed: 0,
+      pending: 0,
+      partial: 0,
+    }));
+    return acc;
+  }, {});
+
+const scaleStageValue = (value, weight) => Math.round(value * weight);
+
+const locationStageData = locationWeights.map((location) => ({
+  ...location,
+  modules: Object.keys(moduleStageData).reduce((acc, moduleKey) => {
+    acc[moduleKey] = moduleStageData[moduleKey].map((stage) => ({
+      label: stage.label,
+      completed: scaleStageValue(stage.completed, location.weight),
+      pending: scaleStageValue(stage.pending, location.weight),
+      partial: scaleStageValue(stage.partial, location.weight),
+    }));
+    return acc;
+  }, {}),
+}));
+
+const villagesByZone = locationWeights.reduce((acc, item) => {
+  if (!acc[item.zone]) {
+    acc[item.zone] = [];
+  }
+
+  if (!acc[item.zone].includes(item.village)) {
+    acc[item.zone].push(item.village);
+  }
+
+  return acc;
+}, {});
+
+const aggregateStages = (stageGroups) => {
+  if (!stageGroups.length) return [];
+
+  return stageGroups[0].map((stage, index) => ({
+    label: stage.label,
+    completed: stageGroups.reduce(
+      (sum, current) => sum + (current[index]?.completed || 0),
+      0,
+    ),
+    pending: stageGroups.reduce(
+      (sum, current) => sum + (current[index]?.pending || 0),
+      0,
+    ),
+    partial: stageGroups.reduce(
+      (sum, current) => sum + (current[index]?.partial || 0),
+      0,
+    ),
+  }));
+};
+
+export const getProjectFilterOptions = () => ({
+  zones: Object.keys(villagesByZone),
+  villagesByZone,
+});
+
+export const getProjectStatusDataSet = (filters = {}) => {
+  const zone = filters.zone || "All";
+  const village = filters.village || "All";
+
+  if (zone === "All" && village === "All") {
+    return cloneStageSet(moduleStageData);
+  }
+
+  const scopedLocations = locationStageData.filter((item) => {
+    const matchesZone = zone === "All" || item.zone === zone;
+    const matchesVillage = village === "All" || item.village === village;
+
+    return matchesZone && matchesVillage;
+  });
+
+  if (!scopedLocations.length) {
+    return emptyStageSet();
+  }
+
+  return Object.keys(moduleStageData).reduce((acc, moduleKey) => {
+    acc[moduleKey] = aggregateStages(
+      scopedLocations.map((item) => item.modules[moduleKey]),
+    );
+    return acc;
+  }, {});
+};

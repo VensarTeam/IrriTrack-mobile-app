@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, LayoutAnimation } from "react-native";
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
 import {
   getProjectStatusDataSet,
-  MODULE_TOTALS,
+  getProjectFilterOptions,
 } from "../repositories/projectStatusRepository";
 
 const moduleThemes = {
@@ -34,9 +34,20 @@ const moduleThemes = {
 const useProjectDetailsViewModel = (navigation) => {
   const [expanded, setExpanded] = useState(null);
   const [selectedStage, setSelectedStage] = useState("All");
+  const [zone, setZone] = useState("All");
+  const [village, setVillage] = useState("All");
+  const [filterType, setFilterType] = useState(null);
   const chartAnim = useRef(new Animated.Value(0)).current;
 
-  const dataSet = getProjectStatusDataSet();
+  const { zones, villagesByZone } = useMemo(() => getProjectFilterOptions(), []);
+  const villages = useMemo(
+    () => (zone === "All" ? [] : villagesByZone[zone] || []),
+    [zone, villagesByZone],
+  );
+  const dataSet = useMemo(
+    () => getProjectStatusDataSet({ zone, village }),
+    [zone, village],
+  );
 
   useEffect(() => {
     if (!expanded) return;
@@ -73,6 +84,59 @@ const useProjectDetailsViewModel = (navigation) => {
     setSelectedStage("All");
     setExpanded(expanded === key ? null : key);
   };
+
+  const applyLocationFilter = (item) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    if (filterType === "zone") {
+      setZone(item);
+      setVillage("All");
+    }
+
+    if (filterType === "village") {
+      setVillage(item);
+    }
+
+    setSelectedStage("All");
+    setFilterType(null);
+  };
+
+  const clearLocationFilters = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setZone("All");
+    setVillage("All");
+    setSelectedStage("All");
+  };
+
+  const getActiveLocationFilterValue = () => {
+    if (filterType === "zone") return zone;
+    if (filterType === "village") return village;
+    return "";
+  };
+
+  const getModuleTotal = (stages = []) => {
+    const firstStage = stages[0];
+
+    if (!firstStage) return 0;
+
+    return firstStage.completed + firstStage.pending + firstStage.partial;
+  };
+
+  const hasActiveLocationFilters = zone !== "All" || village !== "All";
+
+  const locationFilterOptions =
+    filterType === "zone"
+      ? ["All", ...zones]
+      : zone === "All"
+        ? ["All"]
+        : ["All", ...villages];
+
+  const locationSummary =
+    village !== "All"
+      ? `${zone} / ${village}`
+      : zone !== "All"
+        ? `${zone} overview`
+        : "All zones overview";
 
   const getStageSummary = (stages, stageLabel = selectedStage) => {
     if (stageLabel === "All") {
@@ -168,17 +232,17 @@ const useProjectDetailsViewModel = (navigation) => {
   const kpiCards = [
     {
       key: "OMS",
-      value: MODULE_TOTALS.OMS,
+      value: getModuleTotal(dataSet.OMS),
       ...moduleThemes.OMS,
     },
     {
       key: "RMS",
-      value: MODULE_TOTALS.RMS,
+      value: getModuleTotal(dataSet.RMS),
       ...moduleThemes.RMS,
     },
     {
       key: "GW",
-      value: MODULE_TOTALS.GW,
+      value: getModuleTotal(dataSet.GW),
       ...moduleThemes.GW,
     },
   ];
@@ -195,9 +259,21 @@ const useProjectDetailsViewModel = (navigation) => {
     dataSet,
     expanded,
     selectedStage,
+    zone,
+    village,
+    zones,
+    villages,
+    filterType,
+    locationFilterOptions,
+    hasActiveLocationFilters,
+    locationSummary,
     chartAnimatedStyle,
     toggleSection,
     setSelectedStage,
+    setFilterType,
+    applyLocationFilter,
+    clearLocationFilters,
+    getActiveLocationFilterValue,
     buildPieChartData,
     getStageSummary,
     getSectionHighlights,

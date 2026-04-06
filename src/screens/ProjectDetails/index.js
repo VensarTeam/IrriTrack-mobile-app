@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  Modal,
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,9 +24,19 @@ const ProjectDetailsScreen = () => {
     dataSet,
     expanded,
     selectedStage,
+    zone,
+    village,
+    filterType,
+    locationFilterOptions,
+    hasActiveLocationFilters,
+    locationSummary,
     chartAnimatedStyle,
     toggleSection,
     setSelectedStage,
+    setFilterType,
+    applyLocationFilter,
+    clearLocationFilters,
+    getActiveLocationFilterValue,
     buildPieChartData,
     getStageSummary,
     getSectionHighlights,
@@ -40,6 +51,7 @@ const ProjectDetailsScreen = () => {
   const [chartViewportWidth, setChartViewportWidth] = React.useState(
     width - moderateSectionPadding,
   );
+  const isCompactFilterLayout = width < 410;
 
   React.useEffect(() => {
     if (!expanded) return;
@@ -55,6 +67,16 @@ const ProjectDetailsScreen = () => {
   React.useEffect(() => {
     setChartViewportWidth(width - moderateSectionPadding);
   }, [width]);
+
+  React.useEffect(() => {
+    if (selectedStage !== "All") return;
+
+    const frameId = requestAnimationFrame(() => {
+      stagePagerRef.current?.scrollTo({ x: 0, animated: true });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [selectedStage]);
 
   const renderPieChart = (stages, stageLabel) => {
     const { data, percent } = buildPieChartData(stages, stageLabel);
@@ -85,6 +107,63 @@ const ProjectDetailsScreen = () => {
         <Text style={styles.summaryLabel}>{label}</Text>
         <Text style={styles.summaryValue}>{value}</Text>
       </View>
+    </View>
+  );
+
+  const FilterField = ({
+    title,
+    value,
+    icon: FilterIcon,
+    active,
+    disabled,
+    onPress,
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.filterField,
+        active && styles.filterFieldActive,
+        disabled && styles.filterFieldDisabled,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      disabled={disabled}
+    >
+      <View
+        style={[
+          styles.filterIconWrap,
+          active && styles.filterIconWrapActive,
+          disabled && styles.filterIconWrapDisabled,
+        ]}
+      >
+        {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+      </View>
+
+      <View style={styles.filterFieldTextWrap}>
+        <Text style={styles.filterFieldTitle}>{title}</Text>
+        <Text
+          style={[styles.filterFieldValue, active && styles.filterFieldValueActive]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+      </View>
+
+      <View style={styles.filterArrowWrap}>
+        <Icon
+          source={disabled ? "lock-outline" : "chevron-down"}
+          size={15}
+          color={disabled ? colors.textSecondary : colors.primaryBlue}
+        />
+      </View>
+    </TouchableOpacity>
+  );
+
+  const CompactMeta = ({ label, value }) => (
+    <View style={styles.compactMeta}>
+      <Text style={styles.compactMetaLabel}>{label}</Text>
+      <Text style={styles.compactMetaValue} numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 
@@ -220,6 +299,47 @@ const ProjectDetailsScreen = () => {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.filterPanel}>
+            <View style={styles.filterPanelHeader}>
+              <View style={styles.filterPanelTitleWrap}>
+                <CompactMeta label="Showing" value={locationSummary} />
+              </View>
+
+              {hasActiveLocationFilters ? (
+                <TouchableOpacity
+                  style={styles.filterResetButton}
+                  onPress={clearLocationFilters}
+                >
+                  <Text style={styles.filterResetText}>Reset</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View
+              style={[
+                styles.filterGrid,
+                isCompactFilterLayout && styles.filterGridCompact,
+              ]}
+            >
+              <FilterField
+                title="Zone"
+                value={zone}
+                icon={Icons.zone}
+                active={zone !== "All"}
+                onPress={() => setFilterType("zone")}
+              />
+
+              <FilterField
+                title="Village"
+                value={zone === "All" ? "Select Zone first" : village}
+                icon={Icons.village}
+                active={village !== "All"}
+                disabled={zone === "All"}
+                onPress={() => setFilterType("village")}
+              />
+            </View>
+          </View>
+
           <View style={styles.kpiContainer}>
             {kpiCards.map((item) => (
               <TouchableOpacity
@@ -528,6 +648,57 @@ const ProjectDetailsScreen = () => {
           })}
         </ScrollView>
       </View>
+
+      <Modal
+        visible={!!filterType}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFilterType(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {filterType === "zone" ? "Select Zone" : "Select Village"}
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              {filterType === "zone"
+                ? "Choose a zone first. Village options update after that."
+                : `Villages available in ${zone}.`}
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {locationFilterOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    styles.modalItem,
+                    item === getActiveLocationFilterValue() &&
+                      styles.modalItemActive,
+                  ]}
+                  onPress={() => applyLocationFilter(item)}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      item === getActiveLocationFilterValue() &&
+                        styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setFilterType(null)}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

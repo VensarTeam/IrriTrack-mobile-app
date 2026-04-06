@@ -7,6 +7,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
@@ -36,57 +37,76 @@ const UnitListScreen = ({ navigation, route }) => {
     applyFilter,
     clearFilters,
     openUnitDetails,
+    getCardStatuses,
+    canDownloadCertificate,
+    downloadCertificate,
     handleBack,
   } = useUnitListViewModel(navigation, route);
+  const { width } = useWindowDimensions();
+  const isNarrowScreen = width < 380;
+  const statusItemWidth = isNarrowScreen ? "31.5%" : "23.5%";
 
-  const renderCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.9}
-      onPress={() => openUnitDetails(item)}
-    >
-      <View style={styles.cardTopRow}>
-        <View style={styles.unitInfoBlock}>
-          <View style={styles.unitBadge}>
-            <Text style={styles.unitBadgeText}>{module}</Text>
+  const renderCard = ({ item }) => {
+    const cardStatuses = getCardStatuses(item);
+    const showCertificate = canDownloadCertificate(item);
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+        onPress={() => openUnitDetails(item)}
+      >
+        <View style={styles.cardTopRow}>
+          <View style={styles.unitInfoBlock}>
+            <Text style={styles.unitNo}>{item.unitNo}</Text>
+
+            <View style={styles.locationRow}>
+              <InlineMeta icon={Icons.zone} value={item.zone} />
+              <View style={styles.locationDivider} />
+              <InlineMeta icon={Icons.village} value={item.village} />
+            </View>
           </View>
-          <Text style={styles.unitNo}>{item.unitNo}</Text>
+
+          <View style={styles.cardActionsRow}>
+            <TouchableOpacity
+              style={styles.galleryBtn}
+              onPress={() => openGallery(item)}
+            >
+              <Icons.gallery height={16} width={16} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.directionBtn}
+              onPress={() => openMap(item.latitude, item.longitude)}
+            >
+              <Icons.googleIcon width={14} height={14} />
+              <Text style={styles.directionText}>Direction</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.cardActionsRow}>
-          <TouchableOpacity
-            style={styles.galleryBtn}
-            onPress={() => openGallery(item)}
-          >
-            <Icons.gallery height={16} width={16} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.directionBtn}
-            onPress={() => openMap(item.latitude, item.longitude)}
-          >
-            <Icons.googleIcon width={14} height={14} />
-            <Text style={styles.directionText}>Direction</Text>
-          </TouchableOpacity>
+        <View style={styles.statusGrid}>
+          {cardStatuses.map((status) => (
+            <Status
+              key={status.key}
+              label={status.label}
+              value={status.value}
+              width={statusItemWidth}
+            />
+          ))}
         </View>
-      </View>
 
-      <View style={styles.metaRow}>
-        <Meta label="Zone" value={item.zone} />
-        <Meta label="Distributor" value={item.distributor} />
-        <Meta label="Village" value={item.village} />
-      </View>
-
-      <View style={styles.statusGrid}>
-        <Status label="Inlet" value={item.inlet} />
-        <Status label="Outlet" value={item.outlet} />
-        <Status label="Mechanical" value={item.mechanical} />
-        <Status label="Controller" value={item.controller} />
-        <Status label="Dry Comm." value={item.dry} />
-        <Status label="Wet Comm." value={item.wet} />
-      </View>
-    </TouchableOpacity>
-  );
+        {showCertificate ? (
+          <TouchableOpacity
+            style={styles.certificateButton}
+            onPress={() => downloadCertificate(item)}
+          >
+            <Text style={styles.certificateButtonText}>Download Certificate</Text>
+          </TouchableOpacity>
+        ) : null}
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyWrapper}>
@@ -275,23 +295,39 @@ const getStatusColor = (value) => {
   return colors.partial;
 };
 
-const Status = ({ label, value }) => {
+const Status = ({ label, value, width }) => {
   const statusColor = getStatusColor(value);
 
   return (
-    <View style={[styles.statusItem, { backgroundColor: `${statusColor}1A` }]}>
+    <View
+      style={[
+        styles.statusItem,
+        { backgroundColor: `${statusColor}14`, borderColor: `${statusColor}2B`, width },
+      ]}
+    >
       <View style={styles.statusHeader}>
         <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-        <Text style={styles.statusLabel}>{label}</Text>
+        <Text style={styles.statusLabel} numberOfLines={2}>
+          {label}
+        </Text>
       </View>
-      <Text style={[styles.statusValue, { color: statusColor }]}>{value}</Text>
+      <Text
+        style={[styles.statusValue, { color: statusColor }]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
     </View>
   );
 };
 
-const Meta = ({ label, value }) => (
-  <View style={styles.metaItem}>
-    <Text style={styles.metaLabel}>{label}</Text>
-    <Text style={styles.metaValue}>{value}</Text>
+const InlineMeta = ({ icon: MetaIcon, value }) => (
+  <View style={styles.inlineMeta}>
+    <View style={styles.inlineMetaIcon}>
+      {MetaIcon ? <MetaIcon width={12} height={12} /> : null}
+    </View>
+    <Text style={styles.inlineMetaValue} numberOfLines={1}>
+      {value}
+    </Text>
   </View>
 );

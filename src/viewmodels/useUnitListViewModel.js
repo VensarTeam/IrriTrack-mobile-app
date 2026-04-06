@@ -2,6 +2,20 @@ import { useMemo, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { getFilterOptions, getUnits } from "../repositories/unitRepository";
 import { openDirections } from "../services/mapService";
+import { showAppAlert } from "../services/alertService";
+
+const COMPLETED_STATES = ["Completed", "Updated"];
+
+const CARD_STATUSES = [
+  { key: "inlet", label: "Inlet" },
+  { key: "outlet", label: "Outlet" },
+  { key: "mechanical", label: "Mechanical" },
+  { key: "controller", label: "Controller" },
+  { key: "dry", label: "Dry Comm." },
+  { key: "wet", label: "Wet Comm." },
+  { key: "mechanicalRectification", label: "Mech Rect." },
+  { key: "controllerRectification", label: "Ctrl Rect." },
+];
 
 const useUnitListViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
@@ -72,6 +86,25 @@ const useUnitListViewModel = (navigation, route) => {
     });
   };
 
+  const getCardStatuses = (unit) =>
+    CARD_STATUSES.map((status) => ({
+      ...status,
+      value: unit?.[status.key] || "Pending",
+    }));
+
+  const canDownloadCertificate = (unit) =>
+    getCardStatuses(unit).every((status) => COMPLETED_STATES.includes(status.value));
+
+  const downloadCertificate = (unit) => {
+    showAppAlert({
+      type: "info",
+      title: "Completion Certificate",
+      message: `${
+        unit?.unitNo || "This unit"
+      } certificate download will be connected when API integration is done.`,
+    });
+  };
+
   const handleBack = () => {
     navigation.goBack();
   };
@@ -96,6 +129,9 @@ const useUnitListViewModel = (navigation, route) => {
     applyFilter,
     clearFilters,
     openUnitDetails,
+    getCardStatuses,
+    canDownloadCertificate,
+    downloadCertificate,
     handleBack,
   };
 };

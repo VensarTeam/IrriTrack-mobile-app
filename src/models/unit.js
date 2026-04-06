@@ -12,6 +12,10 @@ export const createUnit = (data) => ({
   controller: data.controller,
   dry: data.dry,
   wet: data.wet,
+  locationUpdatedAt: data.locationUpdatedAt,
+  mechanicalRectification: data.mechanicalRectification,
+  controllerRectification: data.controllerRectification,
+  theftDamageReinstallation: data.theftDamageReinstallation,
   area: data.area,
   chakArea: data.chakArea,
 });
