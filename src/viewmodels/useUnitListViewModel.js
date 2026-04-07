@@ -11,6 +11,7 @@ const CARD_STATUSES = [
   { key: "outlet", label: "Outlet" },
   { key: "mechanical", label: "Mechanical" },
   { key: "controller", label: "Controller" },
+  { key: "flushing", label: "Flushing" },
   { key: "dry", label: "Dry Comm." },
   { key: "wet", label: "Wet Comm." },
   { key: "mechanicalRectification", label: "Mech Rect." },

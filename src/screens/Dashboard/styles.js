@@ -146,7 +146,6 @@ export default StyleSheet.create({
   },
 
   areaContainer: {
-    flex: 1,
     minWidth: 0,
     marginRight: moderateScale(10),
     backgroundColor: "rgba(255,255,255,0.86)",
@@ -178,10 +177,10 @@ export default StyleSheet.create({
     height: moderateScale(38),
     flexShrink: 0,
     borderRadius: moderateScale(12),
-    backgroundColor: colors.primaryGreen,
+    backgroundColor: colors.primaryBlue,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.primaryGreen,
+    shadowColor: colors.primaryBlue,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 12,

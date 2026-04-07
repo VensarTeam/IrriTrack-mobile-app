@@ -10,6 +10,7 @@ export const createUnit = (data) => ({
   outlet: data.outlet,
   mechanical: data.mechanical,
   controller: data.controller,
+  flushing: data.flushing,
   dry: data.dry,
   wet: data.wet,
   locationUpdatedAt: data.locationUpdatedAt,

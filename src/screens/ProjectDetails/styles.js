@@ -109,13 +109,9 @@ export default StyleSheet.create({
     columnGap: moderateScale(10),
   },
 
-  filterGridCompact: {
-    flexDirection: "column",
-    rowGap: verticalScale(10),
-  },
-
   filterField: {
     flex: 1,
+    minWidth: 0,
     minHeight: verticalScale(58),
     flexDirection: "row",
     alignItems: "center",

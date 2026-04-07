@@ -51,7 +51,6 @@ const ProjectDetailsScreen = () => {
   const [chartViewportWidth, setChartViewportWidth] = React.useState(
     width - moderateSectionPadding,
   );
-  const isCompactFilterLayout = width < 410;
 
   React.useEffect(() => {
     if (!expanded) return;
@@ -315,12 +314,7 @@ const ProjectDetailsScreen = () => {
               ) : null}
             </View>
 
-            <View
-              style={[
-                styles.filterGrid,
-                isCompactFilterLayout && styles.filterGridCompact,
-              ]}
-            >
+            <View style={styles.filterGrid}>
               <FilterField
                 title="Zone"
                 value={zone}
