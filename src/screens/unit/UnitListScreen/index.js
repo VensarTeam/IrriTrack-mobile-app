@@ -7,7 +7,6 @@ import {
   TextInput,
   Modal,
   ScrollView,
-  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
@@ -38,17 +37,15 @@ const UnitListScreen = ({ navigation, route }) => {
     applyFilter,
     clearFilters,
     openUnitDetails,
-    getCardStatuses,
+    getCardProcesses,
+    openProcess,
     canDownloadCertificate,
     downloadCertificate,
     handleBack,
   } = useUnitListViewModel(navigation, route);
-  const { width } = useWindowDimensions();
-  const isNarrowScreen = width < 380;
-  const statusItemWidth = isNarrowScreen ? "31.5%" : "23.5%";
 
   const renderCard = ({ item }) => {
-    const cardStatuses = getCardStatuses(item);
+    const processCards = getCardProcesses(item);
     const showCertificate = canDownloadCertificate(item);
 
     return (
@@ -86,15 +83,17 @@ const UnitListScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.statusGrid}>
-          {cardStatuses.map((status) => (
-            <Status
-              key={status.key}
-              label={status.label}
-              value={status.value}
-              width={statusItemWidth}
-            />
-          ))}
+        <View style={styles.processSection}>
+          <View style={styles.processGrid}>
+            {processCards.map((process, index) => (
+              <ProcessTile
+                key={process.key}
+                process={process}
+                isWide={processCards.length % 2 === 1 && index === processCards.length - 1}
+                onPress={() => openProcess(item, process)}
+              />
+            ))}
+          </View>
         </View>
 
         {showCertificate ? (
@@ -134,49 +133,47 @@ const UnitListScreen = ({ navigation, route }) => {
     active,
     onPress,
     icon: FilterIcon,
-  }) => {
-    return (
-      <TouchableOpacity
-        style={[styles.filterBtn, active && styles.filterBtnActive]}
-        onPress={onPress}
-      >
-        <View style={styles.filterLeftSection}>
-          <View
-            style={[
-              styles.filterIconWrap,
-              active && styles.filterIconWrapActive,
-            ]}
+  }) => (
+    <TouchableOpacity
+      style={[styles.filterBtn, active && styles.filterBtnActive]}
+      onPress={onPress}
+    >
+      <View style={styles.filterLeftSection}>
+        <View
+          style={[
+            styles.filterIconWrap,
+            active && styles.filterIconWrapActive,
+          ]}
+        >
+          {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+        </View>
+
+        <View style={styles.filterTextBlock}>
+          <Text
+            style={styles.filterTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
           >
-            {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
-          </View>
-
-          <View style={styles.filterTextBlock}>
-            <Text
-              style={styles.filterTitle}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-            >
-              {title}
-            </Text>
-            <Text
-              style={[styles.filterValue, active && styles.filterValueActive]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-              ellipsizeMode="tail"
-            >
-              {label}
-            </Text>
-          </View>
+            {title}
+          </Text>
+          <Text
+            style={[styles.filterValue, active && styles.filterValueActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            ellipsizeMode="tail"
+          >
+            {label}
+          </Text>
         </View>
+      </View>
 
-        <View style={styles.filterArrowWrap}>
-          <Icons.down width={10} height={10} />
-        </View>
-      </TouchableOpacity>
-    );
-  };
+      <View style={styles.filterArrowWrap}>
+        <Icons.down width={10} height={10} />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -212,13 +209,6 @@ const UnitListScreen = ({ navigation, route }) => {
           value={search}
         />
       </View>
-      {/* <TextInput
-        placeholder={`Search ${module} No...`}
-        placeholderTextColor={colors.textSecondary}
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      /> */}
 
       <View style={styles.filterContainer}>
         <FilterButton
@@ -305,26 +295,26 @@ const UnitListScreen = ({ navigation, route }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.infoModalCard}>
-            <Text style={styles.modalTitle}>Status Indicator Info</Text>
+            <Text style={styles.modalTitle}>Process Indicator Info</Text>
             <Text style={styles.infoModalSubtitle}>
-              Color meaning used in unit status chips.
+              Color meaning used in {module} process cards.
             </Text>
 
             <View style={styles.legendList}>
               <LegendItem
                 color={colors.completed}
-                title="Completed / Updated"
-                subtitle="Work is fully completed."
+                title="Completed"
+                subtitle="Every step in the process has been finished."
               />
               <LegendItem
                 color={colors.pending}
                 title="Pending"
-                subtitle="Work is not started or still waiting."
+                subtitle="The process has not started yet."
               />
               <LegendItem
                 color={colors.partial}
-                title="Partially Completed"
-                subtitle="Work is in progress but not finished."
+                title="In Progress"
+                subtitle="The process is underway but still has remaining steps."
               />
             </View>
 
@@ -349,28 +339,50 @@ const getStatusColor = (value) => {
   return colors.partial;
 };
 
-const Status = ({ label, value, width }) => {
-  const statusColor = getStatusColor(value);
+const ProcessTile = ({ process, isWide, onPress }) => {
+  const statusColor = getStatusColor(process.value);
 
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${process.label}, ${process.value}, ${process.progressLabel}`}
       style={[
-        styles.statusItem,
-        { backgroundColor: `${statusColor}14`, borderColor: `${statusColor}2B`, width },
+        styles.processTile,
+        isWide && styles.processTileWide,
+        {
+          backgroundColor: `${statusColor}12`,
+          borderColor: `${statusColor}26`,
+        },
       ]}
     >
-      <View style={styles.statusHeader}>
-        <Text style={styles.statusLabel} numberOfLines={2}>
-          {label}
+      <View style={styles.processTileMeta}>
+        <View
+          style={[
+            styles.processStatusDot,
+            { backgroundColor: statusColor },
+          ]}
+        />
+        <Text style={styles.processLabel} numberOfLines={1}>
+          {process.label}
         </Text>
       </View>
-      <Text
-        style={[styles.statusValue, { color: statusColor }]}
-        numberOfLines={1}
+
+      <View
+        style={[
+          styles.processProgressBadge,
+          { backgroundColor: `${statusColor}18` },
+        ]}
       >
-        {value}
-      </Text>
-    </View>
+        <Text
+          style={[styles.processProgressText, { color: statusColor }]}
+          numberOfLines={1}
+        >
+          {process.progressLabel}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 

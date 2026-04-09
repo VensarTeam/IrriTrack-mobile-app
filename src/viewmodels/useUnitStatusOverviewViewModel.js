@@ -1,25 +1,23 @@
-import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
+import {
+  getUnitStatusBySubOption,
+  MODULE_STATUS_SECTIONS,
+} from "../constants/moduleStatusConfig";
 import { showAppAlert } from "../services/alertService";
 
 const COMPLETED_STATES = ["Completed", "Updated"];
+
+const applyModuleText = (value, module) => {
+  if (typeof value !== "string" || !module) return value;
+
+  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
+};
 
 const useUnitStatusOverviewViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
 
-  const statusLookup = {
-    inletPipeLaying: unit.inlet || "Pending",
-    outletPipeLaying: unit.outlet || "Pending",
-    mechanicalInstallation: unit.mechanical || "Pending",
-    controllerInstallation: unit.controller || "Pending",
-    dryCommissioning: unit.dry || "Pending",
-    wetCommissioning: unit.wet || "Pending",
-    mechanicalRectification: unit.mechanicalRectification || "Pending",
-    controllerRectification: unit.controllerRectification || "Pending",
-    theftDamageReinstallation: unit.theftDamageReinstallation || "Pending",
-    locationFinalization: unit.locationUpdatedAt ? "Updated" : "Pending",
-  };
+  const statusLookup = getUnitStatusBySubOption(unit);
 
   const getSubOptionLabel = (subOption) => {
     if (subOption.id === "locationFinalization") {
@@ -31,9 +29,15 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
 
   const sections = MODULE_STATUS_SECTIONS.map((section) => ({
     ...section,
+    title: applyModuleText(section.title, module),
+    description: applyModuleText(section.description, module),
     subStatuses: section.subOptions.map((sub) => ({
       ...sub,
-      displayLabel: getSubOptionLabel(sub),
+      label: applyModuleText(sub.label, module),
+      displayLabel: getSubOptionLabel({
+        ...sub,
+        label: applyModuleText(sub.label, module),
+      }),
       status: statusLookup[sub.id] || "Pending",
     })),
   }));

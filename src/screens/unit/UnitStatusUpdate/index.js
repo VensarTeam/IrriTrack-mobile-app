@@ -28,15 +28,25 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     setActiveSubOptionId,
     activeValues,
     activeErrors,
-    shouldHideStatusRemark,
+    showStatusField,
+    showRemarkField,
+    isRemarkRequired,
     checklistItems,
     photoRequirements,
     selectFields,
+    inputFields,
+    repeatableGroups,
     pickerState,
+    photoPreviewState,
     openSelectModal,
+    getPickerSelectedValue,
     selectPickerValue,
     closePicker,
-    updateActiveValues,
+    updateInputValue,
+    updateRemarkValue,
+    updateRepeatableGroupItem,
+    addRepeatableGroupItem,
+    removeRepeatableGroupItem,
     toggleChecklistItem,
     getChecklistProgress,
     getCurrentLocation,
@@ -48,25 +58,24 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     submitActiveSubOption,
     handleBack,
     getSubOptionLabel,
-    photoPreviewState,
     openPhotoPreview,
     closePhotoPreview,
     statusOptions,
-    pipeSizeOptions,
-    contractorOptions,
   } = useUnitStatusUpdateViewModel(navigation, route);
 
   const checklistProgress = getChecklistProgress();
 
   const renderSelectField = ({
+    elementKey,
     label,
     field,
     value,
     options,
     placeholder,
     error,
+    target,
   }) => (
-    <View style={styles.fieldBlock}>
+    <View style={styles.fieldBlock} key={elementKey || field}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TouchableOpacity
         style={[styles.selectField, error && styles.selectFieldError]}
@@ -75,6 +84,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             field,
             title: label,
             options,
+            target,
           })
         }
         activeOpacity={0.86}
@@ -87,6 +97,130 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
+
+  const renderInputField = ({ field }) => (
+    <View style={styles.fieldBlock} key={field.key}>
+      <Text style={styles.fieldLabel}>{field.label}</Text>
+      <TextInput
+        style={[
+          styles.singleLineInput,
+          activeErrors[field.key] && styles.selectFieldError,
+        ]}
+        placeholder={field.placeholder || "Enter value"}
+        placeholderTextColor={colors.textSecondary}
+        keyboardType={field.keyboardType || "default"}
+        value={activeValues[field.key]}
+        onChangeText={(text) => updateInputValue(field.key, text)}
+      />
+      {activeErrors[field.key] ? (
+        <Text style={styles.errorText}>{activeErrors[field.key]}</Text>
+      ) : null}
+    </View>
+  );
+
+  const renderRepeatableGroup = (group) => {
+    const items = activeValues.repeatableGroups?.[group.key] || [];
+    const groupErrors = activeErrors.repeatableGroups?.[group.key] || {};
+
+    return (
+      <View style={styles.repeatableSection} key={group.key}>
+        <View style={styles.repeatableHeader}>
+          <View style={styles.repeatableTitleWrap}>
+            <Text style={styles.repeatableTitle}>{group.title}</Text>
+            {group.subtitle ? (
+              <Text style={styles.repeatableSubtitle}>{group.subtitle}</Text>
+            ) : null}
+          </View>
+
+          <TouchableOpacity
+            style={styles.repeatableAddButton}
+            activeOpacity={0.86}
+            onPress={() => addRepeatableGroupItem(group)}
+            disabled={group.maxItems ? items.length >= group.maxItems : false}
+          >
+            <Text style={styles.repeatableAddButtonText}>
+              {group.addButtonLabel || "Add"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {items.map((item, itemIndex) => {
+          const itemErrors = groupErrors.items?.[itemIndex] || {};
+
+          return (
+            <View style={styles.repeatableItemCard} key={`${group.key}_${itemIndex}`}>
+              <View style={styles.repeatableItemHead}>
+                <Text style={styles.repeatableItemTitle}>
+                  {group.itemLabel || "Item"} {itemIndex + 1}
+                </Text>
+
+                {items.length > (group.minItems || 0) ? (
+                  <TouchableOpacity
+                    style={styles.repeatableRemoveButton}
+                    activeOpacity={0.86}
+                    onPress={() => removeRepeatableGroupItem(group, itemIndex)}
+                  >
+                    <Text style={styles.repeatableRemoveText}>Remove</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {(group.itemFields || []).map((groupField) => {
+                if (groupField.type === "select") {
+                  return renderSelectField({
+                    elementKey: `${group.key}_${itemIndex}_${groupField.key}`,
+                    label: groupField.label,
+                    field: groupField.key,
+                    value: item[groupField.key],
+                    options: groupField.options,
+                    placeholder: groupField.placeholder || "Select option",
+                    error: itemErrors[groupField.key],
+                    target: {
+                      type: "repeatable",
+                      groupKey: group.key,
+                      itemIndex,
+                      fieldKey: groupField.key,
+                    },
+                  });
+                }
+
+                return (
+                  <View style={styles.fieldBlock} key={`${group.key}_${itemIndex}_${groupField.key}`}>
+                    <Text style={styles.fieldLabel}>{groupField.label}</Text>
+                    <TextInput
+                      style={[
+                        styles.singleLineInput,
+                        itemErrors[groupField.key] && styles.selectFieldError,
+                      ]}
+                      placeholder={groupField.placeholder || "Enter value"}
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType={groupField.keyboardType || "default"}
+                      value={item[groupField.key]}
+                      onChangeText={(text) =>
+                        updateRepeatableGroupItem(
+                          group.key,
+                          itemIndex,
+                          groupField.key,
+                          text
+                        )
+                      }
+                    />
+                    {itemErrors[groupField.key] ? (
+                      <Text style={styles.errorText}>{itemErrors[groupField.key]}</Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })}
+
+        {groupErrors.message ? (
+          <Text style={styles.errorText}>{groupErrors.message}</Text>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,7 +245,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             <Text style={styles.projectText}>{projectName}</Text>
             <View style={styles.projectMetaRow}>
               <Text style={styles.projectMeta}>Unit: {unitLabel}</Text>
-              {/* <Text style={styles.projectMeta}>Field Ready Form</Text> */}
             </View>
           </View>
 
@@ -159,8 +292,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               ) : null}
             </View>
 
-            {!shouldHideStatusRemark
+            {showStatusField
               ? renderSelectField({
+                  elementKey: "status",
                   label: activeSubOption.statusLabel || "Status",
                   field: "status",
                   value: activeValues.status,
@@ -170,40 +304,21 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 })
               : null}
 
-            {activeSubOption.needsPipeSize
-              ? renderSelectField({
-                  label: activeSubOption.pipeSizeLabel || "Pipe Size",
-                  field: "pipeSize",
-                  value: activeValues.pipeSize,
-                  options: pipeSizeOptions,
-                  placeholder: "Select Pipe Size",
-                  error: activeErrors.pipeSize,
-                })
-              : null}
-
-            {activeSubOption.needsContractor
-              ? renderSelectField({
-                  label:
-                    activeSubOption.contractorLabel ||
-                    "Activity Done By Contractor",
-                  field: "contractor",
-                  value: activeValues.contractor,
-                  options: contractorOptions,
-                  placeholder: "Select Contractor",
-                  error: activeErrors.contractor,
-                })
-              : null}
-
             {selectFields.map((field) =>
               renderSelectField({
+                elementKey: field.key,
                 label: field.label,
                 field: field.key,
                 value: activeValues[field.key],
                 options: field.options,
                 placeholder: field.placeholder || "Select Option",
                 error: activeErrors[field.key],
-              }),
+              })
             )}
+
+            {inputFields.map((field) => renderInputField({ field }))}
+
+            {repeatableGroups.map((group) => renderRepeatableGroup(group))}
 
             {checklistItems.length ? (
               <View style={styles.checklistCard}>
@@ -246,20 +361,27 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               </View>
             ) : null}
 
-            {!shouldHideStatusRemark ? (
+            {showRemarkField ? (
               <View style={styles.fieldBlock}>
                 <Text style={styles.fieldLabel}>
                   {activeSubOption.remarkLabel || "Remark"}
+                  {isRemarkRequired ? " *" : ""}
                 </Text>
                 <TextInput
-                  style={styles.remarkInput}
+                  style={[
+                    styles.remarkInput,
+                    activeErrors.remark && styles.selectFieldError,
+                  ]}
                   placeholder="Write remarks"
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   value={activeValues.remark}
-                  onChangeText={(text) => updateActiveValues({ remark: text })}
+                  onChangeText={updateRemarkValue}
                   textAlignVertical="top"
                 />
+                {activeErrors.remark ? (
+                  <Text style={styles.errorText}>{activeErrors.remark}</Text>
+                ) : null}
               </View>
             ) : null}
 
@@ -427,6 +549,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               </View>
             ) : null}
 
+            {activeErrors.form ? (
+              <Text style={styles.errorText}>{activeErrors.form}</Text>
+            ) : null}
+
             <Button
               mode="contained"
               onPress={submitActiveSubOption}
@@ -446,7 +572,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             <ScrollView>
               {pickerState.options.map((item) => {
-                const selected = activeValues[pickerState.field] === item;
+                const selected = getPickerSelectedValue() === item;
 
                 return (
                   <TouchableOpacity

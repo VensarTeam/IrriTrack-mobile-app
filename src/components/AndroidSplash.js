@@ -1,220 +1,161 @@
 import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Easing,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
+import Svg, { Circle } from "react-native-svg";
 import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import { moderateScale, verticalScale } from "../constants/metrics";
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const RING_SIZE = moderateScale(212);
+const RING_STROKE = moderateScale(8);
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const splashPalette = {
+  gradientStart: "#F7FBFF",
+  gradientMid: colors.tabShellBg,
+  gradientEnd: "#FDFEFF",
+  glow: "#CFE7FB",
+  ringTrack: "rgba(94,168,232,0.18)",
+  ringProgress: "#11436f",
+  shell: "rgba(255,255,255,0.88)",
+  shadow: "#194a74",
+  frameBorder: "rgba(94,168,232,0.12)",
+  logoGradientStart: "rgba(255,255,255,0.98)",
+  logoGradientMid: "#F2F8FF",
+  logoGradientEnd: "#EBF6FF",
+  title: "#154A8A",
+  subtitle: "#5D7FA8",
+};
+
 const AndroidSplash = ({ onLayout }) => {
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.82)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(8)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const progress = useRef(new Animated.Value(0)).current;
-  const glowPulse = useRef(new Animated.Value(0)).current;
-  const shimmerX = useRef(new Animated.Value(-160)).current;
+  const logoScale = useRef(new Animated.Value(1.18)).current;
+  const contentOpacity = useRef(new Animated.Value(0.18)).current;
+  const contentTranslateY = useRef(new Animated.Value(18)).current;
+  const glowOpacity = useRef(new Animated.Value(0.14)).current;
+  const ringProgress = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
 
   useEffect(() => {
-    const introAnimation = Animated.sequence([
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 520,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 70,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 440,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
-          toValue: 0,
-          duration: 440,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          delay: 120,
-          duration: 360,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(progress, {
+    const animation = Animated.parallel([
+      Animated.timing(logoScale, {
         toValue: 1,
-        duration: 1300,
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 650,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: 0,
+        duration: 900,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(glowOpacity, {
+        toValue: 0.26,
+        duration: 900,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(ringProgress, {
+        toValue: 0,
+        duration: 1200,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }),
     ]);
 
-    const glowLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowPulse, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowPulse, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const shimmerLoop = Animated.loop(
-      Animated.timing(shimmerX, {
-        toValue: 160,
-        duration: 1100,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-
-    introAnimation.start();
-    glowLoop.start();
-    shimmerLoop.start();
+    animation.start();
 
     return () => {
-      introAnimation.stop();
-      glowLoop.stop();
-      shimmerLoop.stop();
+      animation.stop();
     };
-  }, [
-    glowPulse,
-    logoOpacity,
-    logoScale,
-    progress,
-    shimmerX,
-    subtitleOpacity,
-    titleOpacity,
-    titleTranslateY,
-  ]);
-
-  const glowScale = glowPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.14],
-  });
-
-  const glowOpacity = glowPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.22, 0.48],
-  });
-
-  const progressWidth = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["8%", "100%"],
-  });
+  }, [contentOpacity, contentTranslateY, glowOpacity, logoScale, ringProgress]);
 
   return (
     <View style={styles.container} onLayout={onLayout}>
       <LinearGradient
-        colors={["#F8FCFF", "#EDF6FF", "#E5F2FF"]}
+        colors={[
+          splashPalette.gradientStart,
+          splashPalette.gradientMid,
+          splashPalette.gradientEnd,
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
+        <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
         <Animated.View
           style={[
-            styles.orb,
-            styles.orbTop,
+            styles.content,
             {
-              opacity: glowOpacity,
-              transform: [{ scale: glowScale }],
+              opacity: contentOpacity,
+              transform: [{ translateY: contentTranslateY }],
             },
           ]}
-        />
-        <Animated.View
-          style={[
-            styles.orb,
-            styles.orbBottom,
-            {
-              opacity: glowOpacity,
-              transform: [{ scale: glowScale }],
-            },
-          ]}
-        />
+        >
+          <View style={styles.ringWrap}>
+            <Svg width={RING_SIZE} height={RING_SIZE} style={styles.ringSvg}>
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={splashPalette.ringTrack}
+                strokeWidth={RING_STROKE}
+                fill="none"
+              />
+              <AnimatedCircle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={splashPalette.ringProgress}
+                strokeWidth={RING_STROKE}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={`${RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+                strokeDashoffset={ringProgress}
+                rotation="-90"
+                originX={RING_SIZE / 2}
+                originY={RING_SIZE / 2}
+              />
+            </Svg>
 
-        <View style={styles.centerShell}>
-          <Animated.View
-            style={[
-              styles.logoHalo,
-              {
-                opacity: glowOpacity,
-                transform: [{ scale: glowScale }],
-              },
-            ]}
-          />
-
-          <Animated.View
-            style={[
-              styles.logoWrap,
-              {
-                opacity: logoOpacity,
-                transform: [{ scale: logoScale }],
-              },
-            ]}
-          >
-            <Image
-              source={require("../assets/images/logo.png")}
-              resizeMode="contain"
-              style={styles.logo}
-            />
-          </Animated.View>
-
-          <Animated.Text
-            style={[
-              styles.title,
-              {
-                opacity: titleOpacity,
-                transform: [{ translateY: titleTranslateY }],
-              },
-            ]}
-          >
-            Project Management Tools
-          </Animated.Text>
-
-          <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-            PMT
-          </Animated.Text>
-
-          <View style={styles.loaderTrack}>
-            <Animated.View style={[styles.loaderFill, { width: progressWidth }]} />
             <Animated.View
-              pointerEvents="none"
               style={[
-                styles.loaderShimmer,
+                styles.logoShell,
                 {
-                  transform: [{ translateX: shimmerX }],
+                  transform: [{ scale: logoScale }],
                 },
               ]}
-            />
+            >
+              <LinearGradient
+                colors={[
+                  splashPalette.logoGradientStart,
+                  splashPalette.logoGradientMid,
+                  splashPalette.logoGradientEnd,
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoFrame}
+              >
+                <Image
+                  source={require("../assets/images/logo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </LinearGradient>
+            </Animated.View>
           </View>
 
-          <Text style={styles.footnote}>Loading secure workspace...</Text>
-        </View>
+          <View style={styles.copyWrap}>
+            <Text style={styles.title}>Project Management Tools</Text>
+            <Text style={styles.subtitle}>Secure workspace loading</Text>
+          </View>
+        </Animated.View>
       </LinearGradient>
     </View>
   );
@@ -230,110 +171,81 @@ const styles = StyleSheet.create({
 
   gradient: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: moderateScale(24),
   },
 
-  orb: {
+  glow: {
     position: "absolute",
-    borderRadius: moderateScale(200),
-    backgroundColor: "#A8D4FF",
+    width: moderateScale(244),
+    height: moderateScale(244),
+    borderRadius: moderateScale(122),
+    backgroundColor: splashPalette.glow,
   },
 
-  orbTop: {
-    width: moderateScale(220),
-    height: moderateScale(220),
-    top: -moderateScale(90),
-    right: -moderateScale(70),
-  },
-
-  orbBottom: {
-    width: moderateScale(260),
-    height: moderateScale(260),
-    bottom: -moderateScale(125),
-    left: -moderateScale(90),
-  },
-
-  centerShell: {
-    width: "100%",
+  content: {
     alignItems: "center",
+    justifyContent: "center",
   },
 
-  logoHalo: {
+  ringWrap: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  ringSvg: {
     position: "absolute",
-    top: verticalScale(-14),
-    width: moderateScale(148),
-    height: moderateScale(148),
-    borderRadius: moderateScale(74),
-    backgroundColor: "#D6EBFF",
   },
 
-  logoWrap: {
-    width: moderateScale(132),
-    height: moderateScale(132),
-    borderRadius: moderateScale(24),
-    backgroundColor: colors.white,
+  logoShell: {
+    width: moderateScale(136),
+    height: moderateScale(136),
+    borderRadius: moderateScale(68),
+    backgroundColor: splashPalette.shell,
+    shadowColor: splashPalette.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 8,
+    padding: moderateScale(8),
+  },
+
+  logoFrame: {
+    flex: 1,
+    borderRadius: moderateScale(60),
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#D7E8FA",
-    shadowColor: "#1A4B75",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
+    borderColor: splashPalette.frameBorder,
   },
 
   logo: {
-    width: "78%",
-    height: "78%",
+    width: "68%",
+    height: "68%",
+  },
+
+  copyWrap: {
+    marginTop: verticalScale(18),
+    alignItems: "center",
   },
 
   title: {
-    marginTop: verticalScale(26),
     fontSize: moderateScale(22),
     fontFamily: fonts.bold,
-    color: colors.textDark,
-    textAlign: "center",
+    color: splashPalette.title,
     letterSpacing: 0.2,
+    textAlign: "center",
   },
 
   subtitle: {
-    marginTop: verticalScale(8),
-    fontSize: moderateScale(15),
-    fontFamily: fonts.medium,
-    color: colors.primaryBlue,
+    marginTop: verticalScale(6),
+    fontSize: moderateScale(13),
+    fontFamily: fonts.semiBold,
+    color: splashPalette.subtitle,
+    letterSpacing: 0.6,
     textAlign: "center",
-  },
-
-  loaderTrack: {
-    marginTop: verticalScale(26),
-    width: "76%",
-    height: verticalScale(7),
-    borderRadius: moderateScale(10),
-    overflow: "hidden",
-    backgroundColor: "#DCEAF8",
-  },
-
-  loaderFill: {
-    height: "100%",
-    borderRadius: moderateScale(10),
-    backgroundColor: colors.primaryBlue,
-  },
-
-  loaderShimmer: {
-    position: "absolute",
-    width: moderateScale(46),
-    height: "100%",
-    backgroundColor: "rgba(255,255,255,0.35)",
-  },
-
-  footnote: {
-    marginTop: verticalScale(12),
-    color: colors.textSecondary,
-    fontSize: moderateScale(11),
-    fontFamily: fonts.medium,
-    letterSpacing: 0.2,
   },
 });

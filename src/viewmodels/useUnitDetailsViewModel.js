@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
-import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
+import {
+  getUnitStatusBySubOption,
+  MODULE_STATUS_SECTIONS,
+} from "../constants/moduleStatusConfig";
 import { ROUTES } from "../navigation/routes";
 import { showAppAlert } from "../services/alertService";
+
+const applyModuleText = (value, module) => {
+  if (typeof value !== "string" || !module) return value;
+
+  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
+};
 
 const useUnitDetailsViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
@@ -24,21 +33,21 @@ const useUnitDetailsViewModel = (navigation, route) => {
     [MODULE_STATUS_SECTIONS[0]?.key]: true,
   }));
 
-  const statusLookup = useMemo(
-    () => ({
-      inletPipeLaying: unit.inlet || "Pending",
-      outletPipeLaying: unit.outlet || "Pending",
-      locationFinalization: unit.locationUpdatedAt ? "Updated" : "Pending",
-      mechanicalInstallation: unit.mechanical || "Pending",
-      controllerInstallation: unit.controller || "Pending",
-      dryCommissioning: unit.dry || "Pending",
-      wetCommissioning: unit.wet || "Pending",
-      mechanicalRectification: unit.mechanicalRectification || "Pending",
-      controllerRectification: unit.controllerRectification || "Pending",
-      theftDamageReinstallation: unit.theftDamageReinstallation || "Pending",
-    }),
-    [unit]
+  const sections = useMemo(
+    () =>
+      MODULE_STATUS_SECTIONS.map((section) => ({
+        ...section,
+        title: applyModuleText(section.title, module),
+        description: applyModuleText(section.description, module),
+        subOptions: (section.subOptions || []).map((sub) => ({
+          ...sub,
+          label: applyModuleText(sub.label, module),
+        })),
+      })),
+    [module]
   );
+
+  const statusLookup = useMemo(() => getUnitStatusBySubOption(unit), [unit]);
 
   const getSubOptionLabel = (subOption) => {
     if (subOption.id === "locationFinalization") {
@@ -123,7 +132,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
     unit,
     projectName,
     detailItems,
-    sections: MODULE_STATUS_SECTIONS,
+    sections,
     openHelper,
     handleBack,
     openViewAll,

@@ -202,6 +202,99 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  singleLineInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.inputBg,
+    paddingVertical: verticalScale(11),
+    paddingHorizontal: moderateScale(12),
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  repeatableSection: {
+    marginTop: verticalScale(12),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.surfaceBluePale,
+    padding: moderateScale(10),
+  },
+
+  repeatableHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(8),
+  },
+
+  repeatableTitleWrap: {
+    flex: 1,
+    marginRight: moderateScale(8),
+  },
+
+  repeatableTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  repeatableSubtitle: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    lineHeight: moderateScale(14),
+  },
+
+  repeatableAddButton: {
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.primaryBlue,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
+  },
+
+  repeatableAddButtonText: {
+    color: colors.white,
+    fontSize: moderateScale(10.5),
+    fontFamily: fonts.bold,
+  },
+
+  repeatableItemCard: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    padding: moderateScale(10),
+    marginBottom: verticalScale(8),
+  },
+
+  repeatableItemHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  repeatableItemTitle: {
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  repeatableRemoveButton: {
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.surfaceBlueSoft,
+  },
+
+  repeatableRemoveText: {
+    fontSize: moderateScale(10),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
   checklistCard: {
     marginTop: verticalScale(12),
     borderWidth: 1,

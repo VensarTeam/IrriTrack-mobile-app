@@ -2,10 +2,8 @@ import { useMemo, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
-  CONTRACTOR_OPTIONS,
   DEFAULT_NODE_LOCATION,
   MODULE_STATUS_SECTIONS,
-  PIPE_SIZE_OPTIONS,
   STATUS_OPTIONS,
 } from "../constants/moduleStatusConfig";
 import { openLocation } from "../services/mapService";
@@ -25,7 +23,28 @@ const buildPhotoState = (photoRequirements = []) =>
 
 const buildSelectFieldState = (selectFields = []) =>
   selectFields.reduce((acc, field) => {
-    acc[field.key] = "";
+    acc[field.key] = field.defaultValue || "";
+    return acc;
+  }, {});
+
+const buildInputFieldState = (inputFields = []) =>
+  inputFields.reduce((acc, field) => {
+    acc[field.key] = field.defaultValue || "";
+    return acc;
+  }, {});
+
+const createRepeatableGroupItem = (group = {}) =>
+  (group.itemFields || []).reduce((acc, field) => {
+    acc[field.key] = field.defaultValue || "";
+    return acc;
+  }, {});
+
+const buildRepeatableGroupState = (repeatableGroups = []) =>
+  repeatableGroups.reduce((acc, group) => {
+    const minItems = group.minItems || 0;
+    acc[group.key] = Array.from({ length: minItems }, () =>
+      createRepeatableGroupItem(group)
+    );
     return acc;
   }, {});
 
@@ -60,6 +79,17 @@ const applyModuleText = (value, module) => {
   return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
 };
 
+const isVisibleByRule = (item, values, subOption) =>
+  !item?.showWhen || item.showWhen({ values, subOption });
+
+const isRequiredByRule = (item, values, subOption) => {
+  if (item?.requiredWhen) {
+    return item.requiredWhen({ values, subOption });
+  }
+
+  return item?.required !== false;
+};
+
 const getModuleAwareSections = (module) =>
   MODULE_STATUS_SECTIONS.map((section) => ({
     ...section,
@@ -69,8 +99,6 @@ const getModuleAwareSections = (module) =>
       ...sub,
       label: applyModuleText(sub.label, module),
       statusLabel: applyModuleText(sub.statusLabel, module),
-      pipeSizeLabel: applyModuleText(sub.pipeSizeLabel, module),
-      contractorLabel: applyModuleText(sub.contractorLabel, module),
       remarkLabel: applyModuleText(sub.remarkLabel, module),
       checklistItems: (sub.checklistItems || []).map((item) => ({
         ...item,
@@ -85,29 +113,46 @@ const getModuleAwareSections = (module) =>
         label: applyModuleText(field.label, module),
         placeholder: applyModuleText(field.placeholder, module),
       })),
+      inputFields: (sub.inputFields || []).map((field) => ({
+        ...field,
+        label: applyModuleText(field.label, module),
+        placeholder: applyModuleText(field.placeholder, module),
+      })),
+      repeatableGroups: (sub.repeatableGroups || []).map((group) => ({
+        ...group,
+        title: applyModuleText(group.title, module),
+        subtitle: applyModuleText(group.subtitle, module),
+        addButtonLabel: applyModuleText(group.addButtonLabel, module),
+        itemLabel: applyModuleText(group.itemLabel, module),
+        itemFields: (group.itemFields || []).map((field) => ({
+          ...field,
+          label: applyModuleText(field.label, module),
+          placeholder: applyModuleText(field.placeholder, module),
+        })),
+      })),
     })),
   }));
 
 const getInitialFormValues = (section, unit) => {
   const baseLocation = {
-    latitude: unit?.latitude || DEFAULT_NODE_LOCATION.latitude,
-    longitude: unit?.longitude || DEFAULT_NODE_LOCATION.longitude,
+    latitude: unit?.latitude ?? DEFAULT_NODE_LOCATION.latitude,
+    longitude: unit?.longitude ?? DEFAULT_NODE_LOCATION.longitude,
   };
 
   return section.subOptions.reduce((acc, sub) => {
     acc[sub.id] = {
-      status: sub.hideStatusRemark ? "" : "Pending",
-      pipeSize: "",
-      contractor: "",
+      status: sub.showStatusField === false ? "" : "Pending",
       remark: "",
       checks: buildChecklistState(sub.checklistItems),
       photos: buildPhotoState(sub.photoRequirements),
+      repeatableGroups: buildRepeatableGroupState(sub.repeatableGroups),
       defaultLocation: baseLocation,
       defaultAddress: buildUnitAddressSummary(unit, baseLocation),
       updatedLocation: null,
       updatedAddress: "",
       updatedAt: null,
       ...buildSelectFieldState(sub.selectFields),
+      ...buildInputFieldState(sub.inputFields),
     };
 
     return acc;
@@ -139,6 +184,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     field: "",
     title: "",
     options: [],
+    target: null,
   });
   const [photoPreviewState, setPhotoPreviewState] = useState({
     visible: false,
@@ -155,12 +201,32 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const activeValues = formValues[activeSubOption.id];
   const activeErrors = fieldErrors[activeSubOption.id] || {};
-  const shouldHideStatusRemark = !!activeSubOption.hideStatusRemark;
   const unitLabel = unit?.unitNo || `${module}-001`;
 
   const checklistItems = activeSubOption.checklistItems || [];
-  const photoRequirements = activeSubOption.photoRequirements || [];
-  const selectFields = activeSubOption.selectFields || [];
+  const showStatusField = activeSubOption.showStatusField !== false;
+  const showRemarkField = activeSubOption.showRemarkField !== false;
+
+  const selectFields = (activeSubOption.selectFields || []).filter((field) =>
+    isVisibleByRule(field, activeValues, activeSubOption)
+  );
+  const inputFields = (activeSubOption.inputFields || []).filter((field) =>
+    isVisibleByRule(field, activeValues, activeSubOption)
+  );
+  const repeatableGroups = (activeSubOption.repeatableGroups || []).filter((group) =>
+    isVisibleByRule(group, activeValues, activeSubOption)
+  );
+  const photoRequirements = (activeSubOption.photoRequirements || []).filter(
+    (requirement) => isVisibleByRule(requirement, activeValues, activeSubOption)
+  );
+
+  const isRemarkRequired = !!(
+    showRemarkField &&
+    activeSubOption.remarkRequiredWhen?.({
+      values: activeValues,
+      subOption: activeSubOption,
+    })
+  );
 
   const getSubOptionLabel = (subOption) => {
     if (subOption.id === "locationFinalization") {
@@ -200,6 +266,121 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     updateValuesForSubOption(activeSubOption.id, updates);
   };
 
+  const updateInputValue = (field, value) => {
+    updateActiveValues({ [field]: value });
+    clearFieldError(field);
+  };
+
+  const updateRemarkValue = (value) => {
+    updateActiveValues({ remark: value });
+    clearFieldError("remark");
+    clearFieldError("form");
+  };
+
+  const clearRepeatableGroupFieldError = (groupKey, itemIndex, fieldKey) => {
+    setFieldErrors((prev) => {
+      const activeSubOptionErrors = prev[activeSubOption.id] || {};
+      const repeatableErrors = activeSubOptionErrors.repeatableGroups || {};
+      const groupErrors = repeatableErrors[groupKey];
+
+      if (!groupErrors?.items?.[itemIndex]?.[fieldKey]) {
+        return prev;
+      }
+
+      const nextFieldErrors = {
+        ...activeSubOptionErrors,
+        repeatableGroups: {
+          ...repeatableErrors,
+          [groupKey]: {
+            ...groupErrors,
+            items: {
+              ...groupErrors.items,
+              [itemIndex]: {
+                ...groupErrors.items[itemIndex],
+                [fieldKey]: null,
+              },
+            },
+          },
+        },
+      };
+
+      return {
+        ...prev,
+        [activeSubOption.id]: nextFieldErrors,
+      };
+    });
+  };
+
+  const clearRepeatableGroupError = (groupKey) => {
+    setFieldErrors((prev) => {
+      const activeSubOptionErrors = prev[activeSubOption.id] || {};
+      const repeatableErrors = activeSubOptionErrors.repeatableGroups || {};
+      const groupErrors = repeatableErrors[groupKey];
+
+      if (!groupErrors) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [activeSubOption.id]: {
+          ...activeSubOptionErrors,
+          repeatableGroups: {
+            ...repeatableErrors,
+            [groupKey]: {
+              ...groupErrors,
+              message: null,
+            },
+          },
+        },
+      };
+    });
+  };
+
+  const updateRepeatableGroupItem = (groupKey, itemIndex, fieldKey, value) => {
+    const currentItems = activeValues.repeatableGroups?.[groupKey] || [];
+    const nextItems = currentItems.map((item, index) =>
+      index === itemIndex ? { ...item, [fieldKey]: value } : item
+    );
+
+    updateActiveValues({
+      repeatableGroups: {
+        ...activeValues.repeatableGroups,
+        [groupKey]: nextItems,
+      },
+    });
+
+    clearRepeatableGroupFieldError(groupKey, itemIndex, fieldKey);
+  };
+
+  const addRepeatableGroupItem = (group) => {
+    const currentItems = activeValues.repeatableGroups?.[group.key] || [];
+    if (group.maxItems && currentItems.length >= group.maxItems) return;
+
+    updateActiveValues({
+      repeatableGroups: {
+        ...activeValues.repeatableGroups,
+        [group.key]: [...currentItems, createRepeatableGroupItem(group)],
+      },
+    });
+
+    clearRepeatableGroupError(group.key);
+  };
+
+  const removeRepeatableGroupItem = (group, itemIndex) => {
+    const currentItems = activeValues.repeatableGroups?.[group.key] || [];
+    const nextItems = currentItems.filter((_, index) => index !== itemIndex);
+
+    updateActiveValues({
+      repeatableGroups: {
+        ...activeValues.repeatableGroups,
+        [group.key]: nextItems,
+      },
+    });
+
+    clearRepeatableGroupError(group.key);
+  };
+
   const clearFieldError = (field) => {
     setFieldErrors((prev) => ({
       ...prev,
@@ -210,18 +391,39 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }));
   };
 
-  const openSelectModal = ({ field, title, options }) => {
+  const openSelectModal = ({ field, title, options, target = null }) => {
     setPickerState({
       visible: true,
       field,
       title,
       options,
+      target,
     });
   };
 
+  const getPickerSelectedValue = () => {
+    if (pickerState.target?.type === "repeatable") {
+      const items =
+        activeValues.repeatableGroups?.[pickerState.target.groupKey] || [];
+      return items[pickerState.target.itemIndex]?.[pickerState.target.fieldKey] || "";
+    }
+
+    return activeValues[pickerState.field] || "";
+  };
+
   const selectPickerValue = (value) => {
-    updateActiveValues({ [pickerState.field]: value });
-    clearFieldError(pickerState.field);
+    if (pickerState.target?.type === "repeatable") {
+      updateRepeatableGroupItem(
+        pickerState.target.groupKey,
+        pickerState.target.itemIndex,
+        pickerState.target.fieldKey,
+        value
+      );
+    } else {
+      updateActiveValues({ [pickerState.field]: value });
+      clearFieldError(pickerState.field);
+    }
+
     setPickerState((prev) => ({ ...prev, visible: false }));
   };
 
@@ -236,6 +438,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         [itemId]: !activeValues.checks[itemId],
       },
     });
+
+    clearFieldError("remark");
+    clearFieldError("form");
   };
 
   const getCurrentLocation = () =>
@@ -299,8 +504,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const currentSubOptionId = activeSubOption.id;
       const capturedAt = new Date().toLocaleString();
 
-      // Persist core location immediately for fast field feedback,
-      // then resolve address in background.
       updateValuesForSubOption(currentSubOptionId, {
         updatedLocation: nextLocation,
         updatedAt: capturedAt,
@@ -486,28 +689,83 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const validateForm = () => {
     const nextErrors = {};
 
-    if (!shouldHideStatusRemark && !activeValues.status) {
+    if (showStatusField && !activeValues.status) {
       nextErrors.status = "Please select status";
     }
 
-    if (activeSubOption.needsPipeSize && !activeValues.pipeSize) {
-      nextErrors.pipeSize = "Please select pipe size";
-    }
-
-    if (activeSubOption.needsContractor && !activeValues.contractor) {
-      nextErrors.contractor = "Please select contractor";
-    }
-
     selectFields.forEach((field) => {
-      const isRequired = field.required !== false;
-      if (isRequired && !activeValues[field.key]) {
+      if (
+        isRequiredByRule(field, activeValues, activeSubOption) &&
+        !activeValues[field.key]
+      ) {
         nextErrors[field.key] = "Please select an option";
       }
     });
 
+    inputFields.forEach((field) => {
+      const value = activeValues[field.key];
+      if (
+        isRequiredByRule(field, activeValues, activeSubOption) &&
+        !`${value ?? ""}`.trim()
+      ) {
+        nextErrors[field.key] = "Please enter a value";
+      }
+    });
+
+    if (showRemarkField && isRemarkRequired && !activeValues.remark.trim()) {
+      nextErrors.remark = "Remark is required";
+    }
+
+    if (repeatableGroups.length) {
+      const repeatableErrors = {};
+
+      repeatableGroups.forEach((group) => {
+        const items = activeValues.repeatableGroups?.[group.key] || [];
+        const groupError = {};
+
+        if ((group.minItems || 0) > items.length) {
+          groupError.message = `Add at least ${group.minItems} ${group.itemLabel || "item"} entry`;
+        }
+
+        const itemErrors = {};
+
+        items.forEach((item, itemIndex) => {
+          const currentItemErrors = {};
+
+          (group.itemFields || []).forEach((field) => {
+            const isRequired = field.required !== false;
+            if (isRequired && !`${item[field.key] ?? ""}`.trim()) {
+              currentItemErrors[field.key] =
+                field.type === "select"
+                  ? "Please select an option"
+                  : "Please enter a value";
+            }
+          });
+
+          if (Object.keys(currentItemErrors).length) {
+            itemErrors[itemIndex] = currentItemErrors;
+          }
+        });
+
+        if (Object.keys(itemErrors).length) {
+          groupError.items = itemErrors;
+        }
+
+        if (Object.keys(groupError).length) {
+          repeatableErrors[group.key] = groupError;
+        }
+      });
+
+      if (Object.keys(repeatableErrors).length) {
+        nextErrors.repeatableGroups = repeatableErrors;
+      }
+    }
+
     if (photoRequirements.length) {
       const missingRequirements = photoRequirements.filter(
-        (requirement) => !activeValues.photos?.[requirement.id]?.uri
+        (requirement) =>
+          isRequiredByRule(requirement, activeValues, activeSubOption) &&
+          !activeValues.photos?.[requirement.id]?.uri
       );
 
       if (missingRequirements.length) {
@@ -517,6 +775,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           return acc;
         }, {});
       }
+    }
+
+    if (activeSubOption.customValidate) {
+      Object.assign(
+        nextErrors,
+        activeSubOption.customValidate({
+          values: activeValues,
+          subOption: activeSubOption,
+        }) || {}
+      );
     }
 
     setFieldErrors((prev) => ({
@@ -532,19 +800,35 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     unitNo: unitLabel,
     sectionKey: section.key,
     subOptionId: activeSubOption.id,
-    status: activeValues.status,
-    pipeSize: activeValues.pipeSize,
-    contractor: activeValues.contractor,
-    remark: activeValues.remark,
+    status: showStatusField ? activeValues.status : "",
+    remark: showRemarkField ? activeValues.remark : "",
     checklist: checklistItems.map((item) => ({
       id: item.id,
       label: item.label,
-      checked: !!activeValues.checks[item.id],
+      response: activeValues.checks[item.id] ? 1 : 0,
+      checked: activeValues.checks[item.id] ? 1 : 0,
     })),
     selectValues: selectFields.map((field) => ({
       key: field.key,
       label: field.label,
       value: activeValues[field.key],
+    })),
+    inputValues: inputFields.map((field) => ({
+      key: field.key,
+      label: field.label,
+      value: activeValues[field.key],
+    })),
+    repeatableValues: repeatableGroups.map((group) => ({
+      key: group.key,
+      title: group.title,
+      items: (activeValues.repeatableGroups?.[group.key] || []).map((item, index) => ({
+        itemIndex: index + 1,
+        values: (group.itemFields || []).map((field) => ({
+          key: field.key,
+          label: field.label,
+          value: item[field.key],
+        })),
+      })),
     })),
     photos: photoRequirements
       .map((requirement) => ({
@@ -556,6 +840,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     defaultLocation: activeValues.defaultLocation,
     updatedLocation: activeValues.updatedLocation,
     updatedAt: activeValues.updatedAt,
+    submittedAt: new Date().toISOString(),
   });
 
   const submitActiveSubOption = () => {
@@ -606,33 +891,40 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOptionId,
     activeValues,
     activeErrors,
-    shouldHideStatusRemark,
+    showStatusField,
+    showRemarkField,
+    isRemarkRequired,
     checklistItems,
     photoRequirements,
     selectFields,
+    inputFields,
+    repeatableGroups,
     pickerState,
+    photoPreviewState,
+    isUpdatingLocation,
     setActiveSubOptionId,
     openSelectModal,
+    getPickerSelectedValue,
     selectPickerValue,
     closePicker,
-    updateActiveValues,
+    updateInputValue,
+    updateRemarkValue,
+    updateRepeatableGroupItem,
+    addRepeatableGroupItem,
+    removeRepeatableGroupItem,
     toggleChecklistItem,
     getChecklistProgress,
     getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
-    isUpdatingLocation,
     showUploadOptions,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,
     getSubOptionLabel,
-    photoPreviewState,
     openPhotoPreview,
     closePhotoPreview,
     statusOptions: STATUS_OPTIONS,
-    pipeSizeOptions: activeSubOption.pipeSizeOptions || PIPE_SIZE_OPTIONS,
-    contractorOptions: CONTRACTOR_OPTIONS,
   };
 };
 

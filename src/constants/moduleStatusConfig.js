@@ -39,10 +39,77 @@ export const REINSTALL_MATERIAL_OPTIONS = [
   "Other",
 ];
 
+export const FLUSHING_PRESSURE_OPTIONS = ["Low Pressure", "High Pressure"];
+export const WATER_CLARITY_OPTIONS = ["Clear", "Turbid"];
+export const YES_NO_OPTIONS = ["Yes", "No"];
+export const SIGNAL_STRENGTH_OPTIONS = ["Poor", "Good", "Excellent"];
+
+export const LEAKAGE_RECTIFICATION_REASON_OPTIONS = [
+  "Inlet Leakage",
+  "Outlet Leakage",
+  "Valve Leakage",
+  "Joint Leakage",
+  "Other",
+];
+
+export const OFFLINE_RECTIFICATION_REASON_OPTIONS = [
+  "RTU Controller Offline",
+  "Communication Failure",
+  "Battery Issue",
+  "Sensor Issue",
+  "Other",
+];
+
 export const DEFAULT_NODE_LOCATION = {
   latitude: 23.18,
   longitude: 75.78,
 };
+
+const normalizeStoredStatus = (value) => {
+  if (value === "Partial") {
+    return "Partially Completed";
+  }
+
+  return value || "Pending";
+};
+
+const resolveStoredStatus = (...values) =>
+  normalizeStoredStatus(values.find((value) => value !== undefined && value !== null && value !== ""));
+
+export const getUnitStatusBySubOption = (unit = {}) => ({
+  inletPipeLaying: resolveStoredStatus(unit.inletPipeLaying, unit.inlet),
+  outletPipeLaying: resolveStoredStatus(unit.outletPipeLaying, unit.outlet),
+  locationFinalization: unit.locationUpdatedAt ? "Updated" : "Pending",
+  pedestalEnclosureInstallation: resolveStoredStatus(
+    unit.pedestalEnclosureInstallation,
+    unit.mechanical
+  ),
+  mechanicalAccessoriesInstallation: resolveStoredStatus(
+    unit.mechanicalAccessoriesInstallation,
+    unit.mechanical
+  ),
+  automationInstallation: resolveStoredStatus(
+    unit.automationInstallation,
+    unit.controller
+  ),
+  pipeFlushing: resolveStoredStatus(unit.pipeFlushing, unit.flushing),
+  dryCommissioning: resolveStoredStatus(unit.dryCommissioning, unit.dry),
+  wetCommissioning: resolveStoredStatus(unit.wetCommissioning, unit.wet),
+  mechanicalRectification: resolveStoredStatus(unit.mechanicalRectification),
+  automationWorkRectification: resolveStoredStatus(
+    unit.automationWorkRectification,
+    unit.controllerRectification
+  ),
+  theftDamageReinstallation: resolveStoredStatus(unit.theftDamageReinstallation),
+});
+
+export const UNIT_LIST_SECTION_KEYS = [
+  "pipeLaying",
+  "installation",
+  "flushing",
+  "commissioning",
+  "rectification",
+];
 
 const checklist = (items) =>
   items.map((item, index) => ({
@@ -50,120 +117,283 @@ const checklist = (items) =>
     label: item,
   }));
 
+const checklistIncomplete = ({ values, subOption }) =>
+  (subOption.checklistItems || []).some((item) => !values?.checks?.[item.id]);
+
+const otherReasonRequired = ({ values }) =>
+  values?.leakageRectificationReason === "Other" ||
+  values?.offlineRectificationReason === "Other" ||
+  values?.materialReinstallationReason === "Other";
+
+const flushingRemarkRequired = ({ values }) =>
+  values?.flushedPressure === "Low Pressure" ||
+  values?.waterClarityStatus === "Turbid" ||
+  values?.inletLeakageObserved === "Yes";
+
+const outletPipeCheckItems = Array.from({ length: 6 }, (_, index) =>
+  `Outlet pipe ${index + 1} laid and jointed.`
+);
+
 export const MODULE_STATUS_SECTIONS = [
   {
     key: "pipeLaying",
-    title: "Pipe Laying Status",
-    description: "Update inlet/outlet laying progress and location finalization.",
+    title: "Pipe Laying Process",
+    cardLabel: "Pipe Laying",
+    description:
+      "Finalize node location and update inlet and outlet pipe laying work.",
     subOptions: [
+      {
+        id: "locationFinalization",
+        label: "Location Finalization",
+        showStatusField: false,
+        showRemarkField: false,
+        needsLocationActions: true,
+        canUpdateLocation: true,
+      },
       {
         id: "inletPipeLaying",
         label: "Inlet Pipe Laying",
-        statusLabel: "Inlet Pipe Laying Status",
-        needsPipeSize: true,
-        pipeSizeLabel: "Inlet Pipe Size",
+        statusLabel: "Status",
+        selectFields: [
+          {
+            key: "inletPipeSize",
+            label: "Inlet Pipe Size",
+            options: PIPE_SIZE_OPTIONS,
+            placeholder: "Select pipe size",
+          },
+        ],
+        checklistItems: checklist([
+          "Check 110 mm OMS inlet pipe joined with pipeline.",
+        ]),
         remarkLabel: "Remark",
+        remarkRequiredWhen: ({ values }) =>
+          values?.status === "Partially Completed",
         photoRequirements: [
           {
-            id: "inlet_laying_photo",
-            label: "Upload Inlet Laying Photo",
+            id: "inlet_laying_and_jointing_photo",
+            label: "Inlet pipe laying and jointing",
           },
         ],
       },
       {
         id: "outletPipeLaying",
         label: "Outlet Pipe Laying",
-        statusLabel: "Outlet Pipe Laying Status",
-        needsPipeSize: true,
-        pipeSizeLabel: "Outlet Pipe Size",
+        statusLabel: "Status",
+        checklistItems: checklist([
+          "Check 63 mm OMS outlet pipe joined with pipeline.",
+          ...outletPipeCheckItems,
+        ]),
         remarkLabel: "Remark",
         photoRequirements: [
           {
-            id: "outlet_laying_photo",
-            label: "Upload Outlet Laying Photo",
+            id: "outlet_laying_and_jointing_photo",
+            label: "Outlet pipes laying and jointing",
           },
         ],
-      },
-      {
-        id: "locationFinalization",
-        label: "OMS/RMS Location Finalization",
-        hideStatusRemark: true,
-        needsLocationActions: true,
-        canUpdateLocation: true,
       },
     ],
   },
   {
     key: "installation",
-    title: "Installation Status",
-    description: "Track mechanical and controller installation progress.",
+    title: "Installation Process",
+    cardLabel: "Installation",
+    description:
+      "Capture pedestal, mechanical accessories, and automation installation work.",
     subOptions: [
       {
-        id: "mechanicalInstallation",
-        label: "Mechanical Installation",
-        needsContractor: true,
-        contractorLabel: "Activity Done By Contractor",
+        id: "pedestalEnclosureInstallation",
+        label: "Pedestal and Enclosure Installation",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "contractorName",
+            label: "Activity Done By Contractor",
+            options: CONTRACTOR_OPTIONS,
+            placeholder: "Select contractor",
+          },
+        ],
         checklistItems: checklist([
           "Check excavation for OMS up to 0.9 meter depth.",
           "Check placement of reinforced cement concrete (RCC) precast block.",
-          "Check placement of pedestal inside the chamber.",
-          "Check laying and connecting incoming pipelines.",
-          "Check laying and connecting outgoing pipelines.",
-          "Check installation of the enclosure cabinet.",
-          "Check installation of inlet manifold assembly.",
-          "Check installation of air release valve with isolation ball valve.",
-          "Check installation of a butterfly valve with gasket and nut bolt.",
-          "Check installation of strainer with gasket and Nut bolt.",
-          "Check installation of PFCMD and Water Meter with Gasket and Nut bolt.",
-          "Check installation of Outlet Manifold assembly.",
-          "Check installation of ON-OFF valve.",
-          "Check installation and tightness of MTA Compression Fitting.",
+          "Check the placement and horizontality of the pedestal inside the chamber using a spirit level.",
+          "Check 110 mm inlet pipe jointed with pipeline.",
+          "Check 63 mm outlet pipes jointed with pipelines.",
+          "Check MS companion flange (100 mm) provided at the inlet pipe stub end.",
+          "Check all the butt fusion joints are properly welded.",
+          "Check installation of enclosure cabinet.",
+          "Check outlet pipe identification and marking.",
           "Check backfilling of excavation after installation completion with proper compaction up to original level.",
         ]),
+        repeatableGroups: [
+          {
+            key: "subChakDefinitions",
+            title: "Outlet Pipe Identification and Marking",
+            subtitle:
+              "Add sub chak names like V1, V2 and define the pipe size for each. Maximum 8 entries.",
+            addButtonLabel: "Add Sub Chak",
+            itemLabel: "Sub Chak",
+            minItems: 1,
+            maxItems: 8,
+            itemFields: [
+              {
+                key: "subChakName",
+                label: "Sub Chak Name",
+                placeholder: "Eg. V1",
+              },
+              {
+                key: "pipeSize",
+                type: "select",
+                label: "Pipe Size",
+                options: PIPE_SIZE_OPTIONS,
+                placeholder: "Select pipe size",
+              },
+            ],
+          },
+        ],
         remarkLabel: "Remark",
+        remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [
           {
-            id: "oms_before_backfill",
-            label: "Full photo of OMS before backfilling",
+            id: "pedestal_open_door_photo",
+            label: "Full photo of OMS installation before backfilling with open door",
           },
           {
-            id: "oms_after_backfill_open",
-            label: "Full photo of OMS after backfilling (open door)",
+            id: "pedestal_closed_door_photo",
+            label: "Full photo of OMS after backfilling with a closed door",
           },
           {
-            id: "oms_after_backfill_close",
-            label: "Full photo of OMS after backfilling (close door)",
+            id: "pedestal_signed_copy",
+            label: "Duly signed copy",
           },
         ],
       },
       {
-        id: "controllerInstallation",
-        label: "Controller Installation",
-        needsContractor: true,
-        contractorLabel: "Activity Done By Contractor",
+        id: "mechanicalAccessoriesInstallation",
+        label: "Mechanical Accessories Installation",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "contractorName",
+            label: "Activity Done By Contractor",
+            options: CONTRACTOR_OPTIONS,
+            placeholder: "Select contractor",
+          },
+        ],
         checklistItems: checklist([
-          "Check installation of RTU Controller with clamp and nut bolt.",
+          "Check installation of inlet manifold assembly.",
+          "Check installation of air release valve with isolation ball valve.",
+          "Check installation of a butterfly valve with gasket and nut bolt.",
+          "Check installation of strainer with gasket and nut bolt.",
+          "Check installation of PFCMD with gasket and nut bolt.",
+          "Check installation of outlet manifold assembly.",
+          "Check all nut bolts are properly tightened.",
+          "Check all Victaulic joints are properly fixed and tightened.",
+          "Check installation of ON-OFF valve.",
+          "Check installation and tightness of MTA compression fitting.",
+        ]),
+        remarkLabel: "Remark",
+        remarkRequiredWhen: checklistIncomplete,
+        photoRequirements: [
+          {
+            id: "mechanical_accessories_open_door_photo",
+            label: "Photo with open door",
+          },
+          {
+            id: "mechanical_accessories_signed_copy",
+            label: "Duly signed copy",
+          },
+        ],
+      },
+      {
+        id: "automationInstallation",
+        label: "Automation Installation",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "contractorName",
+            label: "Activity Done By Contractor",
+            options: CONTRACTOR_OPTIONS,
+            placeholder: "Select contractor",
+          },
+        ],
+        checklistItems: checklist([
+          "Check installation of RTU controller with clamp and nut bolt.",
           "Check installation of antenna MS pipe and antenna with nut bolt.",
           "Check installation of door switch with nut bolt.",
           "Check installation of hydraulic tubing.",
           "Check installation of all PU fittings and elbows.",
-          "Check connection of water meter with RTU Controller.",
+          "Check installation and connection of pressure transducer with RTU controller.",
+          "Check connection of water meter with RTU controller.",
           "Check cable and hydraulic tubing dressing.",
-          "Check RTU Controller cable gland fitting.",
+          "Check RTU controller cable gland fitting.",
         ]),
         remarkLabel: "Remark",
+        remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [
           {
-            id: "rtu_installation_photo",
-            label: "RTU Controller installation photo",
+            id: "automation_rtu_controller_photo",
+            label: "RTU controller",
           },
           {
-            id: "antenna_ms_pipe_photo",
-            label: "Antenna with MS pipe installation photo",
+            id: "automation_full_close_door_photo",
+            label: "Full photo of OMS including antenna with close door",
           },
           {
-            id: "door_switch_photo",
-            label: "Door switch installation photo",
+            id: "automation_signed_copy",
+            label: "Duly signed copy",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "flushing",
+    title: "Flushing Process",
+    cardLabel: "Flushing",
+    description: "Capture flushing duration, pressure, clarity, and leakage data.",
+    subOptions: [
+      {
+        id: "pipeFlushing",
+        label: "Flushing",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "flushedPressure",
+            label: "Flushed",
+            options: FLUSHING_PRESSURE_OPTIONS,
+            placeholder: "Select pressure",
+          },
+          {
+            key: "waterClarityStatus",
+            label: "Water Clarity Status",
+            options: WATER_CLARITY_OPTIONS,
+            placeholder: "Select water clarity",
+          },
+          {
+            key: "inletLeakageObserved",
+            label: "Any Leakage Observed in OMS Inlet",
+            options: YES_NO_OPTIONS,
+            placeholder: "Select option",
+          },
+        ],
+        inputFields: [
+          {
+            key: "totalFlushingDurationMinutes",
+            label: "Total Duration of Flushing (Minutes)",
+            placeholder: "Enter total duration",
+            keyboardType: "numeric",
+          },
+        ],
+        remarkLabel: "Remark",
+        remarkRequiredWhen: flushingRemarkRequired,
+        photoRequirements: [
+          {
+            id: "flushing_photo_1",
+            label: "Photo of flushing 1",
+          },
+          {
+            id: "flushing_photo_2",
+            label: "Photo of flushing 2",
           },
         ],
       },
@@ -171,62 +401,77 @@ export const MODULE_STATUS_SECTIONS = [
   },
   {
     key: "commissioning",
-    title: "Commissioning Status",
-    description: "Track dry and wet commissioning updates.",
+    title: "Commissioning Process",
+    cardLabel: "Commissioning",
+    description: "Capture dry and wet commissioning validation checks.",
     subOptions: [
       {
         id: "dryCommissioning",
         label: "Dry Commissioning",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "signalStrength",
+            label: "Signal Strength",
+            options: SIGNAL_STRENGTH_OPTIONS,
+            placeholder: "Select signal strength",
+          },
+        ],
         checklistItems: checklist([
           "Check online status in the Web-SCADA.",
           "Check PFCMD solenoid operation through the Web-SCADA.",
           "Check ON-OFF valve solenoid operation through the Web-SCADA.",
-          "Check pressure transmitter reading.",
+          "Check whether the specific valve that was commanded has opened or not.",
+          "Check pressure transmitter reading is zero.",
           "Check door switch status in the Web-SCADA.",
           "Check water meter connection and reading.",
           "Check battery healthiness status in the Web-SCADA.",
           "Check controller LoRa ID in Web-SCADA.",
-          "Check signal strength and node communication.",
         ]),
         remarkLabel: "Remark",
+        remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [
           {
-            id: "dry_scada_photo",
-            label: "SCADA screenshot or photo",
+            id: "dry_commissioning_scada_parameters",
+            label: "Real time parameters on SCADA",
           },
           {
-            id: "dry_node_distance_photo",
-            label: "Full node photo with distance",
+            id: "dry_commissioning_valve_operation",
+            label: "Valve operation on SCADA",
           },
         ],
       },
       {
         id: "wetCommissioning",
         label: "Wet Commissioning",
+        showStatusField: false,
+        selectFields: [
+          {
+            key: "signalStrength",
+            label: "Signal Strength",
+            options: SIGNAL_STRENGTH_OPTIONS,
+            placeholder: "Select signal strength",
+          },
+        ],
         checklistItems: checklist([
           "Check PFCMD valve operation through the Web-SCADA.",
           "Check ON-valve operation through the Web-SCADA.",
+          "Check whether the specific valve that was commanded has opened or not.",
           "Check node schedule operation through the Web-SCADA.",
           "Check water meter readings and flow in the Web-SCADA.",
           "Check inlet pressure reading in the Web-SCADA.",
           "Check door switch status in the Web-SCADA.",
           "Check battery healthiness status in the Web-SCADA.",
-          "Check signal strength and node communication.",
         ]),
         remarkLabel: "Remark",
         photoRequirements: [
           {
-            id: "wet_scada_photo",
-            label: "SCADA screenshot or photo",
+            id: "wet_commissioning_scada_parameters",
+            label: "Real time parameters on SCADA",
           },
           {
-            id: "wet_node_distance_photo",
-            label: "Full node photo with distance",
-          },
-          {
-            id: "wet_outlet_media",
-            label: "Operational field outlet photo or video",
-            allowVideo: true,
+            id: "wet_commissioning_valve_operation",
+            label: "Valve operation on SCADA",
           },
         ],
       },
@@ -234,37 +479,77 @@ export const MODULE_STATUS_SECTIONS = [
   },
   {
     key: "rectification",
-    title: "Rectification Status",
-    description: "Track mechanical/controller rectification activities.",
+    title: "Rectification Process",
+    cardLabel: "Rectification",
+    description: "Capture mechanical and automation rectification visits.",
     subOptions: [
       {
         id: "mechanicalRectification",
         label: "Mechanical Rectification",
-        checklistItems: checklist([
-          "Visit for OMS flushing purpose.",
-          "Visit for OMS leakage rectification purpose.",
-          "Visit for OMS material reinstallation purpose.",
-        ]),
-        remarkLabel: "Other Remark",
+        showStatusField: false,
+        showRemarkField: false,
+        selectFields: [
+          {
+            key: "leakageRectificationReason",
+            label: "Visit For OMS Leakage Rectification Purpose",
+            options: LEAKAGE_RECTIFICATION_REASON_OPTIONS,
+            placeholder: "Select reason",
+          },
+          {
+            key: "materialReinstallationReason",
+            label: "Visit For OMS Material Reinstallation Purpose",
+            options: REINSTALL_MATERIAL_OPTIONS,
+            placeholder: "Select reason",
+          },
+        ],
+        inputFields: [
+          {
+            key: "otherReason",
+            label: "Other",
+            placeholder: "Type here",
+            required: false,
+            requiredWhen: otherReasonRequired,
+          },
+        ],
         photoRequirements: [
           {
             id: "mechanical_rectification_photo",
-            label: "Rectification photo",
+            label: "Photo with timestamp",
           },
         ],
       },
       {
-        id: "controllerRectification",
-        label: "Controller Rectification",
-        checklistItems: checklist([
-          "Visit for offline OMS rectification purpose.",
-          "Visit for OMS material reinstallation purpose.",
-        ]),
-        remarkLabel: "Other Remark",
+        id: "automationWorkRectification",
+        label: "Automation Work Rectification",
+        showStatusField: false,
+        showRemarkField: false,
+        selectFields: [
+          {
+            key: "offlineRectificationReason",
+            label: "Visit For Offline OMS Rectification Purpose",
+            options: OFFLINE_RECTIFICATION_REASON_OPTIONS,
+            placeholder: "Select reason",
+          },
+          {
+            key: "materialReinstallationReason",
+            label: "Visit For OMS Material Reinstallation Purpose",
+            options: REINSTALL_MATERIAL_OPTIONS,
+            placeholder: "Select reason",
+          },
+        ],
+        inputFields: [
+          {
+            key: "otherReason",
+            label: "Other",
+            placeholder: "Type here",
+            required: false,
+            requiredWhen: otherReasonRequired,
+          },
+        ],
         photoRequirements: [
           {
-            id: "controller_rectification_photo",
-            label: "Rectification photo",
+            id: "automation_rectification_photo",
+            label: "Photo with timestamp",
           },
         ],
       },
@@ -273,22 +558,25 @@ export const MODULE_STATUS_SECTIONS = [
   {
     key: "theftDamageReinstall",
     title: "Theft, Damage and Reinstallation",
-    description: "Capture theft/damage material updates and reinstallation details.",
+    cardLabel: "Theft / Damage",
+    description:
+      "Capture the material theft or damage details and the material reinstalled on the node.",
     subOptions: [
       {
         id: "theftDamageReinstallation",
         label: "Theft, Damage and Reinstallation",
-        hideStatusRemark: true,
+        showStatusField: false,
+        showRemarkField: false,
         selectFields: [
           {
             key: "theftDamageMaterial",
-            label: "Select the material theft and damage on the node",
+            label: "Select The Material Theft and Damage On The Node",
             options: THEFT_DAMAGE_MATERIAL_OPTIONS,
             placeholder: "Select material",
           },
           {
             key: "reinstalledMaterial",
-            label: "Select the material you reinstalled on the node",
+            label: "Select The Material You Reinstalled On The Node",
             options: REINSTALL_MATERIAL_OPTIONS,
             placeholder: "Select material",
           },
@@ -296,11 +584,11 @@ export const MODULE_STATUS_SECTIONS = [
         photoRequirements: [
           {
             id: "theft_damage_photo",
-            label: "Theft and damage material photo",
+            label: "Photo with timestamp for theft or damage",
           },
           {
             id: "reinstall_material_photo",
-            label: "Re-install material photo",
+            label: "Photo with timestamp for reinstalled material",
           },
         ],
       },
@@ -308,5 +596,4 @@ export const MODULE_STATUS_SECTIONS = [
   },
 ];
 
-// Backward compatibility for existing imports
 export const OMS_STATUS_SECTIONS = MODULE_STATUS_SECTIONS;

@@ -1,22 +1,55 @@
 import { useMemo, useState } from "react";
+import {
+  getUnitStatusBySubOption,
+  MODULE_STATUS_SECTIONS,
+  UNIT_LIST_SECTION_KEYS,
+} from "../constants/moduleStatusConfig";
 import { ROUTES } from "../navigation/routes";
 import { getFilterOptions, getUnits } from "../repositories/unitRepository";
 import { openDirections } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 
 const COMPLETED_STATES = ["Completed", "Updated"];
-
-const CARD_STATUSES = [
-  { key: "inlet", label: "Inlet" },
-  { key: "outlet", label: "Outlet" },
-  { key: "mechanical", label: "Mechanical" },
-  { key: "controller", label: "Controller" },
-  { key: "flushing", label: "Flushing" },
-  { key: "dry", label: "Dry Comm." },
-  { key: "wet", label: "Wet Comm." },
-  { key: "mechanicalRectification", label: "Mech Rect." },
-  { key: "controllerRectification", label: "Ctrl Rect." },
+const PENDING_STATES = ["Pending", "", null, undefined];
+const CERTIFICATE_STATUS_KEYS = [
+  "inlet",
+  "outlet",
+  "mechanical",
+  "controller",
+  "flushing",
+  "dry",
+  "wet",
+  "mechanicalRectification",
+  "controllerRectification",
 ];
+
+const getProcessValue = (states) => {
+  if (states.every((state) => COMPLETED_STATES.includes(state))) {
+    return "Completed";
+  }
+
+  if (states.every((state) => PENDING_STATES.includes(state))) {
+    return "Pending";
+  }
+
+  return "In Progress";
+};
+
+const getCompactProgressLabel = (completedCount, totalCount) => {
+  if (completedCount === totalCount) {
+    return "Done";
+  }
+
+  return `${completedCount}/${totalCount}`;
+};
+
+const PROCESS_SECTIONS = UNIT_LIST_SECTION_KEYS.map((sectionKey) =>
+  MODULE_STATUS_SECTIONS.find((section) => section.key === sectionKey)
+).filter(Boolean);
+
+const getProcessLabel = (section = {}) =>
+  section.cardLabel ||
+  (section.title || "").replace(/\s+(Status|Process)$/, "").trim();
 
 const useUnitListViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
@@ -87,14 +120,40 @@ const useUnitListViewModel = (navigation, route) => {
     });
   };
 
-  const getCardStatuses = (unit) =>
-    CARD_STATUSES.map((status) => ({
-      ...status,
-      value: unit?.[status.key] || "Pending",
-    }));
+  const openProcess = (unit, process) => {
+    navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
+      module,
+      unit,
+      projectName,
+      sectionKey: process.sectionKey,
+      subOptionId: process.subOptionId,
+    });
+  };
+
+  const getCardProcesses = (unit) =>
+    PROCESS_SECTIONS.map((section) => {
+      const statusLookup = getUnitStatusBySubOption(unit);
+      const states = (section.subOptions || []).map(
+        (subOption) => statusLookup[subOption.id] || "Pending"
+      );
+      const completedCount = states.filter((state) =>
+        COMPLETED_STATES.includes(state)
+      ).length;
+
+      return {
+        key: section.key,
+        label: getProcessLabel(section),
+        sectionKey: section.key,
+        subOptionId: section.subOptions[0]?.id,
+        value: getProcessValue(states),
+        progressLabel: getCompactProgressLabel(completedCount, states.length),
+      };
+    });
 
   const canDownloadCertificate = (unit) =>
-    getCardStatuses(unit).every((status) => COMPLETED_STATES.includes(status.value));
+    CERTIFICATE_STATUS_KEYS.every((key) =>
+      COMPLETED_STATES.includes(unit?.[key] || "Pending")
+    );
 
   const downloadCertificate = (unit) => {
     showAppAlert({
@@ -130,7 +189,8 @@ const useUnitListViewModel = (navigation, route) => {
     applyFilter,
     clearFilters,
     openUnitDetails,
-    getCardStatuses,
+    getCardProcesses,
+    openProcess,
     canDownloadCertificate,
     downloadCertificate,
     handleBack,
