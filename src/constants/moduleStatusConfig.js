@@ -171,10 +171,7 @@ export const MODULE_STATUS_SECTIONS = [
         statusLabel: "Status",
         checklistItems: checklist([
           "Check 63 mm OMS outlet pipe joined with pipeline.",
-          {
-            label: ({ unit }) =>
-              `No. of outlet pipes(${unit?.subChakQuantity || "6"})`,
-          },
+          "No. of outlet pipes({subChakQuantity})",
         ]),
         remarkLabel: "Remark",
       },

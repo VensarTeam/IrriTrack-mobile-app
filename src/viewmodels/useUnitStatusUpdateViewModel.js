@@ -82,8 +82,16 @@ const applyModuleText = (value, module) => {
   return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
 };
 
-const resolveContextValue = (value, context) =>
-  typeof value === "function" ? value(context) : value;
+const resolveContextValue = (value, context = {}) => {
+  if (typeof value === "function") return value(context);
+
+  if (typeof value !== "string") return value;
+
+  return value.replace(
+    /\{subChakQuantity\}/g,
+    context.unit?.subChakQuantity || "6"
+  );
+};
 
 const isVisibleByRule = (item, values, subOption) =>
   !item?.showWhen || item.showWhen({ values, subOption });
