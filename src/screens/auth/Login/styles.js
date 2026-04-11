@@ -101,4 +101,11 @@ export default StyleSheet.create({
   loginButtonContent: {
     height: verticalScale(50),
   },
+
+  version: {
+    textAlign: "center",
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(12),
+    color: colors.textSecondary,
+  },
 });

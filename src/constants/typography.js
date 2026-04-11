@@ -18,6 +18,10 @@ const typography = {
   bold: {
     fontFamily: fonts.bold,
   },
+
+  letterSpacing: {
+    eyebrow: 0.8,
+  },
 };
 
 export default typography;

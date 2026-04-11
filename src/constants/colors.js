@@ -4,7 +4,7 @@ const colors = {
   primaryGreen: "#32A874",
   primaryOrange: "#F49B3F",
   lightGreen: "#DCF7EA",
-  rmsColor: "#511b05",
+  rmsColor: "#0f806a",
   gwColor:"#cf540c",
   darkGreen:'#418f05',
 
@@ -34,9 +34,15 @@ const colors = {
   glassWhite: "rgba(255,255,255,0.24)",
   glassBorder: "rgba(255,255,255,0.4)",
   sheetSurface: "rgba(255,255,255,0.97)",
+  modalOverlay: "rgba(8, 18, 31, 0.5)",
+  cameraSurface: "#0E2236",
+  faceGuideBorder: "rgba(255,255,255,0.95)",
+  faceGuideSurface: "rgba(255,255,255,0.04)",
+  guideLabelSurface: "rgba(12, 46, 77, 0.82)",
 
   // Surfaces and text
   white: "#FFFFFF",
+  transparent: "transparent",
   textDark: "#163048",
   textSecondary: "#617991",
   background: "#F4FAFF",
@@ -51,11 +57,44 @@ const colors = {
   surfaceBluePale: "#F4F9FF",
   surfaceGreenSoft: "#EDF7FF",
   surfaceOrangeSoft: "#F2F7FF",
+  filterPanelSurface: "#F7FAFE",
+  filterPanelBorder: "#D9E4F2",
+  filterIconSurface: "#EEF3FA",
+  filterIconActiveSurface: "#E0ECFB",
+  filterIconDisabledSurface: "#F1F3F5",
+  filterArrowSurface: "#F5F8FC",
+  projectModalOverlay: "rgba(15, 23, 42, 0.4)",
+  projectModalItemBorder: "#E3EAF3",
 
   // Status
   completed: "#1abf75",
   pending: "#ef8f28",
   partial: "#E3B24F",
+
+  // Project modules
+  projectModules: {
+    OMS: {
+      accent: "#255B8E",
+      text: "#173B5C",
+      bg: "#EEF5FC",
+      soft: "#D7E6F4",
+      chipBg: "#E4EFFA",
+    },
+    RMS: {
+      accent: "#0986ac",
+      text: "#0c5870",
+      bg: "#f5f8f9",
+      soft: "#d2eef8",
+      chipBg: "#dff4fc",
+    },
+    GW: {
+      accent: "#5C5AA5",
+      text: "#41407A",
+      bg: "#F3F2FD",
+      soft: "#DEDCF8",
+      chipBg: "#ECEAFE",
+    },
+  },
 };
 
 export default colors;

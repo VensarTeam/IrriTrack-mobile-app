@@ -14,74 +14,39 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(4),
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
 
   headerTitle: {
     fontSize: moderateScale(16),
     fontFamily: fonts.bold,
     color: colors.textDark,
-  },
-
-  headerSpacer: {
-    width: moderateScale(40),
+    flex: 1,
+    textAlign: "center",
   },
 
   content: {
     paddingHorizontal: moderateScale(15),
-    paddingBottom: verticalScale(26),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(20),
   },
 
-  projectCard: {
+  helperHeaderButton: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: moderateScale(14),
-    elevation: 1,
-  },
-
-  projectLabel: {
-    color: colors.textSecondary,
-    fontSize: moderateScale(12),
-    marginBottom: verticalScale(4),
-  },
-
-  projectName: {
-    color: colors.textDark,
-    fontSize: moderateScale(14),
-    fontFamily: fonts.bold,
-  },
-
-  sectionHeadingRow: {
-    marginTop: verticalScale(16),
-    marginBottom: verticalScale(10),
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  sectionHeading: {
-    color: colors.textDark,
-    fontSize: moderateScale(17),
-    fontFamily: fonts.bold,
-  },
-
-  helperButton: {
-    backgroundColor: colors.white,
-    borderRadius: moderateScale(14),
-    width: moderateScale(40),
-    height: moderateScale(40),
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: moderateScale(20),
+    margin: 0,
   },
 
   detailsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(8),
   },
 
   detailCard: {
@@ -90,9 +55,9 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(14),
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(12),
-    marginBottom: verticalScale(10),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(10),
+    marginBottom: verticalScale(8),
     elevation: 1,
   },
 
@@ -109,11 +74,15 @@ export default StyleSheet.create({
   },
 
   statusListHeader: {
-    marginTop: verticalScale(2),
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+
+  statusListCopy: {
+    flex: 1,
+    paddingRight: moderateScale(10),
   },
 
   statusListTitle: {
@@ -123,7 +92,7 @@ export default StyleSheet.create({
   },
 
   statusListSubtitle: {
-    marginTop: verticalScale(2),
+    marginTop: verticalScale(1),
     fontSize: moderateScale(11),
     color: colors.textSecondary,
   },
@@ -132,7 +101,7 @@ export default StyleSheet.create({
     backgroundColor: colors.surfaceBlueSoft,
     borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(6),
+    paddingVertical: verticalScale(5),
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -148,9 +117,9 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: moderateScale(12),
-    marginBottom: verticalScale(10),
+    paddingVertical: verticalScale(9),
+    paddingHorizontal: moderateScale(10),
+    marginBottom: verticalScale(8),
     elevation: 1,
   },
 
@@ -158,7 +127,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: verticalScale(6),
+    marginBottom: verticalScale(4),
   },
 
   sectionToggleButton: {
@@ -186,7 +155,7 @@ export default StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.lightGreen,
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(6),
+    paddingVertical: verticalScale(5),
     borderRadius: moderateScale(14),
     borderColor: colors.darkGreen,
     borderWidth: 1,
@@ -205,14 +174,14 @@ export default StyleSheet.create({
   },
 
   subStatusList: {
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
   },
 
   subStatusItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(7),
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -243,7 +212,7 @@ export default StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: colors.modalOverlay,
     justifyContent: "center",
     paddingHorizontal: moderateScale(20),
   },

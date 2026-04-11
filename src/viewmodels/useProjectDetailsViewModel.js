@@ -7,29 +7,7 @@ import {
   getProjectFilterOptions,
 } from "../repositories/projectStatusRepository";
 
-const moduleThemes = {
-  OMS: {
-    accent: "#255B8E",
-    text: "#173B5C",
-    bg: "#EEF5FC",
-    soft: "#D7E6F4",
-    chipBg: "#E4EFFA",
-  },
-  RMS: {
-    accent: "#8A5A34",
-    text: "#6A4125",
-    bg: "#FCF4ED",
-    soft: "#EFDCCB",
-    chipBg: "#F7EADF",
-  },
-  GW: {
-    accent: "#5C5AA5",
-    text: "#41407A",
-    bg: "#F3F2FD",
-    soft: "#DEDCF8",
-    chipBg: "#ECEAFE",
-  },
-};
+const moduleThemes = colors.projectModules;
 
 const useProjectDetailsViewModel = (navigation) => {
   const [expanded, setExpanded] = useState(null);

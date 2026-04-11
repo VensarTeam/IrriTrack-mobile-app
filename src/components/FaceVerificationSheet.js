@@ -5,9 +5,11 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +18,18 @@ import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import typography from "../constants/typography";
 import { moderateScale, verticalScale } from "../constants/metrics";
+
+const SHEET_HIDDEN_OFFSET = 420;
+const SHEET_TOP_MARGIN = 24;
+const SHEET_MIN_HEIGHT = 280;
+const SHEET_OPEN_DURATION = 320;
+const OVERLAY_FADE_DURATION = 240;
+const PREVIEW_MAX_HEIGHT = 250;
+const PREVIEW_MIN_HEIGHT = 180;
+const PREVIEW_HEIGHT_RATIO = 0.31;
+const FACE_GUIDE_MIN_SIZE = 120;
+const FACE_GUIDE_MAX_SIZE = 208;
+const FACE_GUIDE_VERTICAL_RESERVE = 44;
 
 const FaceVerificationSheet = ({
   visible,
@@ -28,7 +42,31 @@ const FaceVerificationSheet = ({
   onContinue,
 }) => {
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(420)).current;
+  const { height: windowHeight } = useWindowDimensions();
+  const hiddenSheetOffset = Math.min(windowHeight, verticalScale(SHEET_HIDDEN_OFFSET));
+  const sheetMaxHeight = Math.max(
+    verticalScale(SHEET_MIN_HEIGHT),
+    windowHeight - Math.max(insets.top, verticalScale(SHEET_TOP_MARGIN)),
+  );
+  const previewHeight = Math.min(
+    verticalScale(PREVIEW_MAX_HEIGHT),
+    Math.max(verticalScale(PREVIEW_MIN_HEIGHT), windowHeight * PREVIEW_HEIGHT_RATIO),
+  );
+  const faceGuideSize = Math.max(
+    moderateScale(FACE_GUIDE_MIN_SIZE),
+    Math.min(
+      moderateScale(FACE_GUIDE_MAX_SIZE),
+      previewHeight - verticalScale(FACE_GUIDE_VERTICAL_RESERVE),
+    ),
+  );
+  const previewHeightStyle = { minHeight: previewHeight };
+  const cameraHeightStyle = { height: previewHeight };
+  const faceCircleStyle = {
+    width: faceGuideSize,
+    height: faceGuideSize,
+    borderRadius: faceGuideSize / 2,
+  };
+  const slideAnim = useRef(new Animated.Value(hiddenSheetOffset)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cameraRef = useRef(null);
   const frontCamera = useCameraDevice("front");
@@ -39,7 +77,7 @@ const FaceVerificationSheet = ({
 
   useEffect(() => {
     if (!visible) {
-      slideAnim.setValue(420);
+      slideAnim.setValue(hiddenSheetOffset);
       fadeAnim.setValue(0);
       setIsTakingPhoto(false);
       return;
@@ -48,16 +86,16 @@ const FaceVerificationSheet = ({
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 320,
+        duration: SHEET_OPEN_DURATION,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 240,
+        duration: OVERLAY_FADE_DURATION,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, slideAnim, visible]);
+  }, [fadeAnim, hiddenSheetOffset, slideAnim, visible]);
 
   const handleTakePhoto = async () => {
     if (isTakingPhoto) return;
@@ -89,15 +127,17 @@ const FaceVerificationSheet = ({
         ? photo.path
         : `file://${photo.path}`;
 
-      onCapture?.({
+      const capturedPhoto = {
         uri,
         fileName: `face-verification-${Date.now()}.jpg`,
         width: photo.width,
         height: photo.height,
-      });
+      };
+
+      setIsTakingPhoto(false);
+      onCapture?.(capturedPhoto);
     } catch (captureError) {
       onCaptureError?.("Unable to capture photo. Please try again.");
-    } finally {
       setIsTakingPhoto(false);
     }
   };
@@ -105,8 +145,8 @@ const FaceVerificationSheet = ({
   const renderPreview = () => {
     if (isReady) {
       return (
-        <View style={styles.capturedPreviewWrap}>
-          <View style={styles.capturedCircle}>
+        <View style={[styles.capturedPreviewWrap, previewHeightStyle]}>
+          <View style={[styles.capturedCircle, faceCircleStyle]}>
             <Image
               source={{ uri: faceImage.uri }}
               style={styles.capturedImage}
@@ -120,7 +160,7 @@ const FaceVerificationSheet = ({
 
     if (isCameraVisible) {
       return (
-        <View style={styles.cameraWrap}>
+        <View style={[styles.cameraWrap, cameraHeightStyle]}>
           <Camera
             ref={cameraRef}
             style={styles.camera}
@@ -131,7 +171,7 @@ const FaceVerificationSheet = ({
             androidPreviewViewType="texture-view"
           />
           <View pointerEvents="none" style={styles.cameraOverlay}>
-            <View style={styles.faceGuide} />
+            <View style={[styles.faceGuide, faceCircleStyle]} />
             <View style={styles.guideLabel}>
               <Text style={styles.guideLabelText}>Align your face inside the circle</Text>
             </View>
@@ -178,78 +218,91 @@ const FaceVerificationSheet = ({
           style={[
             styles.sheet,
             {
-              paddingBottom: Math.max(insets.bottom, verticalScale(16)) + verticalScale(12),
+              maxHeight: sheetMaxHeight,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
           <View style={styles.handle} />
 
-          <View style={styles.headerRow}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.eyebrow}>Verification</Text>
-              <Text style={styles.title}>Face verification</Text>
-              <Text style={styles.subtitle}>
-                Place your face inside the circle and capture a clear photo.
-              </Text>
-            </View>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingBottom: Math.max(insets.bottom, verticalScale(16)) + verticalScale(12),
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            overScrollMode="never"
+          >
+            <View style={styles.headerRow}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>Verification</Text>
+                <Text style={styles.title}>Face verification</Text>
+                <Text style={styles.subtitle}>
+                  Place your face inside the circle and capture a clear photo.
+                </Text>
+              </View>
 
-            <View
-              style={[
-                styles.statusBadge,
-                isReady ? styles.statusBadgeSuccess : styles.statusBadgePending,
-              ]}
-            >
-              <Text
+              <View
                 style={[
-                  styles.statusText,
-                  isReady ? styles.statusTextSuccess : styles.statusTextPending,
+                  styles.statusBadge,
+                  isReady ? styles.statusBadgeSuccess : styles.statusBadgePending,
                 ]}
               >
-                {isReady ? "Ready" : "Capture required"}
-              </Text>
+                <Text
+                  style={[
+                    styles.statusText,
+                    isReady ? styles.statusTextSuccess : styles.statusTextPending,
+                  ]}
+                >
+                  {isReady ? "Ready" : "Capture required"}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.previewCard}>{renderPreview()}</View>
+            <View style={[styles.previewCard, previewHeightStyle]}>{renderPreview()}</View>
 
-          <View style={styles.noteCard}>
-            <Text style={styles.noteText}>Keep your face centered and visible.</Text>
-            <Text style={styles.noteText}>Use good lighting.</Text>
-          </View>
+            <View style={styles.noteCard}>
+              <Text style={styles.noteText}>Keep your face centered and visible.</Text>
+              <Text style={styles.noteText}>Use good lighting.</Text>
+            </View>
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.primaryButton, isTakingPhoto && styles.disabledButton]}
-            onPress={isReady ? onRetake : handleTakePhoto}
-            disabled={isTakingPhoto}
-            activeOpacity={0.9}
-          >
-            {isTakingPhoto ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {isReady
-                  ? "Retake photo"
-                  : hasPermission
-                    ? "Capture photo"
-                    : "Allow camera"}
-              </Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, isTakingPhoto && styles.disabledButton]}
+              onPress={isReady ? onRetake : handleTakePhoto}
+              disabled={isTakingPhoto}
+              activeOpacity={0.9}
+            >
+              {isTakingPhoto ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {isReady
+                    ? "Retake photo"
+                    : hasPermission
+                      ? "Capture photo"
+                      : "Allow camera"}
+                </Text>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.secondaryButton,
-              (!isReady || isTakingPhoto) && styles.disabledButton,
-            ]}
-            onPress={onContinue}
-            disabled={!isReady || isTakingPhoto}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.secondaryButtonText}>Continue</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.secondaryButton,
+                (!isReady || isTakingPhoto) && styles.disabledButton,
+              ]}
+              onPress={onContinue}
+              disabled={!isReady || isTakingPhoto}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.secondaryButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -261,7 +314,7 @@ export default FaceVerificationSheet;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(8, 18, 31, 0.5)",
+    backgroundColor: colors.modalOverlay,
     justifyContent: "flex-end",
   },
 
@@ -280,10 +333,18 @@ const styles = StyleSheet.create({
     gap: verticalScale(12),
   },
 
+  scrollArea: {
+    width: "100%",
+  },
+
+  scrollContent: {
+    gap: verticalScale(12),
+  },
+
   handle: {
     width: moderateScale(48),
     height: verticalScale(5),
-    borderRadius: 999,
+    borderRadius: moderateScale(999),
     alignSelf: "center",
     backgroundColor: colors.cardBorder,
   },
@@ -301,7 +362,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     fontFamily: fonts.semiBold,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: typography.letterSpacing.eyebrow,
   },
 
   title: {
@@ -321,7 +382,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(7),
-    borderRadius: 999,
+    borderRadius: moderateScale(999),
   },
 
   statusBadgePending: {
@@ -356,14 +417,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  previewImage: {
-    width: "100%",
-    height: verticalScale(250),
-  },
-
   capturedPreviewWrap: {
     width: "100%",
-    minHeight: verticalScale(250),
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: verticalScale(20),
@@ -371,9 +426,6 @@ const styles = StyleSheet.create({
   },
 
   capturedCircle: {
-    width: moderateScale(208),
-    height: moderateScale(208),
-    borderRadius: moderateScale(104),
     overflow: "hidden",
     borderWidth: 3,
     borderColor: colors.white,
@@ -393,8 +445,7 @@ const styles = StyleSheet.create({
 
   cameraWrap: {
     width: "100%",
-    height: verticalScale(250),
-    backgroundColor: "#0E2236",
+    backgroundColor: colors.cameraSurface,
   },
 
   camera: {
@@ -410,19 +461,16 @@ const styles = StyleSheet.create({
   },
 
   faceGuide: {
-    width: moderateScale(208),
-    height: moderateScale(208),
-    borderRadius: moderateScale(104),
     borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.95)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: colors.faceGuideBorder,
+    backgroundColor: colors.faceGuideSurface,
   },
 
   guideLabel: {
     position: "absolute",
     bottom: verticalScale(18),
     alignSelf: "center",
-    backgroundColor: "rgba(12, 46, 77, 0.82)",
+    backgroundColor: colors.guideLabelSurface,
     borderRadius: moderateScale(999),
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(8),

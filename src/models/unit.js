@@ -28,4 +28,5 @@ export const createUnit = (data) => ({
   theftDamageReinstallation: data.theftDamageReinstallation,
   area: data.area,
   chakArea: data.chakArea,
+  subChakQuantity: data.subChakQuantity,
 });

@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import {
-  View,
-  Text,
-  Modal,
   Animated,
-  TouchableOpacity,
+  Image,
+  Modal,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "../constants/colors";
@@ -20,20 +20,26 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
   const bottomInset = Math.max(insets.bottom, verticalScale(12));
 
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (!visible) {
+      slideAnim.setValue(300);
+      fadeAnim.setValue(0);
+      return undefined;
     }
+
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    return undefined;
   }, [visible, slideAnim, fadeAnim]);
 
   return (
@@ -54,13 +60,18 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
             },
           ]}
         >
-          <Text style={styles.title}>Welcome Back</Text>
+          <View style={styles.animationWrap}>
+            <Image
+              source={require("../assets/gif/logged_In.gif")}
+              style={styles.successGif}
+              resizeMode="contain"
+            />
+          </View>
 
-          {userName && <Text style={styles.userName}>{"Ritesh Mehra"}</Text>}
+          <Text style={styles.title}>You're in</Text>
 
-          <TouchableOpacity style={styles.button} onPress={onClose}>
-            <Text style={styles.buttonText}>Continue</Text>
-          </TouchableOpacity>
+          {userName && <Text style={styles.userName}>{userName}</Text>}
+          <Text style={styles.subtitle}>Opening your dashboard</Text>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -72,7 +83,7 @@ export default WelcomeModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: colors.modalOverlay,
     justifyContent: "flex-end",
   },
 
@@ -84,40 +95,33 @@ const styles = StyleSheet.create({
     borderTopRightRadius: moderateScale(28),
   },
 
-  logoText: {
-    fontSize: moderateScale(32),
-    fontFamily: fonts.bold,
-    color: colors.primaryBlue,
-    textAlign: "center",
+  animationWrap: {
+    width: moderateScale(112),
+    height: moderateScale(112),
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+
+  successGif: {
+    width: moderateScale(60),
+    height: moderateScale(60),
   },
 
   title: {
     fontSize: typography.h1,
     fontFamily: fonts.bold,
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(18),
     textAlign: "center",
     color: colors.textDark,
   },
 
   subtitle: {
-    fontSize: typography.body,
-    marginTop: verticalScale(8),
+    fontSize: typography.small,
+    marginTop: verticalScale(12),
     textAlign: "center",
     color: colors.textSecondary,
-  },
-
-  button: {
-    marginTop: verticalScale(30),
-    backgroundColor: colors.primaryBlue,
-    paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(14),
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: colors.white,
-    fontSize: typography.body,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.regular,
   },
 
   userName: {

@@ -131,17 +131,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               <Text style={styles.repeatableSubtitle}>{group.subtitle}</Text>
             ) : null}
           </View>
-
-          <TouchableOpacity
-            style={styles.repeatableAddButton}
-            activeOpacity={0.86}
-            onPress={() => addRepeatableGroupItem(group)}
-            disabled={group.maxItems ? items.length >= group.maxItems : false}
-          >
-            <Text style={styles.repeatableAddButtonText}>
-              {group.addButtonLabel || "Add"}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {items.map((item, itemIndex) => {
@@ -191,10 +180,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       style={[
                         styles.singleLineInput,
                         itemErrors[groupField.key] && styles.selectFieldError,
+                        groupField.readOnly && styles.readOnlyInput,
                       ]}
                       placeholder={groupField.placeholder || "Enter value"}
                       placeholderTextColor={colors.textSecondary}
                       keyboardType={groupField.keyboardType || "default"}
+                      editable={groupField.readOnly !== true}
                       value={item[groupField.key]}
                       onChangeText={(text) =>
                         updateRepeatableGroupItem(
@@ -214,6 +205,27 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             </View>
           );
         })}
+
+        <TouchableOpacity
+          style={[
+            styles.repeatableAddButton,
+            group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonDisabled,
+          ]}
+          activeOpacity={0.86}
+          onPress={() => addRepeatableGroupItem(group)}
+          disabled={group.maxItems ? items.length >= group.maxItems : false}
+        >
+          <Text
+            style={[
+              styles.repeatableAddButtonText,
+              group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonTextDisabled,
+            ]}
+          >
+            {group.maxItems && items.length >= group.maxItems
+              ? `Maximum ${group.maxItems} ${group.itemLabel || "item"} entries added`
+              : group.addButtonLabel || "Add"}
+          </Text>
+        </TouchableOpacity>
 
         {groupErrors.message ? (
           <Text style={styles.errorText}>{groupErrors.message}</Text>

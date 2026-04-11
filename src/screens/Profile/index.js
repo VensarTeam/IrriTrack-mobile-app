@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
+import { APP_VERSION } from "../../constants/appInfo";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
 import { Icons } from "../../constants/icons";
 
@@ -45,7 +46,7 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>App Version 1.0.0</Text>
+        <Text style={styles.version}>App Version {APP_VERSION}</Text>
       </View>
     </LinearGradient>
   );

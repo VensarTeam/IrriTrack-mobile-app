@@ -114,7 +114,7 @@ export const UNIT_LIST_SECTION_KEYS = [
 const checklist = (items) =>
   items.map((item, index) => ({
     id: `check_${index + 1}`,
-    label: item,
+    ...(typeof item === "string" ? { label: item } : item),
   }));
 
 const checklistIncomplete = ({ values, subOption }) =>
@@ -129,10 +129,6 @@ const flushingRemarkRequired = ({ values }) =>
   values?.flushedPressure === "Low Pressure" ||
   values?.waterClarityStatus === "Turbid" ||
   values?.inletLeakageObserved === "Yes";
-
-const outletPipeCheckItems = Array.from({ length: 6 }, (_, index) =>
-  `Outlet pipe ${index + 1} laid and jointed.`
-);
 
 export const MODULE_STATUS_SECTIONS = [
   {
@@ -168,12 +164,6 @@ export const MODULE_STATUS_SECTIONS = [
         remarkLabel: "Remark",
         remarkRequiredWhen: ({ values }) =>
           values?.status === "Partially Completed",
-        photoRequirements: [
-          {
-            id: "inlet_laying_and_jointing_photo",
-            label: "Inlet pipe laying and jointing",
-          },
-        ],
       },
       {
         id: "outletPipeLaying",
@@ -181,15 +171,12 @@ export const MODULE_STATUS_SECTIONS = [
         statusLabel: "Status",
         checklistItems: checklist([
           "Check 63 mm OMS outlet pipe joined with pipeline.",
-          ...outletPipeCheckItems,
+          {
+            label: ({ unit }) =>
+              `No. of outlet pipes(${unit?.subChakQuantity || "6"})`,
+          },
         ]),
         remarkLabel: "Remark",
-        photoRequirements: [
-          {
-            id: "outlet_laying_and_jointing_photo",
-            label: "Outlet pipes laying and jointing",
-          },
-        ],
       },
     ],
   },
@@ -213,23 +200,21 @@ export const MODULE_STATUS_SECTIONS = [
           },
         ],
         checklistItems: checklist([
-          "Check excavation for OMS up to 0.9 meter depth.",
-          "Check placement of reinforced cement concrete (RCC) precast block.",
+          "Check Excavation for OMS up to 0.9 Meter Depth.",
+          "Check Placement of Reinforced Cement Concrete (RCC) precast block.",
           "Check the placement and horizontality of the pedestal inside the chamber using a spirit level.",
-          "Check 110 mm inlet pipe jointed with pipeline.",
-          "Check 63 mm outlet pipes jointed with pipelines.",
-          "Check MS companion flange (100 mm) provided at the inlet pipe stub end.",
-          "Check all the butt fusion joints are properly welded.",
-          "Check installation of enclosure cabinet.",
-          "Check outlet pipe identification and marking.",
-          "Check backfilling of excavation after installation completion with proper compaction up to original level.",
+          "Check 110 mm inlet Pipe Jointed with Pipeline.",
+          "Check 63 mm outlet Pipes Jointed with Pipelines.",
+          "Check MS Companion Flange (100 mm) provided at the inlet pipe Stub End.",
+          "Check All the Butt Fusion Joints are Properly welded.",
+          "Check Installation of Enclosure cabinet.",
+          "Check Outlet Pipe Identification and Marking.",
+          "Check Backfilling of excavation after installation completion, with proper compaction up to original level.",
         ]),
         repeatableGroups: [
           {
             key: "subChakDefinitions",
             title: "Outlet Pipe Identification and Marking",
-            subtitle:
-              "Add sub chak names like V1, V2 and define the pipe size for each. Maximum 8 entries.",
             addButtonLabel: "Add Sub Chak",
             itemLabel: "Sub Chak",
             minItems: 1,
@@ -238,7 +223,9 @@ export const MODULE_STATUS_SECTIONS = [
               {
                 key: "subChakName",
                 label: "Sub Chak Name",
-                placeholder: "Eg. V1",
+                placeholder: "V1",
+                readOnly: true,
+                getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
               },
               {
                 key: "pipeSize",
@@ -280,16 +267,16 @@ export const MODULE_STATUS_SECTIONS = [
           },
         ],
         checklistItems: checklist([
-          "Check installation of inlet manifold assembly.",
-          "Check installation of air release valve with isolation ball valve.",
-          "Check installation of a butterfly valve with gasket and nut bolt.",
-          "Check installation of strainer with gasket and nut bolt.",
-          "Check installation of PFCMD with gasket and nut bolt.",
-          "Check installation of outlet manifold assembly.",
-          "Check all nut bolts are properly tightened.",
-          "Check all Victaulic joints are properly fixed and tightened.",
-          "Check installation of ON-OFF valve.",
-          "Check installation and tightness of MTA compression fitting.",
+          "Check Installation of Inlet Manifold assembly.",
+          "Check Installation of air release valve with isolation ball valve.",
+          "Check Installation of a butterfly valve with gasket and nut bolt.",
+          "Check Installation of Strainer with Gasket and Nut bolt.",
+          "Check Installation of PFCMD with Gasket and Nut Bolt.",
+          "Check Installation of Outlet Manifold assembly.",
+          "Check all Nut Bolts are properly Tighten.",
+          "Check all Victaulic Joints are properly fixed and tighten.",
+          "Check Installation of ON-OFF valve.",
+          "Check Installation and Tightness of MTA Compression Fitting.",
         ]),
         remarkLabel: "Remark",
         remarkRequiredWhen: checklistIncomplete,
@@ -317,15 +304,15 @@ export const MODULE_STATUS_SECTIONS = [
           },
         ],
         checklistItems: checklist([
-          "Check installation of RTU controller with clamp and nut bolt.",
-          "Check installation of antenna MS pipe and antenna with nut bolt.",
-          "Check installation of door switch with nut bolt.",
-          "Check installation of hydraulic tubing.",
-          "Check installation of all PU fittings and elbows.",
-          "Check installation and connection of pressure transducer with RTU controller.",
-          "Check connection of water meter with RTU controller.",
-          "Check cable and hydraulic tubing dressing.",
-          "Check RTU controller cable gland fitting.",
+          "Check Installation of RTU Controller with Clamp and Nut Bolt.",
+          "Check Installation of Antenna MS Pipe and Antenna with Nut Bolt.",
+          "Check Installation of Door Switch with Nut Bolt.",
+          "Check Installation of Hydraulic Tubing.",
+          "Check Installation of All PU Fittings and Elbows.",
+          "Check Installation and Connection of Pressure Transducer with RTU Controller.",
+          "Check Connection of Water Meter with RTU Controller.",
+          "Check Cable and Hydraulic Tubing Dressing.",
+          "Check RTU Controller Cable Gland Fitting.",
         ]),
         remarkLabel: "Remark",
         remarkRequiredWhen: checklistIncomplete,
@@ -388,12 +375,8 @@ export const MODULE_STATUS_SECTIONS = [
         remarkRequiredWhen: flushingRemarkRequired,
         photoRequirements: [
           {
-            id: "flushing_photo_1",
-            label: "Photo of flushing 1",
-          },
-          {
-            id: "flushing_photo_2",
-            label: "Photo of flushing 2",
+            id: "flushing_photo",
+            label: "Photo of flushing",
           },
         ],
       },
@@ -412,32 +395,28 @@ export const MODULE_STATUS_SECTIONS = [
         selectFields: [
           {
             key: "signalStrength",
-            label: "Signal Strength",
+            label: "Check Signal Strength",
             options: SIGNAL_STRENGTH_OPTIONS,
             placeholder: "Select signal strength",
           },
         ],
         checklistItems: checklist([
-          "Check online status in the Web-SCADA.",
+          "Check Online Status In The Web-SCADA.",
           "Check PFCMD solenoid operation through the Web-SCADA.",
           "Check ON-OFF valve solenoid operation through the Web-SCADA.",
           "Check whether the specific valve that was commanded has opened or not.",
-          "Check pressure transmitter reading is zero.",
-          "Check door switch status in the Web-SCADA.",
-          "Check water meter connection and reading.",
-          "Check battery healthiness status in the Web-SCADA.",
-          "Check controller LoRa ID in Web-SCADA.",
+          "Check Pressure Transmitter Reading is Zero.",
+          "Check Door Switch Status In The Web-SCADA.",
+          "Check Water Meter Connection and Reading.",
+          "Check Battery Healthiness Status In The Web-SCADA.",
+          "Check Controller Lora Id In Web-SCADA.",
         ]),
         remarkLabel: "Remark",
         remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [
           {
-            id: "dry_commissioning_scada_parameters",
-            label: "Real time parameters on SCADA",
-          },
-          {
-            id: "dry_commissioning_valve_operation",
-            label: "Valve operation on SCADA",
+            id: "dry_commissioning_scada_parameters_and_valve_operation",
+            label: "Real time parameters and valve operation on SCADA",
           },
         ],
       },
@@ -448,7 +427,7 @@ export const MODULE_STATUS_SECTIONS = [
         selectFields: [
           {
             key: "signalStrength",
-            label: "Signal Strength",
+            label: "Check Signal Strength",
             options: SIGNAL_STRENGTH_OPTIONS,
             placeholder: "Select signal strength",
           },
@@ -457,21 +436,17 @@ export const MODULE_STATUS_SECTIONS = [
           "Check PFCMD valve operation through the Web-SCADA.",
           "Check ON-valve operation through the Web-SCADA.",
           "Check whether the specific valve that was commanded has opened or not.",
-          "Check node schedule operation through the Web-SCADA.",
-          "Check water meter readings and flow in the Web-SCADA.",
-          "Check inlet pressure reading in the Web-SCADA.",
-          "Check door switch status in the Web-SCADA.",
-          "Check battery healthiness status in the Web-SCADA.",
+          "Check Node Schedule Operation Through The Web-SCADA.",
+          "Check Water Meter Readings and Flow In The Web-SCADA.",
+          "Check Inlet Pressure Reading In The Web-SCADA.",
+          "Check Door Switch Status In The Web-SCADA.",
+          "Check Battery Healthiness Status In The Web-SCADA.",
         ]),
         remarkLabel: "Remark",
         photoRequirements: [
           {
-            id: "wet_commissioning_scada_parameters",
-            label: "Real time parameters on SCADA",
-          },
-          {
-            id: "wet_commissioning_valve_operation",
-            label: "Valve operation on SCADA",
+            id: "wet_commissioning_scada_parameters_and_valve_operation",
+            label: "Real time parameters and valve operation on SCADA",
           },
         ],
       },
@@ -553,15 +528,6 @@ export const MODULE_STATUS_SECTIONS = [
           },
         ],
       },
-    ],
-  },
-  {
-    key: "theftDamageReinstall",
-    title: "Theft, Damage and Reinstallation",
-    cardLabel: "Theft / Damage",
-    description:
-      "Capture the material theft or damage details and the material reinstalled on the node.",
-    subOptions: [
       {
         id: "theftDamageReinstallation",
         label: "Theft, Damage and Reinstallation",
@@ -570,7 +536,7 @@ export const MODULE_STATUS_SECTIONS = [
         selectFields: [
           {
             key: "theftDamageMaterial",
-            label: "Select The Material Theft and Damage On The Node",
+            label: "Select The Material Theft & Damage On The Node",
             options: THEFT_DAMAGE_MATERIAL_OPTIONS,
             placeholder: "Select material",
           },
@@ -584,11 +550,11 @@ export const MODULE_STATUS_SECTIONS = [
         photoRequirements: [
           {
             id: "theft_damage_photo",
-            label: "Photo with timestamp for theft or damage",
+            label: "Photo with timestamp",
           },
           {
             id: "reinstall_material_photo",
-            label: "Photo with timestamp for reinstalled material",
+            label: "Photo with timestamp",
           },
         ],
       },

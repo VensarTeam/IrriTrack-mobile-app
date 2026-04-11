@@ -16,7 +16,21 @@ import { useNavigation } from "@react-navigation/native";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { Icons } from "../../constants/icons";
+import { moderateScale, verticalScale } from "../../constants/metrics";
 import useProjectDetailsViewModel from "../../viewmodels/useProjectDetailsViewModel";
+
+const CHART_SECTION_PADDING = 58;
+const PIE_RADIUS = 72;
+const PIE_INNER_RADIUS = 46;
+const PIE_ANIMATION_DURATION = 700;
+const FILTER_ICON_SIZE = 14;
+const FILTER_ARROW_SIZE = 15;
+const HEADER_ICON_SIZE = 24;
+const KPI_ARROW_ICON_SIZE = 14;
+const SECTION_ARROW_ICON_SIZE = 14;
+const CHART_COMPACT_WIDTH = 360;
+const COMPACT_PIE_RADIUS = 62;
+const COMPACT_PIE_INNER_RADIUS = 39;
 
 const ProjectDetailsScreen = () => {
   const navigation = useNavigation();
@@ -48,8 +62,19 @@ const ProjectDetailsScreen = () => {
   const { width } = useWindowDimensions();
   const stagePagerRef = React.useRef(null);
   const chartScrollX = React.useRef(new Animated.Value(0)).current;
+  const chartSectionPadding = moderateScale(CHART_SECTION_PADDING);
+  const pieRadius = moderateScale(PIE_RADIUS);
+  const pieInnerRadius = moderateScale(PIE_INNER_RADIUS);
+  const compactPieRadius = moderateScale(COMPACT_PIE_RADIUS);
+  const compactPieInnerRadius = moderateScale(COMPACT_PIE_INNER_RADIUS);
+  const filterIconSize = moderateScale(FILTER_ICON_SIZE);
+  const filterArrowSize = moderateScale(FILTER_ARROW_SIZE);
+  const headerIconSize = moderateScale(HEADER_ICON_SIZE);
+  const kpiArrowIconSize = moderateScale(KPI_ARROW_ICON_SIZE);
+  const sectionArrowIconSize = moderateScale(SECTION_ARROW_ICON_SIZE);
+  const defaultChartViewportWidth = Math.max(width - chartSectionPadding, 0);
   const [chartViewportWidth, setChartViewportWidth] = React.useState(
-    width - moderateSectionPadding,
+    defaultChartViewportWidth,
   );
 
   React.useEffect(() => {
@@ -64,8 +89,8 @@ const ProjectDetailsScreen = () => {
   }, [expanded, chartScrollX]);
 
   React.useEffect(() => {
-    setChartViewportWidth(width - moderateSectionPadding);
-  }, [width]);
+    setChartViewportWidth(defaultChartViewportWidth);
+  }, [defaultChartViewportWidth]);
 
   React.useEffect(() => {
     if (selectedStage !== "All") return;
@@ -77,18 +102,18 @@ const ProjectDetailsScreen = () => {
     return () => cancelAnimationFrame(frameId);
   }, [selectedStage]);
 
-  const renderPieChart = (stages, stageLabel) => {
+  const renderPieChart = (stages, stageLabel, compact = false) => {
     const { data, percent } = buildPieChartData(stages, stageLabel);
 
     return (
       <View style={styles.pieWrapper}>
         <PieChart
           donut
-          radius={78}
-          innerRadius={50}
+          radius={compact ? compactPieRadius : pieRadius}
+          innerRadius={compact ? compactPieInnerRadius : pieInnerRadius}
           data={data}
           isAnimated
-          animationDuration={700}
+          animationDuration={PIE_ANIMATION_DURATION}
         />
 
         <View style={styles.pieCenter}>
@@ -99,8 +124,14 @@ const ProjectDetailsScreen = () => {
     );
   };
 
-  const SummaryItem = ({ label, value, color }) => (
-    <View style={[styles.summaryItem, { borderColor: color }]}>
+  const SummaryItem = ({ label, value, color, compact }) => (
+    <View
+      style={[
+        styles.summaryItem,
+        compact && styles.summaryItemCompact,
+        { borderColor: color },
+      ]}
+    >
       <View style={[styles.summaryDot, { backgroundColor: color }]} />
       <View style={styles.summaryTextWrap}>
         <Text style={styles.summaryLabel}>{label}</Text>
@@ -134,7 +165,9 @@ const ProjectDetailsScreen = () => {
           disabled && styles.filterIconWrapDisabled,
         ]}
       >
-        {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+        {FilterIcon ? (
+          <FilterIcon width={filterIconSize} height={filterIconSize} />
+        ) : null}
       </View>
 
       <View style={styles.filterFieldTextWrap}>
@@ -150,7 +183,7 @@ const ProjectDetailsScreen = () => {
       <View style={styles.filterArrowWrap}>
         <Icon
           source={disabled ? "lock-outline" : "chevron-down"}
-          size={15}
+          size={filterArrowSize}
           color={disabled ? colors.textSecondary : colors.primaryBlue}
         />
       </View>
@@ -193,7 +226,7 @@ const ProjectDetailsScreen = () => {
     return `${Math.round((summary[key] / summary.total) * 100)}%`;
   };
 
-  const getSwipeAnimatedStyles = (index, pagerWidth) => {
+  const getSwipeAnimatedStyles = (index, pagerWidth, compact = false) => {
     if (!pagerWidth) {
       return {
         cardStyle: null,
@@ -235,7 +268,11 @@ const ProjectDetailsScreen = () => {
           {
             translateX: chartScrollX.interpolate({
               inputRange,
-              outputRange: [26, 0, -26],
+              outputRange: [
+                moderateScale(compact ? 10 : 26),
+                0,
+                -moderateScale(compact ? 10 : 26),
+              ],
               extrapolate: "clamp",
             }),
           },
@@ -265,14 +302,18 @@ const ProjectDetailsScreen = () => {
           {
             translateX: chartScrollX.interpolate({
               inputRange,
-              outputRange: [20, 0, -20],
+              outputRange: [
+                moderateScale(compact ? 8 : 20),
+                0,
+                -moderateScale(compact ? 8 : 20),
+              ],
               extrapolate: "clamp",
             }),
           },
           {
             translateY: chartScrollX.interpolate({
               inputRange,
-              outputRange: [10, 0, 10],
+              outputRange: [verticalScale(10), 0, verticalScale(10)],
               extrapolate: "clamp",
             }),
           },
@@ -282,10 +323,10 @@ const ProjectDetailsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <IconButton icon="arrow-left" size={24} onPress={handleBack} />
+          <IconButton icon="arrow-left" size={headerIconSize} onPress={handleBack} />
           <View>
             <Image
               source={require("../../assets/images/logo.png")}
@@ -294,7 +335,7 @@ const ProjectDetailsScreen = () => {
             />
             <Text style={styles.headerTitle}>Kayampur Sitamau P.M.L.M.I.P</Text>
           </View>
-          <View style={{ width: 40 }} />
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -365,7 +406,11 @@ const ProjectDetailsScreen = () => {
                         { backgroundColor: item.chipBg },
                       ]}
                     >
-                      <Icon source="chevron-right" size={14} color={item.accent} />
+                      <Icon
+                        source="chevron-right"
+                        size={kpiArrowIconSize}
+                        color={item.accent}
+                      />
                     </View>
                   </View>
                   <Text style={[styles.kpiValue, { color: item.accent }]}>
@@ -382,6 +427,7 @@ const ProjectDetailsScreen = () => {
             const stageTabs = ["All", ...stages.map((stage) => stage.label)];
             const sectionHighlights = getSectionHighlights(stages);
             const pagerWidth = chartViewportWidth;
+            const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
             if (!stages.length) return null;
 
             return (
@@ -424,9 +470,15 @@ const ProjectDetailsScreen = () => {
                     ]}
                   >
                     {expanded === key ? (
-                      <Icons.up width={14} height={14} />
+                      <Icons.up
+                        width={sectionArrowIconSize}
+                        height={sectionArrowIconSize}
+                      />
                     ) : (
-                      <Icons.down width={14} height={14} />
+                      <Icons.down
+                        width={sectionArrowIconSize}
+                        height={sectionArrowIconSize}
+                      />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -572,7 +624,7 @@ const ProjectDetailsScreen = () => {
                         {stageTabs.map((stageLabel, index) => {
                           const summary = getStageSummary(stages, stageLabel);
                           const { cardStyle, pieStyle, summaryStyle } =
-                            getSwipeAnimatedStyles(index, pagerWidth);
+                            getSwipeAnimatedStyles(index, pagerWidth, isCompactChart);
 
                           return (
                             <View
@@ -603,28 +655,40 @@ const ProjectDetailsScreen = () => {
                                   </Text>
                                 </View>
 
-                                <View style={styles.chartSummaryBody}>
+                                <View
+                                  style={[
+                                    styles.chartSummaryBody,
+                                    isCompactChart && styles.chartSummaryBodyCompact,
+                                  ]}
+                                >
                                   <Animated.View style={pieStyle}>
-                                    {renderPieChart(stages, stageLabel)}
+                                    {renderPieChart(stages, stageLabel, isCompactChart)}
                                   </Animated.View>
 
                                   <Animated.View
-                                    style={[styles.summaryList, summaryStyle]}
+                                    style={[
+                                      styles.summaryList,
+                                      isCompactChart && styles.summaryListCompact,
+                                      summaryStyle,
+                                    ]}
                                   >
                                     <SummaryItem
                                       label="Completed"
                                       value={formatSummaryValue(summary, "completed")}
                                       color={colors.completed}
+                                      compact={isCompactChart}
                                     />
                                     <SummaryItem
                                       label="Pending"
                                       value={formatSummaryValue(summary, "pending")}
                                       color={colors.pending}
+                                      compact={isCompactChart}
                                     />
                                     <SummaryItem
                                       label="Partial"
                                       value={formatSummaryValue(summary, "partial")}
                                       color={colors.partial}
+                                      compact={isCompactChart}
                                     />
                                   </Animated.View>
                                 </View>
@@ -698,5 +762,3 @@ const ProjectDetailsScreen = () => {
 };
 
 export default ProjectDetailsScreen;
-
-const moderateSectionPadding = 58;

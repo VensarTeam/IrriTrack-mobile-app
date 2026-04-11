@@ -36,14 +36,11 @@ export default StyleSheet.create({
   },
 
   headerInfoButton: {
-    width: moderateScale(28),
-    height: moderateScale(28),
-    borderRadius: moderateScale(14),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#EFF5FB",
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#DCE7F3",
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(20),
+    margin: 0,
   },
 
   searchContainer: {

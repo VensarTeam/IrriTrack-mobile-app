@@ -31,6 +31,7 @@ const unitTemplates = [
     theftDamageReinstallation: "Pending",
     area: "30 ha",
     chakArea: "5.0 ha",
+    subChakQuantity: "6",
   },
   {
     id: "2",
@@ -62,6 +63,7 @@ const unitTemplates = [
     theftDamageReinstallation: "Completed",
     area: "32 ha",
     chakArea: "5.2 ha",
+    subChakQuantity: "6",
   },
 ];
 

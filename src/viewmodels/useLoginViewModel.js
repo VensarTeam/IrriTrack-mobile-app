@@ -1,9 +1,12 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ROUTES } from "../navigation/routes";
+
+const WELCOME_AUTO_CONTINUE_DELAY = 2000;
 
 const useLoginViewModel = (navigation) => {
   const scrollRef = useRef(null);
   const passwordRef = useRef(null);
+  const welcomeTimerRef = useRef(null);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -63,6 +66,36 @@ const useLoginViewModel = (navigation) => {
     navigation.navigate(ROUTES.AUTH.FORGOT_PASSWORD);
   };
 
+  const clearWelcomeTimer = useCallback(() => {
+    if (welcomeTimerRef.current) {
+      clearTimeout(welcomeTimerRef.current);
+      welcomeTimerRef.current = null;
+    }
+  }, []);
+
+  const goToAppTabs = useCallback(() => {
+    const rootNavigation = navigation.getParent?.();
+
+    if (rootNavigation?.replace) {
+      rootNavigation.replace(ROUTES.ROOT.APP_TABS);
+      return;
+    }
+
+    navigation.replace(ROUTES.ROOT.APP_TABS);
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!showWelcome) return undefined;
+
+    welcomeTimerRef.current = setTimeout(() => {
+      welcomeTimerRef.current = null;
+      setShowWelcome(false);
+      goToAppTabs();
+    }, WELCOME_AUTO_CONTINUE_DELAY);
+
+    return clearWelcomeTimer;
+  }, [clearWelcomeTimer, goToAppTabs, showWelcome]);
+
   const closeVerificationSheet = () => {
     setIsVerificationVisible(false);
     setFaceError("");
@@ -72,6 +105,8 @@ const useLoginViewModel = (navigation) => {
   const handleFaceCaptured = (photo) => {
     setFaceError("");
     setFaceImage(photo);
+    setIsVerificationVisible(false);
+    setShowWelcome(true);
   };
 
   const retakeFaceVerification = () => {
@@ -94,8 +129,9 @@ const useLoginViewModel = (navigation) => {
   };
 
   const handleWelcomeClose = () => {
+    clearWelcomeTimer();
     setShowWelcome(false);
-    navigation.replace(ROUTES.ROOT.APP_TABS);
+    goToAppTabs();
   };
 
   return {

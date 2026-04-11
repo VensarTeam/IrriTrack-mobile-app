@@ -4,10 +4,16 @@ import fonts from "../../constants/fonts";
 import {
   fontScale,
   moderateScale,
+  scale,
   verticalScale,
 } from "../../constants/metrics";
 
 export default StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -19,7 +25,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: verticalScale(10),
+    paddingVertical: verticalScale(8),
     backgroundColor: colors.sheetSurface,
     borderBottomLeftRadius: moderateScale(20),
     borderBottomRightRadius: moderateScale(20),
@@ -37,16 +43,20 @@ export default StyleSheet.create({
     alignSelf: "center",
   },
 
+  headerSpacer: {
+    width: moderateScale(40),
+  },
+
   /* ================= FILTER PANEL ================= */
 
   filterPanel: {
     marginHorizontal: moderateScale(15),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
+    paddingVertical: verticalScale(8),
     borderRadius: moderateScale(18),
-    backgroundColor: "#F7FAFE",
+    backgroundColor: colors.filterPanelSurface,
     borderWidth: 1,
-    borderColor: "#D9E4F2",
+    borderColor: colors.filterPanelBorder,
   },
 
   filterPanelHeader: {
@@ -94,7 +104,7 @@ export default StyleSheet.create({
     borderRadius: moderateScale(12),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#D9E4F2",
+    borderColor: colors.filterPanelBorder,
   },
 
   filterResetText: {
@@ -105,31 +115,31 @@ export default StyleSheet.create({
 
   filterGrid: {
     flexDirection: "row",
-    marginTop: verticalScale(8),
+    marginTop: verticalScale(6),
     columnGap: moderateScale(10),
   },
 
   filterField: {
     flex: 1,
     minWidth: 0,
-    minHeight: verticalScale(58),
+    minHeight: verticalScale(52),
     flexDirection: "row",
     alignItems: "center",
     borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(7),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#D9E4F2",
+    borderColor: colors.filterPanelBorder,
   },
 
   filterFieldActive: {
     borderColor: colors.primaryBlue,
     shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: verticalScale(6) },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowRadius: scale(12),
+    elevation: scale(3),
   },
 
   filterFieldDisabled: {
@@ -142,15 +152,15 @@ export default StyleSheet.create({
     borderRadius: moderateScale(14),
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#EEF3FA",
+    backgroundColor: colors.filterIconSurface,
   },
 
   filterIconWrapActive: {
-    backgroundColor: "#E0ECFB",
+    backgroundColor: colors.filterIconActiveSurface,
   },
 
   filterIconWrapDisabled: {
-    backgroundColor: "#F1F3F5",
+    backgroundColor: colors.filterIconDisabledSurface,
   },
 
   filterArrowWrap: {
@@ -159,7 +169,7 @@ export default StyleSheet.create({
     borderRadius: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F8FC",
+    backgroundColor: colors.filterArrowSurface,
     marginLeft: moderateScale(8),
   },
 
@@ -193,17 +203,17 @@ export default StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(15),
-    marginVertical: verticalScale(20),
+    marginVertical: verticalScale(12),
   },
 
   kpiCard: {
     flex: 1,
     marginHorizontal: moderateScale(6),
-    paddingVertical: verticalScale(14),
+    paddingVertical: verticalScale(10),
     paddingHorizontal: moderateScale(12),
     borderRadius: moderateScale(16),
     backgroundColor: colors.white,
-    elevation: 2,
+    elevation: scale(2),
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: "hidden",
@@ -259,10 +269,10 @@ export default StyleSheet.create({
   sectionCard: {
     backgroundColor: colors.white,
     marginHorizontal: moderateScale(15),
-    marginBottom: verticalScale(15),
+    marginBottom: verticalScale(10),
     borderRadius: moderateScale(18),
-    padding: moderateScale(10),
-    elevation: 2,
+    padding: moderateScale(8),
+    elevation: scale(2),
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -273,7 +283,7 @@ export default StyleSheet.create({
     alignItems: "center",
     borderRadius: moderateScale(14),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(9),
   },
 
   sectionTitleWrap: {
@@ -313,7 +323,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
   },
 
   highlightCard: {
@@ -321,8 +331,8 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderRadius: moderateScale(14),
     paddingHorizontal: moderateScale(9),
-    paddingVertical: verticalScale(7),
-    marginBottom: verticalScale(7),
+    paddingVertical: verticalScale(6),
+    marginBottom: verticalScale(6),
   },
 
   highlightLabel: {
@@ -352,7 +362,7 @@ export default StyleSheet.create({
   /* ================= CHART ================= */
 
   chartCard: {
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(8),
     overflow: "hidden",
   },
 
@@ -364,15 +374,14 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderRadius: moderateScale(18),
-    padding: moderateScale(14),
-    marginRight: moderateScale(8),
+    padding: moderateScale(12),
   },
 
   chartSummaryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: verticalScale(14),
+    marginBottom: verticalScale(10),
   },
 
   chartSummaryTitle: {
@@ -393,9 +402,20 @@ export default StyleSheet.create({
     alignItems: "center",
   },
 
+  chartSummaryBodyCompact: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+
   summaryList: {
     flex: 1,
     marginLeft: moderateScale(12),
+  },
+
+  summaryListCompact: {
+    width: "100%",
+    marginLeft: 0,
+    marginTop: verticalScale(10),
   },
 
   summaryItem: {
@@ -404,9 +424,14 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderRadius: moderateScale(14),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
-    marginBottom: verticalScale(10),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(8),
     backgroundColor: colors.white,
+  },
+
+  summaryItemCompact: {
+    marginBottom: verticalScale(6),
+    paddingVertical: verticalScale(7),
   },
 
   summaryDot: {
@@ -438,7 +463,7 @@ export default StyleSheet.create({
   pieWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: verticalScale(6),
+    marginVertical: verticalScale(4),
   },
 
   pieCenter: {
@@ -460,22 +485,18 @@ export default StyleSheet.create({
   /* ================= PIE STAGE TABS ================= */
 
   stageTabShell: {
-    marginTop: verticalScale(10),
-    marginBottom: verticalScale(15),
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderRadius: moderateScale(18),
-    paddingHorizontal: moderateScale(6),
-    paddingTop: moderateScale(6),
-    paddingBottom: moderateScale(4),
+    marginTop: verticalScale(6),
+    marginBottom: verticalScale(8),
+    backgroundColor: colors.transparent,
+    borderWidth: 0,
   },
 
   stageTabHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: moderateScale(4),
-    marginBottom: verticalScale(6),
+    paddingHorizontal: moderateScale(1),
+    marginBottom: verticalScale(5),
   },
 
   stageTabHeading: {
@@ -494,17 +515,16 @@ export default StyleSheet.create({
   },
 
   stageTabContent: {
-    paddingHorizontal: moderateScale(2),
-    paddingBottom: verticalScale(1),
+    paddingBottom: verticalScale(2),
   },
 
   stageTab: {
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: moderateScale(10),
-    borderRadius: moderateScale(14),
+    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(11),
+    borderRadius: moderateScale(8),
     backgroundColor: colors.white,
-    marginRight: moderateScale(8),
-    borderWidth: 2,
+    marginRight: moderateScale(7),
+    borderWidth: 1,
     borderColor: colors.cardBorder,
     justifyContent: "center",
     alignItems: "flex-start",
@@ -513,10 +533,10 @@ export default StyleSheet.create({
   stageTabActive: {
     backgroundColor: colors.primaryBlue,
     shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: { width: 0, height: verticalScale(4) },
+    shadowOpacity: 0.14,
+    shadowRadius: scale(8),
+    elevation: scale(2),
   },
 
   stageTabText: {
@@ -535,7 +555,7 @@ export default StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.4)",
+    backgroundColor: colors.projectModalOverlay,
     justifyContent: "center",
     paddingHorizontal: moderateScale(18),
   },
@@ -568,12 +588,12 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(12),
     borderRadius: moderateScale(14),
     borderWidth: 1,
-    borderColor: "#E3EAF3",
+    borderColor: colors.projectModalItemBorder,
     marginBottom: verticalScale(8),
   },
 
   modalItemActive: {
-    backgroundColor: "#EAF3FF",
+    backgroundColor: colors.surfaceBlue,
     borderColor: colors.primaryBlue,
   },
 

@@ -33,17 +33,20 @@ const buildInputFieldState = (inputFields = []) =>
     return acc;
   }, {});
 
-const createRepeatableGroupItem = (group = {}) =>
+const createRepeatableGroupItem = (group = {}, itemIndex = 0) =>
   (group.itemFields || []).reduce((acc, field) => {
-    acc[field.key] = field.defaultValue || "";
+    acc[field.key] =
+      typeof field.getDefaultValue === "function"
+        ? field.getDefaultValue({ group, field, itemIndex })
+        : field.defaultValue || "";
     return acc;
   }, {});
 
 const buildRepeatableGroupState = (repeatableGroups = []) =>
   repeatableGroups.reduce((acc, group) => {
     const minItems = group.minItems || 0;
-    acc[group.key] = Array.from({ length: minItems }, () =>
-      createRepeatableGroupItem(group)
+    acc[group.key] = Array.from({ length: minItems }, (_, itemIndex) =>
+      createRepeatableGroupItem(group, itemIndex)
     );
     return acc;
   }, {});
@@ -79,6 +82,9 @@ const applyModuleText = (value, module) => {
   return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
 };
 
+const resolveContextValue = (value, context) =>
+  typeof value === "function" ? value(context) : value;
+
 const isVisibleByRule = (item, values, subOption) =>
   !item?.showWhen || item.showWhen({ values, subOption });
 
@@ -90,7 +96,7 @@ const isRequiredByRule = (item, values, subOption) => {
   return item?.required !== false;
 };
 
-const getModuleAwareSections = (module) =>
+const getModuleAwareSections = (module, unit) =>
   MODULE_STATUS_SECTIONS.map((section) => ({
     ...section,
     title: applyModuleText(section.title, module),
@@ -102,7 +108,10 @@ const getModuleAwareSections = (module) =>
       remarkLabel: applyModuleText(sub.remarkLabel, module),
       checklistItems: (sub.checklistItems || []).map((item) => ({
         ...item,
-        label: applyModuleText(item.label, module),
+        label: applyModuleText(
+          resolveContextValue(item.label, { module, unit }),
+          module
+        ),
       })),
       photoRequirements: (sub.photoRequirements || []).map((requirement) => ({
         ...requirement,
@@ -165,7 +174,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
-  const sections = useMemo(() => getModuleAwareSections(module), [module]);
+  const sections = useMemo(
+    () => getModuleAwareSections(module, unit),
+    [module, unit]
+  );
 
   const section =
     sections.find((item) => item.key === sectionKey) || sections[0];
@@ -360,7 +372,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     updateActiveValues({
       repeatableGroups: {
         ...activeValues.repeatableGroups,
-        [group.key]: [...currentItems, createRepeatableGroupItem(group)],
+        [group.key]: [
+          ...currentItems,
+          createRepeatableGroupItem(group, currentItems.length),
+        ],
       },
     });
 

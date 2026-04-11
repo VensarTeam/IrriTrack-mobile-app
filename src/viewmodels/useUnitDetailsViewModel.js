@@ -15,13 +15,17 @@ const applyModuleText = (value, module) => {
 const useUnitDetailsViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
+  const unitLabel = unit.unitNo || `${module}-001`;
   const projectName = route?.params?.projectName || "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
 
   const detailItems = [
-    { label: "Unit Number", value: unit.unitNo || `${module}-001` },
+    { label: "Unit Number", value: unitLabel },
     { label: "Village", value: unit.village || "Village-A" },
     { label: "Chak Area", value: unit.area || "30 ha" },
-    { label: "Sub Chak Area", value: unit.chakArea || "5.0 ha" },
+    {
+      label: "Sub Chak Quantity",
+      value: unit.subChakQuantity || "6",
+    },
   ];
 
   const [updatePicker, setUpdatePicker] = useState({
@@ -130,6 +134,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
   return {
     module,
     unit,
+    unitLabel,
     projectName,
     detailItems,
     sections,

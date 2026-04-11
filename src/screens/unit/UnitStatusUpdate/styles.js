@@ -214,6 +214,11 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  readOnlyInput: {
+    backgroundColor: colors.surfaceBlueSoft,
+    color: colors.textSecondary,
+  },
+
   repeatableSection: {
     marginTop: verticalScale(12),
     borderWidth: 1,
@@ -227,12 +232,11 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(6),
   },
 
   repeatableTitleWrap: {
     flex: 1,
-    marginRight: moderateScale(8),
   },
 
   repeatableTitle: {
@@ -252,13 +256,25 @@ export default StyleSheet.create({
     borderRadius: moderateScale(10),
     backgroundColor: colors.primaryBlue,
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(6),
+    paddingVertical: verticalScale(9),
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   repeatableAddButtonText: {
     color: colors.white,
     fontSize: moderateScale(10.5),
     fontFamily: fonts.bold,
+  },
+
+  repeatableAddButtonDisabled: {
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  repeatableAddButtonTextDisabled: {
+    color: colors.textSecondary,
   },
 
   repeatableItemCard: {

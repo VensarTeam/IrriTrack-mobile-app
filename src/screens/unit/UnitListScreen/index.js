@@ -185,13 +185,13 @@ const UnitListScreen = ({ navigation, route }) => {
           <Text style={styles.headerTitle}>{module} Units</Text>
         </View>
         <View style={styles.headerActionSlot}>
-          <TouchableOpacity
+          <IconButton
+            icon="eye-outline"
+            iconColor={colors.primaryBlue}
+            size={22}
             style={styles.headerInfoButton}
             onPress={() => setShowStatusInfo(true)}
-            activeOpacity={0.85}
-          >
-            <Icons.support width={16} height={16} />
-          </TouchableOpacity>
+          />
         </View>
       </View>
 

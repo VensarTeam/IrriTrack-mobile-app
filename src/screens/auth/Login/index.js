@@ -6,6 +6,7 @@ import styles from "./styles";
 import FormInput from "../../../components/FormInput";
 import { Button } from "react-native-paper";
 import colors from "../../../constants/colors";
+import { APP_VERSION } from "../../../constants/appInfo";
 import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
 import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
 import WelcomeModal from "../../../components/WelcomeModal";
@@ -118,6 +119,8 @@ const LoginScreen = ({ navigation }) => {
           >
             Log In
           </Button>
+
+          <Text style={styles.version}>App Version {APP_VERSION}</Text>
         </KeyboardAwareScrollView>
       </View>
 

@@ -16,7 +16,7 @@ const getStatusColor = (value) => {
 
 const ModuleDetailsScreen = ({ navigation, route }) => {
   const {
-    projectName,
+    unitLabel,
     detailItems,
     sections,
     openHelper,
@@ -39,41 +39,37 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={handleBack} />
-        <Text style={styles.headerTitle}>Unit Details</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle} numberOfLines={1}>{unitLabel}</Text>
+        <IconButton
+          icon="eye-outline"
+          iconColor={colors.primaryBlue}
+          size={22}
+          onPress={openHelper}
+          style={styles.helperHeaderButton}
+        />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.projectCard}>
-          <Text style={styles.projectLabel}>Project Name</Text>
-          <Text style={styles.projectName}>{projectName}</Text>
-        </View>
-
-        <View style={styles.sectionHeadingRow}>
-          <Text style={styles.sectionHeading}>Unit Details</Text>
-          <TouchableOpacity style={styles.helperButton} onPress={openHelper}>
-            <Icons.support height={22} width={22} />
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.detailsGrid}>
           {detailItems.map((item) => (
             <View style={styles.detailCard} key={item.label}>
               <Text style={styles.detailLabel}>{item.label}</Text>
-              <Text style={styles.detailValue}>{item.value}</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {item.value}
+              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.statusListHeader}>
-          <View>
+          <View style={styles.statusListCopy}>
             <Text style={styles.statusListTitle}>Update Status</Text>
             <Text style={styles.statusListSubtitle}>
-              View all statuses on the summary page.
+              Tap a process to update from the field.
             </Text>
           </View>
           <TouchableOpacity style={styles.viewAllButton} onPress={openViewAll}>
-            <Text style={styles.viewAllText}>View All</Text>
+            <Text style={styles.viewAllText}>All Status</Text>
           </TouchableOpacity>
         </View>
 
@@ -109,7 +105,9 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.statusCardDescription}>{section.description}</Text>
+              <Text style={styles.statusCardDescription} numberOfLines={2}>
+                {section.description}
+              </Text>
 
               {expanded ? (
                 <View style={styles.subStatusList}>
