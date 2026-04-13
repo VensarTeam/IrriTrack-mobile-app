@@ -51,8 +51,8 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 return (
                   <View key={item.id} style={styles.subStatusItem}>
                     <Text style={styles.subStatusLabel}>{item.displayLabel}</Text>
-                    <View style={[styles.statusPill, { backgroundColor: `${statusColor}20` }]}>
-                      <Text style={[styles.statusPillText, { color: statusColor }]}>{item.status}</Text>
+                    <View style={[styles.statusPill, { backgroundColor: statusColor }]}>
+                      <Text style={[styles.statusPillText, { color: colors.white }]}>{item.status}</Text>
                     </View>
                   </View>
                 );

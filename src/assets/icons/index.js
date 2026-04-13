@@ -17,6 +17,7 @@ import UploadfileIcon from "./upload_file.svg";
 import SupportIcon from "./support.svg";
 import LocationIcon from "./location.svg";
 import SearchIcon from "./search.svg";
+import UpdateIcon from "./update.svg";
 
 export {
   PersonIcon,
@@ -37,5 +38,6 @@ export {
   UploadfileIcon,
   SupportIcon,
   LocationIcon,
-  SearchIcon
+  SearchIcon,
+  UpdateIcon
 };

@@ -1,11 +1,18 @@
 import React from "react";
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
-import { moderateScale } from "../../../constants/metrics";
+import { moderateScale, verticalScale } from "../../../constants/metrics";
 import useUnitDetailsViewModel from "../../../viewmodels/useUnitDetailsViewModel";
 
 const getStatusColor = (value) => {
@@ -15,6 +22,7 @@ const getStatusColor = (value) => {
 };
 
 const ModuleDetailsScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const {
     unitLabel,
     detailItems,
@@ -34,6 +42,8 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
   } = useUnitDetailsViewModel(navigation, route);
 
   const updateOptions = getUpdateOptions();
+  const sheetBottomPadding =
+    Math.max(insets.bottom, verticalScale(14)) + verticalScale(12);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,7 +111,7 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                   onPress={() => openUpdatePicker(section)}
                 >
                   <Text style={styles.updateButtonText}>Update</Text>
-                  <Icons.down width={10} height={10} style={{ marginLeft: moderateScale(6) }} />
+                  <Icons.update width={14} height={14} style={{ marginLeft: moderateScale(6) }} />
                 </TouchableOpacity>
               </View>
 
@@ -128,10 +138,10 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                         <View
                           style={[
                             styles.statusPill,
-                            { backgroundColor: `${statusColor}20` },
+                            { backgroundColor: statusColor },
                           ]}
                         >
-                          <Text style={[styles.statusPillText, { color: statusColor }]}>
+                          <Text style={[styles.statusPillText, { color: colors.white }]}>
                             {subStatus.status}
                           </Text>
                         </View>
@@ -148,30 +158,96 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
       <Modal
         visible={updatePicker.visible}
         transparent
-        animationType="fade"
+        animationType="slide"
+        statusBarTranslucent
         onRequestClose={closeUpdatePicker}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              Update {updatePicker.section?.title || "Status"}
-            </Text>
+        <View style={styles.sheetOverlay}>
+          <Pressable
+            style={styles.sheetBackdrop}
+            onPress={closeUpdatePicker}
+            accessibilityRole="button"
+            accessibilityLabel="Close update status"
+          />
 
-            <ScrollView>
-              {updateOptions.map((sub) => (
-                <TouchableOpacity
-                  key={sub.id}
-                  style={styles.modalItem}
-                  onPress={() => selectUpdateOption(sub)}
-                >
-                  <Text style={styles.modalText}>{sub.displayLabel}</Text>
-                </TouchableOpacity>
-              ))}
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderCopy}>
+                <Text style={styles.sheetEyebrow}>Update Status</Text>
+                <Text style={styles.sheetTitle} numberOfLines={2}>
+                  {updatePicker.section?.title || "Select Process"}
+                </Text>
+                <Text style={styles.sheetSubtitle}>
+                  Choose a process to continue the field update.
+                </Text>
+              </View>
+
+              <IconButton
+                icon="close"
+                iconColor={colors.textDark}
+                size={20}
+                onPress={closeUpdatePicker}
+                style={styles.sheetCloseButton}
+                accessibilityLabel="Close update status"
+              />
+            </View>
+
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={[
+                styles.sheetScrollContent,
+                { paddingBottom: sheetBottomPadding },
+              ]}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              overScrollMode="never"
+            >
+              {updateOptions.map((sub) => {
+                const statusColor = getStatusColor(sub.status);
+
+                return (
+                  <TouchableOpacity
+                    key={sub.id}
+                    style={styles.sheetOption}
+                    onPress={() => selectUpdateOption(sub)}
+                    activeOpacity={0.86}
+                  >
+                    <View style={styles.sheetOptionIcon}>
+                      <Icons.update width={16} height={16} />
+                    </View>
+
+                    <View style={styles.sheetOptionCopy}>
+                      <Text style={styles.sheetOptionTitle} numberOfLines={2}>
+                        {sub.displayLabel}
+                      </Text>
+                      <Text style={styles.sheetOptionHint}>
+                        Tap to update this process
+                      </Text>
+                    </View>
+
+                    <View style={styles.sheetOptionMeta}>
+                      <View
+                        style={[
+                          styles.sheetStatusPill,
+                          { backgroundColor: statusColor },
+                        ]}
+                      >
+                        <Text style={styles.sheetStatusText} numberOfLines={1}>
+                          {sub.status}
+                        </Text>
+                      </View>
+                      <Icons.down
+                        width={11}
+                        height={11}
+                        style={styles.sheetOptionChevron}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
-
-            <TouchableOpacity onPress={closeUpdatePicker}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>

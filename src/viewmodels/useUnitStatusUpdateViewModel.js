@@ -9,6 +9,17 @@ import {
 import { openLocation } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 
+const DEFAULT_SUB_CHAK_QUANTITY = 6;
+
+const getUnitSubChakQuantity = (unit = {}) => {
+  const match = `${unit?.subChakQuantity ?? DEFAULT_SUB_CHAK_QUANTITY}`.match(/\d+/);
+  const parsedValue = Number.parseInt(match?.[0], 10);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : DEFAULT_SUB_CHAK_QUANTITY;
+};
+
 const buildChecklistState = (checklistItems = []) =>
   checklistItems.reduce((acc, item) => {
     acc[item.id] = false;
@@ -89,7 +100,7 @@ const resolveContextValue = (value, context = {}) => {
 
   return value.replace(
     /\{subChakQuantity\}/g,
-    context.unit?.subChakQuantity || "6"
+    `${getUnitSubChakQuantity(context.unit)}`
   );
 };
 
@@ -104,8 +115,10 @@ const isRequiredByRule = (item, values, subOption) => {
   return item?.required !== false;
 };
 
-const getModuleAwareSections = (module, unit) =>
-  MODULE_STATUS_SECTIONS.map((section) => ({
+const getModuleAwareSections = (module, unit) => {
+  const subChakQuantity = getUnitSubChakQuantity(unit);
+
+  return MODULE_STATUS_SECTIONS.map((section) => ({
     ...section,
     title: applyModuleText(section.title, module),
     description: applyModuleText(section.description, module),
@@ -135,20 +148,40 @@ const getModuleAwareSections = (module, unit) =>
         label: applyModuleText(field.label, module),
         placeholder: applyModuleText(field.placeholder, module),
       })),
-      repeatableGroups: (sub.repeatableGroups || []).map((group) => ({
-        ...group,
-        title: applyModuleText(group.title, module),
-        subtitle: applyModuleText(group.subtitle, module),
-        addButtonLabel: applyModuleText(group.addButtonLabel, module),
-        itemLabel: applyModuleText(group.itemLabel, module),
-        itemFields: (group.itemFields || []).map((field) => ({
-          ...field,
-          label: applyModuleText(field.label, module),
-          placeholder: applyModuleText(field.placeholder, module),
-        })),
-      })),
+      repeatableGroups: (sub.repeatableGroups || []).map((group) => {
+        const useSubChakQuantity = !!group.useSubChakQuantity;
+
+        return {
+          ...group,
+          minItems: useSubChakQuantity ? subChakQuantity : group.minItems,
+          maxItems: useSubChakQuantity ? subChakQuantity : group.maxItems,
+          fixedItemCount: useSubChakQuantity ? subChakQuantity : group.fixedItemCount,
+          title: applyModuleText(
+            resolveContextValue(group.title, { module, unit }),
+            module
+          ),
+          subtitle: applyModuleText(
+            resolveContextValue(group.subtitle, { module, unit }),
+            module
+          ),
+          addButtonLabel: applyModuleText(group.addButtonLabel, module),
+          itemLabel: applyModuleText(group.itemLabel, module),
+          itemFields: (group.itemFields || []).map((field) => ({
+            ...field,
+            label: applyModuleText(
+              resolveContextValue(field.label, { module, unit }),
+              module
+            ),
+            placeholder: applyModuleText(
+              resolveContextValue(field.placeholder, { module, unit }),
+              module
+            ),
+          })),
+        };
+      }),
     })),
   }));
+};
 
 const getInitialFormValues = (section, unit) => {
   const baseLocation = {
@@ -746,8 +779,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const items = activeValues.repeatableGroups?.[group.key] || [];
         const groupError = {};
 
-        if ((group.minItems || 0) > items.length) {
+        if (group.fixedItemCount && items.length !== group.fixedItemCount) {
+          groupError.message = `${group.fixedItemCount} ${group.itemLabel || "item"} entries are required`;
+        } else if ((group.minItems || 0) > items.length) {
           groupError.message = `Add at least ${group.minItems} ${group.itemLabel || "item"} entry`;
+        } else if (group.maxItems && items.length > group.maxItems) {
+          groupError.message = `Only ${group.maxItems} ${group.itemLabel || "item"} entries are allowed`;
         }
 
         const itemErrors = {};

@@ -19,6 +19,7 @@ import {
   SupportIcon,
   LocationIcon,
   SearchIcon,
+  UpdateIcon,
 } from "../assets/icons";
 
 export const Icons = {
@@ -41,5 +42,6 @@ export const Icons = {
   delete: DeleteIcon,
   support: SupportIcon,
   location: LocationIcon,
-  search: SearchIcon
+  search: SearchIcon,
+  update: UpdateIcon,
 };

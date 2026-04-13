@@ -98,18 +98,18 @@ export default StyleSheet.create({
   },
 
   viewAllButton: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: colors.primaryBlue,
     borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(5),
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.primaryBlue,
   },
 
   viewAllText: {
     fontSize: moderateScale(11),
     fontFamily: fonts.medium,
-    color: colors.primaryBlue,
+    color: colors.white,
   },
 
   statusCard: {
@@ -153,7 +153,7 @@ export default StyleSheet.create({
   updateButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.lightGreen,
+    backgroundColor: colors.darkGreen,
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(5),
     borderRadius: moderateScale(14),
@@ -162,13 +162,13 @@ export default StyleSheet.create({
   },
 
   updateButtonText: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(12),
     fontFamily: fonts.medium,
-    color: colors.darkGreen,
+    color: colors.white,
   },
 
   statusCardDescription: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     color: colors.textSecondary,
     lineHeight: moderateScale(16),
   },
@@ -210,42 +210,155 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
-  modalOverlay: {
+  sheetOverlay: {
     flex: 1,
     backgroundColor: colors.modalOverlay,
-    justifyContent: "center",
-    paddingHorizontal: moderateScale(20),
+    justifyContent: "flex-end",
   },
 
-  modalCard: {
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  bottomSheet: {
+    maxHeight: "82%",
     backgroundColor: colors.white,
-    borderRadius: moderateScale(18),
-    padding: moderateScale(18),
+    borderTopLeftRadius: moderateScale(8),
+    borderTopRightRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(10),
+    borderTopWidth: 1,
+    borderColor: colors.loginSheetBorderLight,
+    elevation: 12,
   },
 
-  modalTitle: {
-    fontSize: moderateScale(14),
+  sheetHandle: {
+    width: moderateScale(48),
+    height: verticalScale(5),
+    borderRadius: moderateScale(8),
+    alignSelf: "center",
+    backgroundColor: colors.cardBorder,
+    marginBottom: verticalScale(12),
+  },
+
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(12),
+  },
+
+  sheetHeaderCopy: {
+    flex: 1,
+    paddingRight: moderateScale(10),
+  },
+
+  sheetEyebrow: {
+    fontSize: moderateScale(11),
+    fontFamily: fonts.medium,
+    color: colors.primaryGreen,
+    marginBottom: verticalScale(3),
+  },
+
+  sheetTitle: {
+    fontSize: moderateScale(17),
     fontFamily: fonts.bold,
     color: colors.textDark,
-    marginBottom: verticalScale(10),
+    lineHeight: moderateScale(22),
   },
 
-  modalItem: {
+  sheetSubtitle: {
+    fontSize: moderateScale(12),
+    color: colors.textSecondary,
+    marginTop: verticalScale(4),
+    lineHeight: moderateScale(18),
+  },
+
+  sheetCloseButton: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(8),
+    margin: 0,
+    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  sheetScroll: {
+    width: "100%",
+  },
+
+  sheetScrollContent: {
+    paddingTop: verticalScale(2),
+  },
+
+  sheetOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: verticalScale(64),
     paddingVertical: verticalScale(10),
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: colors.projectModalItemBorder,
+    backgroundColor: colors.surfaceBluePale,
+    marginBottom: verticalScale(9),
   },
 
-  modalText: {
-    fontSize: moderateScale(12),
+  sheetOptionIcon: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(8),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.darkGreen,
+    borderWidth: 1,
+    borderColor: colors.darkGreen,
+    marginRight: moderateScale(10),
+  },
+
+  sheetOptionCopy: {
+    flex: 1,
+    paddingRight: moderateScale(8),
+  },
+
+  sheetOptionTitle: {
+    fontSize: moderateScale(13),
     color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(18),
   },
 
-  closeText: {
-    textAlign: "center",
-    marginTop: verticalScale(12),
+  sheetOptionHint: {
     fontSize: moderateScale(12),
-    color: colors.primaryBlue,
+    color: colors.textSecondary,
+    marginTop: verticalScale(2),
+  },
+
+  sheetOptionMeta: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+
+  sheetStatusPill: {
+    minWidth: moderateScale(64),
+    maxWidth: moderateScale(112),
+    alignItems: "center",
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(8),
+    marginBottom: verticalScale(7),
+  },
+
+  sheetStatusText: {
+    fontSize: moderateScale(10),
+    color: colors.white,
     fontFamily: fonts.medium,
+    maxWidth: moderateScale(96),
+  },
+
+  sheetOptionChevron: {
+    transform: [{ rotate: "-90deg" }],
+    marginRight: moderateScale(2),
   },
 });

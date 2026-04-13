@@ -47,9 +47,20 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(16),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
     elevation: 2,
+  },
+
+  projectTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  projectNameWrap: {
+    flex: 1,
+    paddingRight: moderateScale(10),
   },
 
   projectLabel: {
@@ -59,22 +70,34 @@ export default StyleSheet.create({
   },
 
   projectText: {
-    fontSize: moderateScale(13),
-    color: colors.textDark,
-    fontFamily: fonts.bold,
-  },
-
-  projectMetaRow: {
-    marginTop: verticalScale(6),
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-
-  projectMeta: {
     fontSize: moderateScale(11),
-    color: colors.primaryBlue,
+    color: colors.textSecondary,
     fontFamily: fonts.medium,
+    lineHeight: moderateScale(16),
+  },
+
+  unitNumberBadge: {
+    minWidth: moderateScale(104),
+    maxWidth: moderateScale(136),
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  unitNumberLabel: {
+    fontSize: moderateScale(9),
+    color: colors.white,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(2),
+  },
+
+  unitNumberText: {
+    fontSize: moderateScale(14),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   stepHeaderRow: {
@@ -111,7 +134,7 @@ export default StyleSheet.create({
   },
 
   stepChipActive: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: colors.primaryBlue,
     borderColor: colors.primaryBlue,
   },
 
@@ -122,7 +145,7 @@ export default StyleSheet.create({
   },
 
   stepChipTextActive: {
-    color: colors.primaryBlue,
+    color: colors.white,
   },
 
   formCard: {
@@ -252,6 +275,35 @@ export default StyleSheet.create({
     lineHeight: moderateScale(14),
   },
 
+  repeatableReferenceImageWrap: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    padding: moderateScale(8),
+    marginBottom: verticalScale(8),
+  },
+
+  repeatableReferenceImage: {
+    width: "100%",
+    height: verticalScale(190),
+  },
+
+  repeatableReferenceAction: {
+    alignSelf: "center",
+    marginTop: verticalScale(8),
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.primaryBlue,
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(7),
+  },
+
+  repeatableReferenceActionText: {
+    fontSize: moderateScale(11),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
   repeatableAddButton: {
     borderRadius: moderateScale(10),
     backgroundColor: colors.primaryBlue,
@@ -282,20 +334,86 @@ export default StyleSheet.create({
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(12),
     backgroundColor: colors.white,
-    padding: moderateScale(10),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(8),
     marginBottom: verticalScale(8),
   },
 
-  repeatableItemHead: {
+  repeatableCompactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  repeatableValueBadge: {
+    minWidth: moderateScale(44),
+    minHeight: verticalScale(42),
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.primaryBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(8),
+    marginRight: moderateScale(8),
+  },
+
+  repeatableValueText: {
+    fontSize: moderateScale(13),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  repeatableFieldArea: {
+    flex: 1,
+  },
+
+  repeatableInlineField: {
+    flex: 1,
+  },
+
+  repeatableInlineLabel: {
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(4),
+  },
+
+  repeatableInlineSelect: {
+    minHeight: verticalScale(38),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.inputBg,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  repeatableItemTitle: {
-    fontSize: moderateScale(11),
+  repeatableInlineInput: {
+    minHeight: verticalScale(38),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.inputBg,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
+    fontSize: moderateScale(12),
     color: colors.textDark,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
+  },
+
+  repeatableInlineValue: {
+    flex: 1,
+    marginRight: moderateScale(8),
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  repeatableStaticText: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
   },
 
   repeatableRemoveButton: {
@@ -690,6 +808,28 @@ export default StyleSheet.create({
     borderRadius: moderateScale(14),
     padding: moderateScale(10),
     maxHeight: "80%",
+  },
+
+  referencePreviewCard: {
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(14),
+    padding: moderateScale(10),
+    maxHeight: "88%",
+  },
+
+  referencePreviewTitle: {
+    fontSize: moderateScale(13),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(8),
+    textAlign: "center",
+  },
+
+  referencePreviewImage: {
+    width: "100%",
+    height: verticalScale(520),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.background,
   },
 
   previewImage: {

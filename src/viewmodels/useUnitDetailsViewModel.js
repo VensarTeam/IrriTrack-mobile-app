@@ -122,6 +122,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
     (updatePicker.section?.subOptions || []).map((sub) => ({
       ...sub,
       displayLabel: getSubOptionLabel(sub),
+      status: statusLookup[sub.id] || "Pending",
     }));
 
   const getSectionSubStatuses = (section) =>

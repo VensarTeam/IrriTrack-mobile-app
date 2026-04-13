@@ -212,8 +212,12 @@ export const MODULE_STATUS_SECTIONS = [
           {
             key: "subChakDefinitions",
             title: "Outlet Pipe Identification and Marking",
+            subtitle: "{subChakQuantity} sub chak entries created from Sub Chak Quantity.",
             addButtonLabel: "Add Sub Chak",
             itemLabel: "Sub Chak",
+            itemTitleField: "subChakName",
+            useSubChakQuantity: true,
+            imageBySubChakQuantity: true,
             minItems: 1,
             maxItems: 8,
             itemFields: [
@@ -275,12 +279,37 @@ export const MODULE_STATUS_SECTIONS = [
           "Check Installation of ON-OFF valve.",
           "Check Installation and Tightness of MTA Compression Fitting.",
         ]),
+        repeatableGroups: [
+          {
+            key: "outletManifoldDefinitions",
+            title: "Outlet Manifold Assembly",
+            subtitle: "{subChakQuantity} outlet manifold entries created from Sub Chak Quantity.",
+            itemLabel: "Outlet Manifold",
+            itemTitleField: "outletManifoldName",
+            useSubChakQuantity: true,
+            minItems: 1,
+            maxItems: 8,
+            itemFields: [
+              {
+                key: "outletManifoldName",
+                label: "Outlet Manifold",
+                placeholder: "V1",
+                readOnly: true,
+                getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
+              },
+            ],
+          },
+        ],
         remarkLabel: "Remark",
         remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [
           {
             id: "mechanical_accessories_open_door_photo",
             label: "Photo with open door",
+          },
+          {
+            id: "mechanical_accessories_close_door_photo",
+            label: "Photo with close door",
           },
           {
             id: "mechanical_accessories_signed_copy",

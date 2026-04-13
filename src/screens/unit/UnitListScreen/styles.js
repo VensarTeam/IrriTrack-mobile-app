@@ -399,14 +399,14 @@ export default StyleSheet.create({
     marginTop: verticalScale(4),
     borderRadius: moderateScale(14),
     borderWidth: 1,
-    borderColor: colors.completed,
-    backgroundColor: colors.lightGreen,
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.primaryBlue,
     paddingVertical: verticalScale(9),
     alignItems: "center",
   },
 
   certificateButtonText: {
-    color: colors.darkGreen,
+    color: colors.white,
     fontSize: moderateScale(12),
     fontFamily: fonts.bold,
   },

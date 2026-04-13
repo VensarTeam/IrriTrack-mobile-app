@@ -17,8 +17,25 @@ import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
 import useUnitStatusUpdateViewModel from "../../../viewmodels/useUnitStatusUpdateViewModel";
 
+const OUTLET_MANIFOLD_IMAGES = {
+  2: require("../../../assets/images/2 outlet Manifold.png"),
+  3: require("../../../assets/images/3 outlet Manifold.png"),
+  4: require("../../../assets/images/4 outlet Manifold.png"),
+  5: require("../../../assets/images/5 outlet Manifold.png"),
+  6: require("../../../assets/images/6 outlet Manifold.png"),
+  7: require("../../../assets/images/7 outlet Manifold.png"),
+  8: require("../../../assets/images/8 outlet Manifold.png"),
+};
+
 const ModuleStatusUpdateScreen = ({ navigation, route }) => {
+  const [referencePreviewState, setReferencePreviewState] = React.useState({
+    visible: false,
+    source: null,
+    title: "",
+  });
+
   const {
+    module,
     projectName,
     section,
     unitLabel,
@@ -64,6 +81,22 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   } = useUnitStatusUpdateViewModel(navigation, route);
 
   const checklistProgress = getChecklistProgress();
+
+  const openReferencePreview = (source, title) => {
+    setReferencePreviewState({
+      visible: true,
+      source,
+      title,
+    });
+  };
+
+  const closeReferencePreview = () => {
+    setReferencePreviewState({
+      visible: false,
+      source: null,
+      title: "",
+    });
+  };
 
   const renderSelectField = ({
     elementKey,
@@ -121,6 +154,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   const renderRepeatableGroup = (group) => {
     const items = activeValues.repeatableGroups?.[group.key] || [];
     const groupErrors = activeErrors.repeatableGroups?.[group.key] || {};
+    const referenceImage = group.imageBySubChakQuantity
+      ? OUTLET_MANIFOLD_IMAGES[group.fixedItemCount]
+      : null;
 
     return (
       <View style={styles.repeatableSection} key={group.key}>
@@ -133,15 +169,140 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           </View>
         </View>
 
+        {referenceImage ? (
+          <TouchableOpacity
+            style={styles.repeatableReferenceImageWrap}
+            activeOpacity={0.9}
+            onPress={() =>
+              openReferencePreview(
+                referenceImage,
+                `${group.title} - ${group.fixedItemCount} Outlet`
+              )
+            }
+          >
+            <Image
+              source={referenceImage}
+              style={styles.repeatableReferenceImage}
+              resizeMode="contain"
+            />
+            <View style={styles.repeatableReferenceAction}>
+              <Text style={styles.repeatableReferenceActionText}>View Image</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+
         {items.map((item, itemIndex) => {
           const itemErrors = groupErrors.items?.[itemIndex] || {};
+          const itemTitle = group.itemTitleField
+            ? item[group.itemTitleField] || itemIndex + 1
+            : itemIndex + 1;
+          const displayFields = (group.itemFields || []).filter(
+            (groupField) => groupField.key !== group.itemTitleField
+          );
 
           return (
             <View style={styles.repeatableItemCard} key={`${group.key}_${itemIndex}`}>
-              <View style={styles.repeatableItemHead}>
-                <Text style={styles.repeatableItemTitle}>
-                  {group.itemLabel || "Item"} {itemIndex + 1}
-                </Text>
+              <View style={styles.repeatableCompactRow}>
+                <View style={styles.repeatableValueBadge}>
+                  <Text style={styles.repeatableValueText}>{itemTitle}</Text>
+                </View>
+
+                <View style={styles.repeatableFieldArea}>
+                  {displayFields.length ? null : (
+                    <Text style={styles.repeatableStaticText}>
+                      {group.itemLabel || "Item"} {itemTitle}
+                    </Text>
+                  )}
+
+                  {displayFields.map((groupField) => {
+                    if (groupField.type === "select") {
+                      return (
+                        <View
+                          style={styles.repeatableInlineField}
+                          key={`${group.key}_${itemIndex}_${groupField.key}`}
+                        >
+                          <Text style={styles.repeatableInlineLabel}>
+                            {groupField.label}
+                          </Text>
+                          <TouchableOpacity
+                            style={[
+                              styles.repeatableInlineSelect,
+                              itemErrors[groupField.key] && styles.selectFieldError,
+                            ]}
+                            onPress={() =>
+                              openSelectModal({
+                                field: groupField.key,
+                                title: groupField.label,
+                                options: groupField.options,
+                                target: {
+                                  type: "repeatable",
+                                  groupKey: group.key,
+                                  itemIndex,
+                                  fieldKey: groupField.key,
+                                },
+                              })
+                            }
+                            activeOpacity={0.86}
+                          >
+                            <Text
+                              style={[
+                                styles.repeatableInlineValue,
+                                !item[groupField.key] && styles.selectPlaceholder,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {item[groupField.key] ||
+                                groupField.placeholder ||
+                                "Select option"}
+                            </Text>
+                            <Icons.down width={12} height={12} />
+                          </TouchableOpacity>
+                          {itemErrors[groupField.key] ? (
+                            <Text style={styles.errorText}>
+                              {itemErrors[groupField.key]}
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    }
+
+                    return (
+                      <View
+                        style={styles.repeatableInlineField}
+                        key={`${group.key}_${itemIndex}_${groupField.key}`}
+                      >
+                        <Text style={styles.repeatableInlineLabel}>
+                          {groupField.label}
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.repeatableInlineInput,
+                            itemErrors[groupField.key] && styles.selectFieldError,
+                            groupField.readOnly && styles.readOnlyInput,
+                          ]}
+                          placeholder={groupField.placeholder || "Enter value"}
+                          placeholderTextColor={colors.textSecondary}
+                          keyboardType={groupField.keyboardType || "default"}
+                          editable={groupField.readOnly !== true}
+                          value={item[groupField.key]}
+                          onChangeText={(text) =>
+                            updateRepeatableGroupItem(
+                              group.key,
+                              itemIndex,
+                              groupField.key,
+                              text
+                            )
+                          }
+                        />
+                        {itemErrors[groupField.key] ? (
+                          <Text style={styles.errorText}>
+                            {itemErrors[groupField.key]}
+                          </Text>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
 
                 {items.length > (group.minItems || 0) ? (
                   <TouchableOpacity
@@ -153,79 +314,32 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   </TouchableOpacity>
                 ) : null}
               </View>
-
-              {(group.itemFields || []).map((groupField) => {
-                if (groupField.type === "select") {
-                  return renderSelectField({
-                    elementKey: `${group.key}_${itemIndex}_${groupField.key}`,
-                    label: groupField.label,
-                    field: groupField.key,
-                    value: item[groupField.key],
-                    options: groupField.options,
-                    placeholder: groupField.placeholder || "Select option",
-                    error: itemErrors[groupField.key],
-                    target: {
-                      type: "repeatable",
-                      groupKey: group.key,
-                      itemIndex,
-                      fieldKey: groupField.key,
-                    },
-                  });
-                }
-
-                return (
-                  <View style={styles.fieldBlock} key={`${group.key}_${itemIndex}_${groupField.key}`}>
-                    <Text style={styles.fieldLabel}>{groupField.label}</Text>
-                    <TextInput
-                      style={[
-                        styles.singleLineInput,
-                        itemErrors[groupField.key] && styles.selectFieldError,
-                        groupField.readOnly && styles.readOnlyInput,
-                      ]}
-                      placeholder={groupField.placeholder || "Enter value"}
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType={groupField.keyboardType || "default"}
-                      editable={groupField.readOnly !== true}
-                      value={item[groupField.key]}
-                      onChangeText={(text) =>
-                        updateRepeatableGroupItem(
-                          group.key,
-                          itemIndex,
-                          groupField.key,
-                          text
-                        )
-                      }
-                    />
-                    {itemErrors[groupField.key] ? (
-                      <Text style={styles.errorText}>{itemErrors[groupField.key]}</Text>
-                    ) : null}
-                  </View>
-                );
-              })}
             </View>
           );
         })}
 
-        <TouchableOpacity
-          style={[
-            styles.repeatableAddButton,
-            group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonDisabled,
-          ]}
-          activeOpacity={0.86}
-          onPress={() => addRepeatableGroupItem(group)}
-          disabled={group.maxItems ? items.length >= group.maxItems : false}
-        >
-          <Text
+        {group.fixedItemCount ? null : (
+          <TouchableOpacity
             style={[
-              styles.repeatableAddButtonText,
-              group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonTextDisabled,
+              styles.repeatableAddButton,
+              group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonDisabled,
             ]}
+            activeOpacity={0.86}
+            onPress={() => addRepeatableGroupItem(group)}
+            disabled={group.maxItems ? items.length >= group.maxItems : false}
           >
-            {group.maxItems && items.length >= group.maxItems
-              ? `Maximum ${group.maxItems} ${group.itemLabel || "item"} entries added`
-              : group.addButtonLabel || "Add"}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.repeatableAddButtonText,
+                group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonTextDisabled,
+              ]}
+            >
+              {group.maxItems && items.length >= group.maxItems
+                ? `Maximum ${group.maxItems} ${group.itemLabel || "item"} entries added`
+                : group.addButtonLabel || "Add"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {groupErrors.message ? (
           <Text style={styles.errorText}>{groupErrors.message}</Text>
@@ -253,10 +367,20 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           extraScrollHeight={24}
         >
           <View style={styles.projectCard}>
-            <Text style={styles.projectLabel}>Project</Text>
-            <Text style={styles.projectText}>{projectName}</Text>
-            <View style={styles.projectMetaRow}>
-              <Text style={styles.projectMeta}>Unit: {unitLabel}</Text>
+            <View style={styles.projectTopRow}>
+              <View style={styles.projectNameWrap}>
+                <Text style={styles.projectLabel}>Project</Text>
+                <Text style={styles.projectText} numberOfLines={2}>
+                  {projectName}
+                </Text>
+              </View>
+
+              <View style={styles.unitNumberBadge}>
+                <Text style={styles.unitNumberLabel}>{module} No.</Text>
+                <Text style={styles.unitNumberText} numberOfLines={1}>
+                  {unitLabel}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -654,6 +778,40 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={styles.previewCloseBtn}
               onPress={closePhotoPreview}
+            >
+              <Text style={styles.previewCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={referencePreviewState.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeReferencePreview}
+      >
+        <View style={styles.previewOverlay}>
+          <TouchableOpacity
+            style={styles.previewCloseArea}
+            onPress={closeReferencePreview}
+          />
+          <View style={styles.referencePreviewCard}>
+            <Text style={styles.referencePreviewTitle}>
+              {referencePreviewState.title}
+            </Text>
+
+            {referencePreviewState.source ? (
+              <Image
+                source={referencePreviewState.source}
+                style={styles.referencePreviewImage}
+                resizeMode="contain"
+              />
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.previewCloseBtn}
+              onPress={closeReferencePreview}
             >
               <Text style={styles.previewCloseText}>Close</Text>
             </TouchableOpacity>
