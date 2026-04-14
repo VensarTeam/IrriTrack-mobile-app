@@ -1,9 +1,13 @@
 {
   "expo": {
-    "name": "PMT",
-    "slug": "pmtapp",
+    "name": "IDICM",
+    "slug": "idicm",
     "version": "1.0.0",
     "icon": "./assets/icon.png",
+    "extra": {
+      "projectName": "IDICM (Irrigation Distribution: Installation, Commissioning, and Maintenance)",
+      "projectFullForm": "Irrigation Distribution: Installation, Commissioning & Maintenance"
+    },
     "ios": {
       "icon": "./assets/icon.png"
     },

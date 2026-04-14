@@ -6,7 +6,7 @@ import { moderateScale, verticalScale } from "../../../constants/metrics";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
 
   header: {

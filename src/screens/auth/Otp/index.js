@@ -14,6 +14,7 @@ import colors from "../../../constants/colors";
 import { moderateScale } from "../../../constants/metrics";
 import WelcomeModal from "../../../components/WelcomeModal";
 import useOtpViewModel from "../../../viewmodels/useOtpViewModel";
+import { APP_NAME, PROJECT_FULL_FORM } from "../../../constants/appInfo";
 
 const OtpScreen = ({ route, navigation }) => {
   const {
@@ -63,7 +64,8 @@ const OtpScreen = ({ route, navigation }) => {
           resizeMode="contain"
         />
 
-        <Text style={styles.systemText}>Project Management Tools</Text>
+        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>
 
       <View style={styles.sheet}>

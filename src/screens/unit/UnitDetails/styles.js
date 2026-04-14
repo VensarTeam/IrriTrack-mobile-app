@@ -6,7 +6,7 @@ import { moderateScale, verticalScale } from "../../../constants/metrics";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
 
   header: {
@@ -16,8 +16,6 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(4),
     backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
 
   headerTitle: {

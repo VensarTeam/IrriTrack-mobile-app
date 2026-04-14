@@ -5,6 +5,7 @@ import Svg, { Circle } from "react-native-svg";
 import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import { moderateScale, verticalScale } from "../constants/metrics";
+import { APP_NAME, PROJECT_FULL_FORM } from "../constants/appInfo";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const RING_SIZE = moderateScale(212);
@@ -152,7 +153,8 @@ const AndroidSplash = ({ onLayout }) => {
           </View>
 
           <View style={styles.copyWrap}>
-            <Text style={styles.title}>Project Management Tools</Text>
+            <Text style={styles.title}>{APP_NAME}</Text>
+            <Text style={styles.fullForm}>{PROJECT_FULL_FORM}</Text>
             <Text style={styles.subtitle}>Secure workspace loading</Text>
           </View>
         </Animated.View>
@@ -230,6 +232,8 @@ const styles = StyleSheet.create({
   copyWrap: {
     marginTop: verticalScale(18),
     alignItems: "center",
+    maxWidth: "100%",
+    paddingHorizontal: moderateScale(12),
   },
 
   title: {
@@ -246,6 +250,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     color: splashPalette.subtitle,
     letterSpacing: 0.6,
+    textAlign: "center",
+  },
+
+  fullForm: {
+    marginTop: verticalScale(4),
+    maxWidth: "100%",
+    fontSize: moderateScale(11),
+    fontFamily: fonts.medium,
+    color: splashPalette.subtitle,
+    lineHeight: moderateScale(16),
     textAlign: "center",
   },
 });

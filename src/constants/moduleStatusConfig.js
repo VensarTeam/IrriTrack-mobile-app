@@ -1,4 +1,4 @@
-export const STATUS_OPTIONS = ["Completed", "Partially Completed", "Pending"];
+export const STATUS_OPTIONS = ["Completed", "Partially Completed"];
 
 export const PIPE_SIZE_OPTIONS = [
   "50 mm",
@@ -150,12 +150,12 @@ export const MODULE_STATUS_SECTIONS = [
         id: "inletPipeLaying",
         label: "Inlet Pipe Laying",
         statusLabel: "Status",
-        selectFields: [
+        inputFields: [
           {
             key: "inletPipeSize",
-            label: "Inlet Pipe Size",
-            options: PIPE_SIZE_OPTIONS,
-            placeholder: "Select pipe size",
+            label: "Inlet Pipe Size (mm)",
+            placeholder: "Enter inlet pipe size in mm",
+            keyboardType: "numeric",
           },
         ],
         checklistItems: checklist([
@@ -169,6 +169,14 @@ export const MODULE_STATUS_SECTIONS = [
         id: "outletPipeLaying",
         label: "Outlet Pipe Laying",
         statusLabel: "Status",
+        inputFields: [
+          {
+            key: "outletPipeSize",
+            label: "Outlet Pipe Size (mm)",
+            placeholder: "Enter outlet pipe size in mm",
+            keyboardType: "numeric",
+          },
+        ],
         checklistItems: checklist([
           "Check 63 mm OMS outlet pipe joined with pipeline.",
           "No. of outlet pipes({subChakQuantity})",
@@ -279,27 +287,6 @@ export const MODULE_STATUS_SECTIONS = [
           "Check Installation of ON-OFF valve.",
           "Check Installation and Tightness of MTA Compression Fitting.",
         ]),
-        repeatableGroups: [
-          {
-            key: "outletManifoldDefinitions",
-            title: "Outlet Manifold Assembly",
-            subtitle: "{subChakQuantity} outlet manifold entries created from Sub Chak Quantity.",
-            itemLabel: "Outlet Manifold",
-            itemTitleField: "outletManifoldName",
-            useSubChakQuantity: true,
-            minItems: 1,
-            maxItems: 8,
-            itemFields: [
-              {
-                key: "outletManifoldName",
-                label: "Outlet Manifold",
-                placeholder: "V1",
-                readOnly: true,
-                getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
-              },
-            ],
-          },
-        ],
         remarkLabel: "Remark",
         remarkRequiredWhen: checklistIncomplete,
         photoRequirements: [

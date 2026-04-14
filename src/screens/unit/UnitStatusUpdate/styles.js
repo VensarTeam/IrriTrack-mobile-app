@@ -567,16 +567,38 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
+  uploadActionsRow: {
+    flex:1,
+    flexDirection: "row",
+    gap: moderateScale(8),
+  },
+
   uploadButton: {
-    flexDirection:'row',
-    gap:4,
+    flex: 1,
+    flexDirection: "row",
+    gap: moderateScale(4),
     borderWidth: 1,
-    borderColor: colors.primaryBlue,
     borderRadius: moderateScale(10),
-    backgroundColor: colors.surfaceBlue,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: moderateScale(8),
     paddingVertical: verticalScale(10),
+  },
+
+  uploadCameraButton: {
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.surfaceBlue,
+  },
+
+  uploadGalleryButton: {
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.white,
+  },
+
+  uploadGalleryButtonText: {
+    color: colors.primaryBlue,
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
   },
 
   uploadButtonText: {

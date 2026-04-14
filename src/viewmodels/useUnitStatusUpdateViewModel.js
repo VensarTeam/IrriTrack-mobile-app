@@ -695,30 +695,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
   };
 
-  const showUploadOptions = (requirement) => {
-    showAppAlert({
-      type: "info",
-      title: requirement.label,
-      message: "Choose source",
-      actions: [
-        {
-          label: "Camera",
-          variant: "primary",
-          onPress: () => pickFromCamera(requirement),
-        },
-        {
-          label: "Gallery",
-          variant: "secondary",
-          onPress: () => pickFromGallery(requirement),
-        },
-        {
-          label: "Cancel",
-          variant: "secondary",
-        },
-      ],
-    });
-  };
-
   const removeSelectedPhoto = (requirementId) => {
     updateActiveValues({
       photos: {
@@ -977,7 +953,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
-    showUploadOptions,
+    pickFromCamera,
+    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,

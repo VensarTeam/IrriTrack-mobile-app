@@ -313,7 +313,7 @@ const UnitListScreen = ({ navigation, route }) => {
               />
               <LegendItem
                 color={colors.partial}
-                title="In Progress"
+                title="Partial Completed"
                 subtitle="The process is underway but still has remaining steps."
               />
             </View>

@@ -5,6 +5,7 @@ import styles from "./styles";
 import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 import { Icon } from "react-native-paper";
+import { APP_NAME, PROJECT_FULL_FORM } from "../../constants/appInfo";
 
 const DashboardScreen = ({ navigation }) => {
   const { projects, openProject } = useDashboardViewModel(navigation);
@@ -32,7 +33,8 @@ const DashboardScreen = ({ navigation }) => {
           />
         </View>
 
-        <Text style={styles.headerTitle}>Project Management Tools</Text>
+        <Text style={styles.headerTitle}>{APP_NAME}</Text>
+        <Text style={styles.headerFullForm}>{PROJECT_FULL_FORM}</Text>
       </View>
 
       <View style={styles.bodyWrapper}>

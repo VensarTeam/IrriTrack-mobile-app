@@ -1,5 +1,5 @@
 {
-  "name": "pmtapp",
+  "name": "idicm",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -28,10 +28,13 @@
     "react-native-screens": "^4.23.0",
     "react-native-svg": "^15.15.3",
     "react-native-vector-icons": "^10.3.0",
-    "react-native-vision-camera": "^4.7.3"
+    "react-native-vision-camera": "^4.7.3",
+    "react-native-vision-camera-face-detector": "^1.10.2",
+    "react-native-worklets-core": "^1.6.3"
   },
   "private": true,
   "devDependencies": {
+    "babel-preset-expo": "~54.0.4",
     "react-native-svg-transformer": "^1.5.3"
   }
 }

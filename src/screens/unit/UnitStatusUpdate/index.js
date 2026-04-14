@@ -70,7 +70,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     openMapForLocation,
     updateNodeLocation,
     isUpdatingLocation,
-    showUploadOptions,
+    pickFromCamera,
+    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,
@@ -556,16 +557,29 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         ) : null}
                       </View>
 
-                      <TouchableOpacity
-                        style={styles.uploadButton}
-                        onPress={() => showUploadOptions(requirement)}
-                        activeOpacity={0.88}
-                      >
-                        <Icons.uploadfile height={22} width={22} />
-                        <Text style={styles.uploadButtonText}>
-                          {media ? "Replace File" : "Upload File"}
-                        </Text>
-                      </TouchableOpacity>
+                      <View style={styles.uploadActionsRow}>
+                        <TouchableOpacity
+                          style={[styles.uploadButton, styles.uploadCameraButton]}
+                          onPress={() => pickFromCamera(requirement)}
+                          activeOpacity={0.88}
+                        >
+                          <Icons.uploadfile height={22} width={22} />
+                          <Text style={styles.uploadButtonText}>
+                            {media ? "Retake Photo" : "Open Camera"}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.uploadButton, styles.uploadGalleryButton]}
+                          onPress={() => pickFromGallery(requirement)}
+                          activeOpacity={0.88}
+                        >
+                          <Icons.gallery height={22} width={22} />
+                          <Text style={styles.uploadGalleryButtonText}>
+                            Gallery
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
 
                       {media?.uri ? (
                         <TouchableOpacity

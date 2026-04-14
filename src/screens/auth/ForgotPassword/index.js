@@ -13,6 +13,7 @@ import FormInput from "../../../components/FormInput";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useForgotPasswordViewModel from "../../../viewmodels/useForgotPasswordViewModel";
+import { APP_NAME, PROJECT_FULL_FORM } from "../../../constants/appInfo";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const {
@@ -241,7 +242,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.systemText}>Project Management Tools</Text>
+        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>
 
       <View style={styles.sheet}>

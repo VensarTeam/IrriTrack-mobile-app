@@ -6,7 +6,11 @@ import styles from "./styles";
 import FormInput from "../../../components/FormInput";
 import { Button } from "react-native-paper";
 import colors from "../../../constants/colors";
-import { APP_VERSION } from "../../../constants/appInfo";
+import {
+  APP_NAME,
+  APP_VERSION,
+  PROJECT_FULL_FORM,
+} from "../../../constants/appInfo";
 import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
 import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
 import WelcomeModal from "../../../components/WelcomeModal";
@@ -58,7 +62,8 @@ const LoginScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.systemText}>Project Management Tools</Text>
+        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>
 
       <View style={styles.sheet}>

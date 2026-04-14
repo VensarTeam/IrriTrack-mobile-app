@@ -12,7 +12,8 @@ export default StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-
+    justifyContent: "space-between",
+    paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(10),
   },
 

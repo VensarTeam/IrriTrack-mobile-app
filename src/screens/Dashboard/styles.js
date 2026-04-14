@@ -34,7 +34,16 @@ export default StyleSheet.create({
     fontSize: fontScale(17),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
-    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+
+  headerFullForm: {
+    maxWidth: "100%",
+    marginTop: verticalScale(4),
+    fontSize: fontScale(11),
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
+    lineHeight: fontScale(16),
     textAlign: "center",
   },
 

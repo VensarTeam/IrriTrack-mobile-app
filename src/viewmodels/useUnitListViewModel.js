@@ -32,7 +32,7 @@ const getProcessValue = (states) => {
     return "Pending";
   }
 
-  return "In Progress";
+  return "Partial Completed";
 };
 
 const getCompactProgressLabel = (completedCount, totalCount) => {

@@ -41,7 +41,16 @@ export default StyleSheet.create({
     color: colors.navyFresh,
     fontSize: moderateScale(17),
     fontFamily: fonts.bold,
-    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+
+  systemSubText: {
+    maxWidth: "100%",
+    marginTop: verticalScale(4),
+    color: colors.textSecondary,
+    fontSize: moderateScale(11),
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(16),
     textAlign: "center",
   },
 

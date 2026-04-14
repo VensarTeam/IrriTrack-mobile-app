@@ -35,6 +35,16 @@ export default StyleSheet.create({
     textAlign: "center",
   },
 
+  systemSubText: {
+    maxWidth: "100%",
+    marginTop: verticalScale(4),
+    color: colors.textSecondary,
+    fontSize: moderateScale(11),
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(16),
+    textAlign: "center",
+  },
+
   sheet: {
     flex: 1,
     backgroundColor: colors.sheetSurface,
