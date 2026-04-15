@@ -6,9 +6,10 @@ import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 import { Icon } from "react-native-paper";
 import { APP_NAME, PROJECT_FULL_FORM } from "../../constants/appInfo";
+import { Icons } from "../../constants/icons";
 
 const DashboardScreen = ({ navigation }) => {
-  const { projects, openProject } = useDashboardViewModel(navigation);
+  const { projects, openProject, handleLogout } = useDashboardViewModel(navigation);
 
   return (
     <LinearGradient
@@ -25,6 +26,16 @@ const DashboardScreen = ({ navigation }) => {
       style={{ flex: 1 }}
     >
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.logoutIconButton}
+          onPress={handleLogout}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Logout"
+        >
+          <Icons.logout height={24} width={24} />
+        </TouchableOpacity>
+
         <View style={styles.logoWrap}>
           <Image
             source={require("../../assets/images/logo.png")}

@@ -15,6 +15,16 @@ export default StyleSheet.create({
     alignItems: "center",
   },
 
+  logoutIconButton: {
+    position: "absolute",
+    top: verticalScale(36),
+    right: moderateScale(18),
+    width: moderateScale(42),
+    height: moderateScale(42),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   logoWrap: {
     backgroundColor: colors.glassWhite,
     borderWidth: 1,

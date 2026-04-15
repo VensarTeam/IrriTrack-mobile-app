@@ -16,6 +16,16 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(16),
   },
 
+  logoWrap: {
+    backgroundColor: colors.glassWhite,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(10),
+  },
+
   backButton: {
     position: "absolute",
     left: moderateScale(4),
@@ -23,15 +33,14 @@ export default StyleSheet.create({
   },
 
   logo: {
-    width: moderateScale(240),
-    height: moderateScale(68),
-    marginBottom: verticalScale(8),
+    width: moderateScale(142),
+    height: moderateScale(56),
   },
 
   systemText: {
     color: colors.navyFresh,
-    fontSize: typography.h2,
-    fontFamily: fonts.medium,
+    fontSize: moderateScale(17),
+    fontFamily: fonts.bold,
     textAlign: "center",
   },
 
@@ -92,39 +101,6 @@ export default StyleSheet.create({
     fontSize: typography.small,
     marginBottom: verticalScale(14),
     lineHeight: moderateScale(20),
-  },
-
-  switchRow: {
-    flexDirection: "row",
-    backgroundColor: colors.switchBgFresh,
-    borderRadius: moderateScale(14),
-    padding: moderateScale(4),
-    marginBottom: verticalScale(14),
-  },
-
-  switchButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(10),
-  },
-
-  switchButtonActive: {
-    backgroundColor: colors.loginBottomLight,
-    borderWidth: 1,
-    borderColor: colors.navyFreshDark,
-    elevation: 2,
-  },
-
-  switchText: {
-    color: colors.textSecondary,
-    fontSize: typography.small,
-    fontFamily: fonts.medium,
-  },
-
-  switchTextActive: {
-    color: colors.navyFreshDark,
   },
 
   otpContainer: {

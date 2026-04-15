@@ -9,17 +9,19 @@ import {
 import LinearGradient from "react-native-linear-gradient";
 import { Button, IconButton } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FormInput from "../../../components/FormInput";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useForgotPasswordViewModel from "../../../viewmodels/useForgotPasswordViewModel";
 import { APP_NAME, PROJECT_FULL_FORM } from "../../../constants/appInfo";
+import { verticalScale } from "../../../constants/metrics";
 
 const ForgotPasswordScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const {
     STEPS,
     step,
-    contactType,
     identifier,
     otp,
     password,
@@ -36,65 +38,44 @@ const ForgotPasswordScreen = ({ navigation }) => {
     handleOtpKeyPress,
     verifyOtpAndContinue,
     handleResetPassword,
-    switchContactType,
     goBackOneStep,
     handleBackPress,
     setIdentifier,
     setPassword,
     setConfirmPassword,
   } = useForgotPasswordViewModel(navigation);
+  const topSectionStyle = [
+    styles.topSection,
+    {
+      paddingTop: Math.max(insets.top + verticalScale(18), verticalScale(56)),
+    },
+  ];
+  const backButtonStyle = [
+    styles.backButton,
+    {
+      top: Math.max(insets.top + verticalScale(4), verticalScale(18)),
+    },
+  ];
+  const identifierTypeLabel = /^\d+$/.test(identifier.trim())
+    ? "mobile number"
+    : "email";
 
   const renderIdentifierStep = () => (
     <>
       <Text style={styles.sectionTitle}>Verify your account</Text>
       <Text style={styles.sectionSubtitle}>
-        Use mobile number or email to receive OTP.
+        Enter your registered mobile number or email to receive OTP.
       </Text>
 
-      <View style={styles.switchRow}>
-        <TouchableOpacity
-          style={[
-            styles.switchButton,
-            contactType === "mobile" && styles.switchButtonActive,
-          ]}
-          onPress={() => switchContactType("mobile")}
-        >
-          <Text
-            style={[
-              styles.switchText,
-              contactType === "mobile" && styles.switchTextActive,
-            ]}
-          >
-            Mobile
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.switchButton,
-            contactType === "email" && styles.switchButtonActive,
-          ]}
-          onPress={() => switchContactType("email")}
-        >
-          <Text
-            style={[
-              styles.switchText,
-              contactType === "email" && styles.switchTextActive,
-            ]}
-          >
-            Email
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <FormInput
-        label={contactType === "mobile" ? "Mobile Number" : "Email Address"}
+        label="Mobile Number or Email"
         value={identifier}
         onChangeText={setIdentifier}
         error={errors.identifier}
-        leftIcon={contactType === "mobile" ? "cellphone" : "email-outline"}
-        type={contactType === "mobile" ? "phone-pad" : "email-address"}
+        leftIcon="account-search-outline"
+        type="email-address"
         autoCapitalize="none"
+        autoCorrect={false}
         returnKeyType="done"
         onFocus={scrollToBottom}
         activeOutlineColor={colors.navyFreshDark}
@@ -118,8 +99,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     <>
       <Text style={styles.sectionTitle}>Enter OTP</Text>
       <Text style={styles.sectionSubtitle}>
-        We sent a 6-digit OTP to your {" "}
-        {contactType === "mobile" ? "mobile number" : "email"}.
+        We sent a 6-digit OTP to your registered {identifierTypeLabel}.
       </Text>
 
       <View style={styles.otpContainer}>
@@ -154,9 +134,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
       </Button>
 
       <TouchableOpacity style={styles.secondaryLink} onPress={goBackOneStep}>
-        <Text style={styles.secondaryLinkText}>
-          Change {contactType === "mobile" ? "mobile number" : "email"}
-        </Text>
+        <Text style={styles.secondaryLinkText}>Change {identifierTypeLabel}</Text>
       </TouchableOpacity>
     </>
   );
@@ -228,20 +206,22 @@ const ForgotPasswordScreen = ({ navigation }) => {
       end={{ x: 0.5, y: 1 }}
       style={styles.container}
     >
-      <View style={styles.topSection}>
+      <View style={topSectionStyle}>
         <IconButton
           icon="arrow-left"
           size={24}
           iconColor={colors.navyFreshDark}
-          style={styles.backButton}
+          style={backButtonStyle}
           onPress={handleBackPress}
         />
 
-        <Image
-          source={require("../../../assets/images/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require("../../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.systemText}>{APP_NAME}</Text>
         <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>

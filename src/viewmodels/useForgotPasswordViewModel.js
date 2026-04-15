@@ -8,10 +8,10 @@ const STEPS = {
   OTP: 2,
   PASSWORD: 3,
 };
+const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 const useForgotPasswordViewModel = (navigation) => {
   const [step, setStep] = useState(STEPS.IDENTIFIER);
-  const [contactType, setContactType] = useState("mobile");
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [password, setPassword] = useState("");
@@ -58,29 +58,28 @@ const useForgotPasswordViewModel = (navigation) => {
     }
   }, [step]);
 
-  const validateIdentifier = (value, type) => {
+  const validateIdentifier = (value) => {
     const trimmed = value.trim();
 
     if (!trimmed) {
-      return type === "mobile" ? "Mobile number is required" : "Email is required";
+      return "Mobile number or email is required";
     }
 
-    if (type === "mobile" && !/^\d{10}$/.test(trimmed)) {
-      return "Enter a valid 10-digit mobile number";
+    if (/^\d+$/.test(trimmed)) {
+      return /^\d{10}$/.test(trimmed)
+        ? null
+        : "Enter a valid 10-digit mobile number";
     }
 
-    if (
-      type === "email" &&
-      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(trimmed)
-    ) {
-      return "Enter a valid email address";
+    if (!EMAIL_PATTERN.test(trimmed)) {
+      return "Enter a valid mobile number or email address";
     }
 
     return null;
   };
 
   const goToOtpStep = () => {
-    const identifierError = validateIdentifier(identifier, contactType);
+    const identifierError = validateIdentifier(identifier);
 
     if (identifierError) {
       setErrors({ identifier: identifierError });
@@ -161,12 +160,6 @@ const useForgotPasswordViewModel = (navigation) => {
     });
   };
 
-  const switchContactType = (type) => {
-    setContactType(type);
-    setIdentifier("");
-    clearStepErrors();
-  };
-
   const goBackOneStep = () => {
     if (step === STEPS.PASSWORD) {
       setPassword("");
@@ -195,7 +188,6 @@ const useForgotPasswordViewModel = (navigation) => {
   return {
     STEPS,
     step,
-    contactType,
     identifier,
     otp,
     password,
@@ -212,7 +204,6 @@ const useForgotPasswordViewModel = (navigation) => {
     handleOtpKeyPress,
     verifyOtpAndContinue,
     handleResetPassword,
-    switchContactType,
     goBackOneStep,
     handleBackPress,
     setIdentifier,
