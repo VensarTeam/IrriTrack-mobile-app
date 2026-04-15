@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
@@ -9,7 +9,14 @@ import { APP_NAME, PROJECT_FULL_FORM } from "../../constants/appInfo";
 import { Icons } from "../../constants/icons";
 
 const DashboardScreen = ({ navigation }) => {
-  const { projects, openProject, handleLogout } = useDashboardViewModel(navigation);
+  const {
+    filteredProjects,
+    searchQuery,
+    openProject,
+    handleLogout,
+    setSearchQuery,
+    clearSearch,
+  } = useDashboardViewModel(navigation);
 
   return (
     <LinearGradient
@@ -53,11 +60,50 @@ const DashboardScreen = ({ navigation }) => {
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.sectionTitle}>Active Projects</Text>
+          <View style={styles.sectionHeadRow}>
+            <View>
+              <Text style={styles.sectionTitle}>Active Projects</Text>
+            </View>
+          </View>
 
-          {projects.map((item) => (
+          <View style={styles.searchWrap}>
+            <Icon source="magnify" size={21} color={colors.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search project or client"
+              placeholderTextColor={colors.textSecondary}
+              style={styles.searchInput}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+            {searchQuery ? (
+              <TouchableOpacity
+                style={styles.clearSearchButton}
+                onPress={clearSearch}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Clear project search"
+              >
+                <Icon source="close" size={18} color={colors.navyFreshDark} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {filteredProjects.map((item) => (
             <ProjectCard key={item.id} item={item} onPress={openProject} />
           ))}
+
+          {filteredProjects.length === 0 ? (
+            <View style={styles.emptySearchCard}>
+              <Icon source="map-search-outline" size={30} color={colors.primaryBlue} />
+              <Text style={styles.emptySearchTitle}>No projects found</Text>
+              <Text style={styles.emptySearchText}>
+                Try searching by project name or client.
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
     </LinearGradient>
@@ -74,7 +120,7 @@ const ProjectCard = ({ item, onPress }) => {
       onPress={() => onPress(item)}
     >
       <LinearGradient
-        colors={["#FCFFFD", "#EAF8EF"]}
+        colors={["#fcfeff", "#def5fb"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.card}

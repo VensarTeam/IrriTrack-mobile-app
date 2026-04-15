@@ -38,9 +38,10 @@ const PREVIEW_HEIGHT_RATIO = 0.31;
 const FACE_GUIDE_MIN_SIZE = 120;
 const FACE_GUIDE_MAX_SIZE = 208;
 const FACE_GUIDE_VERTICAL_RESERVE = 44;
-const AUTO_CONTINUE_DELAY = 450;
-const FACE_DETECTION_TARGET_FPS = 10;
-const OPEN_EYE_FRAMES_REQUIRED = 2;
+const AUTO_CONTINUE_DELAY = 700;
+const FACE_DETECTION_TARGET_FPS = 8;
+const STABLE_FACE_FRAMES_REQUIRED = 3;
+const OPEN_EYE_FRAMES_REQUIRED = 3;
 const CLOSED_EYE_FRAMES_REQUIRED = 2;
 const LOST_FACE_RESET_FRAMES = 2;
 const EYE_SMOOTHING_PREVIOUS_WEIGHT = 0.35;
@@ -51,8 +52,7 @@ const EYE_OPEN_BASELINE_DECAY = 0.92;
 const EYE_CLOSED_ABSOLUTE_THRESHOLD = 0.34;
 const EYE_CLOSED_FROM_BASELINE_DELTA = 0.16;
 const EYE_CLOSED_SINGLE_EYE_THRESHOLD = 0.22;
-const EYE_PARTIAL_BLINK_DROP_THRESHOLD = 0.14;
-const EYE_STRONG_BLINK_DROP_THRESHOLD = 0.2;
+const EYE_PARTIAL_BLINK_DROP_THRESHOLD = 0.12;
 
 function clampEyeProbability(value) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
@@ -137,7 +137,9 @@ const FaceVerificationSheet = ({
   const isCameraVisibleRef = useRef(false);
   const isCameraReadyRef = useRef(false);
   const blinkDetectedRef = useRef(false);
+  const stableFaceFrameCountRef = useRef(0);
   const wasEyeOpenRef = useRef(false);
+  const blinkClosedConfirmedRef = useRef(false);
   const closedEyeFrameCountRef = useRef(0);
   const openEyeFrameCountRef = useRef(0);
   const lostFaceFrameCountRef = useRef(0);
@@ -161,6 +163,7 @@ const FaceVerificationSheet = ({
   );
   const isReady = Boolean(faceImage?.uri);
   const isCameraVisible = visible && hasPermission && Boolean(frontCamera) && !isReady;
+  const isWaitingForBlink = isCameraVisible && !isReady;
   const faceGuideAnimatedStyle = {
     opacity: faceGuidePulseAnim.interpolate({
       inputRange: [0, 1],
@@ -201,7 +204,9 @@ const FaceVerificationSheet = ({
   }, []);
 
   const resetBlinkSignalTracking = useCallback(() => {
+    stableFaceFrameCountRef.current = 0;
     wasEyeOpenRef.current = false;
+    blinkClosedConfirmedRef.current = false;
     closedEyeFrameCountRef.current = 0;
     openEyeFrameCountRef.current = 0;
     lostFaceFrameCountRef.current = 0;
@@ -328,6 +333,7 @@ const FaceVerificationSheet = ({
     }
 
     blinkDetectedRef.current = true;
+    blinkClosedConfirmedRef.current = false;
     closedEyeFrameCountRef.current = 0;
     updateBlinkStatus("Blink detected. Capturing photo...");
     void handleTakePhoto();
@@ -363,9 +369,20 @@ const FaceVerificationSheet = ({
         }
 
         lostFaceFrameCountRef.current = 0;
+        stableFaceFrameCountRef.current = Math.min(
+          stableFaceFrameCountRef.current + 1,
+          STABLE_FACE_FRAMES_REQUIRED
+        );
+
+        if (stableFaceFrameCountRef.current < STABLE_FACE_FRAMES_REQUIRED) {
+          closedEyeFrameCountRef.current = 0;
+          updateBlinkStatus("Hold still while we check your face.");
+          return;
+        }
 
         const eyeMetrics = resolveEyeMetrics(faces[0]);
         if (!eyeMetrics) {
+          blinkClosedConfirmedRef.current = false;
           closedEyeFrameCountRef.current = 0;
           updateBlinkStatus("Look straight at the camera.");
           return;
@@ -383,6 +400,12 @@ const FaceVerificationSheet = ({
             eyeMetrics.minimum >= EYE_OPEN_WEAKER_EYE_THRESHOLD);
 
         if (eyesOpen) {
+          if (blinkClosedConfirmedRef.current) {
+            resetBlinkSignalTracking();
+            handleBlinkCapture();
+            return;
+          }
+
           eyeOpenBaselineRef.current =
             eyeOpenBaselineRef.current > 0
               ? Math.max(
@@ -397,7 +420,11 @@ const FaceVerificationSheet = ({
           wasEyeOpenRef.current =
             openEyeFrameCountRef.current >= OPEN_EYE_FRAMES_REQUIRED;
           closedEyeFrameCountRef.current = 0;
-          updateBlinkStatus("Blink once now.");
+          updateBlinkStatus(
+            wasEyeOpenRef.current
+              ? "Face verified. Blink once now."
+              : "Keep eyes open for a moment."
+          );
           return;
         }
 
@@ -427,22 +454,21 @@ const FaceVerificationSheet = ({
             averageDrop >= EYE_PARTIAL_BLINK_DROP_THRESHOLD);
 
         if (!eyesClosed) {
-          closedEyeFrameCountRef.current = 0;
+          closedEyeFrameCountRef.current = Math.max(
+            0,
+            closedEyeFrameCountRef.current - 1
+          );
           return;
         }
 
-        const strongBlink =
-          averageDrop >= EYE_STRONG_BLINK_DROP_THRESHOLD &&
-          (smoothedAverage <= closedAverageThreshold + 0.03 ||
-            eyeMetrics.minimum <= closedSingleEyeThreshold);
-
         closedEyeFrameCountRef.current += 1;
+        const clearBlinkDrop = averageDrop >= 0.18;
         if (
-          closedEyeFrameCountRef.current >=
-          (strongBlink ? 1 : CLOSED_EYE_FRAMES_REQUIRED)
+          closedEyeFrameCountRef.current >= CLOSED_EYE_FRAMES_REQUIRED ||
+          clearBlinkDrop
         ) {
-          resetBlinkSignalTracking();
-          handleBlinkCapture();
+          blinkClosedConfirmedRef.current = true;
+          updateBlinkStatus("Blink detected. Open eyes to capture.");
         }
       }),
     [handleBlinkCapture, resetBlinkSignalTracking, updateBlinkStatus]
@@ -693,9 +719,12 @@ const FaceVerificationSheet = ({
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TouchableOpacity
-              style={[styles.primaryButton, isTakingPhoto && styles.disabledButton]}
+              style={[
+                styles.primaryButton,
+                (isTakingPhoto || isWaitingForBlink) && styles.disabledButton,
+              ]}
               onPress={isReady ? onRetake : handleTakePhoto}
-              disabled={isTakingPhoto}
+              disabled={isTakingPhoto || isWaitingForBlink}
               activeOpacity={0.9}
             >
               {isTakingPhoto ? (
@@ -704,8 +733,10 @@ const FaceVerificationSheet = ({
                 <Text style={styles.primaryButtonText}>
                   {isReady
                     ? "Retake photo"
-                    : hasPermission
-                      ? "Capture now"
+                    : isWaitingForBlink
+                      ? "Waiting for blink"
+                      : hasPermission
+                        ? "Start face check"
                       : "Allow camera"}
                 </Text>
               )}

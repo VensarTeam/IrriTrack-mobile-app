@@ -9,14 +9,14 @@ const colors = {
   darkGreen:'#418f05',
 
   // Shared app theme
-  vibrantGradientTop: "#CAE4F8",
-  vibrantGradientMid: "#A7F4D5",
-  vibrantGradientBlend: "#A8BCF3",
+  vibrantGradientTop: "#eff7fc",
+  vibrantGradientMid: "#9ce9df",
+  vibrantGradientBlend: "#92bbf4",
   loginPageGradientMid: "#EEF2FF",
   loginPageGradientEnd: "#FFFFFF",
-  loginHeroGradientStart: "#CAE4F8",
-  loginHeroGradientMid: "#A7F4D5",
-  loginHeroGradientEnd: "#A8BCF3",
+  loginHeroGradientStart: "#f1f6fa",
+  loginHeroGradientMid: "#a1faef",
+  loginHeroGradientEnd: "#a5c5f3",
   navyFresh: "#123B63",
   navyFreshDark: "#0C2E4D",
   switchBgFresh: "#EAF4FF",
@@ -49,7 +49,7 @@ const colors = {
   border: "#D9E8F5",
   inputBg: "#F6FBFF",
   inputOutline: "#4ba8fe",
-  danger: "#E05252",
+  danger: "#c20a0a",
 
   // Accent surfaces
   surfaceBlue: "#EAF3FF",

@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Platform, Text, TextInput } from "react-native";
+import { Platform, StatusBar, Text, TextInput } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { Provider as PaperProvider } from "react-native-paper";
 import * as SplashScreen from "expo-splash-screen";
 import { paperTheme } from "./src/constants/paperTheme";
 import fonts from "./src/constants/fonts";
+import colors from "./src/constants/colors";
 import RootNavigator from "./src/navigation/RootNavigator";
 import AndroidSplash from "./src/components/AndroidSplash";
 import AppAlertProvider from "./src/context/AppAlertProvider";
@@ -77,11 +78,23 @@ const App = () => {
   }, [isNativeSplashHidden]);
 
   if (isAndroid && (!isNativeSplashHidden || !isStartupDone)) {
-    return <AndroidSplash onLayout={handleAndroidSplashLayout} />;
+    return (
+      <>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={colors.loginHeroGradientStart}
+        />
+        <AndroidSplash onLayout={handleAndroidSplashLayout} />
+      </>
+    );
   }
 
   return (
     <PaperProvider theme={paperTheme}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={colors.loginHeroGradientStart}
+      />
       <AppAlertProvider>
         <NavigationContainer>
           <RootNavigator />
