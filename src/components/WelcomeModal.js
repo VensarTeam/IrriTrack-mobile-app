@@ -60,18 +60,29 @@ const WelcomeModal = ({ visible, onClose, userName }) => {
             },
           ]}
         >
-          <View style={styles.animationWrap}>
-            <Image
-              source={require("../assets/gif/logged_In.gif")}
-              style={styles.successGif}
-              resizeMode="contain"
-            />
+          <View style={styles.handle} />
+
+          <View style={styles.successWrap}>
+            <View style={styles.successHalo}>
+              <View style={styles.animationWrap}>
+                <Image
+                  source={require("../assets/gif/logged_In.gif")}
+                  style={styles.successGif}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
           </View>
 
-          <Text style={styles.title}>You're in</Text>
+          <View style={styles.verifiedPill}>
+            <Text style={styles.verifiedDot}>●</Text>
+            <Text style={styles.verifiedText}>Verified</Text>
+          </View>
+
+          <Text style={styles.title}>Welcome</Text>
 
           {userName && <Text style={styles.userName}>{userName}</Text>}
-          <Text style={styles.subtitle}>Opening your dashboard</Text>
+          <Text style={styles.subtitle}>Opening dashboard</Text>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -89,36 +100,92 @@ const styles = StyleSheet.create({
 
   sheet: {
     backgroundColor: colors.white,
-    paddingTop: moderateScale(28),
-    paddingHorizontal: moderateScale(28),
-    borderTopLeftRadius: moderateScale(28),
-    borderTopRightRadius: moderateScale(28),
+    paddingTop: moderateScale(14),
+    paddingHorizontal: moderateScale(24),
+    borderTopLeftRadius: moderateScale(30),
+    borderTopRightRadius: moderateScale(30),
+    borderTopWidth: 1,
+    borderColor: colors.loginSheetBorderLight,
+  },
+
+  handle: {
+    width: moderateScale(48),
+    height: verticalScale(5),
+    borderRadius: moderateScale(999),
+    alignSelf: "center",
+    backgroundColor: colors.cardBorder,
+    marginBottom: verticalScale(22),
+  },
+
+  successWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: verticalScale(4),
+  },
+
+  successHalo: {
+    width: moderateScale(118),
+    height: moderateScale(118),
+    borderRadius: moderateScale(59),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.loginSheetBorderLight,
   },
 
   animationWrap: {
-    width: moderateScale(112),
-    height: moderateScale(112),
+    width: moderateScale(82),
+    height: moderateScale(82),
+    borderRadius: moderateScale(41),
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "center",
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.loginSheetBorderLight,
   },
 
   successGif: {
-    width: moderateScale(60),
-    height: moderateScale(60),
+    width: moderateScale(56),
+    height: moderateScale(56),
+  },
+
+  verifiedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: moderateScale(6),
+    borderRadius: moderateScale(999),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    backgroundColor: colors.lightGreen,
+    borderWidth: 1,
+    borderColor: colors.primaryGreen,
+    marginTop: verticalScale(14),
+  },
+
+  verifiedDot: {
+    color: colors.primaryGreen,
+    fontSize: moderateScale(8),
+  },
+
+  verifiedText: {
+    color: colors.navyFreshDark,
+    fontSize: moderateScale(12),
+    fontFamily: fonts.semiBold,
   },
 
   title: {
     fontSize: typography.h1,
     fontFamily: fonts.bold,
-    marginTop: verticalScale(18),
+    marginTop: verticalScale(16),
     textAlign: "center",
     color: colors.textDark,
   },
 
   subtitle: {
     fontSize: typography.small,
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(10),
     textAlign: "center",
     color: colors.textSecondary,
     fontFamily: fonts.regular,
@@ -126,9 +193,9 @@ const styles = StyleSheet.create({
 
   userName: {
     fontSize: moderateScale(20),
-    fontFamily: fonts.medium,
+    fontFamily: fonts.semiBold,
     textAlign: "center",
-    marginTop: verticalScale(8),
-    color: colors.primaryBlue,
+    marginTop: verticalScale(6),
+    color: colors.navyFresh,
   },
 });

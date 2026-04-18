@@ -6,7 +6,6 @@ import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 import { Icon } from "react-native-paper";
 import { APP_NAME, PROJECT_FULL_FORM } from "../../constants/appInfo";
-import { Icons } from "../../constants/icons";
 
 const DashboardScreen = ({ navigation }) => {
   const {
@@ -19,41 +18,47 @@ const DashboardScreen = ({ navigation }) => {
   } = useDashboardViewModel(navigation);
 
   return (
-    <LinearGradient
-      colors={[
-        colors.loginHeroGradientStart,
-        colors.loginHeroGradientMid,
-        colors.loginHeroGradientEnd,
-        colors.loginPageGradientMid,
-        colors.loginPageGradientEnd,
-      ]}
-      locations={[0, 0.2, 0.42, 0.72, 1]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={{ flex: 1 }}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.logoutIconButton}
-          onPress={handleLogout}
-          activeOpacity={0.75}
-          accessibilityRole="button"
-          accessibilityLabel="Logout"
-        >
-          <Icons.logout height={24} width={24} />
-        </TouchableOpacity>
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={[
+          colors.loginHeroGradientStart,
+          colors.loginHeroGradientMid,
+          colors.loginHeroGradientEnd,
+        ]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTopRow}>
+          <View style={styles.brandRow}>
+            <View style={styles.logoWrap}>
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
 
-        <View style={styles.logoWrap}>
-          <Image
-            source={require("../../assets/images/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+            <View style={styles.brandCopy}>
+              <Text style={styles.headerTitle}>{APP_NAME}</Text>
+              <Text style={styles.headerFullForm} numberOfLines={2}>
+                {PROJECT_FULL_FORM}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.logoutIconButton}
+            onPress={handleLogout}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Logout"
+          >
+            <Icon source="logout" size={25} color={colors.navyFreshDark} />
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.headerTitle}>{APP_NAME}</Text>
-        <Text style={styles.headerFullForm}>{PROJECT_FULL_FORM}</Text>
-      </View>
+      </LinearGradient>
 
       <View style={styles.bodyWrapper}>
         <ScrollView
@@ -106,7 +111,7 @@ const DashboardScreen = ({ navigation }) => {
           ) : null}
         </ScrollView>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -119,43 +124,42 @@ const ProjectCard = ({ item, onPress }) => {
       style={styles.cardShadow}
       onPress={() => onPress(item)}
     >
-      <LinearGradient
-        colors={["#fcfeff", "#def5fb"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={styles.cardTop}>
-          <View style={styles.cardTopLeft}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require("../../assets/images/gov_logo.png")}
-                style={styles.govLogo}
-                resizeMode="contain"
-              />
-            </View>
-
-            <View style={styles.titleGroup}>
-              <Text style={styles.projectName} numberOfLines={2}>
-                {item.name}
-              </Text>
-            </View>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("../../assets/images/gov_logo.png")}
+              style={styles.govLogo}
+              resizeMode="contain"
+            />
           </View>
-        </View>
 
-        <View style={styles.divider} />
-
-        <View style={styles.cardBottom}>
-          <View style={styles.areaContainer}>
-            <Text style={styles.areaLabel}>Project Area</Text>
-            <Text style={styles.areaValue}>{item.area}</Text>
+          <View style={styles.titleGroup}>
+            <Text style={styles.projectName} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <Text style={styles.projectClient} numberOfLines={1}>
+              {item.client}
+            </Text>
           </View>
 
           <View style={styles.arrowContainer}>
-            <Icon source="chevron-right" size={18} color={colors.white} />
+            <Icon source="chevron-right" size={19} color={colors.primaryBlue} />
           </View>
         </View>
-      </LinearGradient>
+
+        <View style={styles.areaRow}>
+          <Icon
+            source="map-marker-radius-outline"
+            size={15}
+            color={colors.textSecondary}
+          />
+          <Text style={styles.areaLabel}>Area</Text>
+          <Text style={styles.areaValue} numberOfLines={1}>
+            {item.area}
+          </Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 };

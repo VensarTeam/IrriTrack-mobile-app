@@ -24,6 +24,7 @@ const LoginScreen = ({ navigation }) => {
     password,
     setPassword,
     errors,
+    submitError,
     validate,
     scrollToBottom,
     goToForgotPassword,
@@ -32,6 +33,8 @@ const LoginScreen = ({ navigation }) => {
     faceError,
     showWelcome,
     welcomeName,
+    isCredentialsSubmitting,
+    isFaceSubmitting,
     closeVerificationSheet,
     handleFaceCaptured,
     retakeFaceVerification,
@@ -89,6 +92,7 @@ const LoginScreen = ({ navigation }) => {
             error={errors.identifier}
             leftIcon="cellphone"
             type="phone-pad"
+            editable={!isCredentialsSubmitting && !isFaceSubmitting}
             returnKeyType="next"
             onSubmitEditing={() => passwordRef.current?.focus()}
             onFocus={scrollToBottom}
@@ -103,6 +107,7 @@ const LoginScreen = ({ navigation }) => {
             secure
             error={errors.password}
             leftIcon="lock"
+            editable={!isCredentialsSubmitting && !isFaceSubmitting}
             returnKeyType="done"
             inputRef={passwordRef}
             onFocus={scrollToBottom}
@@ -110,9 +115,15 @@ const LoginScreen = ({ navigation }) => {
             outlineColor={colors.switchBgFresh}
           />
 
-          <TouchableOpacity style={styles.forgotButton} onPress={goToForgotPassword}>
+          <TouchableOpacity
+            style={styles.forgotButton}
+            onPress={goToForgotPassword}
+            disabled={isCredentialsSubmitting || isFaceSubmitting}
+          >
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
+
+          {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
           <Button
             mode="contained"
@@ -121,6 +132,8 @@ const LoginScreen = ({ navigation }) => {
             contentStyle={styles.loginButtonContent}
             buttonColor={colors.navyFresh}
             textColor={colors.white}
+            loading={isCredentialsSubmitting}
+            disabled={isCredentialsSubmitting || isFaceSubmitting}
           >
             Log In
           </Button>
@@ -138,6 +151,7 @@ const LoginScreen = ({ navigation }) => {
         onRetake={retakeFaceVerification}
         onCaptureError={handleFaceCaptureError}
         onContinue={continueAfterFaceVerification}
+        isSubmitting={isFaceSubmitting}
       />
 
       <WelcomeModal

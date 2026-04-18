@@ -4,21 +4,40 @@ import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
-  header: {
-    paddingTop: verticalScale(34),
-    paddingBottom: verticalScale(36),
-    alignItems: "center",
-    paddingHorizontal: moderateScale(16),
+  screen: {
+    flex: 1,
+    backgroundColor: colors.white,
   },
 
-  logoWrap: {
-    backgroundColor: colors.glassWhite,
+  header: {
+    paddingTop: verticalScale(38),
+    paddingBottom: verticalScale(14),
+    paddingHorizontal: moderateScale(18),
+    borderBottomLeftRadius: moderateScale(18),
+    borderBottomRightRadius: moderateScale(18),
+    overflow: "hidden",
+  },
+
+  headerTitleRow: {
+    minHeight: moderateScale(48),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  logoCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: moderateScale(20),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(8),
-    marginBottom: verticalScale(10),
+    borderColor: "rgba(18, 59, 99, 0.08)",
+    borderRadius: moderateScale(18),
+    paddingVertical: verticalScale(14),
+    marginBottom: verticalScale(14),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
   },
 
   logo: {
@@ -27,9 +46,10 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: moderateScale(18),
+    fontSize: moderateScale(20),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
+    textAlign: "center",
   },
 
   headerSubtitle: {
@@ -41,26 +61,26 @@ export default StyleSheet.create({
 
   bodyWrapper: {
     flex: 1,
-    backgroundColor: colors.sheetSurface,
-    borderTopWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    marginTop: verticalScale(-20),
-    borderTopLeftRadius: moderateScale(30),
-    borderTopRightRadius: moderateScale(30),
-    overflow: "hidden",
+    backgroundColor: colors.white,
   },
 
   container: {
-    padding: moderateScale(20),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(22),
+    paddingBottom: verticalScale(24),
   },
 
   card: {
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(20),
-    padding: moderateScale(18),
-    marginBottom: verticalScale(16),
+    borderColor: "rgba(18, 59, 99, 0.08)",
+    borderRadius: moderateScale(18),
+    padding: moderateScale(16),
+    marginBottom: verticalScale(12),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
     elevation: 2,
   },
 

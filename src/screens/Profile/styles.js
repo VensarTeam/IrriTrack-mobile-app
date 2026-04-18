@@ -4,19 +4,67 @@ import fonts from "../../constants/fonts";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
   header: {
-    paddingVertical: verticalScale(50),
+    paddingTop: verticalScale(38),
+    paddingBottom: verticalScale(14),
+    paddingHorizontal: moderateScale(18),
+    borderBottomLeftRadius: moderateScale(18),
+    borderBottomRightRadius: moderateScale(18),
+    overflow: "hidden",
+  },
+
+  headerTitleRow: {
+    minHeight: moderateScale(48),
     alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: moderateScale(20),
+    fontFamily: fonts.bold,
+    color: colors.navyFreshDark,
+    textAlign: "center",
+  },
+
+  bodyWrapper: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
+  detailsContainer: {
+    flexGrow: 1,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    paddingHorizontal: moderateScale(20),
+    paddingTop: verticalScale(22),
+    paddingBottom: verticalScale(24),
   },
 
   avatar: {
     width: moderateScale(100),
     height: moderateScale(100),
     borderRadius: moderateScale(50),
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceBlue,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: "rgba(18, 59, 99, 0.08)",
+  },
+
+  avatarImage: {
+    width: moderateScale(100),
+    height: moderateScale(100),
+    borderRadius: moderateScale(50),
+    marginBottom: verticalScale(16),
+    borderWidth: 2,
+    borderColor: colors.white,
+    backgroundColor: colors.surfaceBlue,
   },
 
   initials: {
@@ -29,33 +77,63 @@ export default StyleSheet.create({
     fontSize: moderateScale(20),
     fontFamily: fonts.medium,
     color: colors.navyFreshDark,
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(10),
   },
 
-  badge: {
-    backgroundColor: colors.glassWhite,
+  designationPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    maxWidth: "88%",
+    backgroundColor: "rgba(255,255,255,0.58)",
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: "rgba(255,255,255,0.84)",
+    borderRadius: moderateScale(999),
     paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(6),
-    borderRadius: moderateScale(50),
+    paddingVertical: verticalScale(7),
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 3,
   },
 
-  badgeText: {
+  designationDot: {
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(4),
+    backgroundColor: colors.primaryGreen,
+    marginRight: moderateScale(8),
+    shadowColor: colors.primaryGreen,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+
+  designationText: {
     color: colors.navyFreshDark,
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(12.5),
+    lineHeight: moderateScale(17),
+    fontFamily: fonts.semiBold,
+    letterSpacing: 0.2,
+    textAlign: "center",
   },
 
-  detailsContainer: {
-    flex: 1,
-    backgroundColor: colors.sheetSurface,
-    borderTopWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    marginTop: verticalScale(-24),
-    borderTopLeftRadius: moderateScale(30),
-    borderTopRightRadius: moderateScale(30),
-    overflow: "hidden",
-    padding: moderateScale(20),
+  infoCard: {
+    width: "100%",
+    marginTop: verticalScale(22),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "rgba(18, 59, 99, 0.08)",
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(16),
+    paddingBottom: verticalScale(4),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
   },
 
   infoRow: {
@@ -78,14 +156,15 @@ export default StyleSheet.create({
   },
 
   logoutButton: {
-    flexDirection:'row',
-    gap:4,
-    marginTop: verticalScale(30),
+    width: "100%",
+    flexDirection: "row",
+    gap: moderateScale(6),
+    marginTop: verticalScale(18),
     backgroundColor: colors.danger,
     paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(12),
     alignItems: "center",
-    justifyContent:'center'
+    justifyContent: "center",
   },
 
   logoutText: {

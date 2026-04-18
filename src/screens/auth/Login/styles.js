@@ -98,6 +98,13 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  submitError: {
+    color: colors.danger,
+    fontSize: typography.small,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(8),
+  },
+
   loginButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(14),

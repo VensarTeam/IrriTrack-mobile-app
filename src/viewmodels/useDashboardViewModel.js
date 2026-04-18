@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { getProjects } from "../repositories/projectRepository";
 import { showAppAlert } from "../services/alertService";
+import { useAuth } from "../context/AuthContext";
 
 const useDashboardViewModel = (navigation) => {
+  const { logout } = useAuth();
   const projects = getProjects();
   const [searchQuery, setSearchQuery] = useState("");
   const filteredProjects = useMemo(() => {
@@ -39,10 +41,13 @@ const useDashboardViewModel = (navigation) => {
           label: "Logout",
           variant: "danger",
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
-            });
+            void (async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
+              });
+            })();
           },
         },
       ],

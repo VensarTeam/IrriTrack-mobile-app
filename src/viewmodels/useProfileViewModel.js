@@ -1,13 +1,32 @@
+import { useCallback, useEffect, useState } from "react";
 import { ROUTES } from "../navigation/routes";
-import { getCurrentUser } from "../repositories/userRepository";
 import { showAppAlert } from "../services/alertService";
+import { useAuth } from "../context/AuthContext";
 
 const useProfileViewModel = (navigation) => {
-  const user = getCurrentUser();
-  const initials = user.name
+  const { logout, refreshProfile, user: authenticatedUser } = useAuth();
+  const [isRefreshingProfile, setIsRefreshingProfile] = useState(false);
+  const user = authenticatedUser || {};
+  const initials = (user.name || "User")
     .split(" ")
     .map((part) => part[0])
     .join("");
+
+  const loadProfile = useCallback(async () => {
+    setIsRefreshingProfile(true);
+
+    try {
+      await refreshProfile();
+    } catch (error) {
+      console.warn("Unable to load profile", error);
+    } finally {
+      setIsRefreshingProfile(false);
+    }
+  }, [refreshProfile]);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
 
   const handleLogout = () => {
     showAppAlert({
@@ -23,10 +42,13 @@ const useProfileViewModel = (navigation) => {
           label: "Logout",
           variant: "danger",
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
-            });
+            void (async () => {
+              await logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
+              });
+            })();
           },
         },
       ],
@@ -37,6 +59,7 @@ const useProfileViewModel = (navigation) => {
   return {
     user,
     initials,
+    isRefreshingProfile,
     handleLogout,
   };
 };

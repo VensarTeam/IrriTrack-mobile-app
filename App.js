@@ -9,6 +9,7 @@ import colors from "./src/constants/colors";
 import RootNavigator from "./src/navigation/RootNavigator";
 import AndroidSplash from "./src/components/AndroidSplash";
 import AppAlertProvider from "./src/context/AppAlertProvider";
+import { AuthProvider } from "./src/context/AuthContext";
 
 const isAndroid = Platform.OS === "android";
 
@@ -95,11 +96,13 @@ const App = () => {
         barStyle="dark-content"
         backgroundColor={colors.loginHeroGradientStart}
       />
-      <AppAlertProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </AppAlertProvider>
+      <AuthProvider>
+        <AppAlertProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AppAlertProvider>
+      </AuthProvider>
     </PaperProvider>
   );
 };

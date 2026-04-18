@@ -9,12 +9,24 @@ import UnitDetailsScreen from "../screens/unit/UnitDetails";
 import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
 import UnitStatusOverviewScreen from "../screens/unit/UnitStatusOverview";
 import UnitGalleryScreen from "../screens/unit/UnitGallery";
+import { useAuth } from "../context/AuthContext";
 
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
+  const { isAuthenticated, isRestoring } = useAuth();
+
+  if (isRestoring) {
+    return null;
+  }
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={
+        isAuthenticated ? ROUTES.ROOT.APP_TABS : ROUTES.ROOT.AUTH_STACK
+      }
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name={ROUTES.ROOT.AUTH_STACK} component={AuthStack} />
       <Stack.Screen name={ROUTES.ROOT.APP_TABS} component={AppTabs} />
       <Stack.Screen

@@ -8,62 +8,77 @@ import {
 } from "../../constants/metrics";
 
 export default StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
   header: {
     paddingTop: verticalScale(38),
-    paddingBottom: verticalScale(28),
-    paddingHorizontal: moderateScale(20),
+    paddingBottom: verticalScale(16),
+    paddingHorizontal: moderateScale(18),
+    borderBottomLeftRadius: moderateScale(18),
+    borderBottomRightRadius: moderateScale(18),
+    overflow: "hidden",
+  },
+
+  headerTopRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  brandRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: moderateScale(12),
+  },
+
+  brandCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: moderateScale(10),
   },
 
   logoutIconButton: {
-    position: "absolute",
-    top: verticalScale(38),
-    right: moderateScale(18),
-    padding: moderateScale(8),
+    width: moderateScale(42),
+    height: moderateScale(42),
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 2,
-    backgroundColor: colors.primaryBlue,
-    borderRadius: moderateScale(21),
-    borderWidth: 1,
-    borderColor: "rgba(50, 168, 116, 0.12)",
-    shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 3,
   },
 
   logoWrap: {
+    width: moderateScale(82),
+    height: moderateScale(48),
     backgroundColor: colors.glassWhite,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    borderRadius: moderateScale(20),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(8),
-    marginBottom: verticalScale(10),
+    borderRadius: moderateScale(14),
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   logo: {
-    width: moderateScale(142),
-    height: moderateScale(56),
+    width: moderateScale(72),
+    height: moderateScale(28),
   },
 
   headerTitle: {
-    fontSize: fontScale(17),
+    fontSize: fontScale(18),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
-    textAlign: "center",
+    lineHeight: fontScale(22),
   },
 
   headerFullForm: {
     maxWidth: "100%",
-    marginTop: verticalScale(4),
-    fontSize: fontScale(11),
+    marginTop: verticalScale(2),
+    fontSize: fontScale(10),
     fontFamily: fonts.medium,
     color: colors.textSecondary,
-    lineHeight: fontScale(16),
-    textAlign: "center",
+    lineHeight: fontScale(14),
   },
 
   headerSubtitle: {
@@ -75,17 +90,12 @@ export default StyleSheet.create({
 
   bodyWrapper: {
     flex: 1,
-    backgroundColor: colors.sheetSurface,
-    borderTopWidth: 1,
-    borderColor: "rgba(50, 168, 116, 0.16)",
-    marginTop: verticalScale(-14),
-    borderTopLeftRadius: moderateScale(24),
-    borderTopRightRadius: moderateScale(24),
-    overflow: "hidden",
+    backgroundColor: colors.white,
   },
 
   container: {
-    padding: moderateScale(18),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(22),
     paddingBottom: verticalScale(24),
   },
 
@@ -110,21 +120,21 @@ export default StyleSheet.create({
   },
 
   searchWrap: {
-    minHeight: verticalScale(52),
+    minHeight: verticalScale(50),
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(10),
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(14),
     paddingHorizontal: moderateScale(14),
-    borderRadius: moderateScale(18),
+    borderRadius: moderateScale(16),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: "rgba(18, 59, 99, 0.08)",
     shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
   },
 
   searchInput: {
@@ -173,44 +183,39 @@ export default StyleSheet.create({
   },
 
   cardShadow: {
-    marginBottom: verticalScale(14),
-    borderRadius: moderateScale(24),
-    shadowColor:  colors.primaryBlue,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 4,
+    marginBottom: verticalScale(12),
+    borderRadius: moderateScale(18),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
   },
 
   card: {
-    borderRadius: moderateScale(24),
-    paddingHorizontal: moderateScale(18),
-    paddingVertical: verticalScale(16),
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
     borderWidth: 1,
-    borderColor: "rgba(50, 168, 116, 0.16)",
+    borderColor: "rgba(18, 59, 99, 0.08)",
   },
 
   cardTop: {
-    alignItems: "flex-start",
-    marginBottom: verticalScale(10),
-  },
-
-  cardTopLeft: {
-    flex: 1,
     flexDirection: "row",
-    alignItems: "flex-start",
-    width: "100%",
+    alignItems: "center",
+    marginBottom: verticalScale(12),
   },
 
   logoContainer: {
-    width: moderateScale(48),
-    height: moderateScale(48),
-    borderRadius: moderateScale(16),
-    backgroundColor: "rgba(255,255,255,0.92)",
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.surfaceBlue,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(50, 168, 116, 0.12)",
+    borderColor: "rgba(18, 59, 99, 0.08)",
     marginRight: moderateScale(12),
   },
 
@@ -223,71 +228,65 @@ export default StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
-    minHeight: moderateScale(48),
+    minHeight: moderateScale(44),
     paddingRight: moderateScale(2),
   },
 
   projectName: {
     flexShrink: 1,
-    fontSize: fontScale(16),
+    fontSize: fontScale(15),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
-    lineHeight: fontScale(21),
+    lineHeight: fontScale(20),
     includeFontPadding: false,
   },
 
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(50, 168, 116, 0.12)",
-    marginBottom: verticalScale(12),
+  projectClient: {
+    marginTop: verticalScale(4),
+    fontSize: fontScale(12),
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
+    lineHeight: fontScale(16),
+    includeFontPadding: false,
   },
 
-  cardBottom: {
+  areaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: verticalScale(2),
-  },
-
-  areaContainer: {
-    minWidth: 0,
-    marginRight: moderateScale(10),
-    backgroundColor: "rgba(255,255,255,0.86)",
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(10),
-    borderRadius: moderateScale(16),
+    minHeight: verticalScale(38),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.surfaceBlue,
     borderWidth: 1,
-    borderColor: "rgba(50, 168, 116, 0.14)",
+    borderColor: "rgba(18, 59, 99, 0.08)",
   },
 
   areaLabel: {
-    fontSize: fontScale(10),
+    marginLeft: moderateScale(6),
+    marginRight: moderateScale(8),
+    fontSize: fontScale(11),
     color: colors.textSecondary,
-    letterSpacing: 0.6,
-    marginBottom: verticalScale(3),
     fontFamily: fonts.medium,
   },
 
   areaValue: {
-    fontSize: fontScale(14),
+    flex: 1,
+    minWidth: 0,
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
     color: colors.primaryBlue,
-    lineHeight: fontScale(18),
+    lineHeight: fontScale(16),
     includeFontPadding: false,
   },
 
   arrowContainer: {
-    width: moderateScale(38),
-    height: moderateScale(38),
+    width: moderateScale(34),
+    height: moderateScale(34),
     flexShrink: 0,
-    borderRadius: moderateScale(12),
-    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlue,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 3,
   },
 });

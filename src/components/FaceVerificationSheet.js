@@ -5,7 +5,6 @@ import {
   Image,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,18 +25,13 @@ import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import typography from "../constants/typography";
 import { moderateScale, verticalScale } from "../constants/metrics";
+import { compressFaceImage } from "../services/imageCompression";
 
 const SHEET_HIDDEN_OFFSET = 420;
 const SHEET_TOP_MARGIN = 24;
 const SHEET_MIN_HEIGHT = 280;
 const SHEET_OPEN_DURATION = 320;
 const OVERLAY_FADE_DURATION = 240;
-const PREVIEW_MAX_HEIGHT = 250;
-const PREVIEW_MIN_HEIGHT = 180;
-const PREVIEW_HEIGHT_RATIO = 0.31;
-const FACE_GUIDE_MIN_SIZE = 120;
-const FACE_GUIDE_MAX_SIZE = 208;
-const FACE_GUIDE_VERTICAL_RESERVE = 44;
 const AUTO_CONTINUE_DELAY = 700;
 const FACE_DETECTION_TARGET_FPS = 8;
 const STABLE_FACE_FRAMES_REQUIRED = 3;
@@ -101,38 +95,30 @@ const FaceVerificationSheet = ({
   onRetake,
   onCaptureError,
   onContinue,
+  isSubmitting = false,
 }) => {
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const hiddenSheetOffset = Math.min(windowHeight, verticalScale(SHEET_HIDDEN_OFFSET));
   const sheetMaxHeight = Math.max(
     verticalScale(SHEET_MIN_HEIGHT),
     windowHeight - Math.max(insets.top, verticalScale(SHEET_TOP_MARGIN)),
   );
-  const previewHeight = Math.min(
-    verticalScale(PREVIEW_MAX_HEIGHT),
-    Math.max(verticalScale(PREVIEW_MIN_HEIGHT), windowHeight * PREVIEW_HEIGHT_RATIO),
+  const scannerGuideSize = Math.min(
+    moderateScale(320),
+    Math.max(moderateScale(230), windowWidth * 0.72)
   );
-  const faceGuideSize = Math.max(
-    moderateScale(FACE_GUIDE_MIN_SIZE),
-    Math.min(
-      moderateScale(FACE_GUIDE_MAX_SIZE),
-      previewHeight - verticalScale(FACE_GUIDE_VERTICAL_RESERVE),
-    ),
-  );
-  const previewHeightStyle = { minHeight: previewHeight };
-  const cameraHeightStyle = { height: previewHeight };
-  const faceCircleStyle = {
-    width: faceGuideSize,
-    height: faceGuideSize,
-    borderRadius: faceGuideSize / 2,
+  const scannerFaceGuideStyle = {
+    width: scannerGuideSize,
+    height: scannerGuideSize,
+    borderRadius: scannerGuideSize / 2,
   };
   const slideAnim = useRef(new Animated.Value(hiddenSheetOffset)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const faceGuidePulseAnim = useRef(new Animated.Value(0)).current;
-  const blinkAnim = useRef(new Animated.Value(1)).current;
   const cameraRef = useRef(null);
   const autoContinueTimerRef = useRef(null);
+  const autoContinuedPhotoUriRef = useRef("");
   const isTakingPhotoRef = useRef(false);
   const isCameraVisibleRef = useRef(false);
   const isCameraReadyRef = useRef(false);
@@ -158,12 +144,13 @@ const FaceVerificationSheet = ({
   const frontCamera = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [blinkStatus, setBlinkStatus] = useState(
     "Align your face inside the circle"
   );
   const isReady = Boolean(faceImage?.uri);
-  const isCameraVisible = visible && hasPermission && Boolean(frontCamera) && !isReady;
-  const isWaitingForBlink = isCameraVisible && !isReady;
+  const isCameraVisible =
+    visible && isScanning && hasPermission && Boolean(frontCamera) && !isReady;
   const faceGuideAnimatedStyle = {
     opacity: faceGuidePulseAnim.interpolate({
       inputRange: [0, 1],
@@ -174,16 +161,6 @@ const FaceVerificationSheet = ({
         scale: faceGuidePulseAnim.interpolate({
           inputRange: [0, 1],
           outputRange: [1, 1.06],
-        }),
-      },
-    ],
-  };
-  const blinkEyeAnimatedStyle = {
-    transform: [
-      {
-        scaleY: blinkAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.18, 1],
         }),
       },
     ],
@@ -229,10 +206,18 @@ const FaceVerificationSheet = ({
   }, [isCameraVisible]);
 
   useEffect(() => {
+    if (isReady) {
+      setIsScanning(false);
+    }
+  }, [isReady]);
+
+  useEffect(() => {
     if (!visible) {
       slideAnim.setValue(hiddenSheetOffset);
       fadeAnim.setValue(0);
+      autoContinuedPhotoUriRef.current = "";
       isTakingPhotoRef.current = false;
+      setIsScanning(false);
       setIsTakingPhoto(false);
       resetBlinkDetection();
       clearAutoContinueTimer();
@@ -258,6 +243,41 @@ const FaceVerificationSheet = ({
     resetBlinkDetection,
     slideAnim,
     visible,
+  ]);
+
+  const handleStartScan = useCallback(async () => {
+    if (isSubmitting || isTakingPhotoRef.current) return;
+
+    if (isReady) {
+      onRetake?.();
+    }
+
+    if (!hasPermission) {
+      const granted = await requestPermission();
+
+      if (!granted) {
+        onCaptureError?.("Camera access is required to continue.");
+        return;
+      }
+    }
+
+    if (!frontCamera) {
+      onCaptureError?.("Front camera is not available on this device.");
+      return;
+    }
+
+    onCaptureError?.("");
+    resetBlinkDetection();
+    setIsScanning(true);
+  }, [
+    frontCamera,
+    hasPermission,
+    isReady,
+    isSubmitting,
+    onCaptureError,
+    onRetake,
+    requestPermission,
+    resetBlinkDetection,
   ]);
 
   const handleTakePhoto = useCallback(async () => {
@@ -296,19 +316,22 @@ const FaceVerificationSheet = ({
         ? photo.path
         : `file://${photo.path}`;
 
-      const capturedPhoto = {
+      const capturedPhoto = await compressFaceImage({
         uri,
         fileName: `face-verification-${Date.now()}.jpg`,
         width: photo.width,
         height: photo.height,
-      };
+        type: "image/jpeg",
+      });
 
+      setIsScanning(false);
       setIsTakingPhoto(false);
       isTakingPhotoRef.current = false;
       onCapture?.(capturedPhoto);
     } catch (captureError) {
       onCaptureError?.("Unable to capture photo. Please try again.");
       resetBlinkDetection();
+      setIsScanning(false);
       isTakingPhotoRef.current = false;
       setIsTakingPhoto(false);
     }
@@ -492,7 +515,6 @@ const FaceVerificationSheet = ({
   useEffect(() => {
     if (!isCameraVisible) {
       faceGuidePulseAnim.stopAnimation();
-      blinkAnim.stopAnimation();
       resetBlinkDetection();
       return undefined;
     }
@@ -511,38 +533,14 @@ const FaceVerificationSheet = ({
         }),
       ])
     );
-    const blinkAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(blinkAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(blinkAnim, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(blinkAnim, {
-          toValue: 1,
-          duration: 160,
-          useNativeDriver: true,
-        }),
-        Animated.delay(900),
-      ])
-    );
-
     pulseAnimation.start();
-    blinkAnimation.start();
     updateBlinkStatus("Center your face, then blink once.");
 
     return () => {
       pulseAnimation.stop();
-      blinkAnimation.stop();
       resetBlinkDetection();
     };
   }, [
-    blinkAnim,
     faceGuidePulseAnim,
     isCameraVisible,
     resetBlinkDetection,
@@ -550,98 +548,150 @@ const FaceVerificationSheet = ({
   ]);
 
   useEffect(() => {
-    if (!visible || !isReady || !onContinue) return undefined;
+    if (!visible || !isReady || !faceImage?.uri || !onContinue || isSubmitting) {
+      if (!isReady) {
+        autoContinuedPhotoUriRef.current = "";
+      }
+      return undefined;
+    }
 
+    if (autoContinuedPhotoUriRef.current === faceImage.uri) {
+      return undefined;
+    }
+
+    autoContinuedPhotoUriRef.current = faceImage.uri;
     autoContinueTimerRef.current = setTimeout(onContinue, AUTO_CONTINUE_DELAY);
 
     return clearAutoContinueTimer;
-  }, [clearAutoContinueTimer, isReady, onContinue, visible]);
+  }, [
+    clearAutoContinueTimer,
+    faceImage?.uri,
+    isReady,
+    isSubmitting,
+    onContinue,
+    visible,
+  ]);
 
-  const renderPreview = () => {
-    if (isReady) {
-      return (
-        <View style={[styles.capturedPreviewWrap, previewHeightStyle]}>
-          <View style={[styles.capturedCircle, faceCircleStyle]}>
-            <Image
-              source={{ uri: faceImage.uri }}
-              style={styles.capturedImage}
-              resizeMode="cover"
-            />
-          </View>
-          <Text style={styles.capturedLabel}>Captured photo</Text>
-        </View>
-      );
-    }
+  const renderScanner = () => (
+    <View style={styles.scannerScreen}>
+      <Camera
+        ref={cameraRef}
+        style={styles.scannerCamera}
+        device={frontCamera}
+        isActive={isCameraVisible}
+        photo
+        frameProcessor={frameProcessor}
+        resizeMode="cover"
+        androidPreviewViewType="texture-view"
+        onInitialized={() => {
+          isCameraReadyRef.current = true;
+          updateBlinkStatus("Center your face, then blink once.");
+        }}
+      />
 
-    if (isCameraVisible) {
-      return (
-        <View style={[styles.cameraWrap, cameraHeightStyle]}>
-          <Camera
-            ref={cameraRef}
-            style={styles.camera}
-            device={frontCamera}
-            isActive={isCameraVisible}
-            photo
-            frameProcessor={frameProcessor}
-            resizeMode="cover"
-            androidPreviewViewType="texture-view"
-            onInitialized={() => {
-              isCameraReadyRef.current = true;
-              updateBlinkStatus("Center your face, then blink once.");
-            }}
-          />
-          <View pointerEvents="none" style={styles.cameraOverlay}>
-            <Animated.View
-              style={[styles.faceGuide, faceCircleStyle, faceGuideAnimatedStyle]}
-            />
-            <View style={styles.blinkCue}>
-              <View style={styles.blinkEyesRow}>
-                <Animated.View style={[styles.blinkEye, blinkEyeAnimatedStyle]}>
-                  <View style={styles.blinkPupil} />
-                </Animated.View>
-                <Animated.View style={[styles.blinkEye, blinkEyeAnimatedStyle]}>
-                  <View style={styles.blinkPupil} />
-                </Animated.View>
-              </View>
-              <Text style={styles.blinkCueText}>Blink once</Text>
-            </View>
-            <View style={styles.countdownBadge}>
-              {isTakingPhoto ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.countdownText}>ML</Text>
-              )}
-            </View>
-            <View style={styles.guideLabel}>
-              <Text style={styles.guideLabelText}>{blinkStatus}</Text>
-            </View>
-          </View>
-        </View>
-      );
-    }
-
-    if (!hasPermission) {
-      return (
-        <View style={styles.previewPlaceholder}>
-          <View style={styles.previewAvatar} />
-          <Text style={styles.previewTitle}>Camera access required</Text>
-          <Text style={styles.previewText}>
-            Allow access to use the front camera for verification.
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.previewPlaceholder}>
-        <View style={styles.previewAvatar} />
-        <Text style={styles.previewTitle}>Front camera required</Text>
-        <Text style={styles.previewText}>
-          Front camera is not available on this device.
-        </Text>
+      <View style={[styles.scannerTopBar, { paddingTop: insets.top + verticalScale(10) }]}>
+        <TouchableOpacity
+          style={styles.scannerBackButton}
+          onPress={() => {
+            setIsScanning(false);
+            resetBlinkDetection();
+          }}
+          disabled={isTakingPhoto}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.scannerBackText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.scannerTitle}>Face scan</Text>
+        <View style={styles.scannerBackButtonPlaceholder} />
       </View>
-    );
-  };
+
+      <View pointerEvents="none" style={styles.scannerOverlay}>
+        <Animated.View
+          style={[
+            styles.faceGuide,
+            scannerFaceGuideStyle,
+            faceGuideAnimatedStyle,
+          ]}
+        />
+        <View style={styles.scannerStatusPill}>
+          {isTakingPhoto ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={styles.scannerStatusText}>{blinkStatus}</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderSetupSheet = () => (
+    <Animated.View
+      style={[
+        styles.sheet,
+        {
+          maxHeight: sheetMaxHeight,
+          paddingBottom:
+            Math.max(insets.bottom, verticalScale(16)) + verticalScale(18),
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      <View style={styles.handle} />
+
+      <View style={styles.setupHero}>
+        {isReady ? (
+          <Image
+            source={{ uri: faceImage.uri }}
+            style={styles.setupFacePreview}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.setupFaceIcon}>
+            <View style={styles.setupFaceHead} />
+            <View style={styles.setupFaceBody} />
+          </View>
+        )}
+      </View>
+
+      <Text style={styles.title}>
+        {isReady ? "Verifying face" : "Verify it's you with your face"}
+      </Text>
+      <Text style={styles.subtitle}>
+        {isReady ? "Almost done." : "Center your face and blink once."}
+      </Text>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <TouchableOpacity
+        style={[
+          styles.primaryButton,
+          (isTakingPhoto || isSubmitting) && styles.disabledButton,
+        ]}
+        onPress={isReady ? onContinue : handleStartScan}
+        disabled={isTakingPhoto || isSubmitting}
+        activeOpacity={0.9}
+      >
+        {isTakingPhoto || isSubmitting ? (
+          <ActivityIndicator size="small" color={colors.white} />
+        ) : (
+          <Text style={styles.primaryButtonText}>
+            {isReady ? "Continue" : "Scan my face"}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      {isReady ? (
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={handleStartScan}
+          disabled={isSubmitting}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.linkButtonText}>Scan again</Text>
+        </TouchableOpacity>
+      ) : null}
+    </Animated.View>
+  );
 
   return (
     <Modal
@@ -649,115 +699,19 @@ const FaceVerificationSheet = ({
       visible={visible}
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={isSubmitting ? undefined : onClose}
     >
-      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              maxHeight: sheetMaxHeight,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <View style={styles.handle} />
-
-          <ScrollView
-            style={styles.scrollArea}
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingBottom: Math.max(insets.bottom, verticalScale(16)) + verticalScale(12),
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            overScrollMode="never"
-          >
-            <View style={styles.headerRow}>
-              <View style={styles.headerCopy}>
-                <Text style={styles.eyebrow}>Verification</Text>
-                <Text style={styles.title}>Face verification</Text>
-                <Text style={styles.subtitle}>
-                  Place your face inside the circle. ML Kit will detect your
-                  blink and capture automatically.
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.statusBadge,
-                  isReady ? styles.statusBadgeSuccess : styles.statusBadgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    isReady ? styles.statusTextSuccess : styles.statusTextPending,
-                  ]}
-                >
-                  {isReady
-                    ? "Ready"
-                    : isCameraVisible
-                      ? "Auto capture"
-                      : "Capture required"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.previewCard, previewHeightStyle]}>{renderPreview()}</View>
-
-            <View style={styles.noteCard}>
-              <Text style={styles.noteText}>Keep your face centered and visible.</Text>
-              <Text style={styles.noteText}>Use good lighting.</Text>
-              <Text style={styles.noteText}>Open your eyes first, then blink once.</Text>
-            </View>
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                (isTakingPhoto || isWaitingForBlink) && styles.disabledButton,
-              ]}
-              onPress={isReady ? onRetake : handleTakePhoto}
-              disabled={isTakingPhoto || isWaitingForBlink}
-              activeOpacity={0.9}
-            >
-              {isTakingPhoto ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {isReady
-                    ? "Retake photo"
-                    : isWaitingForBlink
-                      ? "Waiting for blink"
-                      : hasPermission
-                        ? "Start face check"
-                      : "Allow camera"}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            {isReady ? (
-              <TouchableOpacity
-                style={[
-                  styles.secondaryButton,
-                  isTakingPhoto && styles.disabledButton,
-                ]}
-                onPress={onContinue}
-                disabled={isTakingPhoto}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.secondaryButtonText}>Continue</Text>
-              </TouchableOpacity>
-            ) : null}
-          </ScrollView>
+      {isScanning && !isReady ? (
+        renderScanner()
+      ) : (
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+          <Pressable
+            style={styles.backdrop}
+            onPress={isSubmitting ? undefined : onClose}
+          />
+          {renderSetupSheet()}
         </Animated.View>
-      </Animated.View>
+      )}
     </Modal>
   );
 };
@@ -779,19 +733,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopLeftRadius: moderateScale(30),
     borderTopRightRadius: moderateScale(30),
-    paddingHorizontal: moderateScale(22),
+    paddingHorizontal: moderateScale(24),
     paddingTop: verticalScale(14),
     borderTopWidth: 1,
     borderColor: colors.loginSheetBorderLight,
-    gap: verticalScale(12),
-  },
-
-  scrollArea: {
-    width: "100%",
-  },
-
-  scrollContent: {
-    gap: verticalScale(12),
+    gap: verticalScale(14),
   },
 
   handle: {
@@ -802,26 +748,137 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
   },
 
-  headerRow: {
-    gap: verticalScale(12),
+  setupHero: {
+    width: moderateScale(148),
+    height: moderateScale(148),
+    borderRadius: moderateScale(74),
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.loginSheetBorderLight,
+    marginTop: verticalScale(6),
   },
 
-  headerCopy: {
-    gap: verticalScale(4),
+  setupFaceIcon: {
+    width: moderateScale(92),
+    height: moderateScale(92),
+    borderRadius: moderateScale(28),
+    borderWidth: 2,
+    borderColor: colors.navyFresh,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
   },
 
-  eyebrow: {
-    color: colors.primaryGreen,
-    fontSize: moderateScale(12),
+  setupFaceHead: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    borderWidth: 2,
+    borderColor: colors.primaryGreen,
+    marginBottom: verticalScale(4),
+  },
+
+  setupFaceBody: {
+    width: moderateScale(54),
+    height: verticalScale(24),
+    borderTopLeftRadius: moderateScale(28),
+    borderTopRightRadius: moderateScale(28),
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderColor: colors.primaryGreen,
+  },
+
+  setupFacePreview: {
+    width: "100%",
+    height: "100%",
+    borderRadius: moderateScale(74),
+  },
+
+  scannerScreen: {
+    flex: 1,
+    backgroundColor: colors.cameraSurface,
+  },
+
+  scannerCamera: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  scannerTopBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    zIndex: 3,
+    paddingHorizontal: moderateScale(20),
+    paddingBottom: verticalScale(14),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(12, 46, 77, 0.42)",
+  },
+
+  scannerBackButton: {
+    width: moderateScale(42),
+    height: moderateScale(42),
+    borderRadius: moderateScale(21),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.92)",
+  },
+
+  scannerBackButtonPlaceholder: {
+    width: moderateScale(42),
+    height: moderateScale(42),
+  },
+
+  scannerBackText: {
+    color: colors.navyFreshDark,
+    fontSize: moderateScale(30),
+    fontFamily: fonts.medium,
+    marginTop: verticalScale(-3),
+  },
+
+  scannerTitle: {
+    color: colors.white,
+    fontSize: moderateScale(18),
+    fontFamily: fonts.bold,
+  },
+
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(24),
+  },
+
+  scannerStatusPill: {
+    position: "absolute",
+    bottom: verticalScale(54),
+    minHeight: verticalScale(46),
+    borderRadius: moderateScale(999),
+    paddingHorizontal: moderateScale(18),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.guideLabelSurface,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+
+  scannerStatusText: {
+    color: colors.white,
+    fontSize: moderateScale(13),
     fontFamily: fonts.semiBold,
-    textTransform: "uppercase",
-    letterSpacing: typography.letterSpacing.eyebrow,
+    textAlign: "center",
   },
 
   title: {
     color: colors.textDark,
     fontSize: typography.h2,
     fontFamily: fonts.bold,
+    textAlign: "center",
   },
 
   subtitle: {
@@ -829,88 +886,7 @@ const styles = StyleSheet.create({
     fontSize: typography.small,
     fontFamily: fonts.regular,
     lineHeight: moderateScale(20),
-  },
-
-  statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(7),
-    borderRadius: moderateScale(999),
-  },
-
-  statusBadgePending: {
-    backgroundColor: colors.surfaceBlue,
-  },
-
-  statusBadgeSuccess: {
-    backgroundColor: colors.lightGreen,
-  },
-
-  statusText: {
-    fontSize: moderateScale(12),
-    fontFamily: fonts.semiBold,
-  },
-
-  statusTextPending: {
-    color: colors.navyFreshDark,
-  },
-
-  statusTextSuccess: {
-    color: colors.darkGreen,
-  },
-
-  previewCard: {
-    borderRadius: moderateScale(18),
-    borderWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    backgroundColor: colors.surfaceBluePale,
-    overflow: "hidden",
-    minHeight: verticalScale(212),
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  capturedPreviewWrap: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: verticalScale(20),
-    gap: verticalScale(12),
-  },
-
-  capturedCircle: {
-    overflow: "hidden",
-    borderWidth: 3,
-    borderColor: colors.white,
-    backgroundColor: colors.surfaceBlue,
-  },
-
-  capturedImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  capturedLabel: {
-    color: colors.textDark,
-    fontSize: moderateScale(13),
-    fontFamily: fonts.medium,
-  },
-
-  cameraWrap: {
-    width: "100%",
-    backgroundColor: colors.cameraSurface,
-  },
-
-  camera: {
-    flex: 1,
-  },
-
-  cameraOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: moderateScale(24),
-    paddingVertical: verticalScale(18),
+    textAlign: "center",
   },
 
   faceGuide: {
@@ -919,136 +895,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.faceGuideSurface,
   },
 
-  blinkCue: {
-    position: "absolute",
-    top: verticalScale(16),
-    alignSelf: "center",
-    alignItems: "center",
-    borderRadius: moderateScale(999),
-    backgroundColor: colors.guideLabelSurface,
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(8),
-  },
-
-  blinkEyesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: moderateScale(8),
-    marginBottom: verticalScale(3),
-  },
-
-  blinkEye: {
-    width: moderateScale(24),
-    height: verticalScale(13),
-    borderRadius: moderateScale(14),
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  blinkPupil: {
-    width: moderateScale(6),
-    height: moderateScale(6),
-    borderRadius: moderateScale(3),
-    backgroundColor: colors.navyFreshDark,
-  },
-
-  blinkCueText: {
-    color: colors.white,
-    fontSize: moderateScale(11),
-    fontFamily: fonts.semiBold,
-  },
-
-  countdownBadge: {
-    position: "absolute",
-    right: moderateScale(18),
-    top: verticalScale(18),
-    width: moderateScale(42),
-    height: moderateScale(42),
-    borderRadius: moderateScale(21),
-    backgroundColor: colors.guideLabelSurface,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.faceGuideBorder,
-  },
-
-  countdownText: {
-    color: colors.white,
-    fontSize: moderateScale(15),
-    fontFamily: fonts.bold,
-  },
-
-  guideLabel: {
-    position: "absolute",
-    bottom: verticalScale(18),
-    alignSelf: "center",
-    backgroundColor: colors.guideLabelSurface,
-    borderRadius: moderateScale(999),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(8),
-  },
-
-  guideLabelText: {
-    color: colors.white,
-    fontSize: moderateScale(12),
-    fontFamily: fonts.medium,
-  },
-
-  previewPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: moderateScale(24),
-    paddingVertical: verticalScale(24),
-  },
-
-  previewAvatar: {
-    width: moderateScale(86),
-    height: moderateScale(86),
-    borderRadius: moderateScale(43),
-    backgroundColor: colors.surfaceBlue,
-    borderWidth: 6,
-    borderColor: colors.switchBgFresh,
-    marginBottom: verticalScale(12),
-  },
-
-  previewTitle: {
-    color: colors.textDark,
-    fontSize: moderateScale(16),
-    fontFamily: fonts.bold,
-    textAlign: "center",
-    marginBottom: verticalScale(4),
-  },
-
-  previewText: {
-    color: colors.textSecondary,
-    fontSize: typography.small,
-    fontFamily: fonts.regular,
-    textAlign: "center",
-    lineHeight: moderateScale(20),
-  },
-
-  noteCard: {
-    borderRadius: moderateScale(16),
-    padding: moderateScale(16),
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    gap: verticalScale(6),
-  },
-
-  noteText: {
-    color: colors.textDark,
-    fontSize: moderateScale(13),
-    fontFamily: fonts.regular,
-    lineHeight: moderateScale(18),
-  },
-
   errorText: {
     color: colors.danger,
     fontSize: moderateScale(13),
     fontFamily: fonts.medium,
+    textAlign: "center",
   },
 
   primaryButton: {
@@ -1080,6 +931,18 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.darkGreen,
     fontSize: typography.body,
+    fontFamily: fonts.semiBold,
+  },
+
+  linkButton: {
+    minHeight: verticalScale(38),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  linkButtonText: {
+    color: colors.navyFresh,
+    fontSize: moderateScale(13),
     fontFamily: fonts.semiBold,
   },
 

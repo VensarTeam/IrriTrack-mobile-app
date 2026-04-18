@@ -9,36 +9,36 @@ const AboutScreen = () => {
   const { sections } = useAboutUsViewModel();
 
   return (
-    <LinearGradient
-      colors={[
-        colors.loginHeroGradientStart,
-        colors.loginHeroGradientMid,
-        colors.loginHeroGradientEnd,
-        colors.loginPageGradientMid,
-        colors.loginPageGradientEnd,
-      ]}
-      locations={[0, 0.2, 0.42, 0.72, 1]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={{ flex: 1 }}
-    >
-      <View style={styles.header}>
-        <View style={styles.logoWrap}>
-          <Image
-            source={require("../../assets/images/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={[
+          colors.loginHeroGradientStart,
+          colors.loginHeroGradientMid,
+          colors.loginHeroGradientEnd,
+        ]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle}>About Us</Text>
         </View>
-
-        <Text style={styles.headerTitle}>About Us</Text>
-      </View>
+      </LinearGradient>
 
       <View style={styles.bodyWrapper}>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.logoCard}>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
           {sections.map((section) => (
             <SectionCard
               key={section.title}
@@ -48,7 +48,7 @@ const AboutScreen = () => {
           ))}
         </ScrollView>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
