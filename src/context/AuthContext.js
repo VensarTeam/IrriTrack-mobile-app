@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }) => {
   const refreshPromiseRef = useRef(null);
   const unlockPromiseRef = useRef(null);
   const sessionRef = useRef(null);
-  const appStateRef = useRef(AppState.currentState);
 
   const setActiveSession = useCallback((nextSession) => {
     sessionRef.current = nextSession;
@@ -275,18 +274,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
-      const wasActive = appStateRef.current === "active";
-      appStateRef.current = nextAppState;
       setIsAppActive(nextAppState === "active");
-
-      if (
-        wasActive &&
-        nextAppState !== "active" &&
-        isSessionAvailable(sessionRef.current)
-      ) {
-        setIsAppLocked(true);
-        setUnlockError("");
-      }
     });
 
     return () => {

@@ -216,7 +216,7 @@ export default StyleSheet.create({
 
   projectName: {
     flexShrink: 1,
-    fontSize: fontScale(15),
+    fontSize: fontScale(13),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     lineHeight: fontScale(20),

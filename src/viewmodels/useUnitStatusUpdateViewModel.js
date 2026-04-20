@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
@@ -8,8 +8,12 @@ import {
 } from "../constants/moduleStatusConfig";
 import { openLocation } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
-import { submitChecklistOfflineFirst } from "../services/checklistOfflineSync";
+import {
+  getCachedChecklistProcessMaster,
+  submitChecklistOfflineFirst,
+} from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
+import { buildChecklistSectionsFromMaster } from "../services/checklistMasterAdapter";
 
 const DEFAULT_SUB_CHAK_QUANTITY = 6;
 
@@ -217,10 +221,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
-  const sections = useMemo(
+  const fallbackSections = useMemo(
     () => getModuleAwareSections(module, unit),
     [module, unit]
   );
+  const [apiSections, setApiSections] = useState([]);
+  const [masterSource, setMasterSource] = useState("static");
+  const sections = apiSections.length ? apiSections : fallbackSections;
 
   const section =
     sections.find((item) => item.key === sectionKey) || sections[0];
@@ -248,6 +255,99 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const applyProcesses = (processes, source) => {
+      const nextSections = buildChecklistSectionsFromMaster({
+        processes,
+        module,
+      });
+      const checklistCount = nextSections.reduce(
+        (count, sectionItem) =>
+          count +
+          sectionItem.subOptions.reduce(
+            (subCount, subOption) =>
+              subCount + (subOption.apiChecklists?.length || 0),
+            0
+          ),
+        0
+      );
+
+      if (!nextSections.length || !checklistCount || !isMounted) {
+        console.log("[ChecklistForm]", "Master skipped", {
+          source,
+          processCount: nextSections.length,
+          checklistCount,
+        });
+        return false;
+      }
+
+      console.log("[ChecklistForm]", "Master loaded", {
+        source,
+        processCount: nextSections.length,
+        subprocessCount: nextSections.reduce(
+          (count, item) => count + (item.subOptions?.length || 0),
+          0
+        ),
+        checklistCount,
+      });
+      setApiSections(nextSections);
+      setMasterSource(source);
+      return true;
+    };
+
+    const loadMaster = async () => {
+      console.log("[ChecklistForm]", "Loading checklist master from SQLite", {
+        deviceType: module,
+      });
+
+      try {
+        const cachedProcesses = await getCachedChecklistProcessMaster({
+          deviceType: module,
+        });
+        const applied = applyProcesses(cachedProcesses, "sqlite-cache");
+
+        if (!applied) {
+          console.log("[ChecklistForm]", "Using static fallback checklist data");
+        }
+      } catch (error) {
+        console.log("[ChecklistForm]", "Local master cache unavailable", {
+          message: error?.message,
+        });
+      }
+    };
+
+    void loadMaster();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [module]);
+
+  useEffect(() => {
+    const nextSection =
+      sections.find((item) => item.key === sectionKey) || sections[0];
+    const nextSubOptionId =
+      nextSection?.subOptions?.find((sub) => sub.id === requestedSubOptionId)
+        ?.id || nextSection?.subOptions?.[0]?.id;
+
+    if (!nextSection || !nextSubOptionId) return;
+
+    console.log("[ChecklistForm]", "Form ready", {
+      source: masterSource,
+      sectionKey: nextSection.key,
+      subOptionId: nextSubOptionId,
+      checklistCount: nextSection.subOptions.reduce(
+        (count, item) => count + (item.apiChecklists?.length || 0),
+        0
+      ),
+    });
+    setActiveSubOptionId(nextSubOptionId);
+    setFormValues(getInitialFormValues(nextSection, unit));
+    setFieldErrors({});
+  }, [masterSource, requestedSubOptionId, sectionKey, sections, unit]);
+
   const activeSubOption = useMemo(
     () =>
       section.subOptions.find((sub) => sub.id === activeSubOptionId) ||
@@ -255,7 +355,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     [activeSubOptionId, section.subOptions]
   );
 
-  const activeValues = formValues[activeSubOption.id];
+  const activeValues =
+    formValues[activeSubOption.id] ||
+    getInitialFormValues({ subOptions: [activeSubOption] }, unit)[
+      activeSubOption.id
+    ];
   const activeErrors = fieldErrors[activeSubOption.id] || {};
   const unitLabel = unit?.unitNo || `${module}-001`;
 
@@ -312,7 +416,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setFormValues((prev) => ({
       ...prev,
       [subOptionId]: {
-        ...prev[subOptionId],
+        ...(prev[subOptionId] || {}),
         ...updates,
       },
     }));
@@ -493,8 +597,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const toggleChecklistItem = (itemId) => {
     updateActiveValues({
       checks: {
-        ...activeValues.checks,
-        [itemId]: !activeValues.checks[itemId],
+        ...(activeValues.checks || {}),
+        [itemId]: !activeValues.checks?.[itemId],
       },
     });
 
@@ -546,6 +650,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     if (isUpdatingLocation) return;
 
     setIsUpdatingLocation(true);
+    console.log("[ChecklistLocation]", "Update current location pressed", {
+      subOptionId: activeSubOption.id,
+      defaultLocation: activeValues.defaultLocation,
+    });
 
     try {
       const hasPermission = await requestLocationPermission();
@@ -563,6 +671,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const currentSubOptionId = activeSubOption.id;
       const capturedAt = new Date().toLocaleString();
 
+      console.log("[ChecklistLocation]", "Current location captured", {
+        subOptionId: currentSubOptionId,
+        updatedLocation: nextLocation,
+      });
       updateValuesForSubOption(currentSubOptionId, {
         updatedLocation: nextLocation,
         updatedAt: capturedAt,
@@ -573,11 +685,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         nextLocation.latitude,
         nextLocation.longitude
       ).then((address) => {
+        console.log("[ChecklistLocation]", "Updated address resolved", {
+          subOptionId: currentSubOptionId,
+          hasAddress: !!address,
+        });
         updateValuesForSubOption(currentSubOptionId, {
           updatedAddress: address || "Address unavailable (offline/network issue)",
         });
       });
     } catch (error) {
+      console.log("[ChecklistLocation]", "Current location failed", {
+        message: error?.message,
+      });
       showAppAlert({
         type: "danger",
         title: "Location unavailable",
@@ -772,6 +891,26 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       nextErrors.remark = "Remark is required";
     }
 
+    if (
+      activeSubOption.locationChecklist?.required &&
+      activeSubOption.canUpdateLocation &&
+      !activeValues.updatedLocation
+    ) {
+      nextErrors.form = "Please update current location";
+    }
+
+    const missingChecklistItems = checklistItems.filter(
+      (item) =>
+        isRequiredByRule(item, activeValues, activeSubOption) &&
+        !activeValues.checks?.[item.id]
+    );
+
+    if (missingChecklistItems.length) {
+      nextErrors.form =
+        nextErrors.form ||
+        `Please complete ${missingChecklistItems.length} required checklist item(s)`;
+    }
+
     if (repeatableGroups.length) {
       const repeatableErrors = {};
 
@@ -855,60 +994,229 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const buildSubmissionPayload = () => ({
-    module,
-    deviceType: module,
-    unitId: unit?.id || null,
-    unitNo: unitLabel,
-    sectionKey: section.key,
-    subOptionId: activeSubOption.id,
-    status: showStatusField ? activeValues.status : "",
-    remark: showRemarkField ? activeValues.remark : "",
-    checklist: checklistItems.map((item) => ({
-      id: item.id,
-      label: item.label,
-      response: activeValues.checks[item.id] ? 1 : 0,
-      checked: activeValues.checks[item.id] ? 1 : 0,
-    })),
-    selectValues: selectFields.map((field) => ({
-      key: field.key,
-      label: field.label,
-      value: activeValues[field.key],
-    })),
-    inputValues: inputFields.map((field) => ({
-      key: field.key,
-      label: field.label,
-      value: activeValues[field.key],
-    })),
-    repeatableValues: repeatableGroups.map((group) => ({
-      key: group.key,
-      title: group.title,
-      items: (activeValues.repeatableGroups?.[group.key] || []).map((item, index) => ({
-        itemIndex: index + 1,
-        values: (group.itemFields || []).map((field) => ({
-          key: field.key,
-          label: field.label,
-          value: item[field.key],
-        })),
-      })),
-    })),
-    photos: photoRequirements
+  const buildAnswer = (source = {}, value, extra = {}) => ({
+    checklist_id: source.checklistId || null,
+    description: source.label || source.description || "",
+    input_type: source.inputType || extra.input_type || "text",
+    data_type: source.dataType || extra.data_type || "varchar",
+    input_unit: source.inputUnit ?? null,
+    seq_no: source.seqNo ?? null,
+    is_required: source.required !== false,
+    value,
+    ...extra,
+  });
+
+  const buildChecklistAnswers = () => {
+    const answers = [];
+
+    if (showStatusField) {
+      answers.push(
+        buildAnswer(
+          {
+            label: activeSubOption.statusLabel || "Status",
+            inputType: "dropdown",
+            dataType: "varchar",
+          },
+          activeValues.status || ""
+        )
+      );
+    }
+
+    if (activeSubOption.locationChecklist) {
+      answers.push(
+        buildAnswer(activeSubOption.locationChecklist, {
+          default_location: activeValues.defaultLocation,
+          default_address: activeValues.defaultAddress,
+          updated_location: activeValues.updatedLocation,
+          updated_address: activeValues.updatedAddress,
+          updated_at: activeValues.updatedAt,
+        })
+      );
+    }
+
+    checklistItems.forEach((item) => {
+      const checked = !!activeValues.checks?.[item.id];
+      answers.push(
+        buildAnswer(item, checked, {
+          display_value: checked ? "Yes" : "No",
+        })
+      );
+    });
+
+    selectFields.forEach((field) => {
+      answers.push(buildAnswer(field, activeValues[field.key] || ""));
+    });
+
+    inputFields.forEach((field) => {
+      answers.push(buildAnswer(field, activeValues[field.key] || ""));
+    });
+
+    if (showRemarkField) {
+      answers.push(
+        buildAnswer(
+          activeSubOption.remarkChecklist || {
+            label: activeSubOption.remarkLabel || "Remark",
+            inputType: "textarea",
+            dataType: "varchar",
+            required: isRemarkRequired,
+          },
+          activeValues.remark || ""
+        )
+      );
+    }
+
+    repeatableGroups.forEach((group) => {
+      answers.push(
+        buildAnswer(
+          {
+            label: group.title,
+            inputType: "repeatable",
+            dataType: "json",
+            required: true,
+          },
+          (activeValues.repeatableGroups?.[group.key] || []).map(
+            (item, index) => ({
+              item_index: index + 1,
+              values: (group.itemFields || []).map((field) => ({
+                key: field.key,
+                label: field.label,
+                value: item[field.key],
+              })),
+            })
+          ),
+          {
+            key: group.key,
+          }
+        )
+      );
+    });
+
+    photoRequirements.forEach((requirement) => {
+      const media = activeValues.photos?.[requirement.id] || null;
+      answers.push(
+        buildAnswer(requirement, media?.filePath || media?.uri || "", {
+          file: media
+            ? {
+                file_name: media.name,
+                file_path: media.filePath || media.uri,
+                local_uri: media.uri,
+                source: media.source,
+                mime_type: media.type,
+                size_kb: media.sizeKb,
+                width: media.width,
+                height: media.height,
+                media_type: media.mediaType,
+                taken_at: media.takenAt,
+              }
+            : null,
+        })
+      );
+    });
+
+    return answers.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
+  };
+
+  const buildSubmissionPayload = () => {
+    const submittedAt = new Date().toISOString();
+    const photos = photoRequirements
       .map((requirement) => ({
+        checklistId: requirement.checklistId || null,
         requirementId: requirement.id,
         requirementLabel: requirement.label,
+        inputType: requirement.inputType || "photo",
+        dataType: requirement.dataType || "image",
+        inputUnit: requirement.inputUnit ?? null,
+        seqNo: requirement.seqNo ?? null,
+        isRequired: requirement.required !== false,
         ...activeValues.photos?.[requirement.id],
       }))
-      .filter((item) => item.uri),
-    defaultLocation: activeValues.defaultLocation,
-    updatedLocation: activeValues.updatedLocation,
-    updatedAt: activeValues.updatedAt,
-    submittedAt: new Date().toISOString(),
-  });
+      .filter((item) => item.uri);
+
+    return {
+      draft_version: 1,
+      submit_type: "oms_checklist_submission",
+      module,
+      deviceType: module,
+      device_type: module,
+      project_name: projectName,
+      unit: {
+        unit_id: unit?.id || null,
+        unit_no: unitLabel,
+        village: unit?.village || "",
+        distributor: unit?.distributor || "",
+        zone: unit?.zone || "",
+      },
+      unitId: unit?.id || null,
+      unitNo: unitLabel,
+      sectionKey: section.key,
+      subOptionId: activeSubOption.id,
+      process_id: section.apiProcessId || null,
+      process_description: section.apiDescription || section.title || "",
+      process_seq_no: section.apiSeqNo ?? null,
+      subprocess_id: activeSubOption.apiSubprocessId || null,
+      subprocess_description:
+        activeSubOption.apiDescription || activeSubOption.label || "",
+      subprocess_seq_no: activeSubOption.apiSeqNo ?? null,
+      status: showStatusField ? activeValues.status : "",
+      remark: showRemarkField ? activeValues.remark : "",
+      answers: buildChecklistAnswers(),
+      checklist: checklistItems.map((item) => ({
+        id: item.id,
+        checklist_id: item.checklistId || null,
+        label: item.label,
+        response: activeValues.checks?.[item.id] ? 1 : 0,
+        checked: activeValues.checks?.[item.id] ? 1 : 0,
+      })),
+      selectValues: selectFields.map((field) => ({
+        key: field.key,
+        checklist_id: field.checklistId || null,
+        label: field.label,
+        value: activeValues[field.key],
+      })),
+      inputValues: inputFields.map((field) => ({
+        key: field.key,
+        checklist_id: field.checklistId || null,
+        label: field.label,
+        value: activeValues[field.key],
+      })),
+      repeatableValues: repeatableGroups.map((group) => ({
+        key: group.key,
+        title: group.title,
+        items: (activeValues.repeatableGroups?.[group.key] || []).map(
+          (item, index) => ({
+            itemIndex: index + 1,
+            values: (group.itemFields || []).map((field) => ({
+              key: field.key,
+              label: field.label,
+              value: item[field.key],
+            })),
+          })
+        ),
+      })),
+      photos,
+      defaultLocation: activeValues.defaultLocation,
+      updatedLocation: activeValues.updatedLocation,
+      updatedAt: activeValues.updatedAt,
+      submittedAt,
+    };
+  };
 
   const submitActiveSubOption = async () => {
     if (isSubmitting || !validateForm()) return;
 
     const payload = buildSubmissionPayload();
+    console.log("[ChecklistForm]", "Submit pressed", {
+      unitNo: payload.unitNo,
+      sectionKey: payload.sectionKey,
+      subOptionId: payload.subOptionId,
+      processId: payload.process_id,
+      subprocessId: payload.subprocess_id,
+      answerCount: payload.answers.length,
+      checklistCount: payload.checklist.length,
+      photoCount: payload.photos.length,
+      selectCount: payload.selectValues.length,
+      inputCount: payload.inputValues.length,
+    });
     setIsSubmitting(true);
 
     try {
@@ -918,6 +1226,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         subOption: activeSubOption,
         payload,
       });
+      console.log("[ChecklistDraft]", "Saved local submit draft", {
+        submissionId: result.submission?.id,
+        draftJsonPath: result.draftJsonPath,
+        processId: result.draftJson?.process_id,
+        subprocessId: result.draftJson?.subprocess_id,
+        answerCount: result.draftJson?.answers?.length || 0,
+      });
 
       const activeIndex = section.subOptions.findIndex(
         (item) => item.id === activeSubOption.id
@@ -925,11 +1240,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const hasNext = activeIndex < section.subOptions.length - 1;
 
       showAppAlert({
-        type: result.synced ? "success" : "info",
-        title: result.synced ? "Submitted" : "Saved offline",
-        message: result.synced
-          ? `${activeSubOptionLabel} synced successfully.`
-          : `${activeSubOptionLabel} is saved on this device and will sync automatically when network is available.`,
+        type: "info",
+        title: "Saved locally",
+        message: `${activeSubOptionLabel} JSON draft is saved on this device. Submit API is not connected yet.`,
         actions: [
           {
             label: hasNext ? "Next" : "Done",
@@ -945,6 +1258,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         ],
       });
     } catch (error) {
+      console.log("[ChecklistDraft]", "Local save failed", {
+        message: error?.message,
+        code: error?.code,
+        status: error?.status,
+      });
       showAppAlert({
         type: "danger",
         title: "Save failed",

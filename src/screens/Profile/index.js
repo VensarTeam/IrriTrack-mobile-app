@@ -1,5 +1,13 @@
 import React from "react";
-import { Image, View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { Icon } from "react-native-paper";
 import styles from "./styles";
@@ -8,7 +16,17 @@ import { APP_VERSION } from "../../constants/appInfo";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
 
 const ProfileScreen = ({ navigation }) => {
-  const { user, initials, handleLogout } = useProfileViewModel(navigation);
+  const {
+    user,
+    initials,
+    isRefreshingProfile,
+    isSyncingMasterData,
+    isSyncingOmsData,
+    handleRefreshProfile,
+    handleSyncMasterData,
+    handleSyncOmsData,
+    handleLogout,
+  } = useProfileViewModel(navigation);
   const isActiveUser = user.isActive === true;
   const designation = user.designation || "No designation";
 
@@ -34,6 +52,14 @@ const ProfileScreen = ({ navigation }) => {
         style={styles.bodyWrapper}
         contentContainerStyle={styles.detailsContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshingProfile}
+            onRefresh={handleRefreshProfile}
+            colors={[colors.primaryGreen]}
+            tintColor={colors.primaryGreen}
+          />
+        }
       >
         <View style={styles.avatarWrap}>
           <View style={styles.avatarBorder}>
@@ -78,6 +104,61 @@ const ProfileScreen = ({ navigation }) => {
             label="Designation"
             value={user.designation}
           />
+        </View>
+
+        <View style={styles.syncCard}>
+          <View style={styles.syncHeaderRow}>
+            <View>
+              <Text style={styles.syncTitle}>Sync</Text>
+              <Text style={styles.syncSubtitle}>Offline data sync</Text>
+            </View>
+            <Icon source="sync" size={22} color={colors.navyFresh} />
+          </View>
+
+          <View style={styles.syncActionsRow}>
+            <TouchableOpacity
+              style={[
+                styles.syncButton,
+                isSyncingMasterData && styles.actionButtonDisabled,
+              ]}
+              onPress={handleSyncMasterData}
+              disabled={isSyncingMasterData}
+              activeOpacity={0.88}
+            >
+              {isSyncingMasterData ? (
+                <ActivityIndicator size="small" color={colors.navyFreshDark} />
+              ) : (
+                <Icon
+                  source="database-refresh-outline"
+                  size={20}
+                  color={colors.navyFreshDark}
+                />
+              )}
+              <Text style={styles.syncButtonText}>
+                {isSyncingMasterData ? "Syncing" : "Master Data"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.syncButton,
+                styles.syncButtonPrimary,
+                isSyncingOmsData && styles.actionButtonDisabled,
+              ]}
+              onPress={handleSyncOmsData}
+              disabled={isSyncingOmsData}
+              activeOpacity={0.88}
+            >
+              {isSyncingOmsData ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Icon source="cloud-sync-outline" size={20} color={colors.white} />
+              )}
+              <Text style={styles.syncButtonPrimaryText}>
+                {isSyncingOmsData ? "Checking" : "Pending Work"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

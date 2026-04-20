@@ -1,5 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  RefreshControl,
+} from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
@@ -10,6 +18,8 @@ const DashboardScreen = ({ navigation }) => {
   const {
     filteredProjects,
     searchQuery,
+    isRefreshingProjects,
+    refreshProjects,
     openProject,
     handleLogout,
     setSearchQuery,
@@ -58,6 +68,14 @@ const DashboardScreen = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshingProjects}
+              onRefresh={refreshProjects}
+              colors={[colors.primaryGreen]}
+              tintColor={colors.primaryGreen}
+            />
+          }
         >
           <View style={styles.sectionHeadRow}>
             <View>

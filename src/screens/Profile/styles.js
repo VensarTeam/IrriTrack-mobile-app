@@ -188,6 +188,87 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
+  syncCard: {
+    width: "100%",
+    marginTop: verticalScale(18),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(12),
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+
+  syncHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(10),
+  },
+
+  syncTitle: {
+    fontSize: moderateScale(16),
+    lineHeight: moderateScale(21),
+    fontFamily: fonts.semiBold,
+    color: colors.navyFreshDark,
+  },
+
+  syncSubtitle: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(12),
+    lineHeight: moderateScale(17),
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+
+  syncActionsRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+  },
+
+  syncButton: {
+    flex: 1,
+    minHeight: verticalScale(48),
+    flexDirection: "row",
+    gap: moderateScale(6),
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: moderateScale(8),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.surfaceBlue,
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(10),
+  },
+
+  syncButtonPrimary: {
+    backgroundColor: colors.primaryGreen,
+    borderColor: colors.primaryGreen,
+  },
+
+  syncButtonText: {
+    color: colors.navyFreshDark,
+    fontSize: moderateScale(13),
+    lineHeight: moderateScale(18),
+    fontFamily: fonts.semiBold,
+  },
+
+  syncButtonPrimaryText: {
+    color: colors.white,
+    fontSize: moderateScale(13),
+    lineHeight: moderateScale(18),
+    fontFamily: fonts.semiBold,
+  },
+
+  actionButtonDisabled: {
+    opacity: 0.68,
+  },
+
   logoutButton: {
     width: "100%",
     flexDirection: "row",
