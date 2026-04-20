@@ -10,14 +10,19 @@ import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
 import UnitStatusOverviewScreen from "../screens/unit/UnitStatusOverview";
 import UnitGalleryScreen from "../screens/unit/UnitGallery";
 import { useAuth } from "../context/AuthContext";
+import AppLockScreen from "../components/AppLockScreen";
 
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
-  const { isAuthenticated, isRestoring } = useAuth();
+  const { isAuthenticated, isRestoring, isAppLocked } = useAuth();
 
   if (isRestoring) {
     return null;
+  }
+
+  if (isAuthenticated && isAppLocked) {
+    return <AppLockScreen />;
   }
 
   return (

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AppState } from "react-native";
 import { createUser } from "../models/user";
 import {
   getProfile,
@@ -34,6 +35,7 @@ import {
   getStoredAuthSession,
   saveAuthSession,
 } from "../services/authStorage";
+import { authenticateDeviceForAppUnlock } from "../services/deviceAuthentication";
 
 const AuthContext = createContext(null);
 
@@ -43,8 +45,16 @@ const normalizeSession = (session, referenceTime) =>
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [isRestoring, setIsRestoring] = useState(true);
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
+  const [isAppActive, setIsAppActive] = useState(
+    AppState.currentState === "active"
+  );
   const refreshPromiseRef = useRef(null);
+  const unlockPromiseRef = useRef(null);
   const sessionRef = useRef(null);
+  const appStateRef = useRef(AppState.currentState);
 
   const setActiveSession = useCallback((nextSession) => {
     sessionRef.current = nextSession;
@@ -53,6 +63,10 @@ export const AuthProvider = ({ children }) => {
 
   const clearSession = useCallback(async () => {
     refreshPromiseRef.current = null;
+    unlockPromiseRef.current = null;
+    setIsAppLocked(false);
+    setIsUnlocking(false);
+    setUnlockError("");
     setActiveSession(null);
     await clearStoredAuthSession();
   }, [setActiveSession]);
@@ -127,6 +141,7 @@ export const AuthProvider = ({ children }) => {
 
           if (isMounted) {
             setActiveSession(null);
+            setIsAppLocked(false);
           }
           return;
         }
@@ -140,17 +155,22 @@ export const AuthProvider = ({ children }) => {
 
             if (isMounted) {
               setActiveSession(refreshedSession);
+              setIsAppLocked(true);
+              setUnlockError("");
             }
             return;
           } catch (error) {
             if (isUnauthorizedApiError(error) && isMounted) {
               setActiveSession(null);
+              setIsAppLocked(false);
               return;
             }
 
             // Keep the stored session in memory during transient failures.
             if (isMounted) {
               setActiveSession(storedSession);
+              setIsAppLocked(true);
+              setUnlockError("");
             }
             return;
           }
@@ -158,6 +178,8 @@ export const AuthProvider = ({ children }) => {
 
         if (isMounted) {
           setActiveSession(storedSession);
+          setIsAppLocked(true);
+          setUnlockError("");
         }
       } finally {
         if (isMounted) {
@@ -196,10 +218,81 @@ export const AuthProvider = ({ children }) => {
       }
 
       await persistSession(verifiedSession);
+      setIsAppLocked(false);
+      setUnlockError("");
       return verifiedSession;
     },
     [persistSession]
   );
+
+  const unlockSession = useCallback(async () => {
+    const currentSession = sessionRef.current;
+
+    if (!currentSession || !isSessionAvailable(currentSession)) {
+      setIsAppLocked(false);
+      setUnlockError("");
+      return false;
+    }
+
+    if (!unlockPromiseRef.current) {
+      unlockPromiseRef.current = (async () => {
+        setIsUnlocking(true);
+
+        try {
+          const result = await authenticateDeviceForAppUnlock();
+
+          if (result.success) {
+            setIsAppLocked(false);
+            setUnlockError("");
+            return true;
+          }
+
+          setIsAppLocked(true);
+          setUnlockError(result.error);
+          return false;
+        } finally {
+          setIsUnlocking(false);
+          unlockPromiseRef.current = null;
+        }
+      })();
+    }
+
+    return unlockPromiseRef.current;
+  }, []);
+
+  useEffect(() => {
+    if (
+      isRestoring ||
+      !isAppActive ||
+      !isSessionAvailable(session) ||
+      !isAppLocked
+    ) {
+      return;
+    }
+
+    void unlockSession();
+  }, [isAppActive, isAppLocked, isRestoring, session, unlockSession]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      const wasActive = appStateRef.current === "active";
+      appStateRef.current = nextAppState;
+      setIsAppActive(nextAppState === "active");
+
+      if (
+        wasActive &&
+        nextAppState !== "active" &&
+        isSessionAvailable(sessionRef.current)
+      ) {
+        setIsAppLocked(true);
+        setUnlockError("");
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const getValidAccessToken = useCallback(
     async ({ forceRefresh = false } = {}) => {
@@ -285,18 +378,26 @@ export const AuthProvider = ({ children }) => {
       user: session?.user ?? null,
       isAuthenticated: isSessionAvailable(session),
       isRestoring,
+      isAppLocked,
+      isUnlocking,
+      unlockError,
       beginSignIn,
       finishFaceVerification,
+      unlockSession,
       refreshProfile,
       logout,
     }),
     [
       beginSignIn,
       finishFaceVerification,
+      isAppLocked,
       isRestoring,
+      isUnlocking,
       logout,
       refreshProfile,
       session,
+      unlockError,
+      unlockSession,
     ]
   );
 

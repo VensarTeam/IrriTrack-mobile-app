@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { showAppAlert } from "../services/alertService";
+import {
+  requestPasswordResetOtp,
+  resetPassword,
+} from "../services/authApi";
 
 const OTP_LENGTH = 6;
 const STEPS = {
@@ -9,6 +13,19 @@ const STEPS = {
   PASSWORD: 3,
 };
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const USERNAME_PATTERN = /^[A-Z0-9._-]{3,}$/i;
+const SHOULD_PREFILL_DEVELOPMENT_OTP =
+  typeof __DEV__ !== "undefined" && __DEV__;
+
+const getDevelopmentOtpDigits = (response) => {
+  if (!SHOULD_PREFILL_DEVELOPMENT_OTP) return null;
+
+  const developmentOtp = String(response?.developmentOtp || "").replace(/\D/g, "");
+
+  return developmentOtp.length === OTP_LENGTH
+    ? developmentOtp.split("")
+    : null;
+};
 
 const useForgotPasswordViewModel = (navigation) => {
   const [step, setStep] = useState(STEPS.IDENTIFIER);
@@ -17,6 +34,9 @@ const useForgotPasswordViewModel = (navigation) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const [otpDeliveryMessage, setOtpDeliveryMessage] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const scrollRef = useRef(null);
   const otpInputs = useRef([]);
@@ -25,6 +45,16 @@ const useForgotPasswordViewModel = (navigation) => {
 
   const clearStepErrors = () => {
     setErrors({});
+  };
+
+  const clearFieldError = (field) => {
+    if (!errors[field] && !errors.submit) return;
+
+    setErrors((prev) => ({
+      ...prev,
+      [field]: null,
+      submit: null,
+    }));
   };
 
   const goToLoginRoot = () => {
@@ -62,7 +92,7 @@ const useForgotPasswordViewModel = (navigation) => {
     const trimmed = value.trim();
 
     if (!trimmed) {
-      return "Mobile number or email is required";
+      return "Username, mobile number, or email is required";
     }
 
     if (/^\d+$/.test(trimmed)) {
@@ -72,13 +102,31 @@ const useForgotPasswordViewModel = (navigation) => {
     }
 
     if (!EMAIL_PATTERN.test(trimmed)) {
-      return "Enter a valid mobile number or email address";
+      return USERNAME_PATTERN.test(trimmed)
+        ? null
+        : "Enter a valid username, mobile number, or email address";
     }
 
     return null;
   };
 
-  const goToOtpStep = () => {
+  const handleIdentifierChange = (value) => {
+    setIdentifier(value);
+    setOtpDeliveryMessage("");
+    clearFieldError("identifier");
+  };
+
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    clearFieldError("password");
+  };
+
+  const handleConfirmPasswordChange = (value) => {
+    setConfirmPassword(value);
+    clearFieldError("confirmPassword");
+  };
+
+  const goToOtpStep = async () => {
     const identifierError = validateIdentifier(identifier);
 
     if (identifierError) {
@@ -86,12 +134,31 @@ const useForgotPasswordViewModel = (navigation) => {
       return;
     }
 
-    setOtp(Array(OTP_LENGTH).fill(""));
+    setIsSendingOtp(true);
+    setOtpDeliveryMessage("");
     clearStepErrors();
-    setStep(STEPS.OTP);
+
+    try {
+      const response = await requestPasswordResetOtp({
+        identifier: identifier.trim(),
+      });
+      const developmentOtpDigits = getDevelopmentOtpDigits(response);
+
+      setOtp(developmentOtpDigits || Array(OTP_LENGTH).fill(""));
+      setOtpDeliveryMessage(response?.message || "OTP sent successfully.");
+      setStep(STEPS.OTP);
+    } catch (error) {
+      setErrors({
+        submit: error?.message || "Unable to send OTP. Please try again.",
+      });
+      scrollToBottom();
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const handleOtpChange = (text, index) => {
+    if (isResettingPassword) return;
     if (!/^\d?$/.test(text)) return;
 
     const nextOtp = [...otp];
@@ -102,8 +169,8 @@ const useForgotPasswordViewModel = (navigation) => {
       otpInputs.current[index + 1]?.focus();
     }
 
-    if (errors.otp) {
-      setErrors((prev) => ({ ...prev, otp: null }));
+    if (errors.otp || errors.submit) {
+      setErrors((prev) => ({ ...prev, otp: null, submit: null }));
     }
   };
 
@@ -123,8 +190,9 @@ const useForgotPasswordViewModel = (navigation) => {
     setStep(STEPS.PASSWORD);
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     const nextErrors = {};
+    const enteredOtp = otp.join("");
 
     if (!password) {
       nextErrors.password = "New password is required";
@@ -145,19 +213,37 @@ const useForgotPasswordViewModel = (navigation) => {
       return;
     }
 
-    showAppAlert({
-      type: "success",
-      title: "Password Updated",
-      message: "Your password has been reset successfully.",
-      actions: [
-        {
-          label: "Back to Login",
-          variant: "primary",
-          onPress: () => goToLoginRoot(),
-        },
-      ],
-      cancelable: false,
-    });
+    setIsResettingPassword(true);
+
+    try {
+      const response = await resetPassword({
+        identifier: identifier.trim(),
+        otp: enteredOtp,
+        newPassword: password,
+      });
+
+      showAppAlert({
+        type: "success",
+        title: "Password Updated",
+        message:
+          response?.message || "Your password has been reset successfully.",
+        actions: [
+          {
+            label: "Back to Login",
+            variant: "primary",
+            onPress: () => goToLoginRoot(),
+          },
+        ],
+        cancelable: false,
+      });
+    } catch (error) {
+      setErrors({
+        submit: error?.message || "Unable to reset password. Please try again.",
+      });
+      scrollToBottom();
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const goBackOneStep = () => {
@@ -171,6 +257,7 @@ const useForgotPasswordViewModel = (navigation) => {
 
     if (step === STEPS.OTP) {
       setOtp(Array(OTP_LENGTH).fill(""));
+      setOtpDeliveryMessage("");
       clearStepErrors();
       setStep(STEPS.IDENTIFIER);
     }
@@ -193,6 +280,9 @@ const useForgotPasswordViewModel = (navigation) => {
     password,
     confirmPassword,
     errors,
+    otpDeliveryMessage,
+    isSendingOtp,
+    isResettingPassword,
     scrollRef,
     otpInputs,
     passwordRef,
@@ -206,9 +296,9 @@ const useForgotPasswordViewModel = (navigation) => {
     handleResetPassword,
     goBackOneStep,
     handleBackPress,
-    setIdentifier,
-    setPassword,
-    setConfirmPassword,
+    setIdentifier: handleIdentifierChange,
+    setPassword: handlePasswordChange,
+    setConfirmPassword: handleConfirmPasswordChange,
   };
 };
 

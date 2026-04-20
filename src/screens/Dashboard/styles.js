@@ -23,68 +23,50 @@ export default StyleSheet.create({
   },
 
   headerTopRow: {
+    minHeight: moderateScale(48),
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  brandRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: moderateScale(12),
-  },
-
-  brandCopy: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: moderateScale(10),
+    justifyContent: "center",
+    position: "relative",
   },
 
   logoutIconButton: {
-    width: moderateScale(42),
-    height: moderateScale(42),
+    position: "absolute",
+    right: 0,
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.44)",
+    borderWidth: 1,
+    borderColor: "rgba(18, 59, 99, 0.08)",
   },
 
   logoWrap: {
-    width: moderateScale(82),
-    height: moderateScale(48),
+    position: "absolute",
+    left: 0,
+    width: moderateScale(62),
+    height: moderateScale(38),
     backgroundColor: colors.glassWhite,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
   },
 
   logo: {
-    width: moderateScale(72),
-    height: moderateScale(28),
+    width: moderateScale(52),
+    height: moderateScale(20),
   },
 
   headerTitle: {
+    maxWidth: "62%",
     fontSize: fontScale(18),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     lineHeight: fontScale(22),
-  },
-
-  headerFullForm: {
-    maxWidth: "100%",
-    marginTop: verticalScale(2),
-    fontSize: fontScale(10),
-    fontFamily: fonts.medium,
-    color: colors.textSecondary,
-    lineHeight: fontScale(14),
-  },
-
-  headerSubtitle: {
-    marginTop: verticalScale(4),
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
     textAlign: "center",
   },
 

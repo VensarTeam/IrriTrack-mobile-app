@@ -44,6 +44,30 @@ export const refreshAccessToken = ({ refreshToken }) =>
     data: { refreshToken },
   });
 
+export const requestPasswordResetOtp = ({ identifier }) =>
+  apiRequest({
+    url: "/api/v1/auth/password/forgot",
+    method: "POST",
+    headers: {
+      Accept: "*/*",
+    },
+    data: { identifier },
+  });
+
+export const resetPassword = ({ identifier, otp, newPassword }) =>
+  apiRequest({
+    url: "/api/v1/auth/password/reset",
+    method: "POST",
+    headers: {
+      Accept: "*/*",
+    },
+    data: {
+      identifier,
+      otp,
+      newPassword,
+    },
+  });
+
 export const getProfile = () =>
   apiRequest({
     url: "/api/v1/auth/me",

@@ -129,6 +129,15 @@ export default StyleSheet.create({
     textAlign: "center",
   },
 
+  submitError: {
+    color: colors.danger,
+    fontSize: typography.small,
+    fontFamily: fonts.medium,
+    marginTop: verticalScale(10),
+    lineHeight: moderateScale(20),
+    textAlign: "center",
+  },
+
   primaryButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(14),

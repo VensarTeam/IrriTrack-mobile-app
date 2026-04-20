@@ -27,6 +27,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
     password,
     confirmPassword,
     errors,
+    otpDeliveryMessage,
+    isSendingOtp,
+    isResettingPassword,
     scrollRef,
     otpInputs,
     passwordRef,
@@ -56,15 +59,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
       top: Math.max(insets.top + verticalScale(4), verticalScale(18)),
     },
   ];
-  const identifierTypeLabel = /^\d+$/.test(identifier.trim())
+  const trimmedIdentifier = identifier.trim();
+  const identifierTypeLabel = /^\d+$/.test(trimmedIdentifier)
     ? "mobile number"
-    : "email";
+    : trimmedIdentifier.includes("@")
+      ? "email"
+      : "account";
 
   const renderIdentifierStep = () => (
     <>
-      <Text style={styles.sectionTitle}>Verify your account</Text>
       <Text style={styles.sectionSubtitle}>
-        Enter your registered mobile number or email to receive OTP.
+        Enter your registered username, mobile number, or email to receive OTP.
       </Text>
 
       <FormInput
@@ -74,6 +79,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         error={errors.identifier}
         leftIcon="account-search-outline"
         type="email-address"
+        editable={!isSendingOtp}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="done"
@@ -89,9 +95,15 @@ const ForgotPasswordScreen = ({ navigation }) => {
         contentStyle={styles.primaryButtonContent}
         buttonColor={colors.navyFresh}
         textColor={colors.white}
+        loading={isSendingOtp}
+        disabled={isSendingOtp}
       >
         Send OTP
       </Button>
+
+      {errors.submit ? (
+        <Text style={styles.submitError}>{errors.submit}</Text>
+      ) : null}
     </>
   );
 
@@ -99,7 +111,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
     <>
       <Text style={styles.sectionTitle}>Enter OTP</Text>
       <Text style={styles.sectionSubtitle}>
-        We sent a 6-digit OTP to your registered {identifierTypeLabel}.
+        {otpDeliveryMessage ||
+          `We sent a 6-digit OTP to your registered ${identifierTypeLabel}.`}
       </Text>
 
       <View style={styles.otpContainer}>
@@ -116,6 +129,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             maxLength={1}
             style={styles.otpBox}
             onFocus={scrollToBottom}
+            editable={!isResettingPassword}
           />
         ))}
       </View>
@@ -129,11 +143,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
         contentStyle={styles.primaryButtonContent}
         buttonColor={colors.navyFresh}
         textColor={colors.white}
+        disabled={isResettingPassword}
       >
         Verify OTP
       </Button>
 
-      <TouchableOpacity style={styles.secondaryLink} onPress={goBackOneStep}>
+      <TouchableOpacity
+        style={styles.secondaryLink}
+        onPress={goBackOneStep}
+        disabled={isResettingPassword}
+      >
         <Text style={styles.secondaryLinkText}>Change {identifierTypeLabel}</Text>
       </TouchableOpacity>
     </>
@@ -154,6 +173,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         secure
         leftIcon="lock"
         inputRef={passwordRef}
+        editable={!isResettingPassword}
         returnKeyType="next"
         onSubmitEditing={() => confirmPasswordRef.current?.focus()}
         onFocus={scrollToBottom}
@@ -169,6 +189,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         secure
         leftIcon="lock-check-outline"
         inputRef={confirmPasswordRef}
+        editable={!isResettingPassword}
         returnKeyType="done"
         onFocus={scrollToBottom}
         activeOutlineColor={colors.navyFreshDark}
@@ -182,11 +203,21 @@ const ForgotPasswordScreen = ({ navigation }) => {
         contentStyle={styles.primaryButtonContent}
         buttonColor={colors.navyFresh}
         textColor={colors.white}
+        loading={isResettingPassword}
+        disabled={isResettingPassword}
       >
         Reset Password
       </Button>
 
-      <TouchableOpacity style={styles.secondaryLink} onPress={goBackOneStep}>
+      {errors.submit ? (
+        <Text style={styles.submitError}>{errors.submit}</Text>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.secondaryLink}
+        onPress={goBackOneStep}
+        disabled={isResettingPassword}
+      >
         <Text style={styles.secondaryLinkText}>Back to OTP</Text>
       </TouchableOpacity>
     </>

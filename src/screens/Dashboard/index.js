@@ -5,7 +5,6 @@ import styles from "./styles";
 import colors from "../../constants/colors";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 import { Icon } from "react-native-paper";
-import { APP_NAME, PROJECT_FULL_FORM } from "../../constants/appInfo";
 
 const DashboardScreen = ({ navigation }) => {
   const {
@@ -31,22 +30,17 @@ const DashboardScreen = ({ navigation }) => {
         style={styles.header}
       >
         <View style={styles.headerTopRow}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoWrap}>
-              <Image
-                source={require("../../assets/images/logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-
-            <View style={styles.brandCopy}>
-              <Text style={styles.headerTitle}>{APP_NAME}</Text>
-              <Text style={styles.headerFullForm} numberOfLines={2}>
-                {PROJECT_FULL_FORM}
-              </Text>
-            </View>
+          <View style={styles.logoWrap}>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
+
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            IDICM DASHBOARD
+          </Text>
 
           <TouchableOpacity
             style={styles.logoutIconButton}

@@ -1,15 +1,16 @@
 import React from "react";
 import { Image, View, Text, TouchableOpacity, ScrollView } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
+import { Icon } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { APP_VERSION } from "../../constants/appInfo";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
-import { Icons } from "../../constants/icons";
 
 const ProfileScreen = ({ navigation }) => {
   const { user, initials, handleLogout } = useProfileViewModel(navigation);
   const isActiveUser = user.isActive === true;
+  const designation = user.designation || "No designation";
 
   return (
     <View style={styles.screen}>
@@ -34,17 +35,23 @@ const ProfileScreen = ({ navigation }) => {
         contentContainerStyle={styles.detailsContainer}
         showsVerticalScrollIndicator={false}
       >
-        {user.profileUrl ? (
-          <Image
-            source={{ uri: user.profileUrl }}
-            style={styles.avatarImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.initials}>{initials}</Text>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatarBorder}>
+            {user.profileUrl ? (
+              <Image
+                source={{ uri: user.profileUrl }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.initials}>{initials}</Text>
+              </View>
+            )}
           </View>
-        )}
+
+          {isActiveUser ? <View style={styles.activeDot} /> : null}
+        </View>
 
         <Text style={styles.name}>{user.name || "User"}</Text>
 
@@ -58,20 +65,23 @@ const ProfileScreen = ({ navigation }) => {
           end={{ x: 1, y: 1 }}
           style={styles.designationPill}
         >
-          {isActiveUser ? <View style={styles.designationDot} /> : null}
-          <Text style={styles.designationText}>
-            {user.designation || "Null"}
+          <Text style={styles.designationText} numberOfLines={1}>
+            {designation}
           </Text>
         </LinearGradient>
 
         <View style={styles.infoCard}>
-          <InfoRow label="Mobile" value={user.mobile} />
-          <InfoRow label="Email" value={user.email} />
-          <InfoRow label="Designation" value={user.designation} />
+          <InfoRow icon="cellphone" label="Mobile" value={user.mobile} />
+          <InfoRow icon="email-outline" label="Email" value={user.email} />
+          <InfoRow
+            icon="briefcase-outline"
+            label="Designation"
+            value={user.designation}
+          />
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Icons.logout height={22} width={22} />
+          <Icon source="logout-variant" size={21} color={colors.white} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -83,9 +93,17 @@ const ProfileScreen = ({ navigation }) => {
 
 export default ProfileScreen;
 
-const InfoRow = ({ label, value }) => (
+const InfoRow = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value || "-"}</Text>
+    <View style={styles.infoIconWrap}>
+      <Icon source={icon} size={19} color={colors.navyFresh} />
+    </View>
+
+    <View style={styles.infoCopy}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue} numberOfLines={2}>
+        {value || "-"}
+      </Text>
+    </View>
   </View>
 );

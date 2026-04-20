@@ -129,7 +129,7 @@ const getHeadersForLog = (headers) =>
     (acc, [key, value]) => {
       const headerValue = String(value);
       const tokenValue = headerValue.replace(/^Bearer\s+/i, "");
-      console.log("tokenValue", tokenValue);
+      console.log("Header:", key, value);
       acc[key] = shouldMaskKey(key)
         ? headerValue.startsWith("Bearer ")
           ? `Bearer ${maskValue(tokenValue)}`
