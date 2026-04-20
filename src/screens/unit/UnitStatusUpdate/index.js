@@ -70,6 +70,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     openMapForLocation,
     updateNodeLocation,
     isUpdatingLocation,
+    isSubmitting,
     pickFromCamera,
     pickFromGallery,
     removeSelectedPhoto,
@@ -708,8 +709,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               onPress={submitActiveSubOption}
               style={styles.submitButton}
               contentStyle={styles.submitButtonContent}
+              loading={isSubmitting}
+              disabled={isSubmitting}
             >
-              Submit
+              {isSubmitting ? "Saving" : "Submit"}
             </Button>
           </View>
         </KeyboardAwareScrollView>

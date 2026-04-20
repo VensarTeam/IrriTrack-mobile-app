@@ -2,76 +2,116 @@
   "migIndex": 1,
   "data": [
     {
-      "path": "src/assets/fonts/Montserrat-LightItalic.ttf",
-      "sha1": "581acfc143788f70c489e9e08b6009baf90adf8e"
+      "path": "src/assets/fonts/Aptos-Black-Italic.ttf",
+      "sha1": "283e224fff7a78585d0050ccd4ad82a4a2c7c7c3"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Medium.ttf",
-      "sha1": "77f3553415d858c653baea45aacab20196776334"
+      "path": "src/assets/fonts/Aptos-Black.ttf",
+      "sha1": "98eea061d7fc0771a39bbe352bf87fa3caae2b3e"
     },
     {
-      "path": "src/assets/fonts/Montserrat-BoldItalic.ttf",
-      "sha1": "cd3789ae55cc702776afdd2fd1a81ae16c69fbf4"
+      "path": "src/assets/fonts/Aptos-Bold-Italic.ttf",
+      "sha1": "7bea9b6abce5db233500f60d70eb659c348951b4"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Light.ttf",
-      "sha1": "3397cd98e51365c89e95cd1130e0141bda5051de"
+      "path": "src/assets/fonts/Aptos-Bold.ttf",
+      "sha1": "5547f29dfa3ca3cfb1eb7300a04701620ffd792d"
     },
     {
-      "path": "src/assets/fonts/Montserrat-ThinItalic.ttf",
-      "sha1": "8d95f4a0cf9f73f72f6b436817a8d434f7ae4e65"
+      "path": "src/assets/fonts/Aptos-Display-Bold-Italic.ttf",
+      "sha1": "a22f3465b9a81a559f0471b19039aa309b997288"
     },
     {
-      "path": "src/assets/fonts/Montserrat-ExtraLight.ttf",
-      "sha1": "cc7a24a862f1779bdbbf78a6984bb9ae9324a128"
+      "path": "src/assets/fonts/Aptos-Display-Bold.ttf",
+      "sha1": "cc49224693653bfdbd5522bf98be594b89068d83"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Thin.ttf",
-      "sha1": "550e6e1d992369e97e9f00aa71ae482a6a6326d7"
+      "path": "src/assets/fonts/Aptos-Display-Italic.ttf",
+      "sha1": "da2c5efd8e1881e33f4a457e33745239729a1a36"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Bold.ttf",
-      "sha1": "be7c1438070ab637e11716915e4e50903726dcc8"
+      "path": "src/assets/fonts/Aptos-Display.ttf",
+      "sha1": "42335e610e0e4e89db1163255bef2024c1f0189c"
     },
     {
-      "path": "src/assets/fonts/Montserrat-MediumItalic.ttf",
-      "sha1": "3a200dbe415e421ecaca38532d19380920217c39"
+      "path": "src/assets/fonts/Aptos-ExtraBold-Italic.ttf",
+      "sha1": "50232a28afd0a67489bfca970e73814046eae2aa"
     },
     {
-      "path": "src/assets/fonts/Montserrat-BlackItalic.ttf",
-      "sha1": "3f86120ed3d28bb9aac0fed7a0290a0cfbeff531"
+      "path": "src/assets/fonts/Aptos-ExtraBold.ttf",
+      "sha1": "0f7fb48fb4860c42b39412cca1ba0fcd0a63079f"
     },
     {
-      "path": "src/assets/fonts/Montserrat-SemiBold.ttf",
-      "sha1": "79f74616d68b87d6cf89798fe72259036326567a"
+      "path": "src/assets/fonts/Aptos-Italic.ttf",
+      "sha1": "440e15edc4fc59935e2c0f2b2e17e070030e8522"
     },
     {
-      "path": "src/assets/fonts/Montserrat-ExtraLightItalic.ttf",
-      "sha1": "b665a8fc9b6d2a4c89ac87fc480561c98bfff4f8"
+      "path": "src/assets/fonts/Aptos-Light-Italic.ttf",
+      "sha1": "d638407a526fcb0a0e2a33740c6550c76844fe3c"
     },
     {
-      "path": "src/assets/fonts/Montserrat-ExtraBold.ttf",
-      "sha1": "84f16776e2099d3b57d8ed239b76e6fa3284b2e7"
+      "path": "src/assets/fonts/Aptos-Light.ttf",
+      "sha1": "4f35dab0f8487ff46090e2b2e1e3fb8e31a39785"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Black.ttf",
-      "sha1": "e9abe094b65469f6b6a373b543ab7030dc145c7c"
+      "path": "src/assets/fonts/Aptos-Mono-Bold-Italic.ttf",
+      "sha1": "89f1119c01240684e99e7c32515849709e593747"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Regular.ttf",
-      "sha1": "ec13ef1f2c99f8780d6f2eb3f9f27ef89f30161b"
+      "path": "src/assets/fonts/Aptos-Mono-Bold.ttf",
+      "sha1": "0ae29872dba1f631fdd066036ace686acbef1edf"
     },
     {
-      "path": "src/assets/fonts/Montserrat-Italic.ttf",
-      "sha1": "aef4e6a1af1849644ce1e934b4ab9059e916d887"
+      "path": "src/assets/fonts/Aptos-Mono-Italic.ttf",
+      "sha1": "e664d923b31fcd20d14cf9e18f0d0f1c61773f3d"
     },
     {
-      "path": "src/assets/fonts/Montserrat-SemiBoldItalic.ttf",
-      "sha1": "8893c19f6daee4348d1e8b2ce0bd4698a5dca0e5"
+      "path": "src/assets/fonts/Aptos-Mono.ttf",
+      "sha1": "c6834f5c48039a4b67969a13a90c67414c86eba9"
     },
     {
-      "path": "src/assets/fonts/Montserrat-ExtraBoldItalic.ttf",
-      "sha1": "96c173512f14118a97acf01279fa63bae70c6035"
+      "path": "src/assets/fonts/Aptos-Narrow-Bold-Italic.ttf",
+      "sha1": "813f817413198cacf78f1455cdb025b2bc60ba0d"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Narrow-Bold.ttf",
+      "sha1": "3ea5da641f014b74a6f1b09da80817236b856695"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Narrow-Italic.ttf",
+      "sha1": "5fefe4fc218b816b7fe7c99fa81ac6f2cb90f245"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Narrow.ttf",
+      "sha1": "23ca19608b920715d8df21492ec29584ca83cafb"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-SemiBold-Italic.ttf",
+      "sha1": "2335e2b62ae22ba7925acbc532caa6079847a888"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-SemiBold.ttf",
+      "sha1": "87628b018549ff47f70a3f73e348e7049651f5f1"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Serif-Bold-Italic.ttf",
+      "sha1": "62186ad4a08072ee98521034fc3fae7385cc8b9c"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Serif-Bold.ttf",
+      "sha1": "201379fc3ccd23611c3bcf530a2baa0c771c077c"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Serif-Italic.ttf",
+      "sha1": "7ab014d7440496336d3a34040a21919b8a7cc57b"
+    },
+    {
+      "path": "src/assets/fonts/Aptos-Serif.ttf",
+      "sha1": "bd688aa82d86d4d3c3edc7ee47a3ed9ec5508dea"
+    },
+    {
+      "path": "src/assets/fonts/Aptos.ttf",
+      "sha1": "42732aadfab07f086cebe9fcf577f84b8d8f3fb3"
     }
   ]
 }

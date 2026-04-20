@@ -8,6 +8,8 @@ import {
 } from "../constants/moduleStatusConfig";
 import { openLocation } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
+import { submitChecklistOfflineFirst } from "../services/checklistOfflineSync";
+import { compressChecklistImage } from "../services/checklistImageStorage";
 
 const DEFAULT_SUB_CHAK_QUANTITY = 6;
 
@@ -244,6 +246,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     media: null,
   });
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeSubOption = useMemo(
     () =>
@@ -615,26 +618,47 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return true;
   };
 
-  const setSelectedPhoto = (asset, source, requirement) => {
+  const setSelectedPhoto = async (asset, source, requirement) => {
     if (!asset?.uri) return;
 
-    const fileName = asset.fileName || `${activeSubOption.id}_${Date.now()}.jpg`;
-    const sizeKb = asset.fileSize
-      ? Math.max(1, Math.round(asset.fileSize / 1024))
-      : null;
-    const mediaType = asset.type === "video" ? "video" : "image";
+    let selectedAsset;
+
+    try {
+      selectedAsset = await compressChecklistImage(asset);
+    } catch (error) {
+      showAppAlert({
+        type: "danger",
+        title: "Photo compression failed",
+        message: "Unable to prepare this photo. Please capture it again.",
+      });
+      return;
+    }
+
+    const fileName =
+      selectedAsset.fileName ||
+      selectedAsset.name ||
+      `${activeSubOption.id}_${Date.now()}.jpg`;
+    const sizeKb = selectedAsset.fileSize
+      ? Math.max(1, Math.round(selectedAsset.fileSize / 1024))
+      : selectedAsset.sizeKb || null;
+    const mediaType = selectedAsset.type === "video" ? "video" : "image";
 
     updateActiveValues({
       photos: {
         ...activeValues.photos,
         [requirement.id]: {
-          uri: asset.uri,
+          uri: selectedAsset.uri,
+          filePath: selectedAsset.filePath,
           name: fileName,
           source,
           sizeKb,
-          width: asset.width,
-          height: asset.height,
+          width: selectedAsset.width,
+          height: selectedAsset.height,
           mediaType,
+          type:
+            selectedAsset.mimeType ||
+            selectedAsset.type ||
+            (mediaType === "video" ? "video/mp4" : "image/jpeg"),
           takenAt: new Date().toLocaleString(),
         },
       },
@@ -673,7 +697,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     });
 
     if (!result.canceled) {
-      setSelectedPhoto(result.assets?.[0], "camera", requirement);
+      await setSelectedPhoto(result.assets?.[0], "camera", requirement);
     }
   };
 
@@ -691,7 +715,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     });
 
     if (!result.canceled) {
-      setSelectedPhoto(result.assets?.[0], "gallery", requirement);
+      await setSelectedPhoto(result.assets?.[0], "gallery", requirement);
     }
   };
 
@@ -833,6 +857,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const buildSubmissionPayload = () => ({
     module,
+    deviceType: module,
+    unitId: unit?.id || null,
     unitNo: unitLabel,
     sectionKey: section.key,
     subOptionId: activeSubOption.id,
@@ -879,37 +905,56 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     submittedAt: new Date().toISOString(),
   });
 
-  const submitActiveSubOption = () => {
-    if (!validateForm()) return;
+  const submitActiveSubOption = async () => {
+    if (isSubmitting || !validateForm()) return;
 
     const payload = buildSubmissionPayload();
+    setIsSubmitting(true);
 
-    // TODO: API integration point (submit payload).
-    void payload;
+    try {
+      const result = await submitChecklistOfflineFirst({
+        deviceType: module,
+        section,
+        subOption: activeSubOption,
+        payload,
+      });
 
-    const activeIndex = section.subOptions.findIndex(
-      (item) => item.id === activeSubOption.id
-    );
-    const hasNext = activeIndex < section.subOptions.length - 1;
+      const activeIndex = section.subOptions.findIndex(
+        (item) => item.id === activeSubOption.id
+      );
+      const hasNext = activeIndex < section.subOptions.length - 1;
 
-    showAppAlert({
-      type: "success",
-      title: "Submitted",
-      message: `${activeSubOptionLabel} saved successfully.`,
-      actions: [
-        {
-          label: hasNext ? "Next" : "Done",
-          variant: "primary",
-          onPress: () => {
-            if (hasNext) {
-              setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
-            } else {
-              navigation.goBack();
-            }
+      showAppAlert({
+        type: result.synced ? "success" : "info",
+        title: result.synced ? "Submitted" : "Saved offline",
+        message: result.synced
+          ? `${activeSubOptionLabel} synced successfully.`
+          : `${activeSubOptionLabel} is saved on this device and will sync automatically when network is available.`,
+        actions: [
+          {
+            label: hasNext ? "Next" : "Done",
+            variant: "primary",
+            onPress: () => {
+              if (hasNext) {
+                setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
+              } else {
+                navigation.goBack();
+              }
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    } catch (error) {
+      showAppAlert({
+        type: "danger",
+        title: "Save failed",
+        message:
+          error?.message ||
+          "Unable to save checklist data on this device. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBack = () => {
@@ -938,6 +983,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     pickerState,
     photoPreviewState,
     isUpdatingLocation,
+    isSubmitting,
     setActiveSubOptionId,
     openSelectModal,
     getPickerSelectedValue,

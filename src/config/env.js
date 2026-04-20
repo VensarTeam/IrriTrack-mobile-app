@@ -1,6 +1,7 @@
 const DEFAULT_API_BASE_URL = "https://pmt.aizainfotech.online";
 const DEFAULT_ASSET_BASE_URL =
   "https://vensar-tools-700305705692-ap-south-1-an.s3.ap-south-1.amazonaws.com";
+const DEFAULT_CHECKLIST_SUBMIT_PATH = "/api/v1/checklists/submissions";
 
 const sanitizeBaseUrl = (value) => {
   const normalizedValue =
@@ -18,6 +19,9 @@ export const API_BASE_URL = sanitizeBaseUrl(
 export const ASSET_BASE_URL = sanitizeBaseUrl(
   process.env.EXPO_PUBLIC_ASSET_BASE_URL || DEFAULT_ASSET_BASE_URL
 );
+
+export const CHECKLIST_SUBMIT_PATH =
+  process.env.EXPO_PUBLIC_CHECKLIST_SUBMIT_PATH || DEFAULT_CHECKLIST_SUBMIT_PATH;
 
 export const resolveApiUrl = (path = "") => {
   const normalizedPath = String(path).replace(/^\/+/, "");

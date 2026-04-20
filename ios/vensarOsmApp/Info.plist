@@ -47,24 +47,34 @@
 	<true/>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Montserrat-LightItalic.ttf</string>
-		<string>Montserrat-Medium.ttf</string>
-		<string>Montserrat-BoldItalic.ttf</string>
-		<string>Montserrat-Light.ttf</string>
-		<string>Montserrat-ThinItalic.ttf</string>
-		<string>Montserrat-ExtraLight.ttf</string>
-		<string>Montserrat-Thin.ttf</string>
-		<string>Montserrat-Bold.ttf</string>
-		<string>Montserrat-MediumItalic.ttf</string>
-		<string>Montserrat-BlackItalic.ttf</string>
-		<string>Montserrat-SemiBold.ttf</string>
-		<string>Montserrat-ExtraLightItalic.ttf</string>
-		<string>Montserrat-ExtraBold.ttf</string>
-		<string>Montserrat-Black.ttf</string>
-		<string>Montserrat-Regular.ttf</string>
-		<string>Montserrat-Italic.ttf</string>
-		<string>Montserrat-SemiBoldItalic.ttf</string>
-		<string>Montserrat-ExtraBoldItalic.ttf</string>
+		<string>Aptos-Bold.ttf</string>
+		<string>Aptos.ttf</string>
+		<string>Aptos-Italic.ttf</string>
+		<string>Aptos-SemiBold.ttf</string>
+		<string>Aptos-Mono-Italic.ttf</string>
+		<string>Aptos-Narrow.ttf</string>
+		<string>Aptos-Display-Bold-Italic.ttf</string>
+		<string>Aptos-Light-Italic.ttf</string>
+		<string>Aptos-Serif-Bold-Italic.ttf</string>
+		<string>Aptos-Serif.ttf</string>
+		<string>Aptos-Display-Bold.ttf</string>
+		<string>Aptos-Mono-Bold-Italic.ttf</string>
+		<string>Aptos-Serif-Italic.ttf</string>
+		<string>Aptos-Serif-Bold.ttf</string>
+		<string>Aptos-SemiBold-Italic.ttf</string>
+		<string>Aptos-Narrow-Bold.ttf</string>
+		<string>Aptos-Narrow-Italic.ttf</string>
+		<string>Aptos-Black.ttf</string>
+		<string>Aptos-Display-Italic.ttf</string>
+		<string>Aptos-Bold-Italic.ttf</string>
+		<string>Aptos-Mono.ttf</string>
+		<string>Aptos-Light.ttf</string>
+		<string>Aptos-Mono-Bold.ttf</string>
+		<string>Aptos-ExtraBold-Italic.ttf</string>
+		<string>Aptos-Black-Italic.ttf</string>
+		<string>Aptos-Narrow-Bold-Italic.ttf</string>
+		<string>Aptos-Display.ttf</string>
+		<string>Aptos-ExtraBold.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>

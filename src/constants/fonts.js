@@ -1,9 +1,9 @@
 const fonts = {
-  regular: "Montserrat-Regular",
-  medium: "Montserrat-Medium",
-  bold: "Montserrat-Bold",
-  semiBold: "Montserrat-SemiBold",
-  italic: "Montserrat-Italic",
+  regular: "Aptos",
+  medium: "Aptos-SemiBold",
+  bold: "Aptos-Bold",
+  semiBold: "Aptos-SemiBold",
+  italic: "Aptos-Italic",
 };
 
 export default fonts;
