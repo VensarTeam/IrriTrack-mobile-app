@@ -1,16 +1,8 @@
-import { useMemo, useState } from "react";
-import {
-  getUnitStatusBySubOption,
-  MODULE_STATUS_SECTIONS,
-} from "../constants/moduleStatusConfig";
+import { useEffect, useMemo, useState } from "react";
+import { getUnitStatusBySubOption } from "../constants/moduleStatusConfig";
 import { ROUTES } from "../navigation/routes";
 import { showAppAlert } from "../services/alertService";
-
-const applyModuleText = (value, module) => {
-  if (typeof value !== "string" || !module) return value;
-
-  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
-};
+import useChecklistSections from "./useChecklistSections";
 
 const useUnitDetailsViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
@@ -24,7 +16,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
     { label: "Chak Area", value: unit.area || "30 ha" },
     {
       label: "Sub Chak Quantity",
-      value: unit.subChakQuantity || "6",
+      value: unit.subChakQuantity || "8",
     },
   ];
 
@@ -32,34 +24,22 @@ const useUnitDetailsViewModel = (navigation, route) => {
     visible: false,
     section: null,
   });
+  const { sections } = useChecklistSections({ module, unit });
+  const [expandedSections, setExpandedSections] = useState({});
 
-  const [expandedSections, setExpandedSections] = useState(() => ({
-    [MODULE_STATUS_SECTIONS[0]?.key]: true,
-  }));
+  useEffect(() => {
+    const firstSectionKey = sections[0]?.key;
 
-  const sections = useMemo(
-    () =>
-      MODULE_STATUS_SECTIONS.map((section) => ({
-        ...section,
-        title: applyModuleText(section.title, module),
-        description: applyModuleText(section.description, module),
-        subOptions: (section.subOptions || []).map((sub) => ({
-          ...sub,
-          label: applyModuleText(sub.label, module),
-        })),
-      })),
-    [module]
-  );
+    if (!firstSectionKey) return;
+
+    setExpandedSections((prev) =>
+      sections.some((section) => prev[section.key])
+        ? prev
+        : { [firstSectionKey]: true }
+    );
+  }, [sections]);
 
   const statusLookup = useMemo(() => getUnitStatusBySubOption(unit), [unit]);
-
-  const getSubOptionLabel = (subOption) => {
-    if (subOption.id === "locationFinalization") {
-      return `${module} Location Finalization`;
-    }
-
-    return subOption.label;
-  };
 
   const openSection = (section, subOption) => {
     navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
@@ -121,14 +101,14 @@ const useUnitDetailsViewModel = (navigation, route) => {
   const getUpdateOptions = () =>
     (updatePicker.section?.subOptions || []).map((sub) => ({
       ...sub,
-      displayLabel: getSubOptionLabel(sub),
+      displayLabel: sub.label,
       status: statusLookup[sub.id] || "Pending",
     }));
 
   const getSectionSubStatuses = (section) =>
     section.subOptions.map((sub) => ({
       ...sub,
-      displayLabel: getSubOptionLabel(sub),
+      displayLabel: sub.label,
       status: statusLookup[sub.id] || "Pending",
     }));
 

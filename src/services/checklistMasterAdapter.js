@@ -27,7 +27,7 @@ const SUB_OPTION_ID_BY_SUBPROCESS = {
   "pedestal and enclosure installation": "pedestalEnclosureInstallation",
   "mechanical accessories installation": "mechanicalAccessoriesInstallation",
   "automation installation": "automationInstallation",
-  flushing: "pipeFlushing",
+  "flushing": "pipeFlushing",
   "dry commissioning": "dryCommissioning",
   "wet commissioning": "wetCommissioning",
   "mechanical rectification": "mechanicalRectification",
@@ -65,6 +65,22 @@ const getSubOptionId = (subprocess, index) =>
   );
 
 const getDropdownOptions = (checklist = {}) => {
+  const apiOptions = Array.isArray(checklist.options)
+    ? checklist.options
+        .map((option) => {
+          if (option && typeof option === "object") {
+            return String(option.label ?? option.value ?? "").trim();
+          }
+
+          return String(option || "").trim();
+        })
+        .filter(Boolean)
+    : [];
+
+  if (apiOptions.length) {
+    return apiOptions;
+  }
+
   const label = normalizeText(checklist.description);
 
   if (label.includes("reinstalled")) return REINSTALL_MATERIAL_OPTIONS;
@@ -86,6 +102,59 @@ const getDropdownOptions = (checklist = {}) => {
   if (label.includes("status")) return STATUS_OPTIONS;
 
   return YES_NO_OPTIONS;
+};
+
+const buildDynamicListGroup = (checklist, base, fieldLabel) => {
+  const label = normalizeText(checklist.description);
+
+  if (label.includes("outlet pipe identification and marking")) {
+    return {
+      key: `api_dynamic_list_${checklist.checklist_id}`,
+      title: fieldLabel,
+      subtitle: "{subChakQuantity} outlet entries created by default.",
+      addButtonLabel: "Add Outlet",
+      itemLabel: "Outlet",
+      itemTitleField: "subChakName",
+      useSubChakQuantity: true,
+      imageBySubChakQuantity: true,
+      minItems: 1,
+      maxItems: 8,
+      ...base,
+      itemFields: [
+        {
+          key: "subChakName",
+          label: "Outlet ID",
+          placeholder: "V1",
+          readOnly: true,
+          getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
+        },
+        {
+          key: "pipeSize",
+          type: "select",
+          label: "Pipe Size",
+          options: PIPE_SIZE_OPTIONS,
+          placeholder: "Select pipe size",
+        },
+      ],
+    };
+  }
+
+  return {
+    key: `api_dynamic_list_${checklist.checklist_id}`,
+    title: fieldLabel,
+    subtitle: "Add item details.",
+    addButtonLabel: "Add Item",
+    itemLabel: "Item",
+    minItems: base.required ? 1 : 0,
+    ...base,
+    itemFields: [
+      {
+        key: "value",
+        label: fieldLabel,
+        placeholder: `Enter ${checklist.description}`,
+      },
+    ],
+  };
 };
 
 const getChecklistBase = (checklist = {}) => ({
@@ -142,6 +211,13 @@ const addChecklistToSubOption = (subOption, checklist) => {
       options: getDropdownOptions(checklist),
       ...base,
     });
+    return;
+  }
+
+  if (inputType === "dynamic list") {
+    subOption.repeatableGroups.push(
+      buildDynamicListGroup(checklist, base, fieldLabel)
+    );
     return;
   }
 

@@ -1,43 +1,24 @@
 import {
   getUnitStatusBySubOption,
-  MODULE_STATUS_SECTIONS,
 } from "../constants/moduleStatusConfig";
 import { showAppAlert } from "../services/alertService";
+import useChecklistSections from "./useChecklistSections";
 
 const COMPLETED_STATES = ["Completed", "Updated"];
-
-const applyModuleText = (value, module) => {
-  if (typeof value !== "string" || !module) return value;
-
-  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
-};
 
 const useUnitStatusOverviewViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
+  const { sections: checklistSections } = useChecklistSections({ module, unit });
 
   const statusLookup = getUnitStatusBySubOption(unit);
 
-  const getSubOptionLabel = (subOption) => {
-    if (subOption.id === "locationFinalization") {
-      return `${module} Location Finalization`;
-    }
-
-    return subOption.label;
-  };
-
-  const sections = MODULE_STATUS_SECTIONS.map((section) => ({
+  const sections = checklistSections.map((section) => ({
     ...section,
-    title: applyModuleText(section.title, module),
-    description: applyModuleText(section.description, module),
     subStatuses: section.subOptions.map((sub) => ({
       ...sub,
-      label: applyModuleText(sub.label, module),
-      displayLabel: getSubOptionLabel({
-        ...sub,
-        label: applyModuleText(sub.label, module),
-      }),
+      displayLabel: sub.label,
       status: statusLookup[sub.id] || "Pending",
     })),
   }));

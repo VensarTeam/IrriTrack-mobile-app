@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   getUnitStatusBySubOption,
-  MODULE_STATUS_SECTIONS,
-  UNIT_LIST_SECTION_KEYS,
 } from "../constants/moduleStatusConfig";
 import { ROUTES } from "../navigation/routes";
 import { getFilterOptions, getUnits } from "../repositories/unitRepository";
 import { openDirections } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
+import useChecklistSections from "./useChecklistSections";
 
 const COMPLETED_STATES = ["Completed", "Updated"];
 const PENDING_STATES = ["Pending", "", null, undefined];
@@ -43,16 +42,13 @@ const getCompactProgressLabel = (completedCount, totalCount) => {
   return `${completedCount}/${totalCount}`;
 };
 
-const PROCESS_SECTIONS = UNIT_LIST_SECTION_KEYS.map((sectionKey) =>
-  MODULE_STATUS_SECTIONS.find((section) => section.key === sectionKey)
-).filter(Boolean);
-
 const getProcessLabel = (section = {}) =>
   section.cardLabel ||
   (section.title || "").replace(/\s+(Status|Process)$/, "").trim();
 
 const useUnitListViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
+  const { sections: processSections } = useChecklistSections({ module });
   const { zones, distributors, villages } = getFilterOptions();
 
   const [search, setSearch] = useState("");
@@ -131,7 +127,7 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const getCardProcesses = (unit) =>
-    PROCESS_SECTIONS.map((section) => {
+    processSections.map((section) => {
       const statusLookup = getUnitStatusBySubOption(unit);
       const states = (section.subOptions || []).map(
         (subOption) => statusLookup[subOption.id] || "Pending"

@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { IconButton } from "react-native-paper";
+import { Icon, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
@@ -357,30 +357,43 @@ const ProcessTile = ({ process, isWide, onPress }) => {
         },
       ]}
     >
-      <View style={styles.processTileMeta}>
-        <View
-          style={[
-            styles.processStatusDot,
-            { backgroundColor: statusColor },
-          ]}
-        />
-        <Text style={styles.processLabel} numberOfLines={1}>
-          {process.label}
-        </Text>
+      <View style={styles.processTileMain}>
+        <View style={styles.processTileMeta}>
+          <View
+            style={[
+              styles.processStatusDot,
+              { backgroundColor: statusColor },
+            ]}
+          />
+          <Text style={styles.processLabel} numberOfLines={2}>
+            {process.label}
+          </Text>
+        </View>
       </View>
 
-      <View
-        style={[
-          styles.processProgressBadge,
-          { backgroundColor: `${statusColor}18` },
-        ]}
-      >
-        <Text
-          style={[styles.processProgressText, { color: statusColor }]}
-          numberOfLines={1}
+      <View style={styles.processTileRight}>
+        <View
+          style={[
+            styles.processProgressBadge,
+            { backgroundColor: `${statusColor}18` },
+          ]}
         >
-          {process.progressLabel}
-        </Text>
+          <Text
+            style={[styles.processProgressText, { color: statusColor }]}
+            numberOfLines={1}
+          >
+            {process.progressLabel}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.processArrowWrap,
+            { backgroundColor: `${statusColor}18` },
+          ]}
+        >
+          <Icon source="chevron-right" size={16} color={statusColor} />
+        </View>
       </View>
     </TouchableOpacity>
   );

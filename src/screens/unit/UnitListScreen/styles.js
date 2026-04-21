@@ -349,7 +349,7 @@ export default StyleSheet.create({
     marginBottom: verticalScale(6),
     borderRadius: moderateScale(14),
     minHeight: verticalScale(46),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(7),
     paddingHorizontal: moderateScale(10),
     flexDirection: "row",
     alignItems: "center",
@@ -360,12 +360,16 @@ export default StyleSheet.create({
     width: "100%",
   },
 
+  processTileMain: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: moderateScale(6),
+  },
+
   processTileMeta: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
     minWidth: 0,
-    marginRight: moderateScale(8),
   },
 
   processStatusDot: {
@@ -377,16 +381,22 @@ export default StyleSheet.create({
 
   processLabel: {
     flex: 1,
-    fontSize: moderateScale(10.5),
+    fontSize: moderateScale(11),
     lineHeight: moderateScale(14),
     fontFamily: fonts.semiBold,
     color: colors.textDark,
   },
 
+  processTileRight: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    minHeight: verticalScale(28),
+  },
+
   processProgressBadge: {
     minWidth: moderateScale(38),
     paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(4),
+    paddingVertical: verticalScale(3),
     borderRadius: moderateScale(10),
     alignItems: "center",
   },
@@ -394,6 +404,15 @@ export default StyleSheet.create({
   processProgressText: {
     fontSize: moderateScale(9.5),
     fontFamily: fonts.bold,
+  },
+
+  processArrowWrap: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(9),
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: verticalScale(4),
   },
 
   certificateButton: {

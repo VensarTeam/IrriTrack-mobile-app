@@ -33,6 +33,14 @@ const warnSync = (message, error) => {
   });
 };
 
+const stringifySubmissionForLog = (value) => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return `[unserializable: ${error?.message || "unknown"}]`;
+  }
+};
+
 const getPayloadSummary = (payload = {}) => ({
   unitNo: payload.unitNo,
   sectionKey: payload.sectionKey,
@@ -264,15 +272,19 @@ const sortBySequence = (items = []) =>
   [...items].sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
 
 const normalizeProcessMaster = (processes = []) =>
-  sortBySequence(processes).map((process) => ({
-    ...process,
-    subprocesses: sortBySequence(process.subprocesses || []).map(
-      (subprocess) => ({
-        ...subprocess,
-        checklists: sortBySequence(subprocess.checklists || []),
-      })
-    ),
-  }));
+  sortBySequence(processes)
+    .filter((process) => process?.is_active !== false)
+    .map((process) => ({
+      ...process,
+      subprocesses: sortBySequence(process.subprocesses || [])
+        .filter((subprocess) => subprocess?.is_active !== false)
+        .map((subprocess) => ({
+          ...subprocess,
+          checklists: sortBySequence(subprocess.checklists || []).filter(
+            (checklist) => checklist?.is_active !== false
+          ),
+        })),
+    }));
 
 const canUseNetwork = async () => {
   const state = await NetInfo.fetch();
@@ -698,7 +710,7 @@ const writeSubmissionDraftJson = async (submission) => {
     answerCount: draftJson.answers?.length || 0,
     photoCount: draftJson.photos?.length || 0,
   });
-  console.log("[ChecklistDraft]", JSON.stringify(draftJson, null, 2));
+  console.log("[ChecklistDraft][JSON]", stringifySubmissionForLog(draftJson));
 
   return {
     draftJson,

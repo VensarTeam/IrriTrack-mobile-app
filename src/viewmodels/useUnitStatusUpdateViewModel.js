@@ -3,28 +3,15 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
   DEFAULT_NODE_LOCATION,
-  MODULE_STATUS_SECTIONS,
   STATUS_OPTIONS,
 } from "../constants/moduleStatusConfig";
 import { openLocation } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 import {
-  getCachedChecklistProcessMaster,
   submitChecklistOfflineFirst,
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
-import { buildChecklistSectionsFromMaster } from "../services/checklistMasterAdapter";
-
-const DEFAULT_SUB_CHAK_QUANTITY = 6;
-
-const getUnitSubChakQuantity = (unit = {}) => {
-  const match = `${unit?.subChakQuantity ?? DEFAULT_SUB_CHAK_QUANTITY}`.match(/\d+/);
-  const parsedValue = Number.parseInt(match?.[0], 10);
-
-  return Number.isFinite(parsedValue) && parsedValue > 0
-    ? parsedValue
-    : DEFAULT_SUB_CHAK_QUANTITY;
-};
+import useChecklistSections from "./useChecklistSections";
 
 const buildChecklistState = (checklistItems = []) =>
   checklistItems.reduce((acc, item) => {
@@ -71,6 +58,14 @@ const buildRepeatableGroupState = (repeatableGroups = []) =>
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
 
+const stringifySubmissionForLog = (value) => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return `[unserializable: ${error?.message || "unknown"}]`;
+  }
+};
+
 const buildUnitAddressSummary = (unit = {}, baseLocation = DEFAULT_NODE_LOCATION) => {
   const address = [unit.village, unit.distributor, unit.zone]
     .filter(Boolean)
@@ -93,23 +88,6 @@ const formatGeocodeAddress = (place = {}) => {
   return parts.join(", ");
 };
 
-const applyModuleText = (value, module) => {
-  if (typeof value !== "string" || !module) return value;
-
-  return value.replace(/OMS\/RMS/g, module).replace(/\bOMS\b/g, module);
-};
-
-const resolveContextValue = (value, context = {}) => {
-  if (typeof value === "function") return value(context);
-
-  if (typeof value !== "string") return value;
-
-  return value.replace(
-    /\{subChakQuantity\}/g,
-    `${getUnitSubChakQuantity(context.unit)}`
-  );
-};
-
 const isVisibleByRule = (item, values, subOption) =>
   !item?.showWhen || item.showWhen({ values, subOption });
 
@@ -119,74 +97,6 @@ const isRequiredByRule = (item, values, subOption) => {
   }
 
   return item?.required !== false;
-};
-
-const getModuleAwareSections = (module, unit) => {
-  const subChakQuantity = getUnitSubChakQuantity(unit);
-
-  return MODULE_STATUS_SECTIONS.map((section) => ({
-    ...section,
-    title: applyModuleText(section.title, module),
-    description: applyModuleText(section.description, module),
-    subOptions: (section.subOptions || []).map((sub) => ({
-      ...sub,
-      label: applyModuleText(sub.label, module),
-      statusLabel: applyModuleText(sub.statusLabel, module),
-      remarkLabel: applyModuleText(sub.remarkLabel, module),
-      checklistItems: (sub.checklistItems || []).map((item) => ({
-        ...item,
-        label: applyModuleText(
-          resolveContextValue(item.label, { module, unit }),
-          module
-        ),
-      })),
-      photoRequirements: (sub.photoRequirements || []).map((requirement) => ({
-        ...requirement,
-        label: applyModuleText(requirement.label, module),
-      })),
-      selectFields: (sub.selectFields || []).map((field) => ({
-        ...field,
-        label: applyModuleText(field.label, module),
-        placeholder: applyModuleText(field.placeholder, module),
-      })),
-      inputFields: (sub.inputFields || []).map((field) => ({
-        ...field,
-        label: applyModuleText(field.label, module),
-        placeholder: applyModuleText(field.placeholder, module),
-      })),
-      repeatableGroups: (sub.repeatableGroups || []).map((group) => {
-        const useSubChakQuantity = !!group.useSubChakQuantity;
-
-        return {
-          ...group,
-          minItems: useSubChakQuantity ? subChakQuantity : group.minItems,
-          maxItems: useSubChakQuantity ? subChakQuantity : group.maxItems,
-          fixedItemCount: useSubChakQuantity ? subChakQuantity : group.fixedItemCount,
-          title: applyModuleText(
-            resolveContextValue(group.title, { module, unit }),
-            module
-          ),
-          subtitle: applyModuleText(
-            resolveContextValue(group.subtitle, { module, unit }),
-            module
-          ),
-          addButtonLabel: applyModuleText(group.addButtonLabel, module),
-          itemLabel: applyModuleText(group.itemLabel, module),
-          itemFields: (group.itemFields || []).map((field) => ({
-            ...field,
-            label: applyModuleText(
-              resolveContextValue(field.label, { module, unit }),
-              module
-            ),
-            placeholder: applyModuleText(
-              resolveContextValue(field.placeholder, { module, unit }),
-              module
-            ),
-          })),
-        };
-      }),
-    })),
-  }));
 };
 
 const getInitialFormValues = (section, unit) => {
@@ -221,13 +131,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
-  const fallbackSections = useMemo(
-    () => getModuleAwareSections(module, unit),
-    [module, unit]
-  );
-  const [apiSections, setApiSections] = useState([]);
-  const [masterSource, setMasterSource] = useState("static");
-  const sections = apiSections.length ? apiSections : fallbackSections;
+  const { sections, masterSource } = useChecklistSections({ module, unit });
 
   const section =
     sections.find((item) => item.key === sectionKey) || sections[0];
@@ -254,76 +158,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   });
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const applyProcesses = (processes, source) => {
-      const nextSections = buildChecklistSectionsFromMaster({
-        processes,
-        module,
-      });
-      const checklistCount = nextSections.reduce(
-        (count, sectionItem) =>
-          count +
-          sectionItem.subOptions.reduce(
-            (subCount, subOption) =>
-              subCount + (subOption.apiChecklists?.length || 0),
-            0
-          ),
-        0
-      );
-
-      if (!nextSections.length || !checklistCount || !isMounted) {
-        console.log("[ChecklistForm]", "Master skipped", {
-          source,
-          processCount: nextSections.length,
-          checklistCount,
-        });
-        return false;
-      }
-
-      console.log("[ChecklistForm]", "Master loaded", {
-        source,
-        processCount: nextSections.length,
-        subprocessCount: nextSections.reduce(
-          (count, item) => count + (item.subOptions?.length || 0),
-          0
-        ),
-        checklistCount,
-      });
-      setApiSections(nextSections);
-      setMasterSource(source);
-      return true;
-    };
-
-    const loadMaster = async () => {
-      console.log("[ChecklistForm]", "Loading checklist master from SQLite", {
-        deviceType: module,
-      });
-
-      try {
-        const cachedProcesses = await getCachedChecklistProcessMaster({
-          deviceType: module,
-        });
-        const applied = applyProcesses(cachedProcesses, "sqlite-cache");
-
-        if (!applied) {
-          console.log("[ChecklistForm]", "Using static fallback checklist data");
-        }
-      } catch (error) {
-        console.log("[ChecklistForm]", "Local master cache unavailable", {
-          message: error?.message,
-        });
-      }
-    };
-
-    void loadMaster();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [module]);
 
   useEffect(() => {
     const nextSection =
@@ -388,15 +222,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     })
   );
 
-  const getSubOptionLabel = (subOption) => {
-    if (subOption.id === "locationFinalization") {
-      return `${module} Location Finalization`;
-    }
+  const getSubOptionLabel = (subOption) => subOption.label;
 
-    return subOption.label;
-  };
-
-  const activeSubOptionLabel = getSubOptionLabel(activeSubOption);
+  const activeSubOptionLabel = activeSubOption.label;
 
   const getChecklistProgress = () => {
     const total = checklistItems.length;
@@ -1069,10 +897,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       answers.push(
         buildAnswer(
           {
+            checklistId: group.checklistId || null,
             label: group.title,
-            inputType: "repeatable",
-            dataType: "json",
-            required: true,
+            inputType: group.inputType || "repeatable",
+            dataType: group.dataType || "json",
+            inputUnit: group.inputUnit ?? null,
+            seqNo: group.seqNo ?? null,
+            required: group.required !== false,
           },
           (activeValues.repeatableGroups?.[group.key] || []).map(
             (item, index) => ({
@@ -1181,6 +1012,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       })),
       repeatableValues: repeatableGroups.map((group) => ({
         key: group.key,
+        checklist_id: group.checklistId || null,
         title: group.title,
         items: (activeValues.repeatableGroups?.[group.key] || []).map(
           (item, index) => ({
@@ -1217,6 +1049,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       selectCount: payload.selectValues.length,
       inputCount: payload.inputValues.length,
     });
+    console.log("[ChecklistSubmitPayload]", {
+      module,
+      unitNo: payload.unitNo,
+      process: payload.process_description,
+      subprocess: payload.subprocess_description,
+      submittedAt: payload.submittedAt,
+    });
+    console.log("[ChecklistSubmitPayload][JSON]", stringifySubmissionForLog(payload));
     setIsSubmitting(true);
 
     try {
@@ -1233,6 +1073,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         subprocessId: result.draftJson?.subprocess_id,
         answerCount: result.draftJson?.answers?.length || 0,
       });
+      console.log("[ChecklistSubmitDraft]", {
+        submissionId: result.submission?.id,
+        draftJsonPath: result.draftJsonPath,
+        processId: result.draftJson?.process_id,
+        subprocessId: result.draftJson?.subprocess_id,
+      });
+      console.log(
+        "[ChecklistSubmitDraft][JSON]",
+        stringifySubmissionForLog(result.draftJson)
+      );
 
       const activeIndex = section.subOptions.findIndex(
         (item) => item.id === activeSubOption.id

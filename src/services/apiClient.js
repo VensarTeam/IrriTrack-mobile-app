@@ -3,14 +3,6 @@ import { API_BASE_URL } from "../config/env";
 
 const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
 const API_LOGS_ENABLED = typeof __DEV__ === "undefined" || __DEV__;
-const SENSITIVE_LOG_KEYS = [
-  "authorization",
-  "password",
-  "token",
-  "accesstoken",
-  "refreshToken",
-  "verificationToken",
-];
 
 const ERROR_CODES_BY_STATUS = {
   400: "BAD_REQUEST",
@@ -40,105 +32,8 @@ const authHandlers = {
   refreshAccessToken: null,
 };
 
-const maskValue = (value) => {
-  if (typeof value !== "string") {
-    return "***";
-  }
-
-  if (value.length <= 12) {
-    return "***";
-  }
-
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
-};
-
-const shouldMaskKey = (key) => {
-  const normalizedKey = String(key).replace(/[_-]/g, "").toLowerCase();
-
-  return SENSITIVE_LOG_KEYS.some((sensitiveKey) =>
-    normalizedKey.includes(sensitiveKey.toLowerCase())
-  );
-};
-
-const sanitizeForLog = (value, seen = new WeakSet()) => {
-  if (value === null || typeof value === "undefined") {
-    return value;
-  }
-
-  if (typeof value !== "object") {
-    return value;
-  }
-
-  if (seen.has(value)) {
-    return "[Circular]";
-  }
-
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeForLog(item, seen));
-  }
-
-  return Object.entries(value).reduce((acc, [key, item]) => {
-    acc[key] = shouldMaskKey(key) ? maskValue(item) : sanitizeForLog(item, seen);
-    return acc;
-  }, {});
-};
-
-const sanitizeFormDataForLog = (data) => {
-  const parts = Array.isArray(data?._parts) ? data._parts : [];
-
-  return {
-    type: "FormData",
-    fields: parts.map(([key, value]) => {
-      if (shouldMaskKey(key)) {
-        return { key, value: maskValue(value) };
-      }
-
-      if (value && typeof value === "object") {
-        return {
-          key,
-          value: sanitizeForLog({
-            uri: value.uri,
-            name: value.name || value.fileName,
-            type: value.type,
-            width: value.width,
-            height: value.height,
-          }),
-        };
-      }
-
-      return { key, value };
-    }),
-  };
-};
-
-const sanitizeDataForLog = (data) => {
-  if (
-    (typeof FormData !== "undefined" && data instanceof FormData) ||
-    Array.isArray(data?._parts)
-  ) {
-    return sanitizeFormDataForLog(data);
-  }
-
-  return sanitizeForLog(data);
-};
-
 const getHeadersForLog = (headers) =>
-  Object.entries(axios.AxiosHeaders.from(headers || {}).toJSON()).reduce(
-    (acc, [key, value]) => {
-      const headerValue = String(value);
-      const tokenValue = headerValue.replace(/^Bearer\s+/i, "");
-      console.log("Header:", key, value);
-      acc[key] = shouldMaskKey(key)
-        ? headerValue.startsWith("Bearer ")
-          ? `Bearer ${maskValue(tokenValue)}`
-          : maskValue(tokenValue)
-        : value;
-      return acc;
-    },
-    {}
-  );
+  axios.AxiosHeaders.from(headers || {}).toJSON();
 
 const formatRequestUrl = (config) => {
   const baseUrl = config.baseURL || "";
@@ -186,9 +81,16 @@ const formDataToCurlParts = (data) => {
       return `-F ${quoteCurlValue(`${key}=@${filePath}${contentType}`)}`;
     }
 
-    const fieldValue = shouldMaskKey(key) ? maskValue(value) : value;
-    return `-F ${quoteCurlValue(`${key}=${fieldValue}`)}`;
+    return `-F ${quoteCurlValue(`${key}=${value}`)}`;
   });
+};
+
+const stringifyDataForCurl = (data) => {
+  try {
+    return JSON.stringify(data);
+  } catch (error) {
+    return String(data);
+  }
 };
 
 const dataToCurlPart = (data) => {
@@ -203,7 +105,7 @@ const dataToCurlPart = (data) => {
     return formDataToCurlParts(data);
   }
 
-  return [`--data ${quoteCurlValue(JSON.stringify(sanitizeForLog(data)))}`];
+  return [`--data ${quoteCurlValue(stringifyDataForCurl(data))}`];
 };
 
 const toCurlCommand = (config) => {
@@ -228,13 +130,13 @@ const logApiRequest = (config) => {
 
   const method = (config.method || "GET").toUpperCase();
   const url = formatRequestUrl(config);
-  const data = sanitizeDataForLog(config.data);
 
   console.log(`[API] ${method} ${url}`);
   console.log("[API] curl", toCurlCommand(config));
+  console.log("[API] headers", getHeadersForLog(config.headers));
 
-  if (typeof data !== "undefined") {
-    console.log("[API] request", data);
+  if (typeof config.data !== "undefined") {
+    console.log("[API] request", config.data);
   }
 };
 
@@ -245,7 +147,7 @@ const logApiResponse = (response) => {
     status: response.status,
     method: (response.config?.method || "GET").toUpperCase(),
     url: formatRequestUrl(response.config || {}),
-    data: sanitizeForLog(response.data),
+    data: response.data,
   });
 };
 
@@ -349,7 +251,7 @@ const logApiError = (error) => {
       error?.message ||
       DEFAULT_ERROR_MESSAGE,
     code: error?.code || null,
-    data: sanitizeForLog(responseData),
+    data: responseData,
   });
 };
 
