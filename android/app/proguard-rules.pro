@@ -11,4 +11,12 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# Vision Camera / face blink detection
+-keep class com.mrousavy.camera.** { *; }
+-keep class com.visioncamerafacedetector.** { *; }
+-keep class com.worklets.** { *; }
+-keep class com.google.mlkit.vision.face.** { *; }
+-keep class com.google.mlkit.vision.common.** { *; }
+-dontwarn com.google.mlkit.**
+
 # Add any project specific keep options here:
