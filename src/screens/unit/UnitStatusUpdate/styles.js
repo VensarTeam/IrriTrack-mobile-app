@@ -113,9 +113,27 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
-  stepSubtitle: {
-    fontSize: moderateScale(11),
-    color: colors.textSecondary,
+  stepMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
+
+  stepMetaChip: {
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  stepMetaChipText: {
+    fontSize: moderateScale(9.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   stepScroll: {
@@ -136,6 +154,7 @@ export default StyleSheet.create({
   stepChipActive: {
     backgroundColor: colors.primaryBlue,
     borderColor: colors.primaryBlue,
+    elevation: 1,
   },
 
   stepChipText: {
@@ -178,6 +197,8 @@ export default StyleSheet.create({
     borderRadius: moderateScale(12),
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(4),
+    borderWidth: 1,
+    borderColor: "#BCE9D2",
   },
 
   progressPillText: {
@@ -194,6 +215,7 @@ export default StyleSheet.create({
     fontSize: moderateScale(11),
     color: colors.textSecondary,
     marginBottom: verticalScale(5),
+    fontFamily: fonts.medium,
   },
 
   selectField: {
@@ -442,7 +464,36 @@ export default StyleSheet.create({
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
-    marginBottom: verticalScale(6),
+  },
+
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(4),
+    gap: moderateScale(8),
+  },
+
+  sectionCountBadge: {
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  sectionCountBadgeText: {
+    fontSize: moderateScale(9.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  sectionHelperText: {
+    marginBottom: verticalScale(8),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    lineHeight: moderateScale(14),
   },
 
   checkItem: {
@@ -519,7 +570,6 @@ export default StyleSheet.create({
     fontSize: moderateScale(12),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
-    marginBottom: verticalScale(6),
   },
 
   photoSlotCard: {
@@ -667,17 +717,38 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: moderateScale(12),
-    backgroundColor: colors.inputBg,
-    paddingVertical: verticalScale(8),
+    backgroundColor: colors.white,
+    paddingVertical: verticalScale(10),
     paddingHorizontal: moderateScale(10),
   },
 
   locationLabel: {
     fontSize: moderateScale(10),
     color: colors.textSecondary,
-    marginTop: verticalScale(4),
-    marginBottom: verticalScale(4),
+    marginBottom: 0,
     fontFamily: fonts.medium,
+  },
+
+  locationEntry: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.inputBg,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(9),
+    marginBottom: verticalScale(8),
+  },
+
+  locationEntryMuted: {
+    opacity: 0.92,
+  },
+
+  locationEntryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(6),
+    gap: moderateScale(10),
   },
 
   locationHighlight: {
@@ -696,6 +767,46 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
+  locationHighlightTextMuted: {
+    color: colors.textSecondary,
+  },
+
+  locationMetaText: {
+    marginTop: verticalScale(5),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  locationMiniBtn: {
+    minHeight: verticalScale(28),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBlue,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(5),
+  },
+
+  locationMiniBtnDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+
+  locationMiniBtnText: {
+    fontSize: moderateScale(10),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  locationMiniBtnTextDisabled: {
+    color: colors.textSecondary,
+  },
+
   locationText: {
     fontSize: moderateScale(11),
     color: colors.textDark,
@@ -707,13 +818,12 @@ export default StyleSheet.create({
   },
 
   locationBtn: {
-    flexDirection:'row',
-    gap:4,
+    flexDirection: "row",
+    gap: 4,
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(10),
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: verticalScale(8),
   },
 
   locationBtnPrimary: {

@@ -77,38 +77,44 @@ export default StyleSheet.create({
 
   filterContainer: {
     flexDirection: "row",
-    paddingHorizontal: moderateScale(15),
+    paddingHorizontal: moderateScale(7),
     marginBottom: verticalScale(12),
     justifyContent: "space-between",
-    paddingVertical: verticalScale(6),
-    backgroundColor: "#F7FAFE",
-    borderRadius: moderateScale(18),
+    paddingVertical: verticalScale(7),
+    backgroundColor: "#F5FAFF",
+    borderRadius: moderateScale(20),
     marginHorizontal: moderateScale(15),
     borderWidth: 1,
-    borderColor: "#E2EBF5",
+    borderColor: "#D8E7F5",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
   },
 
   filterBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FCFDFE",
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#DCE7F3",
-    marginHorizontal: moderateScale(3),
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: moderateScale(7),
-    borderRadius: moderateScale(14),
-    elevation: 2,
+    borderColor: "#E0EAF4",
+    marginHorizontal: moderateScale(4),
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(16),
+    elevation: 1,
     shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
   },
 
   filterBtnActive: {
     borderColor: colors.primaryBlue,
-    backgroundColor: "#EEF5FD",
+    backgroundColor: "#EDF6FF",
+    shadowOpacity: 0.08,
   },
 
   filterLeftSection: {
@@ -119,34 +125,34 @@ export default StyleSheet.create({
   },
 
   filterIconWrap: {
-    width: moderateScale(20),
-    height: moderateScale(20),
-    borderRadius: moderateScale(10),
-    backgroundColor: "#EAF2FB",
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EDF5FE",
     alignItems: "center",
     justifyContent: "center",
   },
 
   filterIconWrapActive: {
-    backgroundColor: "#DCEBFB",
+    backgroundColor: colors.primaryBlue,
   },
 
   filterTextBlock: {
     flex: 1,
     minWidth: 0,
-    marginLeft: moderateScale(5),
+    marginLeft: moderateScale(8),
   },
 
   filterTitle: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10),
     color: colors.textSecondary,
-    marginBottom: verticalScale(1),
+    marginBottom: verticalScale(2),
   },
 
   filterValue: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(12),
     color: colors.textDark,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.bold,
   },
 
   filterValueActive: {
@@ -154,13 +160,13 @@ export default StyleSheet.create({
   },
 
   filterArrowWrap: {
-    width: moderateScale(16),
-    height: moderateScale(16),
-    borderRadius: moderateScale(8),
-    backgroundColor: "#F2F7FC",
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+    backgroundColor: "#EEF5FC",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: moderateScale(4),
+    marginLeft: moderateScale(6),
   },
 
   listContent: {
@@ -433,16 +439,34 @@ export default StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: colors.modalOverlay,
     justifyContent: "center",
   },
 
   modalCard: {
     backgroundColor: colors.white,
-    marginHorizontal: moderateScale(30),
-    borderRadius: moderateScale(18),
-    padding: moderateScale(20),
+    marginHorizontal: moderateScale(24),
+    borderRadius: moderateScale(22),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(12),
+    paddingBottom: moderateScale(16),
     maxHeight: "70%",
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+
+  modalHandle: {
+    alignSelf: "center",
+    width: moderateScale(36),
+    height: verticalScale(4),
+    borderRadius: moderateScale(4),
+    backgroundColor: "#D7E5F2",
+    marginBottom: verticalScale(14),
   },
 
   infoModalCard: {
@@ -457,10 +481,17 @@ export default StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(16),
     fontFamily: fonts.bold,
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(4),
     color: colors.textDark,
+  },
+
+  modalSubtitle: {
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    marginBottom: verticalScale(12),
   },
 
   infoModalSubtitle: {
@@ -524,18 +555,27 @@ export default StyleSheet.create({
   },
 
   modalItem: {
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(10),
-    borderRadius: moderateScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(14),
+    marginBottom: verticalScale(7),
+    backgroundColor: "#F8FBFF",
+    borderWidth: 1,
+    borderColor: "#E7EFF8",
   },
 
   modalItemActive: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: "#EDF6FF",
+    borderColor: colors.primaryBlue,
   },
 
   modalText: {
     fontSize: moderateScale(13),
     color: colors.textDark,
+    fontFamily: fonts.medium,
   },
 
   modalTextActive: {
@@ -543,10 +583,36 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
+  modalCheck: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+    borderWidth: 1,
+    borderColor: "#D6E3F0",
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: moderateScale(12),
+  },
+
+  modalCheckActive: {
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.primaryBlue,
+  },
+
+  closeButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(8),
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EEF5FB",
+  },
+
   closeText: {
     textAlign: "center",
-    marginTop: verticalScale(15),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
+    fontSize: moderateScale(12),
   },
 });

@@ -66,7 +66,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     removeRepeatableGroupItem,
     toggleChecklistItem,
     getChecklistProgress,
-    getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
     isUpdatingLocation,
@@ -83,6 +82,40 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   } = useUnitStatusUpdateViewModel(navigation, route);
 
   const checklistProgress = getChecklistProgress();
+  const compactMetaItems = [
+    {
+      key: "steps",
+      label: `${section.subOptions.length} Step${
+        section.subOptions.length === 1 ? "" : "s"
+      }`,
+    },
+    {
+      key: "checks",
+      label: `${checklistProgress.total} Check${
+        checklistProgress.total === 1 ? "" : "s"
+      }`,
+    },
+  ];
+  const locationCards = [
+    {
+      key: "default",
+      label: "Default Address",
+      address: activeValues.defaultAddress || "Address not available",
+      location: activeValues.defaultLocation,
+      meta: "Saved project location",
+      disabled: !activeValues.defaultLocation,
+    },
+    {
+      key: "updated",
+      label: "Updated Address",
+      address: activeValues.updatedAddress || "Not updated",
+      location: activeValues.updatedLocation,
+      meta: activeValues.updatedAt
+        ? `Updated on ${activeValues.updatedAt}`
+        : "Current location not captured yet",
+      disabled: !activeValues.updatedLocation,
+    },
+  ];
 
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
@@ -388,7 +421,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
           <View style={styles.stepHeaderRow}>
             <Text style={styles.stepTitle}>Update Steps</Text>
-            <Text style={styles.stepSubtitle}>Tap and continue</Text>
+            <View style={styles.stepMetaRow}>
+              {compactMetaItems.map((item) => (
+                <View key={item.key} style={styles.stepMetaChip}>
+                  <Text style={styles.stepMetaChipText}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <ScrollView
@@ -460,7 +499,17 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             {checklistItems.length ? (
               <View style={styles.checklistCard}>
-                <Text style={styles.checklistTitle}>Checklist</Text>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.checklistTitle}>Checklist</Text>
+                  <View style={styles.sectionCountBadge}>
+                    <Text style={styles.sectionCountBadgeText}>
+                      {checklistItems.length} item{checklistItems.length === 1 ? "" : "s"}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.sectionHelperText}>
+                  Tick each point after verifying it on site.
+                </Text>
 
                 {checklistItems.map((item) => {
                   const checked = !!activeValues.checks?.[item.id];
@@ -525,8 +574,18 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             {photoRequirements.length ? (
               <View style={styles.photoSection}>
-                <Text style={styles.photoSectionTitle}>
-                  Photos with Timestamp
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.photoSectionTitle}>
+                    Photos with Timestamp
+                  </Text>
+                  <View style={styles.sectionCountBadge}>
+                    <Text style={styles.sectionCountBadgeText}>
+                      {photoRequirements.length} required
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.sectionHelperText}>
+                  Capture clear site photos so the submission is easy to verify.
                 </Text>
 
                 {photoRequirements.map((requirement, index) => {
@@ -641,23 +700,49 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               <View style={styles.locationSection}>
                 <Text style={styles.locationTitle}>Node Location</Text>
                 <View style={styles.locationCard}>
-                  <Text style={styles.locationLabel}>Default Address</Text>
-                  <View style={styles.locationHighlight}>
-                    <Text style={styles.locationHighlightText}>
-                      {activeValues.defaultAddress || "Address not available"}
-                    </Text>
-                  </View>
+                  {locationCards.map((item) => (
+                    <View
+                      key={item.key}
+                      style={[
+                        styles.locationEntry,
+                        item.disabled && styles.locationEntryMuted,
+                      ]}
+                    >
+                      <View style={styles.locationEntryHeader}>
+                        <Text style={styles.locationLabel}>{item.label}</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.locationMiniBtn,
+                            item.disabled && styles.locationMiniBtnDisabled,
+                          ]}
+                          onPress={() => openMapForLocation(item.location)}
+                          disabled={item.disabled || isUpdatingLocation}
+                          activeOpacity={0.88}
+                        >
+                          <Icons.googleIcon height={14} width={14} />
+                          <Text
+                            style={[
+                              styles.locationMiniBtnText,
+                              item.disabled &&
+                                styles.locationMiniBtnTextDisabled,
+                            ]}
+                          >
+                            View Map
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
 
-                  <Text style={styles.locationLabel}>Updated Address</Text>
-                  <View style={styles.locationHighlight}>
-                    <Text style={styles.locationHighlightText}>
-                      {activeValues.updatedAddress || "Not updated"}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.locationText}>
-                    Updated On: {activeValues.updatedAt || "Not updated"}
-                  </Text>
+                      <Text
+                        style={[
+                          styles.locationHighlightText,
+                          item.disabled && styles.locationHighlightTextMuted,
+                        ]}
+                      >
+                        {item.address}
+                      </Text>
+                      <Text style={styles.locationMetaText}>{item.meta}</Text>
+                    </View>
+                  ))}
                 </View>
 
                 <View style={styles.locationActionsRow}>
@@ -684,18 +769,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       </Text>
                     </TouchableOpacity>
                   ) : null}
-
-                  <TouchableOpacity
-                    style={[styles.locationBtn, styles.locationBtnSecondary]}
-                    onPress={() => openMapForLocation(getCurrentLocation())}
-                    disabled={isUpdatingLocation}
-                    activeOpacity={0.88}
-                  >
-                    <Icons.googleIcon height={22} width={22} />
-                    <Text style={styles.locationBtnSecondaryText}>
-                      Check on Google Map
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             ) : null}

@@ -66,12 +66,16 @@ const stringifySubmissionForLog = (value) => {
   }
 };
 
-const buildUnitAddressSummary = (unit = {}, baseLocation = DEFAULT_NODE_LOCATION) => {
-  const address = [unit.village, unit.distributor, unit.zone]
-    .filter(Boolean)
-    .join(", ");
+const buildUnitAddressSummary = (
+  unit = {},
+  baseLocation = DEFAULT_NODE_LOCATION
+) => {
+  const unitLocation = {
+    latitude: unit?.latitude ?? baseLocation?.latitude,
+    longitude: unit?.longitude ?? baseLocation?.longitude,
+  };
 
-  return address || formatCoordinates(baseLocation);
+  return formatCoordinates(unitLocation);
 };
 
 const formatGeocodeAddress = (place = {}) => {
@@ -434,11 +438,20 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     clearFieldError("form");
   };
 
-  const getCurrentLocation = () =>
-    activeValues.updatedLocation || activeValues.defaultLocation;
-
   const openMapForLocation = async (location) => {
-    await openLocation(location.latitude, location.longitude);
+    const latitude = Number(location?.latitude);
+    const longitude = Number(location?.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      showAppAlert({
+        type: "warning",
+        title: "Location unavailable",
+        message: "Coordinates are not available for this address yet.",
+      });
+      return;
+    }
+
+    await openLocation(latitude, longitude);
   };
 
   const requestLocationPermission = async () => {
@@ -1164,7 +1177,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     removeRepeatableGroupItem,
     toggleChecklistItem,
     getChecklistProgress,
-    getCurrentLocation,
     openMapForLocation,
     updateNodeLocation,
     pickFromCamera,

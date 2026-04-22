@@ -21,10 +21,14 @@ const getStatusColor = (value) => {
   return colors.pending;
 };
 
+const isCompletedStatus = (value) =>
+  value === "Completed" || value === "Updated";
+
 const ModuleDetailsScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const {
     unitLabel,
+    projectName,
     detailItems,
     sections,
     openHelper,
@@ -42,6 +46,26 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
   } = useUnitDetailsViewModel(navigation, route);
 
   const updateOptions = getUpdateOptions();
+  const sectionSummaries = sections.map((section) => ({
+    ...section,
+    subStatuses: getSectionSubStatuses(section),
+  }));
+  const totalSubStatuses = sectionSummaries.reduce(
+    (sum, section) => sum + section.subStatuses.length,
+    0
+  );
+  const completedSubStatuses = sectionSummaries.reduce(
+    (sum, section) =>
+      sum +
+      section.subStatuses.filter((subStatus) => isCompletedStatus(subStatus.status))
+        .length,
+    0
+  );
+  const detailSummary = [
+    { key: "processes", value: sectionSummaries.length, label: "Processes" },
+    { key: "steps", value: totalSubStatuses, label: "Steps" },
+    { key: "done", value: completedSubStatuses, label: "Completed" },
+  ];
   const sheetBottomPadding =
     Math.max(insets.bottom, verticalScale(14)) + verticalScale(12);
 
@@ -60,6 +84,28 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroLabel}>Project</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>
+            {projectName}
+          </Text>
+          <View style={styles.heroSummaryRow}>
+            {detailSummary.map((item) => (
+              <View key={item.key} style={styles.heroSummaryChip}>
+                <Text style={styles.heroSummaryValue}>{item.value}</Text>
+                <Text style={styles.heroSummaryLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.sectionMetaBlock}>
+          <Text style={styles.sectionMetaTitle}>Node Details</Text>
+          <Text style={styles.sectionMetaSubtitle}>
+            Quick summary for this unit before you open a process.
+          </Text>
+        </View>
+
         <View style={styles.detailsGrid}>
           {detailItems.map((item) => (
             <View style={styles.detailCard} key={item.label}>
@@ -83,28 +129,33 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {sections.map((section) => {
+        {sectionSummaries.map((section) => {
           const expanded = isSectionExpanded(section.key);
-          const subStatuses = getSectionSubStatuses(section);
+          const subStatuses = section.subStatuses;
 
           return (
             <View key={section.key} style={styles.statusCard}>
               <View style={styles.statusCardHead}>
-                <TouchableOpacity
-                  style={styles.sectionToggleButton}
-                  activeOpacity={0.85}
-                  onPress={() => toggleSection(section.key)}
-                >
-                  <Text style={styles.statusCardTitle}>{section.title}</Text>
-                  <View
-                    style={[
-                      styles.chevronWrap,
-                      expanded && styles.chevronWrapExpanded,
-                    ]}
+                <View style={styles.statusHeadMain}>
+                  <TouchableOpacity
+                    style={styles.sectionToggleButton}
+                    activeOpacity={0.85}
+                    onPress={() => toggleSection(section.key)}
                   >
-                    <Icons.down width={12} height={12} style={{ marginLeft: moderateScale(6) }} />
-                  </View>
-                </TouchableOpacity>
+                    <Text style={styles.statusCardTitle}>{section.title}</Text>
+                    <View
+                      style={[
+                        styles.chevronWrap,
+                        expanded && styles.chevronWrapExpanded,
+                      ]}
+                    >
+                      <Icons.down width={12} height={12} style={{ marginLeft: moderateScale(6) }} />
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={styles.statusCountText}>
+                    {subStatuses.length} step{subStatuses.length === 1 ? "" : "s"}
+                  </Text>
+                </View>
 
                 <TouchableOpacity
                   style={styles.updateButton}
@@ -134,7 +185,10 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                         activeOpacity={0.85}
                         onPress={() => openSubStatus(section, subStatus)}
                       >
-                        <Text style={styles.subStatusLabel}>{subStatus.displayLabel}</Text>
+                        <View style={styles.subStatusCopy}>
+                          <View style={styles.subStatusDot} />
+                          <Text style={styles.subStatusLabel}>{subStatus.displayLabel}</Text>
+                        </View>
                         <View
                           style={[
                             styles.statusPill,

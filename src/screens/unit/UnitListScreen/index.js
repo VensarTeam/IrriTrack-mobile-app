@@ -20,11 +20,9 @@ const UnitListScreen = ({ navigation, route }) => {
   const {
     module,
     zones,
-    distributors,
     villages,
     search,
     zone,
-    distributor,
     village,
     filterType,
     setSearch,
@@ -175,6 +173,10 @@ const UnitListScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+  const filterLabel = filterType === "zone" ? "Zone" : "Village";
+  const filterOptions =
+    filterType === "zone" ? ["All", ...zones] : ["All", ...villages];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -220,14 +222,6 @@ const UnitListScreen = ({ navigation, route }) => {
         />
 
         <FilterButton
-          title="Distributor"
-          label={distributor}
-          icon={Icons.distributor}
-          active={distributor !== "All"}
-          onPress={() => setFilterType("distributor")}
-        />
-
-        <FilterButton
           title="Village"
           label={village}
           icon={Icons.village}
@@ -251,36 +245,53 @@ const UnitListScreen = ({ navigation, route }) => {
       <Modal visible={!!filterType} transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Select {filterType}</Text>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Select {filterLabel}</Text>
+            <Text style={styles.modalSubtitle}>
+              Choose the {filterLabel.toLowerCase()} to refine unit results.
+            </Text>
 
             <ScrollView>
-              {(filterType === "zone"
-                ? ["All", ...zones]
-                : filterType === "distributor"
-                  ? ["All", ...distributors]
-                  : ["All", ...villages]
-              ).map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.modalItem,
-                    item === getActiveFilterValue() && styles.modalItemActive,
-                  ]}
-                  onPress={() => applyFilter(item)}
-                >
-                  <Text
+              {filterOptions.map((item) => {
+                const isActive = item === getActiveFilterValue();
+
+                return (
+                  <TouchableOpacity
+                    key={item}
                     style={[
-                      styles.modalText,
-                      item === getActiveFilterValue() && styles.modalTextActive,
+                      styles.modalItem,
+                      isActive && styles.modalItemActive,
                     ]}
+                    onPress={() => applyFilter(item)}
                   >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.modalText,
+                        isActive && styles.modalTextActive,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+
+                    <View
+                      style={[
+                        styles.modalCheck,
+                        isActive && styles.modalCheckActive,
+                      ]}
+                    >
+                      {isActive ? (
+                        <Icon source="check" size={14} color={colors.white} />
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
-            <TouchableOpacity onPress={() => setFilterType(null)}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setFilterType(null)}
+            >
               <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
           </View>

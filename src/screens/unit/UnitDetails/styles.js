@@ -32,6 +32,76 @@ export default StyleSheet.create({
     paddingBottom: verticalScale(20),
   },
 
+  heroCard: {
+    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    marginBottom: verticalScale(12),
+  },
+
+  heroLabel: {
+    fontSize: moderateScale(10.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(3),
+  },
+
+  heroTitle: {
+    fontSize: moderateScale(15),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(20),
+  },
+
+  heroSummaryRow: {
+    marginTop: verticalScale(10),
+    flexDirection: "row",
+    gap: moderateScale(8),
+  },
+
+  heroSummaryChip: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  heroSummaryValue: {
+    fontSize: moderateScale(14),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  heroSummaryLabel: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  sectionMetaBlock: {
+    marginBottom: verticalScale(8),
+  },
+
+  sectionMetaTitle: {
+    fontSize: moderateScale(15),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  sectionMetaSubtitle: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(11),
+    color: colors.textSecondary,
+  },
+
   helperHeaderButton: {
     backgroundColor: colors.white,
     borderWidth: 1,
@@ -123,15 +193,20 @@ export default StyleSheet.create({
 
   statusCardHead: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: verticalScale(4),
+    marginBottom: verticalScale(6),
+  },
+
+  statusHeadMain: {
+    flex: 1,
+    paddingRight: moderateScale(10),
   },
 
   sectionToggleButton: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
   },
 
   chevronWrap: {
@@ -146,6 +221,13 @@ export default StyleSheet.create({
     fontSize: moderateScale(14),
     fontFamily: fonts.bold,
     color: colors.textDark,
+  },
+
+  statusCountText: {
+    marginTop: verticalScale(3),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
 
   updateButton: {
@@ -189,12 +271,26 @@ export default StyleSheet.create({
     paddingBottom: 0,
   },
 
+  subStatusCopy: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: moderateScale(10),
+  },
+
+  subStatusDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.primaryBlue,
+    marginRight: moderateScale(8),
+  },
+
   subStatusLabel: {
     fontSize: moderateScale(12),
     color: colors.textDark,
     fontFamily: fonts.medium,
     flex: 1,
-    paddingRight: moderateScale(10),
   },
 
   statusPill: {
