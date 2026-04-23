@@ -117,6 +117,10 @@ export default StyleSheet.create({
     shadowOpacity: 0.08,
   },
 
+  filterBtnDisabled: {
+    opacity: 0.7,
+  },
+
   filterLeftSection: {
     flex: 1,
     minWidth: 0,
@@ -135,6 +139,10 @@ export default StyleSheet.create({
 
   filterIconWrapActive: {
     backgroundColor: colors.primaryBlue,
+  },
+
+  filterIconWrapDisabled: {
+    backgroundColor: "#E5EBF2",
   },
 
   filterTextBlock: {

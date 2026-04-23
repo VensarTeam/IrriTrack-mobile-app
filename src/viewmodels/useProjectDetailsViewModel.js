@@ -2,30 +2,63 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, LayoutAnimation } from "react-native";
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
+import { useAuth } from "../context/AuthContext";
+import useProjectLocationFilters from "../hooks/useProjectLocationFilters";
 import {
-  getProjectStatusDataSet,
-  getProjectFilterOptions,
-} from "../repositories/projectStatusRepository";
+  createEmptyProjectDetails,
+} from "../models/projectDetails";
+import { fetchProjectDetails } from "../services/projectDetailsService";
 
 const moduleThemes = colors.projectModules;
 
-const useProjectDetailsViewModel = (navigation) => {
+const getProjectHeaderTitle = (projectDetails, fallbackProject, routeProjectName) =>
+  routeProjectName ||
+  projectDetails?.shortName ||
+  fallbackProject?.shortName ||
+  projectDetails?.name ||
+  fallbackProject?.name ||
+  "Project Details";
+
+const useProjectDetailsViewModel = (navigation, route) => {
+  const { user } = useAuth();
+  const project = route?.params?.project || null;
+  const projectId = project?.id || project?.projectId || user?.projectId || "";
+  const fallbackProjectDetails = useMemo(
+    () => createEmptyProjectDetails(project),
+    [project],
+  );
+
   const [expanded, setExpanded] = useState(null);
   const [selectedStage, setSelectedStage] = useState("All");
   const [zone, setZone] = useState("All");
   const [village, setVillage] = useState("All");
   const [filterType, setFilterType] = useState(null);
+  const [projectDetails, setProjectDetails] = useState(fallbackProjectDetails);
+  const [isProjectDetailsLoading, setIsProjectDetailsLoading] = useState(false);
+  const [projectDetailsError, setProjectDetailsError] = useState("");
   const chartAnim = useRef(new Animated.Value(0)).current;
+  const latestRequestIdRef = useRef(0);
 
-  const { zones, villagesByZone } = useMemo(() => getProjectFilterOptions(), []);
-  const villages = useMemo(
-    () => (zone === "All" ? [] : villagesByZone[zone] || []),
-    [zone, villagesByZone],
+  const {
+    isOnline,
+    canUseLocationFilters,
+    zones,
+    villages,
+    villageOptions,
+  } = useProjectLocationFilters({
+    projectId,
+    selectedZone: zone,
+  });
+
+  const selectedVillageId = useMemo(
+    () =>
+      villageOptions.find((item) => item.name === village)?.id || "",
+    [village, villageOptions],
   );
-  const dataSet = useMemo(
-    () => getProjectStatusDataSet({ zone, village }),
-    [zone, village],
-  );
+
+  useEffect(() => {
+    setProjectDetails(fallbackProjectDetails);
+  }, [fallbackProjectDetails]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -38,6 +71,88 @@ const useProjectDetailsViewModel = (navigation) => {
       useNativeDriver: true,
     }).start();
   }, [expanded, chartAnim]);
+
+  useEffect(() => {
+    if (!canUseLocationFilters) {
+      setZone("All");
+      setVillage("All");
+      return;
+    }
+
+    if (zone !== "All" && !zones.includes(zone)) {
+      setZone("All");
+      setVillage("All");
+    }
+  }, [canUseLocationFilters, zone, zones]);
+
+  useEffect(() => {
+    if (!canUseLocationFilters) {
+      return;
+    }
+
+    if (village !== "All" && !villages.includes(village)) {
+      setVillage("All");
+    }
+  }, [canUseLocationFilters, village, villages]);
+
+  useEffect(() => {
+    if (!projectId) {
+      setProjectDetails(fallbackProjectDetails);
+      setProjectDetailsError("");
+      setIsProjectDetailsLoading(false);
+      return;
+    }
+
+    if (!isOnline) {
+      setProjectDetailsError("");
+      setIsProjectDetailsLoading(false);
+      return;
+    }
+
+    const requestId = latestRequestIdRef.current + 1;
+    latestRequestIdRef.current = requestId;
+
+    const loadProjectDetails = async () => {
+      setIsProjectDetailsLoading(true);
+      setProjectDetailsError("");
+
+      try {
+        const nextProjectDetails = await fetchProjectDetails({
+          projectId,
+          zoneName: zone,
+          villageId: selectedVillageId,
+        });
+
+        // Ignore stale responses when the user changes filters quickly.
+        if (latestRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setProjectDetails(nextProjectDetails);
+      } catch (error) {
+        if (latestRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        console.log("[ProjectDetails]", "Unable to load project details", {
+          message: error?.message,
+          status: error?.status,
+          projectId,
+          zone,
+          villageId: selectedVillageId,
+        });
+        setProjectDetailsError(
+          error?.message || "Unable to load project details right now.",
+        );
+      } finally {
+        if (latestRequestIdRef.current === requestId) {
+          setIsProjectDetailsLoading(false);
+        }
+      }
+    };
+
+    void loadProjectDetails();
+  }, [fallbackProjectDetails, isOnline, projectId, selectedVillageId, zone]);
 
   const chartAnimatedStyle = {
     opacity: chartAnim,
@@ -92,31 +207,30 @@ const useProjectDetailsViewModel = (navigation) => {
     return "";
   };
 
-  const getModuleTotal = (stages = []) => {
-    const firstStage = stages[0];
-
-    if (!firstStage) return 0;
-
-    return firstStage.completed + firstStage.pending + firstStage.partial;
-  };
-
-  const hasActiveLocationFilters = zone !== "All" || village !== "All";
+  const hasActiveLocationFilters =
+    canUseLocationFilters && (zone !== "All" || village !== "All");
 
   const locationFilterOptions =
-    filterType === "zone"
-      ? ["All", ...zones]
-      : zone === "All"
-        ? ["All"]
-        : ["All", ...villages];
+    !canUseLocationFilters
+      ? []
+      : filterType === "zone"
+        ? ["All", ...zones]
+        : zone === "All"
+          ? ["All"]
+          : ["All", ...villages];
 
   const locationSummary =
-    village !== "All"
-      ? `${zone} / ${village}`
-      : zone !== "All"
-        ? `${zone} overview`
-        : "All zones overview";
+    !canUseLocationFilters
+      ? "Filters available online only"
+      : village !== "All"
+        ? `${zone} / ${village}`
+        : zone !== "All"
+          ? `${zone} overview`
+          : "All zones overview";
 
-  const getStageSummary = (stages, stageLabel = selectedStage) => {
+  const dataSet = projectDetails?.modules || fallbackProjectDetails.modules;
+
+  const getStageSummary = (stages = [], stageLabel = selectedStage) => {
     if (stageLabel === "All") {
       const completed = stages.reduce((sum, item) => sum + item.completed, 0);
       const pending = stages.reduce((sum, item) => sum + item.pending, 0);
@@ -169,71 +283,53 @@ const useProjectDetailsViewModel = (navigation) => {
     return { data, percent: summary.percent };
   };
 
-  const getSectionHighlights = (stages) => {
-    const totalUnits = stages[0]
-      ? stages[0].completed + stages[0].pending + stages[0].partial
-      : 0;
-    const installedStage =
-      stages.find((item) => item.label === "Automation Inst.") || stages[0];
-    const commissionedStage =
-      stages.find((item) => item.label === "Wet commissioning") ||
-      stages[stages.length - 1];
-
-    const installed = installedStage?.completed || 0;
-    const installationBalance = Math.max(totalUnits - installed, 0);
-    const commissioned = commissionedStage?.completed || 0;
-    const commissioningBalance = Math.max(totalUnits - commissioned, 0);
-
-    return [
-      { key: "installed", label: "Installed", value: installed, color: colors.completed },
-      {
-        key: "installation-balance",
-        label: "Installation Balance",
-        value: installationBalance,
-        color: colors.pending,
-      },
-      {
-        key: "commissioned",
-        label: "Commissioned",
-        value: commissioned,
-        color: colors.completed,
-      },
-      {
-        key: "commissioning-balance",
-        label: "Commissioning Balance",
-        value: commissioningBalance,
-        color: colors.pending,
-      },
-    ];
-  };
-
-  const kpiCards = [
+  const getSectionHighlights = (moduleData = {}) => [
     {
-      key: "OMS",
-      value: getModuleTotal(dataSet.OMS),
-      ...moduleThemes.OMS,
+      key: "installed",
+      label: "Installed",
+      value: moduleData.installed || 0,
+      color: colors.completed,
     },
     {
-      key: "RMS",
-      value: getModuleTotal(dataSet.RMS),
-      ...moduleThemes.RMS,
+      key: "installation-balance",
+      label: "Installation Balance",
+      value: moduleData.installationBalance || 0,
+      color: colors.pending,
     },
     {
-      key: "GW",
-      value: getModuleTotal(dataSet.GW),
-      ...moduleThemes.GW,
+      key: "commissioned",
+      label: "Commissioned",
+      value: moduleData.commissioned || 0,
+      color: colors.completed,
+    },
+    {
+      key: "commissioning-balance",
+      label: "Commissioning Balance",
+      value: moduleData.commissioningBalance || 0,
+      color: colors.pending,
     },
   ];
+
+  const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => ({
+    key: moduleKey,
+    value: dataSet[moduleKey]?.totalUnits || 0,
+    ...moduleThemes[moduleKey],
+  }));
 
   const getModuleTheme = (module) => moduleThemes[module] || moduleThemes.OMS;
 
   const handleBack = () => navigation.goBack();
 
   const openModuleList = (module) => {
-    navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, { module: module || "OMS" });
+    navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, {
+      module: module || "OMS",
+      project,
+      projectName: route?.params?.projectName || project?.name,
+    });
   };
 
   return {
+    canUseLocationFilters,
     dataSet,
     expanded,
     selectedStage,
@@ -246,6 +342,14 @@ const useProjectDetailsViewModel = (navigation) => {
     hasActiveLocationFilters,
     locationSummary,
     chartAnimatedStyle,
+    isProjectDetailsLoading,
+    projectDetailsError,
+    projectHeaderTitle: getProjectHeaderTitle(
+      projectDetails,
+      project,
+      route?.params?.projectName,
+    ),
+    projectHeaderSubtitle: projectDetails?.name || project?.name || "",
     toggleSection,
     setSelectedStage,
     setFilterType,

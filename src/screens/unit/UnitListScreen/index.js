@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon, IconButton } from "react-native-paper";
+import SearchableFilterModal from "../../../components/SearchableFilterModal";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
@@ -18,6 +18,7 @@ import useUnitListViewModel from "../../../viewmodels/useUnitListViewModel";
 const UnitListScreen = ({ navigation, route }) => {
   const [showStatusInfo, setShowStatusInfo] = React.useState(false);
   const {
+    canUseLocationFilters,
     module,
     zones,
     villages,
@@ -129,18 +130,25 @@ const UnitListScreen = ({ navigation, route }) => {
     title,
     label,
     active,
+    disabled,
     onPress,
     icon: FilterIcon,
   }) => (
     <TouchableOpacity
-      style={[styles.filterBtn, active && styles.filterBtnActive]}
+      style={[
+        styles.filterBtn,
+        active && styles.filterBtnActive,
+        disabled && styles.filterBtnDisabled,
+      ]}
       onPress={onPress}
+      disabled={disabled}
     >
       <View style={styles.filterLeftSection}>
         <View
           style={[
             styles.filterIconWrap,
             active && styles.filterIconWrapActive,
+            disabled && styles.filterIconWrapDisabled,
           ]}
         >
           {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
@@ -212,23 +220,26 @@ const UnitListScreen = ({ navigation, route }) => {
         />
       </View>
 
-      <View style={styles.filterContainer}>
-        <FilterButton
-          title="Zone"
-          label={zone}
-          icon={Icons.zone}
-          active={zone !== "All"}
-          onPress={() => setFilterType("zone")}
-        />
+      {canUseLocationFilters ? (
+        <View style={styles.filterContainer}>
+          <FilterButton
+            title="Zone"
+            label={zone}
+            icon={Icons.zone}
+            active={zone !== "All"}
+            onPress={() => setFilterType("zone")}
+          />
 
-        <FilterButton
-          title="Village"
-          label={village}
-          icon={Icons.village}
-          active={village !== "All"}
-          onPress={() => setFilterType("village")}
-        />
-      </View>
+          <FilterButton
+            title="Village"
+            label={zone === "All" ? "Select Zone first" : village}
+            icon={Icons.village}
+            active={village !== "All"}
+            disabled={zone === "All"}
+            onPress={() => setFilterType("village")}
+          />
+        </View>
+      ) : null}
 
       <FlatList
         data={filteredData}
@@ -242,61 +253,19 @@ const UnitListScreen = ({ navigation, route }) => {
         ]}
       />
 
-      <Modal visible={!!filterType} transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Select {filterLabel}</Text>
-            <Text style={styles.modalSubtitle}>
-              Choose the {filterLabel.toLowerCase()} to refine unit results.
-            </Text>
-
-            <ScrollView>
-              {filterOptions.map((item) => {
-                const isActive = item === getActiveFilterValue();
-
-                return (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.modalItem,
-                      isActive && styles.modalItemActive,
-                    ]}
-                    onPress={() => applyFilter(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.modalText,
-                        isActive && styles.modalTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-
-                    <View
-                      style={[
-                        styles.modalCheck,
-                        isActive && styles.modalCheckActive,
-                      ]}
-                    >
-                      {isActive ? (
-                        <Icon source="check" size={14} color={colors.white} />
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setFilterType(null)}
-            >
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {canUseLocationFilters ? (
+        <SearchableFilterModal
+          visible={!!filterType}
+          title={`Select ${filterLabel}`}
+          subtitle={`Choose the ${filterLabel.toLowerCase()} to refine unit results.`}
+          options={filterOptions}
+          selectedValue={getActiveFilterValue()}
+          onSelect={applyFilter}
+          onClose={() => setFilterType(null)}
+          searchPlaceholder={`Search ${filterLabel.toLowerCase()}`}
+          emptyMessage={`No ${filterLabel.toLowerCase()} found.`}
+        />
+      ) : null}
 
       <Modal
         visible={showStatusInfo}

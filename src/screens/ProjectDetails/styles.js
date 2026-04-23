@@ -32,7 +32,7 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: fontScale(18),
+    fontSize: fontScale(10),
     fontFamily: fonts.medium,
     color: colors.textDark,
   },
@@ -197,6 +197,90 @@ export default StyleSheet.create({
     color: colors.primaryBlue,
   },
 
+  shimmerBlock: {
+    overflow: "hidden",
+    borderRadius: moderateScale(12),
+    backgroundColor: "#E7EEF6",
+  },
+
+  shimmerSweep: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: -moderateScale(140),
+    width: moderateScale(120),
+  },
+
+  shimmerGradient: {
+    flex: 1,
+  },
+
+  statusBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: moderateScale(15),
+    marginTop: verticalScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+  },
+
+  statusBannerLoading: {
+    backgroundColor: colors.surfaceBluePale,
+    borderColor: colors.filterPanelBorder,
+  },
+
+  statusBannerError: {
+    backgroundColor: "#FFF6F4",
+    borderColor: "#F1D1C8",
+  },
+
+  statusBannerText: {
+    flex: 1,
+    marginLeft: moderateScale(10),
+    fontSize: fontScale(11),
+    fontFamily: fonts.medium,
+    color: colors.textDark,
+  },
+
+  inlineLoadingShell: {
+    marginHorizontal: moderateScale(15),
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(-2),
+  },
+
+  inlineLoadingBar: {
+    width: "100%",
+    height: verticalScale(10),
+    borderRadius: moderateScale(999),
+  },
+
+  skeletonMetaLabel: {
+    width: moderateScale(52),
+    height: verticalScale(10),
+    marginBottom: verticalScale(6),
+    borderRadius: moderateScale(999),
+  },
+
+  skeletonMetaValue: {
+    width: "76%",
+    height: verticalScale(12),
+    borderRadius: moderateScale(999),
+  },
+
+  skeletonResetButton: {
+    width: moderateScale(62),
+    height: verticalScale(28),
+    borderRadius: moderateScale(12),
+  },
+
+  skeletonFilterField: {
+    flex: 1,
+    minHeight: verticalScale(52),
+    borderRadius: moderateScale(16),
+  },
+
   /* ================= KPI CARDS ================= */
 
   kpiContainer: {
@@ -217,6 +301,40 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: "hidden",
+  },
+
+  skeletonKpiCard: {
+    flex: 1,
+    marginHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(16),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    overflow: "hidden",
+  },
+
+  skeletonKpiAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: verticalScale(4),
+    borderRadius: 0,
+  },
+
+  skeletonKpiLabel: {
+    width: moderateScale(44),
+    height: verticalScale(14),
+    marginBottom: verticalScale(12),
+    borderRadius: moderateScale(999),
+  },
+
+  skeletonKpiValue: {
+    width: moderateScale(64),
+    height: verticalScale(24),
+    borderRadius: moderateScale(999),
   },
 
   kpiAccentBar: {
@@ -277,6 +395,63 @@ export default StyleSheet.create({
     borderColor: colors.cardBorder,
   },
 
+  skeletonSectionCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: moderateScale(15),
+    marginBottom: verticalScale(10),
+    borderRadius: moderateScale(18),
+    padding: moderateScale(8),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  skeletonSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderRadius: moderateScale(14),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(9),
+    backgroundColor: colors.white,
+  },
+
+  skeletonSectionTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  skeletonSectionAccent: {
+    width: moderateScale(4),
+    height: verticalScale(40),
+    borderRadius: moderateScale(999),
+    marginRight: moderateScale(10),
+  },
+
+  skeletonSectionTextWrap: {
+    flex: 1,
+  },
+
+  skeletonSectionTitle: {
+    width: "42%",
+    height: verticalScale(16),
+    borderRadius: moderateScale(999),
+    marginBottom: verticalScale(6),
+  },
+
+  skeletonSectionSubtitle: {
+    width: "26%",
+    height: verticalScale(10),
+    borderRadius: moderateScale(999),
+  },
+
+  skeletonSectionIcon: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    marginLeft: moderateScale(10),
+  },
+
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -333,6 +508,30 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(9),
     paddingVertical: verticalScale(6),
     marginBottom: verticalScale(6),
+  },
+
+  skeletonHighlightCard: {
+    width: "48.5%",
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(14),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(6),
+    backgroundColor: colors.white,
+  },
+
+  skeletonHighlightLabel: {
+    width: "62%",
+    height: verticalScale(10),
+    borderRadius: moderateScale(999),
+    marginBottom: verticalScale(8),
+  },
+
+  skeletonHighlightValue: {
+    width: "40%",
+    height: verticalScale(16),
+    borderRadius: moderateScale(999),
   },
 
   highlightLabel: {

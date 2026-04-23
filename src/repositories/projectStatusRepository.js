@@ -32,12 +32,19 @@ const moduleStageData = {
 };
 
 const locationWeights = [
-  { zone: "Zone-1", village: "Village-A", weight: 0.22 },
-  { zone: "Zone-1", village: "Village-B", weight: 0.18 },
-  { zone: "Zone-2", village: "Village-C", weight: 0.16 },
-  { zone: "Zone-2", village: "Village-D", weight: 0.14 },
-  { zone: "Zone-3", village: "Village-E", weight: 0.17 },
-  { zone: "Zone-3", village: "Village-F", weight: 0.13 },
+  { zone: "ZONE-05", village: "Abakhedi", weight: 0.07 },
+  { zone: "ZONE-05", village: "Beed nirdhari", weight: 0.06 },
+  { zone: "ZONE-05", village: "Khanderiya maru", weight: 0.1 },
+  { zone: "ZONE-05", village: "Kolwa", weight: 0.12 },
+  { zone: "ZONE-05", village: "Lildan", weight: 0.07 },
+  { zone: "ZONE-05", village: "Nirdhari", weight: 0.07 },
+  { zone: "ZONE-05", village: "Padliyamaru", weight: 0.1 },
+  { zone: "ZONE-05", village: "Pithakhedi nahargarh", weight: 0.06 },
+  { zone: "ZONE-04", village: "Gariyakheda", weight: 0.08 },
+  { zone: "ZONE-06", village: "Gariyakheda", weight: 0.06 },
+  { zone: "ZONE-02", village: "Khanukheda", weight: 0.08 },
+  { zone: "ZONE-02", village: "Nahargarh", weight: 0.08 },
+  { zone: "ZONE-03", village: "Shakkarkhedi_1", weight: 0.05 },
 ];
 
 const cloneStageSet = (dataSet) =>

@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getUnitStatusBySubOption,
 } from "../constants/moduleStatusConfig";
+import { useAuth } from "../context/AuthContext";
+import useProjectLocationFilters from "../hooks/useProjectLocationFilters";
 import { ROUTES } from "../navigation/routes";
-import { getFilterOptions, getUnits } from "../repositories/unitRepository";
+import { getUnits } from "../repositories/unitRepository";
 import { openDirections } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 import useChecklistSections from "./useChecklistSections";
@@ -46,32 +48,80 @@ const getProcessLabel = (section = {}) =>
   section.cardLabel ||
   (section.title || "").replace(/\s+(Status|Process)$/, "").trim();
 
-const useUnitListViewModel = (navigation, route) => {
-  const module = route?.params?.module || "OMS";
-  const { sections: processSections } = useChecklistSections({ module });
-  const { zones, villages } = getFilterOptions();
+const normalizeLocationValue = (value = "") =>
+  String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .replace(/ZONE0+(\d+)/g, "ZONE$1");
 
+const useUnitListViewModel = (navigation, route) => {
+  const { user } = useAuth();
+  const module = route?.params?.module || "OMS";
+  const project = route?.params?.project || null;
+  const projectId = project?.id || project?.projectId || user?.projectId || "";
+  const { sections: processSections } = useChecklistSections({ module });
   const [search, setSearch] = useState("");
   const [zone, setZone] = useState("All");
   const [village, setVillage] = useState("All");
   const [filterType, setFilterType] = useState(null);
-
+  const {
+    canUseLocationFilters,
+    zones: onlineZones,
+    villages: onlineVillages,
+  } = useProjectLocationFilters({
+    projectId,
+    selectedZone: zone,
+  });
+  const zones = canUseLocationFilters ? onlineZones : [];
+  const villages = canUseLocationFilters ? onlineVillages : [];
   const data = getUnits(module);
   const projectName =
+    route?.params?.projectName ||
     "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
+
+  useEffect(() => {
+    if (!canUseLocationFilters) {
+      setZone("All");
+      setVillage("All");
+      return;
+    }
+
+    if (zone !== "All" && !zones.includes(zone)) {
+      setZone("All");
+      setVillage("All");
+    }
+  }, [canUseLocationFilters, zone, zones]);
+
+  useEffect(() => {
+    if (!canUseLocationFilters) {
+      return;
+    }
+
+    if (village !== "All" && !villages.includes(village)) {
+      setVillage("All");
+    }
+  }, [canUseLocationFilters, village, villages]);
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
+      const matchesZone =
+        zone === "All" ||
+        normalizeLocationValue(item.zone) === normalizeLocationValue(zone);
+      const matchesVillage =
+        village === "All" ||
+        normalizeLocationValue(item.village) === normalizeLocationValue(village);
+
       return (
         item.unitNo.toLowerCase().includes(search.toLowerCase()) &&
-        (zone === "All" || item.zone === zone) &&
-        (village === "All" || item.village === village)
+        (!canUseLocationFilters || (matchesZone && matchesVillage))
       );
     });
-  }, [data, search, zone, village]);
+  }, [canUseLocationFilters, data, search, zone, village]);
 
   const hasActiveFilters =
-    !!search.trim() || zone !== "All" || village !== "All";
+    !!search.trim() ||
+    (canUseLocationFilters && (zone !== "All" || village !== "All"));
 
   const openMap = (lat, lng) => {
     openDirections(lat, lng);
@@ -92,7 +142,10 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const applyFilter = (item) => {
-    if (filterType === "zone") setZone(item);
+    if (filterType === "zone") {
+      setZone(item);
+      setVillage("All");
+    }
     if (filterType === "village") setVillage(item);
     setFilterType(null);
   };
@@ -161,6 +214,7 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   return {
+    canUseLocationFilters,
     module,
     zones,
     villages,
