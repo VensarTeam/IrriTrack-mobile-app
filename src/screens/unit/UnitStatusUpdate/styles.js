@@ -703,154 +703,187 @@ export default StyleSheet.create({
   },
 
   locationSection: {
-    marginTop: verticalScale(12),
-  },
+  marginTop: verticalScale(16),
+  gap: verticalScale(8),
+},
 
-  locationTitle: {
-    fontSize: moderateScale(12),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-    marginBottom: verticalScale(6),
-  },
+locationTitle: {
+  fontSize: moderateScale(11),
+  color: colors.primaryBlue,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.8,
+  textTransform: "uppercase",
+  marginBottom: verticalScale(8),
+},
 
-  locationCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: moderateScale(12),
-    backgroundColor: colors.white,
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(10),
-  },
+locationCard: {
+  borderRadius: moderateScale(20),
+  backgroundColor: colors.white,
+  paddingVertical: verticalScale(14),
+  paddingHorizontal: moderateScale(14),
+  backgroundColor: colors.white,
+  borderWidth: 1,
+  borderColor: colors.cardBorder,
+  elevation: 2,
+},
 
-  locationLabel: {
-    fontSize: moderateScale(10),
-    color: colors.textSecondary,
-    marginBottom: 0,
-    fontFamily: fonts.medium,
-  },
+locationLabel: {
+  fontSize: moderateScale(9.5),
+  color: colors.textSecondary,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.6,
+  textTransform: "uppercase",
+  marginBottom: verticalScale(6),
+},
 
-  locationEntry: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.inputBg,
-    borderRadius: moderateScale(10),
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(9),
-    marginBottom: verticalScale(8),
-  },
+locationEntry: {
+  backgroundColor: colors.inputBg,
+  borderRadius: moderateScale(14),
+  paddingHorizontal: moderateScale(12),
+  paddingVertical: verticalScale(10),
+  marginBottom: verticalScale(8),
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.06)",
+},
 
-  locationEntryMuted: {
-    opacity: 0.92,
-  },
+locationEntryMuted: {
+  opacity: 0.7,
+},
 
-  locationEntryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(6),
-    gap: moderateScale(10),
-  },
+locationEntryHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: verticalScale(6),
+  gap: moderateScale(8),
+},
 
-  locationHighlight: {
-    borderWidth: 1,
-    borderColor: colors.primaryBlue,
-    backgroundColor: colors.surfaceBlueSoft,
-    borderRadius: moderateScale(10),
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(8),
-    marginBottom: verticalScale(6),
-  },
+locationHighlight: {
+  borderRadius: moderateScale(14),
+  paddingHorizontal: moderateScale(12),
+  paddingVertical: verticalScale(10),
+  marginBottom: verticalScale(8),
+  backgroundColor: colors.surfaceBlueSoft,
+  borderLeftWidth: 3,
+  borderLeftColor: colors.primaryBlue,
+  borderTopWidth: 0,
+  borderBottomWidth: 0,
+  borderRightWidth: 0,
+},
 
-  locationHighlightText: {
-    fontSize: moderateScale(11),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-  },
+locationHighlightText: {
+  fontSize: moderateScale(11.5),
+  color: colors.primaryBlue,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.2,
+},
 
-  locationHighlightTextMuted: {
-    color: colors.textSecondary,
-  },
+locationHighlightTextMuted: {
+  color: colors.textSecondary,
+  fontFamily: fonts.medium,
+},
 
-  locationMetaText: {
-    marginTop: verticalScale(5),
-    fontSize: moderateScale(10),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
-  },
+locationMetaText: {
+  marginTop: verticalScale(4),
+  fontSize: moderateScale(10),
+  color: colors.textSecondary,
+  fontFamily: fonts.medium,
+  lineHeight: moderateScale(15),
+},
 
-  locationMiniBtn: {
-    minHeight: verticalScale(28),
-    borderRadius: moderateScale(999),
-    backgroundColor: colors.surfaceBlueSoft,
-    borderWidth: 1,
-    borderColor: colors.primaryBlue,
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(5),
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: moderateScale(5),
-  },
+locationMiniBtn: {
+  minHeight: verticalScale(30),
+  borderRadius: moderateScale(999),
+  backgroundColor: colors.surfaceBlueSoft,
+  borderWidth: 1,
+  borderColor: colors.primaryBlue,
+  paddingHorizontal: moderateScale(12),
+  paddingVertical: verticalScale(5),
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: moderateScale(5),
+  shadowColor: colors.primaryBlue,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.12,
+  shadowRadius: 6,
+  elevation: 2,
+},
 
-  locationMiniBtnDisabled: {
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-  },
+locationMiniBtnDisabled: {
+  borderColor: colors.border,
+  backgroundColor: colors.white,
+  shadowOpacity: 0,
+  elevation: 0,
+},
 
-  locationMiniBtnText: {
-    fontSize: moderateScale(10),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-  },
+locationMiniBtnText: {
+  fontSize: moderateScale(10),
+  color: colors.primaryBlue,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.3,
+},
 
-  locationMiniBtnTextDisabled: {
-    color: colors.textSecondary,
-  },
+locationMiniBtnTextDisabled: {
+  color: colors.textSecondary,
+},
 
-  locationText: {
-    fontSize: moderateScale(11),
-    color: colors.textDark,
-    marginBottom: verticalScale(3),
-  },
+locationText: {
+  fontSize: moderateScale(11.5),
+  color: colors.textDark,
+  fontFamily: fonts.medium,
+  lineHeight: moderateScale(17),
+  marginBottom: verticalScale(2),
+},
 
-  locationActionsRow: {
-    marginTop: verticalScale(8),
-  },
+locationActionsRow: {
+  marginTop: verticalScale(12),
+  gap: verticalScale(8),
+},
 
-  locationBtn: {
-    flexDirection: "row",
-    gap: 4,
-    borderRadius: moderateScale(12),
-    paddingVertical: verticalScale(10),
-    alignItems: "center",
-    justifyContent: "center",
-  },
+locationBtn: {
+  flexDirection: "row",
+  gap: moderateScale(6),
+  borderRadius: moderateScale(14),
+  paddingVertical: verticalScale(12),
+  alignItems: "center",
+  justifyContent: "center",
+},
 
-  locationBtnPrimary: {
-    backgroundColor: colors.primaryBlue,
-  },
+locationBtnPrimary: {
+  backgroundColor: colors.primaryBlue,
+  shadowColor: colors.primaryBlue,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.28,
+  shadowRadius: 10,
+  elevation: 5,
+},
 
-  locationBtnDisabled: {
-    opacity: 0.75,
-  },
+locationBtnDisabled: {
+  opacity: 0.55,
+  shadowOpacity: 0,
+  elevation: 0,
+},
 
-  locationBtnPrimaryText: {
-    fontSize: moderateScale(12),
-    color: colors.white,
-    fontFamily: fonts.bold,
-  },
+locationBtnPrimaryText: {
+  fontSize: moderateScale(12.5),
+  color: colors.white,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.4,
+},
 
-  locationBtnSecondary: {
-    backgroundColor: colors.surfaceBluePale,
-    borderWidth: 1,
-    borderColor: colors.primaryBlue,
-  },
+locationBtnSecondary: {
+  backgroundColor: "transparent",
+  borderWidth: 1.5,
+  borderColor: colors.primaryBlue,
+},
 
-  locationBtnSecondaryText: {
-    fontSize: moderateScale(12),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-  },
+locationBtnSecondaryText: {
+  fontSize: moderateScale(12.5),
+  color: colors.primaryBlue,
+  fontFamily: fonts.bold,
+  letterSpacing: 0.4,
+},
 
   submitButton: {
     marginTop: verticalScale(8),

@@ -1,34 +1,71 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import {
+  FILTER_PAGE_LIMIT,
   fetchProjectVillageOptions,
   fetchProjectZones,
 } from "../services/projectLocationService";
 
 const EMPTY_ARRAY = [];
+const DEFAULT_META = {
+  page: 1,
+  limit: FILTER_PAGE_LIMIT,
+  totalItems: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
 
-const areListsEqual = (left = EMPTY_ARRAY, right = EMPTY_ARRAY) => {
-  if (left.length !== right.length) {
-    return false;
-  }
+const createFilterState = () => ({
+  items: EMPTY_ARRAY,
+  meta: DEFAULT_META,
+  isLoading: false,
+  isFetchingMore: false,
+});
 
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) {
-      return false;
+const mergeUniqueStrings = (currentItems = EMPTY_ARRAY, nextItems = EMPTY_ARRAY) =>
+  Array.from(new Set([...currentItems, ...nextItems]));
+
+const mergeUniqueVillageOptions = (
+  currentItems = EMPTY_ARRAY,
+  nextItems = EMPTY_ARRAY
+) => {
+  const villagesById = new Map();
+
+  currentItems.forEach((item) => {
+    if (item?.id) {
+      villagesById.set(item.id, item);
     }
-  }
+  });
 
-  return true;
+  nextItems.forEach((item) => {
+    if (item?.id) {
+      villagesById.set(item.id, item);
+    }
+  });
+
+  return Array.from(villagesById.values());
 };
 
 const useProjectLocationFilters = ({
   projectId,
-  selectedZone = "All",
+  activeFilterType = null,
+  searchQuery = "",
 }) => {
   const [isOnline, setIsOnline] = useState(false);
-  const [zones, setZones] = useState(EMPTY_ARRAY);
-  const [villages, setVillages] = useState(EMPTY_ARRAY);
-  const [villageOptions, setVillageOptions] = useState(EMPTY_ARRAY);
+  const [zoneState, setZoneState] = useState(createFilterState);
+  const [villageState, setVillageState] = useState(createFilterState);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const zoneRequestIdRef = useRef(0);
+  const villageRequestIdRef = useRef(0);
+  const normalizedZoneSearchQuery =
+    activeFilterType === "zone"
+      ? String(debouncedSearchQuery || "").trim()
+      : "";
+  const normalizedVillageSearchQuery =
+    activeFilterType === "village"
+      ? String(debouncedSearchQuery || "").trim()
+      : "";
 
   useEffect(() => {
     const updateOnlineState = (state) => {
@@ -48,120 +85,166 @@ const useProjectLocationFilters = ({
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    const timerId = setTimeout(() => {
+      setDebouncedSearchQuery(String(searchQuery || ""));
+    }, 250);
 
-    const loadZones = async () => {
-      if (!isOnline || !projectId) {
-        if (isMounted) {
-          setZones((currentZones) =>
-            currentZones.length ? EMPTY_ARRAY : currentZones
-          );
-        }
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [searchQuery]);
+
+  const loadFilterOptions = useCallback(
+    async ({ type, page = 1, append = false } = {}) => {
+      if (!isOnline || !projectId || !type) {
         return;
       }
 
+      const isZoneFilter = type === "zone";
+      const requestIdRef = isZoneFilter ? zoneRequestIdRef : villageRequestIdRef;
+      const setFilterState = isZoneFilter ? setZoneState : setVillageState;
+      const currentSearchQuery = isZoneFilter
+        ? normalizedZoneSearchQuery
+        : normalizedVillageSearchQuery;
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
+      setFilterState((currentState) => ({
+        ...currentState,
+        isLoading: !append,
+        isFetchingMore: append,
+      }));
+
       try {
-        const nextZones = await fetchProjectZones(projectId);
+        const response = isZoneFilter
+          ? await fetchProjectZones(projectId, {
+              searchQuery: currentSearchQuery,
+              page,
+              limit: FILTER_PAGE_LIMIT,
+            })
+          : await fetchProjectVillageOptions(projectId, {
+              searchQuery: currentSearchQuery,
+              page,
+              limit: FILTER_PAGE_LIMIT,
+            });
 
-        if (isMounted) {
-          setZones((currentZones) =>
-            areListsEqual(currentZones, nextZones) ? currentZones : nextZones
-          );
+        if (requestIdRef.current !== requestId) {
+          return;
         }
+
+        setFilterState((currentState) => ({
+          items: append
+            ? isZoneFilter
+              ? mergeUniqueStrings(currentState.items, response?.items || EMPTY_ARRAY)
+              : mergeUniqueVillageOptions(
+                  currentState.items,
+                  response?.items || EMPTY_ARRAY
+                )
+            : response?.items || EMPTY_ARRAY,
+          meta: response.meta || DEFAULT_META,
+          isLoading: false,
+          isFetchingMore: false,
+        }));
       } catch (error) {
-        console.log("[ProjectFilters]", "Unable to load zones", {
-          message: error?.message,
-          status: error?.status,
-          projectId,
-        });
-
-        if (isMounted) {
-          setZones((currentZones) =>
-            currentZones.length ? EMPTY_ARRAY : currentZones
-          );
+        if (requestIdRef.current !== requestId) {
+          return;
         }
+
+        console.log(
+          "[ProjectFilters]",
+          isZoneFilter ? "Unable to load zones" : "Unable to load villages",
+          {
+            message: error?.message,
+            status: error?.status,
+            projectId,
+            page,
+            searchQuery: currentSearchQuery,
+          }
+        );
+
+        setFilterState((currentState) => ({
+          ...currentState,
+          items: append ? currentState.items : EMPTY_ARRAY,
+          meta: append ? currentState.meta : DEFAULT_META,
+          isLoading: false,
+          isFetchingMore: false,
+        }));
       }
-    };
-
-    void loadZones();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOnline, projectId]);
+    },
+    [
+      isOnline,
+      normalizedVillageSearchQuery,
+      normalizedZoneSearchQuery,
+      projectId,
+    ]
+  );
 
   useEffect(() => {
-    let isMounted = true;
+    if (!isOnline || !projectId) {
+      setZoneState(createFilterState());
+      setVillageState(createFilterState());
+      return;
+    }
 
-    const loadVillages = async () => {
-      if (!isOnline || !projectId || selectedZone === "All") {
-        if (isMounted) {
-          setVillages((currentVillages) =>
-            currentVillages.length ? EMPTY_ARRAY : currentVillages
-          );
-          setVillageOptions((currentVillageOptions) =>
-            currentVillageOptions.length ? EMPTY_ARRAY : currentVillageOptions
-          );
-        }
+    if (activeFilterType === "zone") {
+      void loadFilterOptions({ type: "zone", page: 1, append: false });
+    }
+
+    if (activeFilterType === "village") {
+      void loadFilterOptions({ type: "village", page: 1, append: false });
+    }
+  }, [activeFilterType, isOnline, loadFilterOptions, projectId]);
+
+  const loadMoreFilterOptions = useCallback(() => {
+    if (activeFilterType === "zone") {
+      if (zoneState.isLoading || zoneState.isFetchingMore || !zoneState.meta?.hasNextPage) {
         return;
       }
 
-      try {
-        const nextVillageOptions = await fetchProjectVillageOptions(
-          projectId,
-          selectedZone,
-        );
-        const nextVillages = nextVillageOptions.map((item) => item.name);
+      void loadFilterOptions({
+        type: "zone",
+        page: (Number(zoneState.meta?.page) || 1) + 1,
+        append: true,
+      });
+    }
 
-        if (isMounted) {
-          setVillages((currentVillages) =>
-            areListsEqual(currentVillages, nextVillages)
-              ? currentVillages
-              : nextVillages
-          );
-          setVillageOptions((currentVillageOptions) => {
-            const hasSameVillageOptions =
-              currentVillageOptions.length === nextVillageOptions.length &&
-              currentVillageOptions.every(
-                (item, index) =>
-                  item?.id === nextVillageOptions[index]?.id &&
-                  item?.name === nextVillageOptions[index]?.name
-              );
-
-            return hasSameVillageOptions
-              ? currentVillageOptions
-              : nextVillageOptions;
-          });
-        }
-      } catch (error) {
-        console.log("[ProjectFilters]", "Unable to load villages", {
-          message: error?.message,
-          status: error?.status,
-          projectId,
-          selectedZone,
-        });
-
-        if (isMounted) {
-          setVillages((currentVillages) =>
-            currentVillages.length ? EMPTY_ARRAY : currentVillages
-          );
-          setVillageOptions((currentVillageOptions) =>
-            currentVillageOptions.length ? EMPTY_ARRAY : currentVillageOptions
-          );
-        }
+    if (activeFilterType === "village") {
+      if (
+        villageState.isLoading ||
+        villageState.isFetchingMore ||
+        !villageState.meta?.hasNextPage
+      ) {
+        return;
       }
-    };
 
-    void loadVillages();
+      void loadFilterOptions({
+        type: "village",
+        page: (Number(villageState.meta?.page) || 1) + 1,
+        append: true,
+      });
+    }
+  }, [activeFilterType, loadFilterOptions, villageState, zoneState]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [isOnline, projectId, selectedZone]);
+  const zones = useMemo(() => zoneState.items, [zoneState.items]);
+  const villageOptions = useMemo(() => villageState.items, [villageState.items]);
+  const villages = useMemo(
+    () => villageOptions.map((item) => item.name),
+    [villageOptions]
+  );
+  const currentFilterState =
+    activeFilterType === "zone"
+      ? zoneState
+      : activeFilterType === "village"
+        ? villageState
+        : createFilterState();
 
   return {
     isOnline,
     canUseLocationFilters: isOnline && Boolean(projectId),
+    isFilterOptionsLoading: currentFilterState.isLoading,
+    isFetchingMoreFilterOptions: currentFilterState.isFetchingMore,
+    hasMoreFilterOptions: Boolean(currentFilterState.meta?.hasNextPage),
+    loadMoreFilterOptions,
     zones,
     villages,
     villageOptions,

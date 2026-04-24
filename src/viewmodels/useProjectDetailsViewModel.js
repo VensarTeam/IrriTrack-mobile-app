@@ -8,6 +8,10 @@ import {
   createEmptyProjectDetails,
 } from "../models/projectDetails";
 import { fetchProjectDetails } from "../services/projectDetailsService";
+import {
+  syncOmsBasicUnitsForProjectInBackground,
+} from "../services/omsOfflineStore";
+import { showAppAlert } from "../services/alertService";
 
 const moduleThemes = colors.projectModules;
 
@@ -33,6 +37,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const [zone, setZone] = useState("All");
   const [village, setVillage] = useState("All");
   const [filterType, setFilterType] = useState(null);
+  const [locationFilterSearchQuery, setLocationFilterSearchQuery] = useState("");
   const [projectDetails, setProjectDetails] = useState(fallbackProjectDetails);
   const [isProjectDetailsLoading, setIsProjectDetailsLoading] = useState(false);
   const [projectDetailsError, setProjectDetailsError] = useState("");
@@ -42,12 +47,17 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const {
     isOnline,
     canUseLocationFilters,
+    isFilterOptionsLoading,
+    isFetchingMoreFilterOptions,
+    hasMoreFilterOptions,
+    loadMoreFilterOptions,
     zones,
     villages,
     villageOptions,
   } = useProjectLocationFilters({
     projectId,
-    selectedZone: zone,
+    activeFilterType: filterType,
+    searchQuery: locationFilterSearchQuery,
   });
 
   const selectedVillageId = useMemo(
@@ -76,24 +86,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
     if (!canUseLocationFilters) {
       setZone("All");
       setVillage("All");
-      return;
     }
-
-    if (zone !== "All" && !zones.includes(zone)) {
-      setZone("All");
-      setVillage("All");
-    }
-  }, [canUseLocationFilters, zone, zones]);
-
-  useEffect(() => {
-    if (!canUseLocationFilters) {
-      return;
-    }
-
-    if (village !== "All" && !villages.includes(village)) {
-      setVillage("All");
-    }
-  }, [canUseLocationFilters, village, villages]);
+  }, [canUseLocationFilters]);
 
   useEffect(() => {
     if (!projectId) {
@@ -104,6 +98,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     }
 
     if (!isOnline) {
+      setProjectDetails(fallbackProjectDetails);
       setProjectDetailsError("");
       setIsProjectDetailsLoading(false);
       return;
@@ -183,7 +178,6 @@ const useProjectDetailsViewModel = (navigation, route) => {
 
     if (filterType === "zone") {
       setZone(item);
-      setVillage("All");
     }
 
     if (filterType === "village") {
@@ -191,6 +185,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     }
 
     setSelectedStage("All");
+    setLocationFilterSearchQuery("");
     setFilterType(null);
   };
 
@@ -199,6 +194,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     setZone("All");
     setVillage("All");
     setSelectedStage("All");
+    setLocationFilterSearchQuery("");
   };
 
   const getActiveLocationFilterValue = () => {
@@ -215,15 +211,15 @@ const useProjectDetailsViewModel = (navigation, route) => {
       ? []
       : filterType === "zone"
         ? ["All", ...zones]
-        : zone === "All"
-          ? ["All"]
-          : ["All", ...villages];
+        : ["All", ...villages];
 
   const locationSummary =
     !canUseLocationFilters
       ? "Filters available online only"
-      : village !== "All"
+      : zone !== "All" && village !== "All"
         ? `${zone} / ${village}`
+        : village !== "All"
+          ? `${village} overview`
         : zone !== "All"
           ? `${zone} overview`
           : "All zones overview";
@@ -321,14 +317,26 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const handleBack = () => navigation.goBack();
 
   const openModuleList = (module) => {
-    navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, {
-      module: module || "OMS",
-      project,
-      projectName: route?.params?.projectName || project?.name,
-    });
+    if (module === "OMS") {
+      if (isOnline && projectId) {
+        void syncOmsBasicUnitsForProjectInBackground(projectId);
+      }
+
+      navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, {
+        module: module || "OMS",
+        project,
+        projectName: route?.params?.projectName || project?.name,
+      });
+    } else {
+      showAppAlert({
+        title: "Module not available",
+        message: `The ${module} module details screen is not available yet.`,
+      });
+    }
   };
 
   return {
+    isOnline,
     canUseLocationFilters,
     dataSet,
     expanded,
@@ -338,6 +346,10 @@ const useProjectDetailsViewModel = (navigation, route) => {
     zones,
     villages,
     filterType,
+    isFilterOptionsLoading,
+    isFetchingMoreFilterOptions,
+    hasMoreFilterOptions,
+    locationFilterSearchQuery,
     locationFilterOptions,
     hasActiveLocationFilters,
     locationSummary,
@@ -353,6 +365,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
     toggleSection,
     setSelectedStage,
     setFilterType,
+    setLocationFilterSearchQuery,
+    loadMoreFilterOptions,
     applyLocationFilter,
     clearLocationFilters,
     getActiveLocationFilterValue,

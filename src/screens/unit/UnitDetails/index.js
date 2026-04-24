@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
@@ -17,7 +20,8 @@ import useUnitDetailsViewModel from "../../../viewmodels/useUnitDetailsViewModel
 
 const getStatusColor = (value) => {
   if (value === "Completed" || value === "Updated") return colors.completed;
-  if (value === "Partially Completed" || value === "Partial") return colors.partial;
+  if (value === "Partially Completed" || value === "Partial")
+    return colors.partial;
   return colors.pending;
 };
 
@@ -52,14 +56,15 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
   }));
   const totalSubStatuses = sectionSummaries.reduce(
     (sum, section) => sum + section.subStatuses.length,
-    0
+    0,
   );
   const completedSubStatuses = sectionSummaries.reduce(
     (sum, section) =>
       sum +
-      section.subStatuses.filter((subStatus) => isCompletedStatus(subStatus.status))
-        .length,
-    0
+      section.subStatuses.filter((subStatus) =>
+        isCompletedStatus(subStatus.status),
+      ).length,
+    0,
   );
   const detailSummary = [
     { key: "processes", value: sectionSummaries.length, label: "Processes" },
@@ -73,7 +78,10 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={handleBack} />
-        <Text style={styles.headerTitle} numberOfLines={1}>{unitLabel}</Text>
+        <Text
+          style={styles.headerTitle}
+          numberOfLines={1}
+        >{`OMS-${unitLabel}`}</Text>
         <IconButton
           icon="eye-outline"
           iconColor={colors.primaryBlue}
@@ -83,38 +91,68 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
         />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
+        {/* ── Hero Card ── */}
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>Project</Text>
+          {/* Decorative circles */}
+          <View style={styles.heroOrb1} pointerEvents="none" />
+          <View style={styles.heroOrb2} pointerEvents="none" />
+
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              {/* <Icons.project
+                width={10}
+                height={10}
+                color="rgba(255,255,255,0.9)"
+              /> */}
+              <Text style={styles.heroBadgeText}>PROJECT</Text>
+            </View>
+          </View>
+
           <Text style={styles.heroTitle} numberOfLines={2}>
             {projectName}
           </Text>
-          <View style={styles.heroSummaryRow}>
-            {detailSummary.map((item) => (
-              <View key={item.key} style={styles.heroSummaryChip}>
-                <Text style={styles.heroSummaryValue}>{item.value}</Text>
-                <Text style={styles.heroSummaryLabel}>{item.label}</Text>
-              </View>
-            ))}
+        </View>
+
+        {/* ── Node Details Header ── */}
+        <View style={styles.sectionMetaBlock}>
+          <View style={styles.sectionMetaIconWrap}>
+            {/* <Icons.clipboard width={16} height={16} color={colors.primaryBlue} /> */}
+            <IconButton icon="clipboard-list-outline" />
+          </View>
+          <View style={styles.sectionMetaCopy}>
+            <Text style={styles.sectionMetaTitle}>Node Details</Text>
+            <Text style={styles.sectionMetaSubtitle}>
+              Quick summary before you open a process.
+            </Text>
           </View>
         </View>
 
-        <View style={styles.sectionMetaBlock}>
-          <Text style={styles.sectionMetaTitle}>Node Details</Text>
-          <Text style={styles.sectionMetaSubtitle}>
-            Quick summary for this unit before you open a process.
-          </Text>
-        </View>
-
+        {/* ── Details Grid ── */}
         <View style={styles.detailsGrid}>
-          {detailItems.map((item) => (
-            <View style={styles.detailCard} key={item.label}>
-              <Text style={styles.detailLabel}>{item.label}</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>
-                {item.value}
-              </Text>
-            </View>
-          ))}
+          {detailItems.map((item, index) => {
+            const accentColors = [
+              colors.primaryBlue,
+              colors.darkGreen,
+              "#E3A008",
+              "#9061F9",
+            ];
+            const accent = accentColors[index % accentColors.length];
+            return (
+              <View
+                style={[styles.detailCard, { borderLeftColor: accent }]}
+                key={item.label}
+              >
+                <Text style={styles.detailLabel}>{item.label}</Text>
+                <Text style={styles.detailValue} numberOfLines={1}>
+                  {item.value}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.statusListHeader}>
@@ -149,11 +187,16 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                         expanded && styles.chevronWrapExpanded,
                       ]}
                     >
-                      <Icons.down width={12} height={12} style={{ marginLeft: moderateScale(6) }} />
+                      <Icons.down
+                        width={12}
+                        height={12}
+                        style={{ marginLeft: moderateScale(6) }}
+                      />
                     </View>
                   </TouchableOpacity>
                   <Text style={styles.statusCountText}>
-                    {subStatuses.length} step{subStatuses.length === 1 ? "" : "s"}
+                    {subStatuses.length} step
+                    {subStatuses.length === 1 ? "" : "s"}
                   </Text>
                 </View>
 
@@ -162,7 +205,11 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                   onPress={() => openUpdatePicker(section)}
                 >
                   <Text style={styles.updateButtonText}>Update</Text>
-                  <Icons.update width={14} height={14} style={{ marginLeft: moderateScale(6) }} />
+                  <Icons.update
+                    width={14}
+                    height={14}
+                    style={{ marginLeft: moderateScale(6) }}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -180,14 +227,17 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                         key={subStatus.id}
                         style={[
                           styles.subStatusItem,
-                          index === subStatuses.length - 1 && styles.subStatusItemLast,
+                          index === subStatuses.length - 1 &&
+                            styles.subStatusItemLast,
                         ]}
                         activeOpacity={0.85}
                         onPress={() => openSubStatus(section, subStatus)}
                       >
                         <View style={styles.subStatusCopy}>
                           <View style={styles.subStatusDot} />
-                          <Text style={styles.subStatusLabel}>{subStatus.displayLabel}</Text>
+                          <Text style={styles.subStatusLabel}>
+                            {subStatus.displayLabel}
+                          </Text>
                         </View>
                         <View
                           style={[
@@ -195,7 +245,12 @@ const ModuleDetailsScreen = ({ navigation, route }) => {
                             { backgroundColor: statusColor },
                           ]}
                         >
-                          <Text style={[styles.statusPillText, { color: colors.white }]}>
+                          <Text
+                            style={[
+                              styles.statusPillText,
+                              { color: colors.white },
+                            ]}
+                          >
                             {subStatus.status}
                           </Text>
                         </View>

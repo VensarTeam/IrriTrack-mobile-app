@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  getUnitStatusBySubOption,
-} from "../constants/moduleStatusConfig";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getUnitStatusBySubOption } from "../constants/moduleStatusConfig";
 import { useAuth } from "../context/AuthContext";
 import useProjectLocationFilters from "../hooks/useProjectLocationFilters";
 import { ROUTES } from "../navigation/routes";
-import { getUnits } from "../repositories/unitRepository";
+import { fetchOmsUnitsPage, getUnits } from "../repositories/unitRepository";
 import { openDirections } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 import useChecklistSections from "./useChecklistSections";
@@ -23,6 +21,17 @@ const CERTIFICATE_STATUS_KEYS = [
   "mechanicalRectification",
   "controllerRectification",
 ];
+const DEFAULT_SEARCH_DEBOUNCE_MS = 350;
+const DEFAULT_PAGE_LIMIT = 20;
+
+const createEmptyPagination = () => ({
+  page: 1,
+  limit: DEFAULT_PAGE_LIMIT,
+  totalItems: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+});
 
 const getProcessValue = (states) => {
   if (states.every((state) => COMPLETED_STATES.includes(state))) {
@@ -55,6 +64,41 @@ const normalizeLocationValue = (value = "") =>
     .replace(/[^A-Z0-9]+/g, "")
     .replace(/ZONE0+(\d+)/g, "ZONE$1");
 
+const isOmsModule = (module = "") =>
+  String(module || "").trim().toUpperCase() === "OMS";
+
+const getUnitIdentity = (item = {}) =>
+  item?.id || item?.unitNo || item?.nodeName || "";
+
+const mergeUnitsById = (currentUnits = [], nextUnits = []) => {
+  const unitsById = new Map();
+  const mergedUnits = [];
+
+  currentUnits.forEach((item) => {
+    const identity = getUnitIdentity(item);
+
+    if (!identity) {
+      mergedUnits.push(item);
+      return;
+    }
+
+    unitsById.set(identity, item);
+  });
+
+  nextUnits.forEach((item) => {
+    const identity = getUnitIdentity(item);
+
+    if (!identity) {
+      mergedUnits.push(item);
+      return;
+    }
+
+    unitsById.set(identity, item);
+  });
+
+  return [...Array.from(unitsById.values()), ...mergedUnits];
+};
+
 const useUnitListViewModel = (navigation, route) => {
   const { user } = useAuth();
   const module = route?.params?.module || "OMS";
@@ -65,45 +109,154 @@ const useUnitListViewModel = (navigation, route) => {
   const [zone, setZone] = useState("All");
   const [village, setVillage] = useState("All");
   const [filterType, setFilterType] = useState(null);
+  const [locationFilterSearchQuery, setLocationFilterSearchQuery] = useState("");
   const {
+    isOnline,
     canUseLocationFilters,
+    isFilterOptionsLoading,
+    isFetchingMoreFilterOptions,
+    hasMoreFilterOptions,
+    loadMoreFilterOptions,
     zones: onlineZones,
     villages: onlineVillages,
+    villageOptions,
   } = useProjectLocationFilters({
     projectId,
-    selectedZone: zone,
+    activeFilterType: filterType,
+    searchQuery: locationFilterSearchQuery,
   });
   const zones = canUseLocationFilters ? onlineZones : [];
   const villages = canUseLocationFilters ? onlineVillages : [];
   const data = getUnits(module);
+  const requestSequenceRef = useRef(0);
+  const isFetchingMoreRef = useRef(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [remoteUnits, setRemoteUnits] = useState([]);
+  const [pagination, setPagination] = useState(createEmptyPagination());
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [unitsError, setUnitsError] = useState("");
   const projectName =
     route?.params?.projectName ||
     "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
+  const shouldUseOmsApi = isOmsModule(module) && Boolean(projectId);
+  const isOfflineOmsList = shouldUseOmsApi && !isOnline;
+
+  const selectedVillageId = useMemo(() => {
+    if (village === "All") {
+      return "";
+    }
+
+    return (
+      villageOptions.find((item) => item?.name === village)?.id || ""
+    );
+  }, [village, villageOptions]);
 
   useEffect(() => {
     if (!canUseLocationFilters) {
       setZone("All");
       setVillage("All");
-      return;
     }
-
-    if (zone !== "All" && !zones.includes(zone)) {
-      setZone("All");
-      setVillage("All");
-    }
-  }, [canUseLocationFilters, zone, zones]);
+  }, [canUseLocationFilters]);
 
   useEffect(() => {
-    if (!canUseLocationFilters) {
+    // Debounce search input so we avoid firing an API request on every key press.
+    const timerId = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, DEFAULT_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [search]);
+
+  const fetchRemoteUnits = async ({
+    page = 1,
+    append = false,
+    refreshing = false,
+  } = {}) => {
+    const requestId = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestId;
+
+    if (refreshing) {
+      setIsRefreshing(true);
+    } else if (append) {
+      isFetchingMoreRef.current = true;
+      setIsFetchingMore(true);
+    } else if (remoteUnits.length === 0) {
+      setIsInitialLoading(true);
+    }
+
+    setUnitsError("");
+
+    try {
+      const response = await fetchOmsUnitsPage({
+        projectId,
+        zoneName: zone,
+        villageId: selectedVillageId,
+        searchQuery: debouncedSearch,
+        page,
+        limit: pagination.limit || DEFAULT_PAGE_LIMIT,
+        offline: shouldUseOmsApi && !isOnline,
+      });
+
+      // Ignore stale responses so quick filter/search changes do not flash old data.
+      if (requestSequenceRef.current !== requestId) {
+        return;
+      }
+
+      setRemoteUnits((currentUnits) =>
+        append
+          ? mergeUnitsById(currentUnits, response.data)
+          : response.data
+      );
+      setPagination(response.meta);
+    } catch (error) {
+      if (requestSequenceRef.current !== requestId) {
+        return;
+      }
+
+      if (!append) {
+        setRemoteUnits([]);
+        setPagination(createEmptyPagination());
+      }
+
+      setUnitsError(error?.message || "Unable to load OMS units.");
+    } finally {
+      if (requestSequenceRef.current === requestId) {
+        setIsInitialLoading(false);
+        setIsRefreshing(false);
+        setIsFetchingMore(false);
+        isFetchingMoreRef.current = false;
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!shouldUseOmsApi) {
+      requestSequenceRef.current += 1;
+      setRemoteUnits([]);
+      setPagination(createEmptyPagination());
+      setUnitsError("");
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
+      setIsFetchingMore(false);
+      isFetchingMoreRef.current = false;
       return;
     }
 
-    if (village !== "All" && !villages.includes(village)) {
-      setVillage("All");
-    }
-  }, [canUseLocationFilters, village, villages]);
+    void fetchRemoteUnits({ page: 1 });
+  }, [
+    debouncedSearch,
+    isOnline,
+    projectId,
+    selectedVillageId,
+    shouldUseOmsApi,
+    zone,
+  ]);
 
-  const filteredData = useMemo(() => {
+  const localFilteredData = useMemo(() => {
     return data.filter((item) => {
       const matchesZone =
         zone === "All" ||
@@ -119,9 +272,26 @@ const useUnitListViewModel = (navigation, route) => {
     });
   }, [canUseLocationFilters, data, search, zone, village]);
 
+  const filteredData = shouldUseOmsApi ? remoteUnits : localFilteredData;
+
   const hasActiveFilters =
     !!search.trim() ||
     (canUseLocationFilters && (zone !== "All" || village !== "All"));
+  const locationSummary =
+    !canUseLocationFilters
+      ? "Filters available online only"
+      : zone !== "All" && village !== "All"
+        ? `${zone} / ${village}`
+        : village !== "All"
+          ? `${village} overview`
+          : zone !== "All"
+            ? `${zone} overview`
+            : "All zones overview";
+  const emptyTitle = unitsError ? "Unable to load units" : "No units found";
+  const emptySubtitle = unitsError
+    ? unitsError
+    : "No data matches your current search and filters.";
+  const emptyActionLabel = unitsError ? "Retry" : "Clear Filters";
 
   const openMap = (lat, lng) => {
     openDirections(lat, lng);
@@ -144,9 +314,9 @@ const useUnitListViewModel = (navigation, route) => {
   const applyFilter = (item) => {
     if (filterType === "zone") {
       setZone(item);
-      setVillage("All");
     }
     if (filterType === "village") setVillage(item);
+    setLocationFilterSearchQuery("");
     setFilterType(null);
   };
 
@@ -154,6 +324,46 @@ const useUnitListViewModel = (navigation, route) => {
     setSearch("");
     setZone("All");
     setVillage("All");
+    setLocationFilterSearchQuery("");
+  };
+
+  const refreshUnits = async () => {
+    if (!shouldUseOmsApi || isRefreshing) {
+      return;
+    }
+
+    await fetchRemoteUnits({
+      page: 1,
+      refreshing: true,
+    });
+  };
+
+  const loadNextPage = async () => {
+    const currentPage = Number(pagination.page) || 1;
+
+    if (
+      !shouldUseOmsApi ||
+      isInitialLoading ||
+      isRefreshing ||
+      isFetchingMoreRef.current ||
+      !pagination.hasNextPage
+    ) {
+      return;
+    }
+
+    await fetchRemoteUnits({
+      page: currentPage + 1,
+      append: true,
+    });
+  };
+
+  const handleEmptyAction = () => {
+    if (unitsError) {
+      void refreshUnits();
+      return;
+    }
+
+    clearFilters();
   };
 
   const openUnitDetails = (unit) => {
@@ -222,15 +432,33 @@ const useUnitListViewModel = (navigation, route) => {
     zone,
     village,
     filterType,
+    isFilterOptionsLoading,
+    isFetchingMoreFilterOptions,
+    hasMoreFilterOptions,
+    locationFilterSearchQuery,
+    isInitialLoading,
+    isRefreshing,
+    isFetchingMore,
+    shouldUseOmsApi,
+    isOfflineOmsList,
+    emptyTitle,
+    emptySubtitle,
+    emptyActionLabel,
     setSearch,
     setFilterType,
+    setLocationFilterSearchQuery,
+    loadMoreFilterOptions,
     filteredData,
     hasActiveFilters,
+    locationSummary,
     openMap,
     openGallery,
     getActiveFilterValue,
     applyFilter,
     clearFilters,
+    refreshUnits,
+    loadNextPage,
+    handleEmptyAction,
     openUnitDetails,
     getCardProcesses,
     openProcess,

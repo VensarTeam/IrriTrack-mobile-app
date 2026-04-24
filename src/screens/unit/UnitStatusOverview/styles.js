@@ -6,7 +6,7 @@ import { moderateScale, verticalScale } from "../../../constants/metrics";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.backgroundPage ?? "#F5F6FA",
   },
 
   header: {
@@ -14,7 +14,8 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(4),
+    backgroundColor: colors.white,
   },
 
   headerTitle: {
@@ -29,91 +30,194 @@ export default StyleSheet.create({
 
   content: {
     paddingHorizontal: moderateScale(15),
-    paddingBottom: verticalScale(26),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(28),
   },
 
-  projectCard: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: moderateScale(14),
-    elevation: 1,
+  // ── Hero Card ──
+  heroCard: {
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(20),
+    paddingVertical: verticalScale(16),
+    paddingHorizontal: moderateScale(16),
+    marginBottom: verticalScale(14),
+    overflow: "hidden",
+  },
+
+  heroOrb1: {
+    position: "absolute",
+    top: -moderateScale(40),
+    right: -moderateScale(40),
+    width: moderateScale(140),
+    height: moderateScale(140),
+    borderRadius: moderateScale(70),
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+
+  heroOrb2: {
+    position: "absolute",
+    bottom: -moderateScale(24),
+    left: moderateScale(30),
+    width: moderateScale(90),
+    height: moderateScale(90),
+    borderRadius: moderateScale(45),
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+
+  heroOrb3: {
+    position: "absolute",
+    top: moderateScale(28),
+    right: moderateScale(18),
+    width: moderateScale(50),
+    height: moderateScale(50),
+    borderRadius: moderateScale(25),
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: verticalScale(12),
   },
 
-  overviewSummaryRow: {
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(5),
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(4),
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+
+  heroBadgeText: {
+    fontSize: moderateScale(11),
+    color: "rgba(255,255,255,0.92)",
+    fontFamily: fonts.bold,
+    letterSpacing: 0.7,
+    lineHeight: moderateScale(13),
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+
+  heroUnitBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(5),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(4),
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+
+  heroUnitText: {
+    fontSize: moderateScale(11),
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(13),
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+
+  heroTitle: {
+    fontSize: moderateScale(16),
+    color: colors.white,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(22),
+    marginBottom: verticalScale(14),
+    paddingRight: moderateScale(40),
+  },
+
+  heroStatsRow: {
     flexDirection: "row",
     gap: moderateScale(8),
-    marginBottom: verticalScale(12),
   },
 
-  overviewSummaryCard: {
+  heroStatChip: {
     flex: 1,
-    backgroundColor: colors.surfaceBluePale,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(14),
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.18)",
+    borderRadius: moderateScale(13),
     paddingVertical: verticalScale(9),
     alignItems: "center",
     justifyContent: "center",
   },
 
-  overviewSummaryValue: {
-    fontSize: moderateScale(15),
-    color: colors.primaryBlue,
+  heroStatChipGreen: {
+    backgroundColor: "rgba(14,159,110,0.28)",
+    borderColor: "rgba(14,159,110,0.55)",
+  },
+
+  heroStatChipAmber: {
+    backgroundColor: "rgba(240,140,0,0.22)",
+    borderColor: "rgba(240,140,0,0.45)",
+  },
+
+  heroStatValue: {
+    fontSize: moderateScale(18),
+    color: colors.white,
     fontFamily: fonts.bold,
   },
 
-  overviewSummaryLabel: {
+  heroStatLabel: {
     marginTop: verticalScale(2),
-    fontSize: moderateScale(10),
-    color: colors.textSecondary,
+    fontSize: moderateScale(9.5),
+    color: "rgba(255,255,255,0.72)",
     fontFamily: fonts.medium,
+    letterSpacing: 0.3,
   },
 
-  projectLabel: {
-    color: colors.textSecondary,
-    fontSize: moderateScale(11),
-    marginBottom: verticalScale(4),
-  },
-
-  projectName: {
-    color: colors.textDark,
-    fontSize: moderateScale(14),
-    fontFamily: fonts.bold,
-  },
-
-  projectMeta: {
-    marginTop: verticalScale(3),
-    fontSize: moderateScale(11),
-    color: colors.primaryBlue,
-    fontFamily: fonts.medium,
-  },
-
+  // ── Section Cards ──
   sectionCard: {
     backgroundColor: colors.white,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(16),
     paddingVertical: verticalScale(12),
     paddingHorizontal: moderateScale(12),
     marginBottom: verticalScale(10),
-    elevation: 1,
-  },
-
-  sectionTitle: {
-    fontSize: moderateScale(14),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
   },
 
   sectionHeadRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: moderateScale(8),
+    gap: moderateScale(10),
+    marginBottom: verticalScale(10),
+  },
+
+  sectionIconWrap: {
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 0.5,
+    borderColor: colors.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
+  sectionHeadCopy: {
+    flex: 1,
+  },
+
+  sectionTitle: {
+    fontSize: moderateScale(13),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+  },
+
+  sectionSubtitle: {
+    marginTop: verticalScale(1),
+    fontSize: moderateScale(10.5),
+    color: colors.textSecondary,
+    lineHeight: moderateScale(15),
   },
 
   sectionCountBadge: {
@@ -121,7 +225,7 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(4),
     borderRadius: moderateScale(999),
     backgroundColor: colors.surfaceBlueSoft,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: colors.cardBorder,
   },
 
@@ -131,14 +235,10 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
-  sectionSubtitle: {
-    marginTop: verticalScale(4),
-    fontSize: moderateScale(11),
-    color: colors.textSecondary,
-  },
-
   subStatusList: {
-    marginTop: verticalScale(10),
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+    paddingTop: verticalScale(4),
   },
 
   subStatusItem: {
@@ -146,8 +246,13 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: verticalScale(8),
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: colors.border,
+  },
+
+  subStatusItemLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
 
   subStatusCopy: {
@@ -158,8 +263,8 @@ export default StyleSheet.create({
   },
 
   subStatusDot: {
-    width: moderateScale(8),
-    height: moderateScale(8),
+    width: moderateScale(7),
+    height: moderateScale(7),
     borderRadius: moderateScale(999),
     backgroundColor: colors.primaryBlue,
     marginRight: moderateScale(8),
@@ -175,44 +280,66 @@ export default StyleSheet.create({
   statusPill: {
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(4),
-    borderRadius: moderateScale(12),
+    borderRadius: moderateScale(10),
   },
 
   statusPillText: {
     fontSize: moderateScale(10),
     fontFamily: fonts.bold,
+    color: colors.white,
   },
 
+  // ── Actions Card ──
   actionsCard: {
     backgroundColor: colors.white,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(16),
-    padding: moderateScale(12),
+    padding: moderateScale(14),
     marginTop: verticalScale(4),
   },
 
+  actionsHeadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+    marginBottom: verticalScale(14),
+  },
+
+  actionsIconWrap: {
+    width: moderateScale(32),
+    height: moderateScale(32),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 0.5,
+    borderColor: colors.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
   actionsTitle: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(13),
     color: colors.textDark,
     fontFamily: fonts.bold,
   },
 
   actionsSubtitle: {
-    marginTop: verticalScale(3),
-    marginBottom: verticalScale(10),
+    marginTop: verticalScale(1),
     fontSize: moderateScale(11),
     color: colors.textSecondary,
-    lineHeight: moderateScale(16),
+    lineHeight: moderateScale(15),
   },
 
   reportButton: {
-    backgroundColor: colors.surfaceBlueSoft,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(6),
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.primaryBlue,
     borderRadius: moderateScale(12),
-    alignItems: "center",
-    justifyContent: "center",
     paddingVertical: verticalScale(11),
   },
 
@@ -223,12 +350,19 @@ export default StyleSheet.create({
   },
 
   certificateButton: {
-    marginTop: verticalScale(10),
-    backgroundColor: colors.primaryBlue,
-    borderRadius: moderateScale(12),
+    marginTop: verticalScale(8),
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: moderateScale(6),
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(12),
     paddingVertical: verticalScale(11),
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   certificateButtonText: {

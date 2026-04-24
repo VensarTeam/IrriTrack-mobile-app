@@ -1,7 +1,9 @@
-import { apiRequest } from "./apiClient";
+import { apiRequestWithMeta } from "./apiClient";
 
 const ZONE_API_PATHS = ["/api/v1/zones", "/zones"];
 const VILLAGE_API_PATHS = ["/api/v1/villages", "/villages"];
+const FILTER_PAGE = 1;
+export const FILTER_PAGE_LIMIT = 20;
 const zoneResponseCache = new Map();
 const villageResponseCache = new Map();
 const zoneRequestPromises = new Map();
@@ -41,12 +43,24 @@ const normalizeVillageOptions = (items = []) => {
   );
 };
 
+const createEmptyMeta = ({
+  page = FILTER_PAGE,
+  limit = FILTER_PAGE_LIMIT,
+} = {}) => ({
+  page,
+  limit,
+  totalItems: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+});
+
 const fetchWithFallbackPaths = async ({ paths, params }) => {
   let lastNotFoundError = null;
 
   for (const path of paths) {
     try {
-      return await apiRequest({
+      return await apiRequestWithMeta({
         url: path,
         method: "GET",
         headers: {
@@ -67,15 +81,81 @@ const fetchWithFallbackPaths = async ({ paths, params }) => {
   throw lastNotFoundError || new Error("Unable to fetch project filters.");
 };
 
-export const fetchProjectZones = async (projectId) => {
-  if (!projectId) {
-    return [];
+const buildFilterCacheKey = ({
+  projectId,
+  searchQuery = "",
+  zoneName = "",
+  page = FILTER_PAGE,
+  limit = FILTER_PAGE_LIMIT,
+}) =>
+  [
+    String(projectId || "").trim(),
+    String(zoneName || "").trim() || "ALL",
+    String(searchQuery || "").trim().toLowerCase() || "ALL",
+    String(page || FILTER_PAGE),
+    String(limit || FILTER_PAGE_LIMIT),
+  ].join("::");
+
+const normalizeFilterItems = (response) =>
+  Array.isArray(response?.data) ? response.data : [];
+
+const normalizeFilterMeta = (
+  response,
+  { page = FILTER_PAGE, limit = FILTER_PAGE_LIMIT } = {}
+) => ({
+  ...createEmptyMeta({ page, limit }),
+  ...(response?.meta || {}),
+});
+
+const normalizeFilterResponse = (
+  response,
+  {
+    page = FILTER_PAGE,
+    limit = FILTER_PAGE_LIMIT,
+    itemNormalizer = (items) => items,
+  } = {}
+) => {
+  if (Array.isArray(response)) {
+    return {
+      items: itemNormalizer(response),
+      meta: createEmptyMeta({ page, limit }),
+    };
   }
 
-  const cacheKey = String(projectId);
+  return {
+    items: itemNormalizer(normalizeFilterItems(response)),
+    meta: normalizeFilterMeta(response, { page, limit }),
+  };
+};
+
+export const fetchProjectZones = async (
+  projectId,
+  {
+    searchQuery = "",
+    page = FILTER_PAGE,
+    limit = FILTER_PAGE_LIMIT,
+  } = {}
+) => {
+  if (!projectId) {
+    return {
+      items: [],
+      meta: createEmptyMeta({ page, limit }),
+    };
+  }
+
+  const cacheKey = buildFilterCacheKey({
+    projectId,
+    searchQuery,
+    page,
+    limit,
+  });
 
   if (zoneResponseCache.has(cacheKey)) {
-    return zoneResponseCache.get(cacheKey);
+    return normalizeFilterResponse(zoneResponseCache.get(cacheKey), {
+      page,
+      limit,
+      itemNormalizer: (items) => normalizeNames(items, "name"),
+    });
   }
 
   if (!zoneRequestPromises.has(cacheKey)) {
@@ -83,12 +163,23 @@ export const fetchProjectZones = async (projectId) => {
       cacheKey,
       fetchWithFallbackPaths({
         paths: ZONE_API_PATHS,
-        params: { projectId },
+        params: {
+          projectId,
+          page,
+          limit,
+          ...(String(searchQuery || "").trim()
+            ? { q: String(searchQuery || "").trim() }
+            : {}),
+        },
       })
         .then((response) => {
-          const normalizedZones = normalizeNames(response, "name");
-          zoneResponseCache.set(cacheKey, normalizedZones);
-          return normalizedZones;
+          const normalizedResponse = normalizeFilterResponse(response, {
+            page,
+            limit,
+            itemNormalizer: (items) => normalizeNames(items, "name"),
+          });
+          zoneResponseCache.set(cacheKey, normalizedResponse);
+          return normalizedResponse;
         })
         .finally(() => {
           zoneRequestPromises.delete(cacheKey);
@@ -99,15 +190,36 @@ export const fetchProjectZones = async (projectId) => {
   return zoneRequestPromises.get(cacheKey);
 };
 
-export const fetchProjectVillageOptions = async (projectId, zoneName) => {
-  if (!projectId || !zoneName || zoneName === "All") {
-    return [];
+export const fetchProjectVillageOptions = async (
+  projectId,
+  {
+    zoneName = "",
+    searchQuery = "",
+    page = FILTER_PAGE,
+    limit = FILTER_PAGE_LIMIT,
+  } = {}
+) => {
+  if (!projectId) {
+    return {
+      items: [],
+      meta: createEmptyMeta({ page, limit }),
+    };
   }
 
-  const cacheKey = `${projectId}::${zoneName}`;
+  const cacheKey = buildFilterCacheKey({
+    projectId,
+    zoneName,
+    searchQuery,
+    page,
+    limit,
+  });
 
   if (villageResponseCache.has(cacheKey)) {
-    return villageResponseCache.get(cacheKey);
+    return normalizeFilterResponse(villageResponseCache.get(cacheKey), {
+      page,
+      limit,
+      itemNormalizer: normalizeVillageOptions,
+    });
   }
 
   if (!villageRequestPromises.has(cacheKey)) {
@@ -117,13 +229,22 @@ export const fetchProjectVillageOptions = async (projectId, zoneName) => {
         paths: VILLAGE_API_PATHS,
         params: {
           projectId,
-          zoneName,
+          page,
+          limit,
+          ...(zoneName && zoneName !== "All" ? { zoneName } : {}),
+          ...(String(searchQuery || "").trim()
+            ? { q: String(searchQuery || "").trim() }
+            : {}),
         },
       })
         .then((response) => {
-          const normalizedVillages = normalizeVillageOptions(response);
-          villageResponseCache.set(cacheKey, normalizedVillages);
-          return normalizedVillages;
+          const normalizedResponse = normalizeFilterResponse(response, {
+            page,
+            limit,
+            itemNormalizer: normalizeVillageOptions,
+          });
+          villageResponseCache.set(cacheKey, normalizedResponse);
+          return normalizedResponse;
         })
         .finally(() => {
           villageRequestPromises.delete(cacheKey);

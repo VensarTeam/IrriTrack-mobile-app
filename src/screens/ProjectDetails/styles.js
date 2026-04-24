@@ -32,19 +32,24 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: fontScale(10),
-    fontFamily: fonts.medium,
+    flex: 1,
+    fontSize: fontScale(13),
+    fontFamily: fonts.bold,
     color: colors.textDark,
+    textAlign: "center",
+    lineHeight: fontScale(18),
+    includeFontPadding: false,
+    paddingHorizontal: moderateScale(4),
+  },
+
+  headerSpacer: {
+    width: moderateScale(40), // matches IconButton width so title stays truly centered
   },
 
   logo: {
     width: moderateScale(120),
     height: moderateScale(20),
     alignSelf: "center",
-  },
-
-  headerSpacer: {
-    width: moderateScale(40),
   },
 
   /* ================= FILTER PANEL ================= */
@@ -290,6 +295,10 @@ export default StyleSheet.create({
     marginVertical: verticalScale(12),
   },
 
+  kpiContainerOffline: {
+    flexDirection: "column",
+  },
+
   kpiCard: {
     flex: 1,
     marginHorizontal: moderateScale(6),
@@ -301,6 +310,13 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: "hidden",
+  },
+
+  kpiCardOffline: {
+    flex: 0,
+    width: "100%",
+    marginHorizontal: 0,
+    marginBottom: verticalScale(10),
   },
 
   skeletonKpiCard: {

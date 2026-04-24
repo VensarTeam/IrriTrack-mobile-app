@@ -5,6 +5,63 @@ const getCustomFieldValue = (fields = [], label) =>
       String(label || "").trim().toLowerCase()
   )?.value || "";
 
+const toSafeNumber = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const getCustomFieldNumberByLabels = (fields = [], labels = []) => {
+  for (const label of labels) {
+    const value = getCustomFieldValue(fields, label);
+    const numericValue = toSafeNumber(value);
+
+    if (numericValue > 0) {
+      return numericValue;
+    }
+  }
+
+  return 0;
+};
+
+const buildProjectModules = (data = {}, customFields = []) => {
+  const modules = data.modules || {};
+  const omsTotalUnits =
+    toSafeNumber(data.omsTotalUnits) ||
+    toSafeNumber(data.omsUnits) ||
+    toSafeNumber(modules?.OMS?.totalUnits) ||
+    getCustomFieldNumberByLabels(customFields, [
+      "OMS Total Units",
+      "OMS Units",
+      "Total OMS Units",
+    ]);
+  const rmsTotalUnits =
+    toSafeNumber(data.rmsTotalUnits) ||
+    toSafeNumber(data.rmsUnits) ||
+    toSafeNumber(modules?.RMS?.totalUnits) ||
+    getCustomFieldNumberByLabels(customFields, [
+      "RMS Total Units",
+      "RMS Units",
+      "Total RMS Units",
+    ]);
+  const gwTotalUnits =
+    toSafeNumber(data.gwTotalUnits) ||
+    toSafeNumber(data.gatewayTotalUnits) ||
+    toSafeNumber(data.gwUnits) ||
+    toSafeNumber(modules?.GW?.totalUnits) ||
+    getCustomFieldNumberByLabels(customFields, [
+      "GW Total Units",
+      "GW Units",
+      "Gateway Total Units",
+      "LoRa Gateway Units",
+    ]);
+
+  return {
+    OMS: { totalUnits: omsTotalUnits },
+    RMS: { totalUnits: rmsTotalUnits },
+    GW: { totalUnits: gwTotalUnits },
+  };
+};
+
 const formatArea = (value) => {
   if (!value) return "";
 
@@ -34,6 +91,7 @@ export const createProject = (data = {}) => {
     workScope: data.workScope || "",
     majorComponents: data.majorComponents || [],
     customFields,
+    modules: buildProjectModules(data, customFields),
     updatedAt: data.updatedAt || "",
   };
 };

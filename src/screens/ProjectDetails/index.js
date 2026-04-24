@@ -38,6 +38,7 @@ const SHIMMER_DURATION = 1300;
 const ProjectDetailsScreen = ({ route }) => {
   const navigation = useNavigation();
   const {
+    isOnline,
     canUseLocationFilters,
     dataSet,
     expanded,
@@ -45,6 +46,10 @@ const ProjectDetailsScreen = ({ route }) => {
     zone,
     village,
     filterType,
+    isFilterOptionsLoading,
+    isFetchingMoreFilterOptions,
+    hasMoreFilterOptions,
+    locationFilterSearchQuery,
     locationFilterOptions,
     hasActiveLocationFilters,
     locationSummary,
@@ -56,6 +61,8 @@ const ProjectDetailsScreen = ({ route }) => {
     toggleSection,
     setSelectedStage,
     setFilterType,
+    setLocationFilterSearchQuery,
+    loadMoreFilterOptions,
     applyLocationFilter,
     clearLocationFilters,
     getActiveLocationFilterValue,
@@ -283,7 +290,10 @@ const ProjectDetailsScreen = ({ route }) => {
       <View style={styles.filterFieldTextWrap}>
         <Text style={styles.filterFieldTitle}>{title}</Text>
         <Text
-          style={[styles.filterFieldValue, active && styles.filterFieldValueActive]}
+          style={[
+            styles.filterFieldValue,
+            active && styles.filterFieldValueActive,
+          ]}
           numberOfLines={1}
         >
           {value}
@@ -339,8 +349,10 @@ const ProjectDetailsScreen = ({ route }) => {
   const hasAnyModuleStages = Object.values(dataSet).some(
     (moduleData) => (moduleData?.stages || []).length > 0,
   );
+  const shouldUseOfflineKpiLayout = !isOnline || !hasAnyModuleStages;
   const showSkeletonLoader = isProjectDetailsLoading && !hasAnyModuleStages;
-  const showInlineLoadingShimmer = isProjectDetailsLoading && hasAnyModuleStages;
+  const showInlineLoadingShimmer =
+    isProjectDetailsLoading && hasAnyModuleStages;
 
   const getSwipeAnimatedStyles = (index, pagerWidth, compact = false) => {
     if (!pagerWidth) {
@@ -442,17 +454,16 @@ const ProjectDetailsScreen = ({ route }) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <IconButton icon="arrow-left" size={headerIconSize} onPress={handleBack} />
-          <View>
-            <Image
-              source={require("../../assets/images/logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {projectHeaderTitle}
-            </Text>
-          </View>
+          <IconButton
+            icon="arrow-left"
+            size={headerIconSize}
+            onPress={handleBack}
+          />
+
+          <Text style={styles.headerTitle} numberOfLines={2}>
+            {projectHeaderTitle}
+          </Text>
+
           <View style={styles.headerSpacer} />
         </View>
 
@@ -489,10 +500,9 @@ const ProjectDetailsScreen = ({ route }) => {
 
                     <FilterField
                       title="Village"
-                      value={zone === "All" ? "Select Zone first" : village}
+                      value={village}
                       icon={Icons.village}
                       active={village !== "All"}
-                      disabled={zone === "All"}
                       onPress={() => setFilterType("village")}
                     />
                   </View>
@@ -501,7 +511,9 @@ const ProjectDetailsScreen = ({ route }) => {
 
               {projectDetailsError ? (
                 <View style={[styles.statusBanner, styles.statusBannerError]}>
-                  <Text style={styles.statusBannerText}>{projectDetailsError}</Text>
+                  <Text style={styles.statusBannerText}>
+                    {projectDetailsError}
+                  </Text>
                 </View>
               ) : null}
 
@@ -511,12 +523,18 @@ const ProjectDetailsScreen = ({ route }) => {
                 </View>
               ) : null}
 
-              <View style={styles.kpiContainer}>
+              <View
+                style={[
+                  styles.kpiContainer,
+                  shouldUseOfflineKpiLayout && styles.kpiContainerOffline,
+                ]}
+              >
                 {kpiCards.map((item) => (
                   <TouchableOpacity
                     key={item.key}
                     style={[
                       styles.kpiCard,
+                      shouldUseOfflineKpiLayout && styles.kpiCardOffline,
                       {
                         backgroundColor: item.bg,
                         borderColor: item.soft,
@@ -561,7 +579,10 @@ const ProjectDetailsScreen = ({ route }) => {
                 const moduleData = dataSet[key];
                 const stages = moduleData?.stages || [];
                 const moduleTheme = getModuleTheme(key);
-                const stageTabs = ["All", ...stages.map((stage) => stage.label)];
+                const stageTabs = [
+                  "All",
+                  ...stages.map((stage) => stage.label),
+                ];
                 const sectionHighlights = getSectionHighlights(moduleData);
                 const pagerWidth = chartViewportWidth;
                 const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
@@ -635,7 +656,9 @@ const ProjectDetailsScreen = ({ route }) => {
                             },
                           ]}
                         >
-                          <Text style={styles.highlightLabel}>{item.label}</Text>
+                          <Text style={styles.highlightLabel}>
+                            {item.label}
+                          </Text>
                           <View style={styles.highlightValueRow}>
                             <View
                               style={[
@@ -695,7 +718,8 @@ const ProjectDetailsScreen = ({ route }) => {
                                 }}
                                 style={[
                                   styles.stageTab,
-                                  selectedStage === item && styles.stageTabActive,
+                                  selectedStage === item &&
+                                    styles.stageTabActive,
                                   {
                                     borderColor:
                                       selectedStage === item
@@ -761,16 +785,21 @@ const ProjectDetailsScreen = ({ route }) => {
                               )}
                               onMomentumScrollEnd={(event) => {
                                 const pageIndex = Math.round(
-                                  event.nativeEvent.contentOffset.x / pagerWidth,
+                                  event.nativeEvent.contentOffset.x /
+                                    pagerWidth,
                                 );
-                                const currentStage = stageTabs[pageIndex] || "All";
+                                const currentStage =
+                                  stageTabs[pageIndex] || "All";
                                 if (currentStage !== selectedStage) {
                                   setSelectedStage(currentStage);
                                 }
                               }}
                             >
                               {stageTabs.map((stageLabel, index) => {
-                                const summary = getStageSummary(stages, stageLabel);
+                                const summary = getStageSummary(
+                                  stages,
+                                  stageLabel,
+                                );
                                 const { cardStyle, pieStyle, summaryStyle } =
                                   getSwipeAnimatedStyles(
                                     index,
@@ -781,7 +810,10 @@ const ProjectDetailsScreen = ({ route }) => {
                                 return (
                                   <View
                                     key={stageLabel}
-                                    style={[styles.chartSlide, { width: pagerWidth }]}
+                                    style={[
+                                      styles.chartSlide,
+                                      { width: pagerWidth },
+                                    ]}
                                   >
                                     <Animated.View
                                       style={[
@@ -879,13 +911,19 @@ const ProjectDetailsScreen = ({ route }) => {
           title={filterType === "zone" ? "Select Zone" : "Select Village"}
           subtitle={
             filterType === "zone"
-              ? "Choose a zone first. Village options update after that."
-              : `Villages available in ${zone}.`
+              ? "Choose any zone to refine the project overview."
+              : "Choose any village to refine the project overview."
           }
           options={locationFilterOptions}
+          isLoading={isFilterOptionsLoading}
+          isFetchingMore={isFetchingMoreFilterOptions}
+          hasMoreOptions={hasMoreFilterOptions}
           selectedValue={getActiveLocationFilterValue()}
           onSelect={applyLocationFilter}
           onClose={() => setFilterType(null)}
+          onEndReached={loadMoreFilterOptions}
+          searchQuery={locationFilterSearchQuery}
+          onSearchQueryChange={setLocationFilterSearchQuery}
           searchPlaceholder={`Search ${
             filterType === "zone" ? "zone" : "village"
           }`}

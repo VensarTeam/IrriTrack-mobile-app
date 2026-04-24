@@ -83,5 +83,5 @@ export const createProjectDetails = (data = {}) => ({
 export const createEmptyProjectDetails = (project = {}) =>
   createProjectDetails({
     ...project,
-    modules: {},
+    modules: project?.modules || {},
   });

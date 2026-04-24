@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -8,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Icon, Searchbar } from "react-native-paper";
@@ -21,22 +23,34 @@ const SearchableFilterModal = ({
   title,
   subtitle,
   options = [],
+  isLoading = false,
+  isFetchingMore = false,
+  hasMoreOptions = false,
   selectedValue = "",
   onSelect,
   onClose,
+  onEndReached,
+  searchQuery = "",
+  onSearchQueryChange,
   searchPlaceholder = "Search",
   emptyMessage = "No options found.",
 }) => {
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const { height: windowHeight } = useWindowDimensions();
+  const [localSearchQuery, setLocalSearchQuery] = React.useState("");
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = React.useState(false);
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const lastSearchBlurAtRef = React.useRef(0);
+  const usesControlledSearch = typeof onSearchQueryChange === "function";
+  const activeSearchQuery = usesControlledSearch
+    ? String(searchQuery || "")
+    : localSearchQuery;
 
   React.useEffect(() => {
     if (!visible) {
-      setSearchQuery("");
+      setLocalSearchQuery("");
+      onSearchQueryChange?.("");
       setKeyboardHeight(0);
       setIsKeyboardVisible(false);
       setIsSearchFocused(false);
@@ -65,8 +79,24 @@ const SearchableFilterModal = ({
     };
   }, [visible]);
 
+  React.useEffect(() => {
+    if (!usesControlledSearch) {
+      return;
+    }
+
+    setLocalSearchQuery(String(searchQuery || ""));
+  }, [searchQuery, usesControlledSearch]);
+
+  const handleSearchChange = React.useCallback(
+    (value) => {
+      setLocalSearchQuery(value);
+      onSearchQueryChange?.(value);
+    },
+    [onSearchQueryChange]
+  );
+
   const filteredOptions = React.useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = activeSearchQuery.trim().toLowerCase();
 
     if (!normalizedQuery) {
       return options;
@@ -79,15 +109,18 @@ const SearchableFilterModal = ({
     );
 
     return allOption ? ["All", ...matchedOptions] : matchedOptions;
-  }, [options, searchQuery]);
+  }, [activeSearchQuery, options]);
 
   const bottomInset = Math.max(insets.bottom, 0);
-  const shouldKeepSheetExpanded =
-    searchQuery.trim().length > 0 && filteredOptions.length <= 1;
+  const topInset = Math.max(insets.top, verticalScale(12));
   const androidSheetOffset =
     Platform.OS === "android" && keyboardHeight > 0
       ? Math.max(keyboardHeight - insets.bottom - verticalScale(10), 0)
       : 0;
+  const maxCardHeight = Math.max(
+    windowHeight - topInset - androidSheetOffset - verticalScale(10),
+    verticalScale(260)
+  );
 
   const handleRequestClose = React.useCallback(() => {
     const didRecentlyBlurSearchInput =
@@ -110,7 +143,7 @@ const SearchableFilterModal = ({
       navigationBarTranslucent
       onRequestClose={handleRequestClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { paddingTop: topInset }]}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -119,8 +152,8 @@ const SearchableFilterModal = ({
           <View
             style={[
               styles.card,
-              shouldKeepSheetExpanded && styles.cardExpanded,
               {
+                maxHeight: maxCardHeight,
                 marginBottom: androidSheetOffset,
                 paddingBottom: verticalScale(16) + bottomInset,
               },
@@ -132,8 +165,8 @@ const SearchableFilterModal = ({
 
             <Searchbar
               placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              value={activeSearchQuery}
+              onChangeText={handleSearchChange}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => {
                 setIsSearchFocused(false);
@@ -145,57 +178,89 @@ const SearchableFilterModal = ({
               placeholderTextColor={colors.textSecondary}
             />
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-              contentContainerStyle={[
-                styles.listContent,
-                shouldKeepSheetExpanded && styles.listContentExpanded,
-              ]}
-            >
-              {filteredOptions.length ? (
-                filteredOptions.map((item) => {
-                  const isActive = item === selectedValue;
+            <View style={styles.listWrap}>
+              <ScrollView
+                style={styles.listScroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                contentContainerStyle={styles.listContent}
+                onScroll={({ nativeEvent }) => {
+                  const { contentOffset, contentSize, layoutMeasurement } =
+                    nativeEvent;
+                  const distanceFromEnd =
+                    contentSize.height -
+                    (contentOffset.y + layoutMeasurement.height);
 
-                  return (
-                    <TouchableOpacity
-                      key={item}
-                      style={[
-                        styles.optionItem,
-                        isActive && styles.optionItemActive,
-                      ]}
-                      onPress={() => onSelect(item)}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          isActive && styles.optionTextActive,
-                        ]}
-                      >
-                        {item}
-                      </Text>
+                  if (
+                    distanceFromEnd <= verticalScale(24) &&
+                    hasMoreOptions &&
+                    !isLoading &&
+                    !isFetchingMore
+                  ) {
+                    onEndReached?.();
+                  }
+                }}
+                scrollEventThrottle={16}
+              >
+                {isLoading ? (
+                  <View style={styles.emptyState}>
+                    <ActivityIndicator size="small" color={colors.primaryBlue} />
+                    <Text style={styles.loadingText}>Loading options...</Text>
+                  </View>
+                ) : filteredOptions.length ? (
+                  filteredOptions.map((item) => {
+                    const isActive = item === selectedValue;
 
-                      <View
+                    return (
+                      <TouchableOpacity
+                        key={item}
                         style={[
-                          styles.checkWrap,
-                          isActive && styles.checkWrapActive,
+                          styles.optionItem,
+                          isActive && styles.optionItemActive,
                         ]}
+                        onPress={() => onSelect(item)}
+                        activeOpacity={0.85}
                       >
-                        {isActive ? (
-                          <Icon source="check" size={14} color={colors.white} />
-                        ) : null}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>{emptyMessage}</Text>
-                </View>
-              )}
-            </ScrollView>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            isActive && styles.optionTextActive,
+                          ]}
+                        >
+                          {item}
+                        </Text>
+
+                        <View
+                          style={[
+                            styles.checkWrap,
+                            isActive && styles.checkWrapActive,
+                          ]}
+                        >
+                          {isActive ? (
+                            <Icon
+                              source="check"
+                              size={14}
+                              color={colors.white}
+                            />
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>{emptyMessage}</Text>
+                  </View>
+                )}
+
+                {isFetchingMore ? (
+                  <View style={styles.footerLoading}>
+                    <ActivityIndicator size="small" color={colors.primaryBlue} />
+                  </View>
+                ) : null}
+              </ScrollView>
+            </View>
 
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Text style={styles.closeText}>Close</Text>
@@ -220,12 +285,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    maxHeight: "78%",
     backgroundColor: colors.white,
     borderTopLeftRadius: moderateScale(24),
     borderTopRightRadius: moderateScale(24),
     paddingHorizontal: moderateScale(18),
     paddingTop: verticalScale(12),
+    minHeight: verticalScale(420),
   },
 
   cardExpanded: {
@@ -270,10 +335,21 @@ const styles = StyleSheet.create({
 
   listContent: {
     paddingBottom: verticalScale(4),
+    flexGrow: 1,
+  },
+  listWrap: {
+    flex: 1,
+    minHeight: verticalScale(250),
   },
 
-  listContentExpanded: {
-    flexGrow: 1,
+  listScroll: {
+    flex: 1,
+  },
+
+  footerLoading: {
+    paddingVertical: verticalScale(12),
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   optionItem: {
@@ -327,6 +403,13 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
+    fontSize: moderateScale(12),
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+
+  loadingText: {
+    marginTop: verticalScale(10),
     fontSize: moderateScale(12),
     color: colors.textSecondary,
     textAlign: "center",

@@ -425,7 +425,7 @@ apiClient.interceptors.response.use(
   }
 );
 
-export const apiRequest = async (config, errorOptions = {}) => {
+const requestApiPayload = async (config, errorOptions = {}) => {
   try {
     const response = await apiClient.request(config);
     const payload = response?.data;
@@ -438,6 +438,60 @@ export const apiRequest = async (config, errorOptions = {}) => {
     }
 
     return payload?.data ?? payload;
+  } catch (error) {
+    throw toApiError(error, errorOptions);
+  }
+};
+
+export const apiRequest = async (config, errorOptions = {}) => {
+  const payload = await requestApiPayload(config, errorOptions);
+  return payload?.data ?? payload;
+};
+
+export const apiRequestWithMeta = async (config, errorOptions = {}) => {
+  try {
+    const response = await apiClient.request(config);
+    const payload = response?.data;
+
+    if (payload?.success === false) {
+      throw createPayloadApiError(payload, {
+        status: response?.status,
+        ...errorOptions,
+      });
+    }
+
+    // Shape A: { success, data: [...], meta: {...} }
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      if (Array.isArray(payload.data) || payload.meta) {
+        return {
+          success: payload.success !== false,
+          data: Array.isArray(payload.data) ? payload.data : payload.data ?? [],
+          meta: payload.meta ?? null,
+        };
+      }
+
+      // Shape B: { success, data: { data: [...], meta: {...} } }
+      if (
+        payload.data &&
+        typeof payload.data === "object" &&
+        !Array.isArray(payload.data) &&
+        (Array.isArray(payload.data.data) || payload.data.meta)
+      ) {
+        return {
+          success: payload.success !== false,
+          data: Array.isArray(payload.data.data) ? payload.data.data : [],
+          meta: payload.data.meta ?? null,
+        };
+      }
+
+      return payload;
+    }
+
+    return {
+      success: true,
+      data: payload,
+      meta: null,
+    };
   } catch (error) {
     throw toApiError(error, errorOptions);
   }

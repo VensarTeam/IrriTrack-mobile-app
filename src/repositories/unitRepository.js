@@ -1,4 +1,5 @@
-import { createUnit } from "../models/unit";
+import { createOmsUnitListPage, createUnit } from "../models/unit";
+import { fetchOmsList } from "../services/unitListService";
 
 const unitTemplates = [
   {
@@ -149,6 +150,11 @@ export const getUnits = (module = "OMS") =>
       unitNo: `${module}-${item.unitSuffix}`,
     })
   );
+
+export const fetchOmsUnitsPage = async (params = {}) => {
+  const response = await fetchOmsList(params);
+  return createOmsUnitListPage(response);
+};
 
 export const getFilterOptions = () => ({
   zones,

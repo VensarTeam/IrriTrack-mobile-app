@@ -1,14 +1,15 @@
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { IconButton } from "react-native-paper";
+import { Icon, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
 
 const getStatusColor = (value) => {
   if (value === "Completed" || value === "Updated") return colors.completed;
-  if (value === "Partially Completed" || value === "Partial") return colors.partial;
+  if (value === "Partially Completed" || value === "Partial")
+    return colors.partial;
   return colors.pending;
 };
 
@@ -28,12 +29,14 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
   } = useUnitStatusOverviewViewModel(navigation, route);
   const totalStatuses = sections.reduce(
     (sum, section) => sum + section.subStatuses.length,
-    0
+    0,
   );
   const completedStatuses = sections.reduce(
     (sum, section) =>
-      sum + section.subStatuses.filter((item) => isCompletedStatus(item.status)).length,
-    0
+      sum +
+      section.subStatuses.filter((item) => isCompletedStatus(item.status))
+        .length,
+    0,
   );
   const pendingStatuses = Math.max(totalStatuses - completedStatuses, 0);
   const overviewSummary = [
@@ -50,26 +53,49 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.projectCard}>
-          <Text style={styles.projectLabel}>Project Name</Text>
-          <Text style={styles.projectName}>{projectName}</Text>
-          <Text style={styles.projectMeta}>Unit: {unit?.unitNo || `${module}-001`}</Text>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero Card ── */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroOrb1} pointerEvents="none" />
+          <View style={styles.heroOrb2} pointerEvents="none" />
+          <View style={styles.heroOrb3} pointerEvents="none" />
 
-        <View style={styles.overviewSummaryRow}>
-          {overviewSummary.map((item) => (
-            <View key={item.key} style={styles.overviewSummaryCard}>
-              <Text style={styles.overviewSummaryValue}>{item.value}</Text>
-              <Text style={styles.overviewSummaryLabel}>{item.label}</Text>
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroBadge}>
+               <Text style={styles.heroBadgeText}>PROJECT</Text>
             </View>
-          ))}
+            <View style={styles.heroUnitBadge}>
+              <Text style={styles.heroUnitText}>
+                Unit: {unit?.unitNo || `${module}-001`}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.heroTitle} numberOfLines={2}>
+            {projectName}
+          </Text>
         </View>
 
+        {/* ── Section Cards ── */}
         {sections.map((section) => (
           <View key={section.key} style={styles.sectionCard}>
             <View style={styles.sectionHeadRow}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <View style={styles.sectionIconWrap}>
+                <IconButton
+                  icon="clipboard-list-outline"
+                  size={14}
+                  iconColor={colors.primaryBlue}
+                />
+              </View>
+              <View style={styles.sectionHeadCopy}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionSubtitle} numberOfLines={1}>
+                  {section.description}
+                </Text>
+              </View>
               <View style={styles.sectionCountBadge}>
                 <Text style={styles.sectionCountText}>
                   {section.subStatuses.length} step
@@ -77,20 +103,32 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 </Text>
               </View>
             </View>
-            <Text style={styles.sectionSubtitle}>{section.description}</Text>
 
             <View style={styles.subStatusList}>
-              {section.subStatuses.map((item) => {
+              {section.subStatuses.map((item, index) => {
                 const statusColor = getStatusColor(item.status);
-
                 return (
-                  <View key={item.id} style={styles.subStatusItem}>
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.subStatusItem,
+                      index === section.subStatuses.length - 1 &&
+                        styles.subStatusItemLast,
+                    ]}
+                  >
                     <View style={styles.subStatusCopy}>
                       <View style={styles.subStatusDot} />
-                      <Text style={styles.subStatusLabel}>{item.displayLabel}</Text>
+                      <Text style={styles.subStatusLabel}>
+                        {item.displayLabel}
+                      </Text>
                     </View>
-                    <View style={[styles.statusPill, { backgroundColor: statusColor }]}>
-                      <Text style={[styles.statusPillText, { color: colors.white }]}>{item.status}</Text>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: statusColor },
+                      ]}
+                    >
+                      <Text style={styles.statusPillText}>{item.status}</Text>
                     </View>
                   </View>
                 );
@@ -99,19 +137,46 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
           </View>
         ))}
 
+        {/* ── Actions Card ── */}
         <View style={styles.actionsCard}>
-          <Text style={styles.actionsTitle}>Downloads</Text>
-          <Text style={styles.actionsSubtitle}>
-            Export the current status summary or completion certificate.
-          </Text>
+          <View style={styles.actionsHeadRow}>
+            <View style={styles.actionsIconWrap}>
+              <IconButton
+                icon="clipboard-list-outline"
+                size={16}
+                iconColor={colors.primaryBlue}
+              />
+            </View>
+            <View>
+              <Text style={styles.actionsTitle}>Downloads</Text>
+              <Text style={styles.actionsSubtitle}>
+                Export the status summary or certificate.
+              </Text>
+            </View>
+          </View>
 
-          <TouchableOpacity style={styles.reportButton} onPress={downloadReportPdf}>
+          <TouchableOpacity
+            style={styles.reportButton}
+            onPress={downloadReportPdf}
+          >
+            {/* <Icons.download width={14} height={14} color={colors.primaryBlue} /> */}
+            <IconButton
+              icon="download-outline"
+              size={14}
+              iconColor={colors.primaryBlue}
+            />
             <Text style={styles.reportButtonText}>Download Report PDF</Text>
           </TouchableOpacity>
 
           {allStatusesCompleted ? (
-            <TouchableOpacity style={styles.certificateButton} onPress={downloadCertificate}>
-              <Text style={styles.certificateButtonText}>Download Certificate</Text>
+            <TouchableOpacity
+              style={styles.certificateButton}
+              onPress={downloadCertificate}
+            >
+              <Icons.download width={14} height={14} color={colors.white} />
+              <Text style={styles.certificateButtonText}>
+                Download Certificate
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>

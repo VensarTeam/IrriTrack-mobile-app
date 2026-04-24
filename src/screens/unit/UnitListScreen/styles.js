@@ -75,15 +75,13 @@ export default StyleSheet.create({
     fontSize: moderateScale(13),
   },
 
-  filterContainer: {
-    flexDirection: "row",
-    paddingHorizontal: moderateScale(7),
-    marginBottom: verticalScale(12),
-    justifyContent: "space-between",
-    paddingVertical: verticalScale(7),
-    backgroundColor: "#F5FAFF",
-    borderRadius: moderateScale(20),
+  filterPanel: {
     marginHorizontal: moderateScale(15),
+    marginBottom: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(18),
+    backgroundColor: "#F5FAFF",
     borderWidth: 1,
     borderColor: "#D8E7F5",
     shadowColor: colors.primaryBlue,
@@ -91,6 +89,64 @@ export default StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 14,
     elevation: 2,
+  },
+
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  filterPanelTitleWrap: {
+    flex: 1,
+    paddingRight: moderateScale(10),
+  },
+
+  compactMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: verticalScale(2),
+  },
+
+  compactMetaLabel: {
+    fontSize: moderateScale(9),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginRight: moderateScale(6),
+  },
+
+  compactMetaValue: {
+    flex: 1,
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  filterResetButton: {
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+  },
+
+  filterResetText: {
+    fontSize: moderateScale(10),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  filterContainer: {
+    flexDirection: "row",
+    paddingHorizontal: moderateScale(7),
+    marginTop: verticalScale(6),
+    justifyContent: "space-between",
+    paddingVertical: verticalScale(7),
+    backgroundColor: "transparent",
+    borderRadius: moderateScale(20),
   },
 
   filterBtn: {
@@ -181,9 +237,36 @@ export default StyleSheet.create({
     paddingBottom: verticalScale(20),
   },
 
+  shimmerBlock: {
+    overflow: "hidden",
+    borderRadius: moderateScale(12),
+    backgroundColor: "#E7EEF6",
+  },
+
+  shimmerSweep: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: -moderateScale(140),
+    width: moderateScale(120),
+  },
+
+  shimmerGradient: {
+    flex: 1,
+  },
+
   listEmptyContent: {
     flexGrow: 1,
     justifyContent: "center",
+  },
+
+  skeletonList: {
+    paddingTop: verticalScale(2),
+  },
+
+  footerSkeletonList: {
+    paddingTop: verticalScale(2),
+    paddingBottom: verticalScale(4),
   },
 
   emptyWrapper: {
@@ -250,6 +333,43 @@ export default StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 12,
+  },
+
+  skeletonCard: {
+    backgroundColor: "#FCFEFF",
+    borderWidth: 1,
+    borderColor: "#D9E4F2",
+    marginHorizontal: moderateScale(15),
+    marginBottom: verticalScale(12),
+    padding: moderateScale(12),
+    borderRadius: moderateScale(18),
+    overflow: "hidden",
+  },
+
+  skeletonUnitNo: {
+    height: verticalScale(18),
+    width: "42%",
+    marginBottom: verticalScale(8),
+    borderRadius: moderateScale(8),
+  },
+
+  skeletonMetaChip: {
+    height: verticalScale(16),
+    width: moderateScale(78),
+    borderRadius: moderateScale(8),
+  },
+
+  skeletonRoundAction: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    marginRight: moderateScale(8),
+  },
+
+  skeletonDirectionAction: {
+    width: moderateScale(78),
+    height: moderateScale(34),
+    borderRadius: moderateScale(18),
   },
 
   cardTopRow: {
@@ -362,22 +482,87 @@ export default StyleSheet.create({
     borderWidth: 1,
     marginBottom: verticalScale(6),
     borderRadius: moderateScale(14),
-    minHeight: verticalScale(46),
-    paddingVertical: verticalScale(7),
+    minHeight: verticalScale(40),
+    paddingVertical: verticalScale(6),
     paddingHorizontal: moderateScale(10),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
+  processTileOffline: {
+    backgroundColor: "rgba(22, 58, 112, 0.92)",
+    borderColor: "#12325F",
+    overflow: "hidden",
+    shadowColor: "#102C56",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+
+  processTileOfflineGradient: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: moderateScale(14),
+  },
+
   processTileWide: {
     width: "100%",
+  },
+
+  skeletonProcessTileWrap: {
+    width: "48.5%",
+    marginBottom: verticalScale(6),
+  },
+
+  skeletonProcessTile: {
+    minHeight: verticalScale(40),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#F5F9FD",
+    borderWidth: 1,
+    borderColor: "#E0EAF4",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  skeletonProcessMain: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: moderateScale(8),
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  skeletonProcessDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(4),
+    marginRight: moderateScale(8),
+  },
+
+  skeletonProcessLabel: {
+    height: verticalScale(12),
+    width: "72%",
+    borderRadius: moderateScale(7),
+  },
+
+  skeletonProcessArrow: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(9),
   },
 
   processTileMain: {
     flex: 1,
     minWidth: 0,
-    marginRight: moderateScale(6),
+    marginRight: moderateScale(8),
   },
 
   processTileMeta: {
@@ -393,31 +578,25 @@ export default StyleSheet.create({
     marginRight: moderateScale(8),
   },
 
+  processStatusDotOffline: {
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+  },
+
   processLabel: {
     flex: 1,
     fontSize: moderateScale(11),
-    lineHeight: moderateScale(14),
+    lineHeight: moderateScale(13),
     fontFamily: fonts.semiBold,
     color: colors.textDark,
   },
 
+  processLabelOffline: {
+    color: colors.white,
+  },
+
   processTileRight: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    minHeight: verticalScale(28),
-  },
-
-  processProgressBadge: {
-    minWidth: moderateScale(38),
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(3),
-    borderRadius: moderateScale(10),
     alignItems: "center",
-  },
-
-  processProgressText: {
-    fontSize: moderateScale(9.5),
-    fontFamily: fonts.bold,
+    justifyContent: "center",
   },
 
   processArrowWrap: {
@@ -426,7 +605,18 @@ export default StyleSheet.create({
     borderRadius: moderateScale(9),
     alignItems: "center",
     justifyContent: "center",
-    marginTop: verticalScale(4),
+  },
+
+  processArrowWrapOffline: {
+    width: moderateScale(24),
+    height: moderateScale(24),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    shadowColor: "#102C56",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
   },
 
   certificateButton: {
