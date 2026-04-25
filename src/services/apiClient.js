@@ -199,6 +199,34 @@ const getPayloadMessage = (payload) => {
     return payload.trim();
   }
 
+  const arrayCandidates = [
+    payload.message,
+    payload.error?.message,
+    payload.detail,
+    payload.details,
+    payload?.data?.message,
+    payload?.data?.error?.message,
+    payload?.data?.detail,
+  ].filter(Array.isArray);
+
+  for (const candidate of arrayCandidates) {
+    const firstMessage = candidate.find(
+      (value) => typeof value === "string" && value.trim()
+    );
+
+    if (firstMessage) {
+      return firstMessage.trim();
+    }
+
+    const nestedMessage = candidate.find(
+      (value) => typeof value?.message === "string" && value.message.trim()
+    );
+
+    if (nestedMessage?.message) {
+      return nestedMessage.message.trim();
+    }
+  }
+
   const candidates = [
     payload.message,
     payload.error,

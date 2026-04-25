@@ -8,8 +8,9 @@ import { openDirections } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 import useChecklistSections from "./useChecklistSections";
 
-const COMPLETED_STATES = ["Completed", "Updated"];
+const COMPLETED_STATES = ["Completed", "Updated", "Approved"];
 const PENDING_STATES = ["Pending", "", null, undefined];
+const PARTIAL_STATES = ["Partial", "Partial Completed", "Partially Completed", "Commented"];
 const CERTIFICATE_STATUS_KEYS = [
   "inlet",
   "outlet",
@@ -22,7 +23,7 @@ const CERTIFICATE_STATUS_KEYS = [
   "controllerRectification",
 ];
 const DEFAULT_SEARCH_DEBOUNCE_MS = 350;
-const DEFAULT_PAGE_LIMIT = 20;
+const DEFAULT_PAGE_LIMIT = 5;
 
 const createEmptyPagination = () => ({
   page: 1,
@@ -42,15 +43,49 @@ const getProcessValue = (states) => {
     return "Pending";
   }
 
+  if (states.some((state) => PARTIAL_STATES.includes(state))) {
+    return "Partial Completed";
+  }
+
   return "Partial Completed";
 };
 
-const getCompactProgressLabel = (completedCount, totalCount) => {
-  if (completedCount === totalCount) {
-    return "Done";
+const PROCESS_STATUS_BY_CODE = {
+  0: "Pending",
+  1: "Partial Completed",
+  2: "Completed",
+  3: "Commented",
+  4: "Approved",
+};
+
+const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
+  const statusCode = Number(status);
+
+  if (Number.isFinite(statusCode) && PROCESS_STATUS_BY_CODE[statusCode]) {
+    return PROCESS_STATUS_BY_CODE[statusCode];
   }
 
-  return `${completedCount}/${totalCount}`;
+  const normalizedLabel = String(statusLabel || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalizedLabel === "approved") {
+    return "Approved";
+  }
+
+  if (normalizedLabel === "commented") {
+    return "Commented";
+  }
+
+  if (normalizedLabel === "completed") {
+    return "Completed";
+  }
+
+  if (normalizedLabel === "partial" || normalizedLabel === "partially completed") {
+    return "Partial Completed";
+  }
+
+  return "Pending";
 };
 
 const getProcessLabel = (section = {}) =>
@@ -66,6 +101,29 @@ const normalizeLocationValue = (value = "") =>
 
 const isOmsModule = (module = "") =>
   String(module || "").trim().toUpperCase() === "OMS";
+
+const toDisplayText = (value, fallback = "") => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    const preferredValue =
+      value.name || value.label || value.title || value.code || value.id;
+
+    if (preferredValue === null || preferredValue === undefined) {
+      return fallback;
+    }
+
+    return String(preferredValue);
+  }
+
+  return fallback;
+};
 
 const getUnitIdentity = (item = {}) =>
   item?.id || item?.unitNo || item?.nodeName || "";
@@ -116,12 +174,14 @@ const useUnitListViewModel = (navigation, route) => {
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
     hasMoreFilterOptions,
+    prepareFilterOptions,
     loadMoreFilterOptions,
     zones: onlineZones,
     villages: onlineVillages,
     villageOptions,
   } = useProjectLocationFilters({
     projectId,
+    zoneName: zone,
     activeFilterType: filterType,
     searchQuery: locationFilterSearchQuery,
   });
@@ -137,9 +197,10 @@ const useUnitListViewModel = (navigation, route) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [unitsError, setUnitsError] = useState("");
-  const projectName =
-    route?.params?.projectName ||
-    "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
+  const projectName = toDisplayText(
+    route?.params?.projectName || project?.name,
+    "IrriTrack"
+  );
   const shouldUseOmsApi = isOmsModule(module) && Boolean(projectId);
   const isOfflineOmsList = shouldUseOmsApi && !isOnline;
 
@@ -316,6 +377,16 @@ const useUnitListViewModel = (navigation, route) => {
       setZone(item);
     }
     if (filterType === "village") setVillage(item);
+    closeFilterSheet();
+  };
+
+  const openFilterSheet = (nextFilterType) => {
+    setLocationFilterSearchQuery("");
+    prepareFilterOptions(nextFilterType);
+    setFilterType(nextFilterType);
+  };
+
+  const closeFilterSheet = () => {
     setLocationFilterSearchQuery("");
     setFilterType(null);
   };
@@ -370,6 +441,7 @@ const useUnitListViewModel = (navigation, route) => {
     navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
       module,
       unit,
+      projectId,
       projectName,
     });
   };
@@ -378,6 +450,7 @@ const useUnitListViewModel = (navigation, route) => {
     navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
       module,
       unit,
+      projectId: projectId || unit?.projectId || "",
       projectName,
       sectionKey: process.sectionKey,
       subOptionId: process.subOptionId,
@@ -385,7 +458,26 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const getCardProcesses = (unit) =>
-    processSections.map((section) => {
+    processSections.map((section, index) => {
+      const apiProcess = Array.isArray(unit?.processes)
+        ? unit.processes.find(
+            (item) =>
+              Number(item?.processId) ===
+              Number(section.apiProcessId || index + 1)
+          )
+        : null;
+
+      if (apiProcess) {
+        return {
+          key: section.key,
+          label: getProcessLabel(section),
+          sectionKey: section.key,
+          subOptionId: section.subOptions[0]?.id,
+          value: normalizeProcessStatusValue(apiProcess),
+          progressLabel: "",
+        };
+      }
+
       const statusLookup = getUnitStatusBySubOption(unit);
       const states = (section.subOptions || []).map(
         (subOption) => statusLookup[subOption.id] || "Pending"
@@ -400,7 +492,7 @@ const useUnitListViewModel = (navigation, route) => {
         sectionKey: section.key,
         subOptionId: section.subOptions[0]?.id,
         value: getProcessValue(states),
-        progressLabel: getCompactProgressLabel(completedCount, states.length),
+        progressLabel: "",
       };
     });
 
@@ -445,7 +537,8 @@ const useUnitListViewModel = (navigation, route) => {
     emptySubtitle,
     emptyActionLabel,
     setSearch,
-    setFilterType,
+    openFilterSheet,
+    closeFilterSheet,
     setLocationFilterSearchQuery,
     loadMoreFilterOptions,
     filteredData,

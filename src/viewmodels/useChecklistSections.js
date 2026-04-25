@@ -3,15 +3,13 @@ import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
 import { buildChecklistSectionsFromMaster } from "../services/checklistMasterAdapter";
 import { getCachedChecklistProcessMaster } from "../services/checklistOfflineSync";
 
-const DEFAULT_SUB_CHAK_QUANTITY = 8;
-
 const getUnitSubChakQuantity = (unit = {}) => {
-  const match = `${unit?.subChakQuantity ?? DEFAULT_SUB_CHAK_QUANTITY}`.match(/\d+/);
+  const match = `${unit?.subChakQuantity ?? ""}`.match(/\d+/);
   const parsedValue = Number.parseInt(match?.[0], 10);
 
   return Number.isFinite(parsedValue) && parsedValue > 0
     ? parsedValue
-    : DEFAULT_SUB_CHAK_QUANTITY;
+    : null;
 };
 
 const applyModuleText = (value, module) => {
@@ -31,10 +29,10 @@ const resolveContextValue = (value, context = {}) => {
   );
 };
 
-export const getModuleAwareSections = (module, unit) => {
+const applyUnitAwareSectionContext = (sections = [], module, unit) => {
   const subChakQuantity = getUnitSubChakQuantity(unit);
 
-  return MODULE_STATUS_SECTIONS.map((section) => ({
+  return sections.map((section) => ({
     ...section,
     title: applyModuleText(section.title, module),
     description: applyModuleText(section.description, module),
@@ -66,12 +64,20 @@ export const getModuleAwareSections = (module, unit) => {
       })),
       repeatableGroups: (sub.repeatableGroups || []).map((group) => {
         const useSubChakQuantity = !!group.useSubChakQuantity;
+        const hasResolvedSubChakQuantity = Number.isFinite(subChakQuantity);
 
         return {
           ...group,
-          minItems: useSubChakQuantity ? subChakQuantity : group.minItems,
-          maxItems: useSubChakQuantity ? subChakQuantity : group.maxItems,
-          fixedItemCount: useSubChakQuantity
+          minItems:
+            useSubChakQuantity && hasResolvedSubChakQuantity
+              ? subChakQuantity
+              : group.minItems,
+          maxItems:
+            useSubChakQuantity && hasResolvedSubChakQuantity
+              ? subChakQuantity
+              : group.maxItems,
+          fixedItemCount:
+            useSubChakQuantity && hasResolvedSubChakQuantity
             ? subChakQuantity
             : group.fixedItemCount,
           title: applyModuleText(
@@ -101,6 +107,9 @@ export const getModuleAwareSections = (module, unit) => {
   }));
 };
 
+export const getModuleAwareSections = (module, unit) =>
+  applyUnitAwareSectionContext(MODULE_STATUS_SECTIONS, module, unit);
+
 const getChecklistCount = (sections = []) =>
   sections.reduce(
     (count, section) =>
@@ -114,9 +123,17 @@ const getChecklistCount = (sections = []) =>
   );
 
 const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
+  const unitSubChakQuantity = useMemo(
+    () => getUnitSubChakQuantity(unit),
+    [unit?.subChakQuantity]
+  );
+  const unitContext = useMemo(
+    () => ({ subChakQuantity: unitSubChakQuantity }),
+    [unitSubChakQuantity]
+  );
   const fallbackSections = useMemo(
-    () => getModuleAwareSections(module, unit),
-    [module, unit]
+    () => getModuleAwareSections(module, unitContext),
+    [module, unitContext]
   );
   const [apiSections, setApiSections] = useState([]);
   const [masterSource, setMasterSource] = useState("static");
@@ -128,10 +145,14 @@ const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
     setMasterSource("static");
 
     const applyProcesses = (processes, source) => {
-      const nextSections = buildChecklistSectionsFromMaster({
-        processes,
+      const nextSections = applyUnitAwareSectionContext(
+        buildChecklistSectionsFromMaster({
+          processes,
+          module,
+        }),
         module,
-      });
+        unitContext
+      );
 
       if (!nextSections.length || !isMounted) {
         console.log("[ChecklistMaster]", "Master skipped", {
@@ -184,7 +205,7 @@ const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
     return () => {
       isMounted = false;
     };
-  }, [module]);
+  }, [module, unitContext]);
 
   return {
     sections: apiSections.length ? apiSections : fallbackSections,

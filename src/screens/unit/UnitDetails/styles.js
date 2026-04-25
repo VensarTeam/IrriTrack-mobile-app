@@ -6,7 +6,7 @@ import { moderateScale, verticalScale } from "../../../constants/metrics";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#F4F7FB",
   },
 
   header: {
@@ -15,36 +15,36 @@ export default StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(4),
-    backgroundColor: colors.white,
+    backgroundColor: "#F4F7FB",
   },
 
   headerTitle: {
+    flex: 1,
+    textAlign: "center",
     fontSize: moderateScale(16),
     fontFamily: fonts.bold,
     color: colors.textDark,
-    flex: 1,
-    textAlign: "center",
   },
 
   content: {
     paddingHorizontal: moderateScale(15),
     paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(20),
+    paddingBottom: verticalScale(24),
   },
 
   heroCard: {
     backgroundColor: colors.primaryBlue,
     borderRadius: moderateScale(20),
-    paddingVertical: verticalScale(16),
     paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(16),
     marginBottom: verticalScale(14),
     overflow: "hidden",
   },
 
   heroOrb1: {
     position: "absolute",
-    top: -moderateScale(30),
-    right: -moderateScale(30),
+    top: -moderateScale(32),
+    right: -moderateScale(32),
     width: moderateScale(120),
     height: moderateScale(120),
     borderRadius: moderateScale(60),
@@ -53,36 +53,49 @@ export default StyleSheet.create({
 
   heroOrb2: {
     position: "absolute",
-    bottom: -moderateScale(20),
-    left: moderateScale(40),
-    width: moderateScale(80),
-    height: moderateScale(80),
-    borderRadius: moderateScale(40),
+    bottom: -moderateScale(18),
+    left: moderateScale(42),
+    width: moderateScale(82),
+    height: moderateScale(82),
+    borderRadius: moderateScale(41),
     backgroundColor: "rgba(255,255,255,0.04)",
   },
 
   heroBadgeRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: verticalScale(10),
   },
 
   heroBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(5),
     backgroundColor: "rgba(255,255,255,0.18)",
     borderRadius: moderateScale(20),
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(3),
+    paddingVertical: verticalScale(4),
     borderWidth: 0.5,
     borderColor: "rgba(255,255,255,0.25)",
   },
 
   heroBadgeText: {
     fontSize: moderateScale(11),
-    color: "rgba(255,255,255,0.9)",
+    color: colors.white,
     fontFamily: fonts.bold,
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
+  },
+
+  heroUnitBadge: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(4),
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+
+  heroUnitText: {
+    fontSize: moderateScale(11),
+    color: "rgba(255,255,255,0.88)",
+    fontFamily: fonts.medium,
   },
 
   heroTitle: {
@@ -102,7 +115,7 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.18)",
     borderRadius: moderateScale(12),
     paddingVertical: verticalScale(8),
     alignItems: "center",
@@ -110,8 +123,8 @@ export default StyleSheet.create({
   },
 
   heroSummaryChipHighlight: {
-    backgroundColor: "rgba(255,255,255,0.22)",
-    borderColor: "rgba(255,255,255,0.38)",
+    backgroundColor: "rgba(27,191,117,0.24)",
+    borderColor: "rgba(27,191,117,0.38)",
   },
 
   heroSummaryValue: {
@@ -123,9 +136,8 @@ export default StyleSheet.create({
   heroSummaryLabel: {
     marginTop: verticalScale(2),
     fontSize: moderateScale(9.5),
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.74)",
     fontFamily: fonts.medium,
-    letterSpacing: 0.3,
   },
 
   sectionMetaBlock: {
@@ -133,7 +145,6 @@ export default StyleSheet.create({
     alignItems: "center",
     gap: moderateScale(10),
     marginBottom: verticalScale(10),
-    paddingHorizontal: moderateScale(2),
   },
 
   sectionMetaIconWrap: {
@@ -145,7 +156,6 @@ export default StyleSheet.create({
     borderColor: colors.cardBorder,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
 
   sectionMetaCopy: {
@@ -154,8 +164,8 @@ export default StyleSheet.create({
 
   sectionMetaTitle: {
     fontSize: moderateScale(14),
-    color: colors.textDark,
     fontFamily: fonts.bold,
+    color: colors.textDark,
   },
 
   sectionMetaSubtitle: {
@@ -169,7 +179,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(12),
   },
 
   detailCard: {
@@ -178,7 +188,7 @@ export default StyleSheet.create({
     borderWidth: 0.5,
     borderColor: colors.cardBorder,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primaryBlue, // overridden per-item in JSX
+    borderLeftColor: colors.primaryBlue,
     borderRadius: moderateScale(14),
     paddingVertical: verticalScale(9),
     paddingHorizontal: moderateScale(12),
@@ -189,8 +199,8 @@ export default StyleSheet.create({
     fontSize: moderateScale(10),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
-    letterSpacing: 0.3,
     marginBottom: verticalScale(4),
+    letterSpacing: 0.3,
   },
 
   detailValue: {
@@ -201,10 +211,10 @@ export default StyleSheet.create({
   },
 
   statusListHeader: {
-    marginBottom: verticalScale(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: verticalScale(10),
   },
 
   statusListCopy: {
@@ -219,299 +229,204 @@ export default StyleSheet.create({
   },
 
   statusListSubtitle: {
-    marginTop: verticalScale(1),
+    marginTop: verticalScale(2),
     fontSize: moderateScale(11),
     color: colors.textSecondary,
+    lineHeight: moderateScale(16),
   },
 
   viewAllButton: {
     backgroundColor: colors.primaryBlue,
     borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(5),
-    borderWidth: 1,
-    borderColor: colors.primaryBlue,
+    paddingVertical: verticalScale(6),
   },
 
   viewAllText: {
     fontSize: moderateScale(11),
-    fontFamily: fonts.medium,
     color: colors.white,
+    fontFamily: fonts.bold,
   },
 
-  statusCard: {
+  stateCard: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(9),
-    paddingHorizontal: moderateScale(10),
-    marginBottom: verticalScale(8),
+    padding: moderateScale(14),
+    marginBottom: verticalScale(10),
+    shadowColor: "#123B63",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     elevation: 1,
   },
 
-  statusCardHead: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(6),
+  stateCardError: {
+    backgroundColor: "#FFF8F5",
+    borderColor: "#F3D5C7",
   },
 
-  statusHeadMain: {
-    flex: 1,
-    paddingRight: moderateScale(10),
-  },
-
-  sectionToggleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-  },
-
-  chevronWrap: {
-    marginLeft: moderateScale(2),
-  },
-
-  chevronWrapExpanded: {
-    transform: [{ rotate: "180deg" }],
-  },
-
-  statusCardTitle: {
+  stateTitle: {
     fontSize: moderateScale(14),
-    fontFamily: fonts.bold,
     color: colors.textDark,
+    fontFamily: fonts.bold,
   },
 
-  statusCountText: {
-    marginTop: verticalScale(3),
-    fontSize: moderateScale(10),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
-  },
-
-  updateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.darkGreen,
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(5),
-    borderRadius: moderateScale(14),
-    borderColor: colors.darkGreen,
-    borderWidth: 1,
-  },
-
-  updateButtonText: {
-    fontSize: moderateScale(12),
-    fontFamily: fonts.medium,
-    color: colors.white,
-  },
-
-  statusCardDescription: {
-    fontSize: moderateScale(10),
+  stateCopy: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(11),
     color: colors.textSecondary,
     lineHeight: moderateScale(16),
   },
 
-  subStatusList: {
-    marginTop: verticalScale(8),
-  },
-
-  subStatusItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  retryButton: {
+    alignSelf: "flex-start",
+    marginTop: verticalScale(10),
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(7),
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
 
-  subStatusItemLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
+  retryButtonText: {
+    fontSize: moderateScale(11),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
-  subStatusCopy: {
-    flex: 1,
+  processCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(14),
+    marginBottom: verticalScale(10),
+    shadowColor: "#123B63",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+
+  processHead: {
     flexDirection: "row",
     alignItems: "center",
+    paddingVertical: verticalScale(12),
+    paddingRight: moderateScale(2),
+  },
+
+  processHeadCopy: {
+    flex: 1,
     paddingRight: moderateScale(10),
   },
 
-  subStatusDot: {
-    width: moderateScale(8),
-    height: moderateScale(8),
+  processBadge: {
+    alignSelf: "flex-start",
+    marginBottom: verticalScale(8),
+    backgroundColor: colors.surfaceBlueSoft,
     borderRadius: moderateScale(999),
-    backgroundColor: colors.primaryBlue,
-    marginRight: moderateScale(8),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
   },
 
-  subStatusLabel: {
-    fontSize: moderateScale(12),
-    color: colors.textDark,
-    fontFamily: fonts.medium,
+  processBadgeText: {
+    fontSize: moderateScale(9),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+    letterSpacing: 0.5,
+  },
+
+  processTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(8),
+  },
+
+  processTitle: {
     flex: 1,
+    fontSize: moderateScale(14),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+    paddingRight: moderateScale(10),
+  },
+
+  processMeta: {
+    fontSize: moderateScale(11),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  processChevronWrap: {
+    width: moderateScale(28),
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   statusPill: {
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(4),
-    borderRadius: moderateScale(12),
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: moderateScale(999),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(5),
+  },
+
+  statusPillDot: {
+    width: moderateScale(7),
+    height: moderateScale(7),
+    borderRadius: moderateScale(999),
+    marginRight: moderateScale(6),
   },
 
   statusPillText: {
     fontSize: moderateScale(10),
-    fontFamily: fonts.medium,
+    fontFamily: fonts.bold,
   },
 
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: colors.modalOverlay,
-    justifyContent: "flex-end",
-  },
-
-  sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-
-  bottomSheet: {
-    maxHeight: "82%",
-    backgroundColor: colors.white,
-    borderTopLeftRadius: moderateScale(8),
-    borderTopRightRadius: moderateScale(8),
-    paddingHorizontal: moderateScale(16),
-    paddingTop: verticalScale(10),
+  subprocessList: {
     borderTopWidth: 1,
-    borderColor: colors.loginSheetBorderLight,
-    elevation: 12,
+    borderTopColor: colors.border,
+    paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(4),
   },
 
-  sheetHandle: {
-    width: moderateScale(48),
-    height: verticalScale(5),
-    borderRadius: moderateScale(8),
-    alignSelf: "center",
-    backgroundColor: colors.cardBorder,
-    marginBottom: verticalScale(12),
-  },
-
-  sheetHeader: {
+  subprocessItem: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: verticalScale(12),
+    paddingVertical: verticalScale(11),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
 
-  sheetHeaderCopy: {
+  subprocessItemLast: {
+    borderBottomWidth: 0,
+  },
+
+  subprocessCopy: {
     flex: 1,
     paddingRight: moderateScale(10),
   },
 
-  sheetEyebrow: {
-    fontSize: moderateScale(11),
-    fontFamily: fonts.medium,
-    color: colors.primaryGreen,
-    marginBottom: verticalScale(3),
-  },
-
-  sheetTitle: {
-    fontSize: moderateScale(17),
-    fontFamily: fonts.bold,
+  subprocessLabel: {
+    fontSize: moderateScale(12.5),
     color: colors.textDark,
-    lineHeight: moderateScale(22),
-  },
-
-  sheetSubtitle: {
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
-    marginTop: verticalScale(4),
+    fontFamily: fonts.medium,
     lineHeight: moderateScale(18),
   },
 
-  sheetCloseButton: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(8),
-    margin: 0,
-    backgroundColor: colors.surfaceBluePale,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+  subprocessHint: {
+    marginTop: verticalScale(3),
+    fontSize: moderateScale(10.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
 
-  sheetScroll: {
-    width: "100%",
-  },
-
-  sheetScrollContent: {
-    paddingTop: verticalScale(2),
-  },
-
-  sheetOption: {
+  subprocessMeta: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: verticalScale(64),
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(10),
-    borderRadius: moderateScale(8),
-    borderWidth: 1,
-    borderColor: colors.projectModalItemBorder,
-    backgroundColor: colors.surfaceBluePale,
-    marginBottom: verticalScale(9),
-  },
-
-  sheetOptionIcon: {
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(8),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.darkGreen,
-    borderWidth: 1,
-    borderColor: colors.darkGreen,
-    marginRight: moderateScale(10),
-  },
-
-  sheetOptionCopy: {
-    flex: 1,
-    paddingRight: moderateScale(8),
-  },
-
-  sheetOptionTitle: {
-    fontSize: moderateScale(13),
-    color: colors.textDark,
-    fontFamily: fonts.bold,
-    lineHeight: moderateScale(18),
-  },
-
-  sheetOptionHint: {
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
-    marginTop: verticalScale(2),
-  },
-
-  sheetOptionMeta: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
-
-  sheetStatusPill: {
-    minWidth: moderateScale(64),
-    maxWidth: moderateScale(112),
-    alignItems: "center",
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(4),
-    borderRadius: moderateScale(8),
-    marginBottom: verticalScale(7),
-  },
-
-  sheetStatusText: {
-    fontSize: moderateScale(10),
-    color: colors.white,
-    fontFamily: fonts.medium,
-    maxWidth: moderateScale(96),
-  },
-
-  sheetOptionChevron: {
-    transform: [{ rotate: "-90deg" }],
-    marginRight: moderateScale(2),
+    gap: moderateScale(6),
   },
 });

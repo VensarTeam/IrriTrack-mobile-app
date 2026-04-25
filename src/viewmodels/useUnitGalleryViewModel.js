@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { showAppAlert } from "../services/alertService";
 
-const DEFAULT_PROJECT = "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
+const DEFAULT_PROJECT = "IrriTrack";
 
 const formatTimestamp = (value) => {
   const date = value ? new Date(value) : new Date();

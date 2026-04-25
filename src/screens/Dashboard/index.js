@@ -49,7 +49,7 @@ const DashboardScreen = ({ navigation }) => {
           </View>
 
           <Text style={styles.headerTitle} numberOfLines={1}>
-            IDICM DASHBOARD
+            IRRITRACK DASHBOARD
           </Text>
 
           <TouchableOpacity

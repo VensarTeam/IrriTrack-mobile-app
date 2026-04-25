@@ -1,61 +1,113 @@
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import {
-  getUnitStatusBySubOption,
-} from "../constants/moduleStatusConfig";
-import { showAppAlert } from "../services/alertService";
-import useChecklistSections from "./useChecklistSections";
+  findUnitProgressSubprocess,
+  getUnitProgressSummary,
+} from "../models/unitProgress";
+import useUnitProgress from "../hooks/useUnitProgress";
 
-const COMPLETED_STATES = ["Completed", "Updated"];
+const toDisplayText = (value, fallback = "") => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    const preferredValue =
+      value.name ||
+      value.label ||
+      value.title ||
+      value.unitNo ||
+      value.nodeName ||
+      value.code ||
+      value.id;
+
+    if (preferredValue === null || preferredValue === undefined) {
+      return fallback;
+    }
+
+    return String(preferredValue);
+  }
+
+  return fallback;
+};
 
 const useUnitStatusOverviewViewModel = (navigation, route) => {
+  const { user } = useAuth();
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
-  const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
-  const { sections: checklistSections } = useChecklistSections({ module, unit });
-
-  const statusLookup = getUnitStatusBySubOption(unit);
-
-  const sections = checklistSections.map((section) => ({
-    ...section,
-    subStatuses: section.subOptions.map((sub) => ({
-      ...sub,
-      displayLabel: sub.label,
-      status: statusLookup[sub.id] || "Pending",
-    })),
-  }));
-
-  const allStatusesCompleted = sections.every((section) =>
-    section.subStatuses.every((item) => COMPLETED_STATES.includes(item.status))
+  const unitLabel = toDisplayText(unit.unitNo, `${module}-001`);
+  const projectName = toDisplayText(
+    route?.params?.projectName || route?.params?.project?.name,
+    "IrriTrack"
   );
+  const projectId =
+    route?.params?.projectId ||
+    route?.params?.project?.id ||
+    route?.params?.project?.projectId ||
+    user?.projectId ||
+    "";
+  const unitId = unit?.id || route?.params?.unitId || "";
+  const initialSubprocessId = route?.params?.initialSubprocessId || null;
+  const [hasAppliedInitialFocus, setHasAppliedInitialFocus] = useState(false);
+  const { progress, isLoading, error, refreshProgress } = useUnitProgress({
+    projectId,
+    unitId,
+    enabled: Boolean(projectId && unitId),
+  });
+  const [selectedSubprocessState, setSelectedSubprocessState] = useState(null);
+
+  useEffect(() => {
+    if (
+      !initialSubprocessId ||
+      hasAppliedInitialFocus ||
+      !progress.processes.length
+    ) {
+      return;
+    }
+
+    const match = findUnitProgressSubprocess(progress, initialSubprocessId);
+
+    if (!match) {
+      return;
+    }
+
+    setSelectedSubprocessState(match);
+    setHasAppliedInitialFocus(true);
+  }, [hasAppliedInitialFocus, initialSubprocessId, progress]);
+
+  const summary = useMemo(() => getUnitProgressSummary(progress), [progress]);
 
   const handleBack = () => {
     navigation.goBack();
   };
 
-  const downloadReportPdf = () => {
-    showAppAlert({
-      type: "info",
-      title: "Report PDF",
-      message: "Report download will be connected when API integration is done.",
-    });
+  const openSubprocessModal = (process, subprocess) => {
+    setSelectedSubprocessState({ process, subprocess });
   };
 
-  const downloadCertificate = () => {
-    showAppAlert({
-      type: "info",
-      title: "Completion Certificate",
-      message: "Certificate download will be connected when API integration is done.",
-    });
+  const closeSubprocessModal = () => {
+    setSelectedSubprocessState(null);
   };
 
   return {
     module,
     unit,
+    unitLabel,
     projectName,
-    sections,
-    allStatusesCompleted,
+    processes: progress.processes,
+    summary,
+    isLoading,
+    error,
+    refreshProgress,
+    selectedProcess: selectedSubprocessState?.process || null,
+    selectedSubprocess: selectedSubprocessState?.subprocess || null,
     handleBack,
-    downloadReportPdf,
-    downloadCertificate,
+    openSubprocessModal,
+    closeSubprocessModal,
   };
 };
 

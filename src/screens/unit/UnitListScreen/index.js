@@ -66,7 +66,8 @@ const UnitListScreen = ({ navigation, route }) => {
     emptySubtitle,
     emptyActionLabel,
     setSearch,
-    setFilterType,
+    openFilterSheet,
+    closeFilterSheet,
     setLocationFilterSearchQuery,
     loadMoreFilterOptions,
     filteredData,
@@ -236,14 +237,14 @@ const UnitListScreen = ({ navigation, route }) => {
       >
         <View style={styles.cardTopRow}>
           <View style={styles.unitInfoBlock}>
-            <Text style={styles.unitNo}>{formatUnitNo(item.unitNo, module)}</Text>
+            <Text style={styles.unitNo}>{formatUnitNo(item?.unitNo, module)}</Text>
 
             <View style={styles.locationRow}>
-              <InlineMeta icon={Icons.zone} value={item.zone} />
+              <InlineMeta icon={Icons.zone} value={item?.zone} />
               <View style={styles.locationDivider} />
               <InlineMeta
                 icon={Icons.village}
-                value={item.chakName || item.village || item.villageId}
+                value={item?.village}
               />
             </View>
           </View>
@@ -449,7 +450,7 @@ const UnitListScreen = ({ navigation, route }) => {
               label={zone}
               icon={Icons.zone}
               active={zone !== "All"}
-              onPress={() => setFilterType("zone")}
+              onPress={() => openFilterSheet("zone")}
             />
 
             <FilterButton
@@ -457,7 +458,7 @@ const UnitListScreen = ({ navigation, route }) => {
               label={village}
               icon={Icons.village}
               active={village !== "All"}
-              onPress={() => setFilterType("village")}
+              onPress={() => openFilterSheet("village")}
             />
           </View>
         </View>
@@ -525,7 +526,7 @@ const UnitListScreen = ({ navigation, route }) => {
           hasMoreOptions={hasMoreFilterOptions}
           selectedValue={getActiveFilterValue()}
           onSelect={applyFilter}
-          onClose={() => setFilterType(null)}
+          onClose={closeFilterSheet}
           onEndReached={loadMoreFilterOptions}
           searchQuery={locationFilterSearchQuery}
           onSearchQueryChange={setLocationFilterSearchQuery}
@@ -581,8 +582,9 @@ const UnitListScreen = ({ navigation, route }) => {
 export default UnitListScreen;
 
 const getStatusColor = (value) => {
-  if (value === "Completed") return colors.completed;
+  if (value === "Completed" || value === "Approved") return colors.completed;
   if (value === "Pending") return colors.pending;
+  if (value === "Commented") return colors.primaryBlue;
   return colors.partial;
 };
 
@@ -637,6 +639,18 @@ const ProcessTile = ({ process, isWide, onPress,isOffline=false }) => {
             {process.label}
           </Text>
         </View>
+
+        <Text
+          style={[
+            styles.processValue,
+            { color: isOffline ? "rgba(255, 255, 255, 0.9)" : statusColor },
+          ]}
+          numberOfLines={1}
+        >
+          {process.progressLabel
+            ? `${process.value} • ${process.progressLabel}`
+            : process.value}
+        </Text>
       </View>
 
       <View style={styles.processTileRight}>

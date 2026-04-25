@@ -5,10 +5,9 @@ import { showAppAlert } from "../services/alertService";
 import { useAuth } from "../context/AuthContext";
 import {
   getPendingChecklistSubmissionCount,
-  refreshChecklistProcessMaster,
   syncQueuedChecklistSubmissions,
 } from "../services/checklistOfflineSync";
-import { refreshProjectList } from "../services/projectOfflineStore";
+import { refreshOfflineMasterData } from "../services/offlineMasterSync";
 
 const useProfileViewModel = (navigation) => {
   const { logout, refreshProfile, user: authenticatedUser } = useAuth();
@@ -68,31 +67,14 @@ const useProfileViewModel = (navigation) => {
     console.log("[ChecklistProfile]", "Manual master sync pressed");
 
     try {
-      const [processes, projects] = await Promise.all([
-        refreshChecklistProcessMaster({
-          deviceType: "OMS",
-        }),
-        refreshProjectList(),
-      ]);
-      const subprocessCount = processes.reduce(
-        (count, process) => count + (process.subprocesses?.length || 0),
-        0
-      );
-      const checklistCount = processes.reduce(
-        (count, process) =>
-          count +
-          (process.subprocesses || []).reduce(
-            (subCount, subprocess) =>
-              subCount + (subprocess.checklists?.length || 0),
-            0
-          ),
-        0
-      );
+      const summary = await refreshOfflineMasterData({
+        deviceType: "OMS",
+      });
 
       showAppAlert({
         type: "success",
         title: "Master data synced",
-        message: `${projects.length} project(s), ${processes.length} process(es), ${subprocessCount} subprocess(es), ${checklistCount} checklist item(s).`,
+        message: `${summary.projectCount} project(s), ${summary.omsUnitCount} OMS unit(s), ${summary.contractorCount} contractor(s), ${summary.processCount} process(es), ${summary.subprocessCount} subprocess(es), ${summary.checklistCount} checklist item(s).`,
       });
     } catch (error) {
       console.log("[ChecklistProfile]", "Manual master sync failed", {
@@ -130,12 +112,12 @@ const useProfileViewModel = (navigation) => {
       }
 
       const result = await syncQueuedChecklistSubmissions();
-      const preparedCount = result.prepared || 0;
+      const syncedCount = result.synced || 0;
       const syncMessage = result.skippedOffline
         ? "Network unavailable. OMS data is still saved locally."
         : result.submitApiConnected
-          ? `${preparedCount} saved OMS item(s) synced.`
-          : `${pendingCount} saved OMS item(s) found. Submit API is pending.`;
+          ? `${syncedCount} saved OMS item(s) synced.`
+          : `${pendingCount} saved OMS item(s) are still available locally.`;
 
       showAppAlert({
         type: result.failed || result.skippedOffline ? "warning" : "info",

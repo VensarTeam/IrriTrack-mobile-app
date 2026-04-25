@@ -124,9 +124,9 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
         {
           key: "subChakName",
           label: "Outlet ID",
-          placeholder: "V1",
+          placeholder: "O1",
           readOnly: true,
-          getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
+          getDefaultValue: ({ itemIndex }) => `O${itemIndex + 1}`,
         },
         {
           key: "pipeSize",

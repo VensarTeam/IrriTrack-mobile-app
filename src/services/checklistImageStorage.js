@@ -1,12 +1,11 @@
 import ImageResizer from "react-native-image-resizer";
 import RNFS from "react-native-fs";
 
-const TARGET_SIZE_BYTES = 700 * 1024;
+const TARGET_SIZE_BYTES = 500 * 1024;
 const RESIZE_ATTEMPTS = [
-  { maxWidth: 1200, maxHeight: 1200, quality: 75 },
-  { maxWidth: 1000, maxHeight: 1200, quality: 70 },
-  { maxWidth: 800, maxHeight: 1200, quality: 65 },
-  { maxWidth: 800, maxHeight: 1200, quality: 60 },
+  { maxWidth: 960, maxHeight: 1280, quality: 70 },
+  { maxWidth: 720, maxHeight: 960, quality: 60 },
+  { maxWidth: 640, maxHeight: 900, quality: 55 },
 ];
 
 const stripFileScheme = (uri = "") => String(uri).replace(/^file:\/\//, "");
@@ -64,6 +63,27 @@ const isImageAsset = (asset = {}) =>
 export const compressChecklistImage = async (asset) => {
   if (!asset?.uri || !isImageAsset(asset)) {
     return asset;
+  }
+
+  const originalFilePath = getAssetFilePath(asset);
+  const originalSizeBytes =
+    asset.fileSize || (await getFileSizeBytes(originalFilePath || asset.uri));
+
+  if (originalSizeBytes > 0 && originalSizeBytes <= TARGET_SIZE_BYTES) {
+    return {
+      ...asset,
+      uri: asset.uri,
+      filePath: originalFilePath,
+      fileName: getFileName(asset, originalFilePath),
+      name: getFileName(asset, originalFilePath),
+      fileSize: originalSizeBytes,
+      sizeKb: Math.max(1, Math.round(originalSizeBytes / 1024)),
+      width: asset.width,
+      height: asset.height,
+      type: asset.mimeType || asset.type || "image/jpeg",
+      mimeType: asset.mimeType || asset.type || "image/jpeg",
+      compressed: false,
+    };
   }
 
   let smallestResult = null;

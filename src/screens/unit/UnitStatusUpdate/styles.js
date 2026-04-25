@@ -192,6 +192,30 @@ export default StyleSheet.create({
     marginRight: moderateScale(8),
   },
 
+  readOnlyBanner: {
+    marginBottom: verticalScale(8),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: "#C9D9EE",
+    backgroundColor: "#F2F7FD",
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+  },
+
+  readOnlyBannerTitle: {
+    fontSize: moderateScale(11),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(2),
+  },
+
+  readOnlyBannerText: {
+    fontSize: moderateScale(10.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(15),
+  },
+
   progressPill: {
     backgroundColor: colors.lightGreen,
     borderRadius: moderateScale(12),
@@ -232,6 +256,10 @@ export default StyleSheet.create({
 
   selectFieldError: {
     borderColor: colors.danger,
+  },
+
+  fieldDisabled: {
+    opacity: 0.7,
   },
 
   selectValue: {
@@ -635,20 +663,13 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(10),
   },
 
+  uploadButtonDisabled: {
+    opacity: 0.7,
+  },
+
   uploadCameraButton: {
     borderColor: colors.primaryBlue,
     backgroundColor: colors.surfaceBlue,
-  },
-
-  uploadGalleryButton: {
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.white,
-  },
-
-  uploadGalleryButtonText: {
-    color: colors.primaryBlue,
-    fontSize: moderateScale(12),
-    fontFamily: fonts.bold,
   },
 
   uploadButtonText: {
@@ -664,6 +685,25 @@ export default StyleSheet.create({
     borderRadius: moderateScale(10),
     overflow: "hidden",
     backgroundColor: colors.white,
+  },
+
+  photoProcessingWrap: {
+    marginTop: verticalScale(8),
+    borderRadius: moderateScale(10),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  photoProcessingText: {
+    marginLeft: moderateScale(10),
+    fontSize: moderateScale(10.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.medium,
   },
 
   photoPreviewImage: {
@@ -889,6 +929,14 @@ locationBtnSecondaryText: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(12),
     backgroundColor: colors.primaryBlue,
+  },
+
+  submitButtonDisabled: {
+    backgroundColor: "#EAF1F8",
+    borderWidth: 1,
+    borderColor: "#D7E3F1",
+    shadowOpacity: 0,
+    elevation: 0,
   },
 
   submitButtonContent: {

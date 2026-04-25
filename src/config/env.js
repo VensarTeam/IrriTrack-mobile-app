@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "https://pmt.aizainfotech.online";
+const DEFAULT_API_BASE_URL = "https://irritrack.vensar.com";//"https://pmt.aizainfotech.online";
 const DEFAULT_ASSET_BASE_URL =
   "https://vensar-tools-700305705692-ap-south-1-an.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CHECKLIST_SUBMIT_PATH = "/api/v1/checklists/submissions";

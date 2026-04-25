@@ -1,5 +1,6 @@
 export const createUnit = (data) => ({
   id: data.id,
+  projectId: data.projectId,
   unitNo: data.unitNo,
   zone: data.zone,
   distributor: data.distributor,
@@ -41,7 +42,7 @@ export const createUnit = (data) => ({
 
 const DEFAULT_PAGE_META = {
   page: 1,
-  limit: 20,
+  limit: 5,
   totalItems: 0,
   totalPages: 0,
   hasNextPage: false,
@@ -63,20 +64,39 @@ const formatAreaValue = (value) => {
   return `${numericValue} ha`;
 };
 
+const getVillageName = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "object") {
+    return value.name || value.label || value.code || "";
+  }
+
+  return "";
+};
+
 export const createOmsUnit = (data = {}) =>
   createUnit({
     id: data.id,
+    projectId: data.projectId || "",
     unitNo: data.nodeName || data.unitNo || "",
     zone: data.zoneName || data.zone || "",
     distributor: data.distributory || data.distributor || "",
-    village: data.villageName || data.village || data.chakname || "",
-    villageId: data.villageId || "",
+    village:
+      data.villageName || getVillageName(data.village) || data.chakname || "",
+    villageId: data.villageId || data.village?.id || "",
     chakName: data.chakname || "",
     latitude: data.latitude,
     longitude: data.longitude,
     area: formatAreaValue(data.chakArea),
     chakArea: data.chakArea,
-    subChakQuantity: data.subChakQty ?? data.subChakQuantity ?? "",
+    subChakQuantity:
+      data.subCheckQty ?? data.subChakQty ?? data.subChakQuantity ?? null,
     designedFlow: data.designedFlow,
     designedPressure: data.designedPressure,
     processSummary: data.processSummary || {},

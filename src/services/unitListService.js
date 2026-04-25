@@ -1,7 +1,7 @@
 import { apiRequestWithMeta } from "./apiClient";
 import { getCachedOmsBasicUnitsPage } from "./omsOfflineStore";
 
-export const DEFAULT_OMS_PAGE_LIMIT = 20;
+export const DEFAULT_OMS_PAGE_LIMIT = 5;
 
 const OMS_LIST_API_PATHS = ["/api/v1/oms", "/oms"];
 

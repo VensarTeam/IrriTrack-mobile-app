@@ -317,6 +317,8 @@ export default StyleSheet.create({
     width: "100%",
     marginHorizontal: 0,
     marginBottom: verticalScale(10),
+    minHeight: verticalScale(78),
+    paddingLeft: moderateScale(18),
   },
 
   skeletonKpiCard: {
@@ -361,8 +363,34 @@ export default StyleSheet.create({
     height: verticalScale(4),
   },
 
+  kpiAccentBarOffline: {
+    top: verticalScale(12),
+    bottom: verticalScale(12),
+    left: moderateScale(10),
+    right: "auto",
+    width: moderateScale(4),
+    height: "auto",
+    borderRadius: moderateScale(999),
+  },
+
   kpiContent: {
     justifyContent: "center",
+  },
+
+  kpiContentOffline: {
+    flex: 1,
+    justifyContent: "center",
+  },
+
+  kpiTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  kpiTextBlockOffline: {
+    justifyContent: "center",
+    paddingRight: moderateScale(8),
+    paddingLeft: moderateScale(6),
   },
 
   kpiHeaderRow: {
@@ -372,12 +400,21 @@ export default StyleSheet.create({
     marginBottom: verticalScale(6),
   },
 
+  kpiHeaderRowOffline: {
+    minHeight: verticalScale(42),
+    marginBottom: 0,
+  },
+
   kpiArrowWrap: {
     width: moderateScale(24),
     height: moderateScale(24),
     borderRadius: moderateScale(12),
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  kpiArrowWrapOffline: {
+    marginLeft: moderateScale(10),
   },
 
   kpiKey: {
@@ -396,6 +433,11 @@ export default StyleSheet.create({
     fontSize: fontScale(22),
     fontFamily: fonts.bold,
     letterSpacing: moderateScale(0.5),
+  },
+
+  kpiValueOffline: {
+    marginTop: verticalScale(4),
+    lineHeight: fontScale(24),
   },
 
   /* ================= EXPAND SECTION ================= */
@@ -477,6 +519,10 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(9),
   },
 
+  sectionHeaderOffline: {
+    minHeight: verticalScale(52),
+  },
+
   sectionTitleWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -488,6 +534,11 @@ export default StyleSheet.create({
     alignSelf: "stretch",
     borderRadius: moderateScale(999),
     marginRight: moderateScale(10),
+  },
+
+  sectionAccentOffline: {
+    height: verticalScale(34),
+    alignSelf: "center",
   },
 
   sectionTitle: {
@@ -508,6 +559,10 @@ export default StyleSheet.create({
     borderRadius: moderateScale(15),
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  sectionIconWrapOffline: {
+    marginLeft: moderateScale(10),
   },
 
   highlightGrid: {
@@ -618,19 +673,19 @@ export default StyleSheet.create({
   },
 
   chartSummaryBodyCompact: {
-    flexDirection: "column",
-    alignItems: "stretch",
+    alignItems: "center",
   },
 
   summaryList: {
     flex: 1,
+    minWidth: 0,
     marginLeft: moderateScale(12),
   },
 
   summaryListCompact: {
-    width: "100%",
-    marginLeft: 0,
-    marginTop: verticalScale(10),
+    flex: 1,
+    marginLeft: moderateScale(10),
+    marginTop: 0,
   },
 
   summaryItem: {
@@ -646,7 +701,8 @@ export default StyleSheet.create({
 
   summaryItemCompact: {
     marginBottom: verticalScale(6),
-    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
   },
 
   summaryDot: {
@@ -658,6 +714,7 @@ export default StyleSheet.create({
 
   summaryTextWrap: {
     flex: 1,
+    minWidth: 0,
   },
 
   summaryLabel: {
@@ -667,10 +724,19 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  summaryLabelCompact: {
+    fontSize: fontScale(9),
+    marginBottom: verticalScale(1),
+  },
+
   summaryValue: {
     fontSize: fontScale(17),
     fontFamily: fonts.bold,
     color: colors.textDark,
+  },
+
+  summaryValueCompact: {
+    fontSize: fontScale(15),
   },
 
   /* ================= PIE ================= */
@@ -679,6 +745,11 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: verticalScale(4),
+  },
+
+  pieWrapperCompact: {
+    width: moderateScale(108),
+    marginVertical: verticalScale(2),
   },
 
   pieCenter: {

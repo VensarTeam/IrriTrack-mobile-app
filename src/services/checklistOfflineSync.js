@@ -8,15 +8,46 @@ SQLite.enablePromise(true);
 const DB_NAME = "pmt_offline_checklists.db";
 const ROOT_DIR_NAME = "pmt-offline-checklists";
 const LOCAL_DRAFT_STATUSES = ["queued", "failed", "syncing", "draft_ready"];
-const PREPARE_DRAFT_STATUSES = ["queued", "failed", "syncing"];
+const SYNCABLE_QUEUE_STATUSES = ["queued", "failed", "syncing", "draft_ready"];
+const SUBMITTED_LOOKUP_STATUSES = [
+  "queued",
+  "failed",
+  "syncing",
+  "draft_ready",
+  "synced",
+];
 const LOG_PREFIX = "[ChecklistLocal]";
+const OMS_SUBMISSION_API_PATH = "/api/v1/oms/submissions";
 
 let databasePromise = null;
 let schemaPromise = null;
 let queueLock = Promise.resolve();
 let syncPromise = null;
 
+const IMPORTANT_LOG_MESSAGES = [
+  "Network state checked",
+  "Offline-first submit requested",
+  "Submitting checklist to API",
+  "Offline-first submit finished via API",
+  "Queueing checklist submission",
+  "Checklist submission queued locally",
+  "Offline-first submit finished with local draft fallback",
+  "Checking local checklist drafts",
+  "Local draft candidates selected",
+  "Submitting queued checklist",
+  "Queued checklist synced",
+  "Checklist queue sync finished",
+  "Pending checklist submission count",
+];
+
+const shouldLogSyncMessage = (message = "") =>
+  IMPORTANT_LOG_MESSAGES.some((item) => String(message).startsWith(item));
+
 const logSync = (message, details = undefined) => {
+  if (!shouldLogSyncMessage(message)) {
+    return;
+  }
+
   if (typeof details === "undefined") {
     console.log(LOG_PREFIX, message);
     return;
@@ -31,14 +62,6 @@ const warnSync = (message, error) => {
     code: error?.code,
     status: error?.status,
   });
-};
-
-const stringifySubmissionForLog = (value) => {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch (error) {
-    return `[unserializable: ${error?.message || "unknown"}]`;
-  }
 };
 
 const getPayloadSummary = (payload = {}) => ({
@@ -195,7 +218,11 @@ const inferMimeType = (photo = {}) => {
     return photo.mimeType;
   }
 
-  if (photo.mediaType === "video") {
+  if (photo.mime_type) {
+    return photo.mime_type;
+  }
+
+  if (photo.mediaType === "video" || photo.media_type === "video") {
     return "video/mp4";
   }
 
@@ -238,6 +265,7 @@ const copySubmissionPhotos = async (submissionId, photos = []) => {
       await RNFS.copyFile(sourcePath, targetPath);
 
       return {
+        checklistId: photo.checklistId || null,
         requirementId: photo.requirementId,
         requirementLabel: photo.requirementLabel,
         filePath: targetPath,
@@ -248,9 +276,24 @@ const copySubmissionPhotos = async (submissionId, photos = []) => {
         height: photo.height,
         mediaType: photo.mediaType || "image",
         takenAt: photo.takenAt,
+        latitude: photo.latitude ?? null,
+        longitude: photo.longitude ?? null,
       };
     })
   );
+};
+
+const deleteSubmissionDraft = async (submissionId) => {
+  try {
+    const draftPath = getSubmissionDraftPath(submissionId);
+
+    if (await RNFS.exists(draftPath)) {
+      logSync("Deleting local draft JSON", { submissionId, draftPath });
+      await RNFS.unlink(draftPath);
+    }
+  } catch (error) {
+    warnSync("Unable to remove synced checklist draft", error);
+  }
 };
 
 const deleteSubmissionPhotos = async (submissionId) => {
@@ -288,7 +331,8 @@ const normalizeProcessMaster = (processes = []) =>
 
 const canUseNetwork = async () => {
   const state = await NetInfo.fetch();
-  const online = Boolean(state.isConnected) && state.isInternetReachable !== false;
+  const online =
+    state.isInternetReachable === true || state.isConnected !== false;
   logSync("Network state checked", {
     isConnected: state.isConnected,
     isInternetReachable: state.isInternetReachable,
@@ -297,6 +341,11 @@ const canUseNetwork = async () => {
   });
   return online;
 };
+
+const shouldFallbackToOfflineSubmission = (error) =>
+  error?.code === "NETWORK_ERROR" ||
+  error?.status === 0 ||
+  error?.message === "Network Error";
 
 export const fetchChecklistProcessMaster = async ({
   deviceType = "OMS",
@@ -567,20 +616,59 @@ const getQueuedSubmission = async (submissionId) => {
   return submission;
 };
 
+export const getLatestChecklistSubmissionSnapshot = async ({
+  unitId,
+  processId,
+  subprocessId,
+} = {}) => {
+  if (!unitId || !processId || !subprocessId) {
+    return null;
+  }
+
+  const db = await getDatabase();
+  const placeholders = SUBMITTED_LOOKUP_STATUSES.map(() => "?").join(", ");
+  const [result] = await db.executeSql(
+    `
+      SELECT *
+      FROM checklist_submission_queue
+      WHERE status IN (${placeholders})
+      ORDER BY updated_at DESC, created_at DESC;
+    `,
+    SUBMITTED_LOOKUP_STATUSES
+  );
+
+  const targetUnitId = String(unitId);
+  const targetProcessId = Number(processId);
+  const targetSubprocessId = Number(subprocessId);
+
+  return rowsToArray(result.rows)
+    .map(parseQueueRow)
+    .find((item) => {
+      const payload = item.payload || {};
+
+      return (
+        String(payload.unitId || payload.unit?.unit_id || "") === targetUnitId &&
+        Number(payload.process_id) === targetProcessId &&
+        Number(payload.subprocess_id) === targetSubprocessId
+      );
+    }) || null;
+};
+
 const getSyncCandidates = async ({ submissionIds = null, maxItems = Infinity }) => {
   const db = await getDatabase();
   logSync("Reading sync candidates from SQLite", {
     submissionIds,
     maxItems: Number.isFinite(maxItems) ? maxItems : "all",
   });
+  const placeholders = SYNCABLE_QUEUE_STATUSES.map(() => "?").join(", ");
   const [result] = await db.executeSql(
     `
       SELECT *
       FROM checklist_submission_queue
-      WHERE status IN (?, ?, ?)
+      WHERE status IN (${placeholders})
       ORDER BY created_at ASC;
     `,
-    PREPARE_DRAFT_STATUSES
+    SYNCABLE_QUEUE_STATUSES
   );
   const wantedIds = Array.isArray(submissionIds) ? new Set(submissionIds) : null;
 
@@ -692,8 +780,292 @@ export const buildChecklistSubmitJson = (submission) => {
       height: photo.height,
       media_type: photo.mediaType || "image",
       taken_at: photo.takenAt,
+      latitude: photo.latitude ?? null,
+      longitude: photo.longitude ?? null,
     })),
   };
+};
+
+const toChecklistApiValue = (value, fallback = "") => {
+  if (value === null || typeof value === "undefined") {
+    return fallback;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value) || typeof value === "object") {
+    if (
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      (value.updated_location || value.default_location)
+    ) {
+      const location = value.updated_location || value.default_location;
+      const latitude = Number(location?.latitude);
+      const longitude = Number(location?.longitude);
+
+      if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        return `${latitude},${longitude}`;
+      }
+    }
+
+    return JSON.stringify(value);
+  }
+
+  return fallback;
+};
+
+const isChecklistValueEmpty = (value) => {
+  if (value === null || typeof value === "undefined") {
+    return true;
+  }
+
+  if (typeof value === "string") {
+    return value.trim() === "";
+  }
+
+  if (typeof value === "boolean") {
+    return false;
+  }
+
+  if (typeof value === "number") {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  if (typeof value === "object") {
+    if (value.updated_location || value.default_location) {
+      const location = value.updated_location || value.default_location;
+      return !Number.isFinite(Number(location?.latitude)) ||
+        !Number.isFinite(Number(location?.longitude));
+    }
+
+    return Object.keys(value).length === 0;
+  }
+
+  return false;
+};
+
+const buildOmsSubmissionChecklist = (payload = {}) => {
+  if (Array.isArray(payload.answers) && payload.answers.length) {
+    return payload.answers
+      .filter((item) => item?.checklist_id)
+      .filter((item) => item?.is_required !== false || !isChecklistValueEmpty(item?.value))
+      .map((item) => ({
+        checklistId: item.checklist_id,
+        value:
+          typeof item?.display_value === "string" &&
+          typeof item?.value === "boolean"
+            ? item.display_value
+            : toChecklistApiValue(item?.value),
+        file: item?.file
+          ? {
+              ...item.file,
+              filePath: item.file.file_path || item.file.filePath || item.file.local_uri,
+              uri: item.file.local_uri || item.file.file_path || item.file.filePath,
+              name: item.file.file_name || item.file.name,
+              type: item.file.mime_type || item.file.mimeType || item.file.type,
+              sizeKb: item.file.size_kb ?? item.file.sizeKb,
+              width: item.file.width,
+              height: item.file.height,
+              mediaType: item.file.media_type || item.file.mediaType,
+              takenAt: item.file.taken_at || item.file.takenAt,
+              latitude: item.file.latitude ?? null,
+              longitude: item.file.longitude ?? null,
+            }
+          : null,
+      }));
+  }
+
+  const checklistEntries = [];
+
+  (payload.selectValues || []).forEach((item) => {
+    if (!item?.checklist_id) return;
+
+    checklistEntries.push({
+      checklistId: item.checklist_id,
+      value: toChecklistApiValue(item.value),
+    });
+  });
+
+  (payload.inputValues || []).forEach((item) => {
+    if (!item?.checklist_id) return;
+
+    checklistEntries.push({
+      checklistId: item.checklist_id,
+      value: toChecklistApiValue(item.value),
+    });
+  });
+
+  (payload.checklist || []).forEach((item) => {
+    if (!item?.checklist_id) return;
+
+    checklistEntries.push({
+      checklistId: item.checklist_id,
+      value: item.checked ? "Yes" : "No",
+    });
+  });
+
+  (payload.repeatableValues || []).forEach((item) => {
+    if (!item?.checklist_id) return;
+
+    checklistEntries.push({
+      checklistId: item.checklist_id,
+      value: JSON.stringify(
+        (item.items || []).map((repeatableItem) =>
+          (repeatableItem.values || []).reduce((acc, field) => {
+            acc[field.key] = field.value;
+            return acc;
+          }, {})
+        )
+      ),
+    });
+  });
+
+  (payload.photos || []).forEach((photo) => {
+    if (!photo?.checklistId) return;
+
+    checklistEntries.push({
+      checklistId: photo.checklistId,
+      value: photo.name || "photo",
+      file: photo,
+    });
+  });
+
+  return checklistEntries;
+};
+
+const buildOmsSubmissionBody = (payload = {}) => {
+  const checklist = buildOmsSubmissionChecklist(payload);
+
+  return {
+    projectId:
+      payload.projectId ||
+      payload.project_id ||
+      payload.projectid ||
+      payload.unit?.project_id ||
+      payload.unit?.projectId,
+    omsId: payload.unitId || payload.omsId || payload.oms_id || payload.omsid,
+    nodeNo: payload.unitNo || payload.nodeNo || payload.node_no,
+    processId: payload.process_id,
+    subprocessId: payload.subprocess_id,
+    remark: payload.remark || "",
+    checklist,
+  };
+};
+
+const buildOmsSubmissionJsonBody = (body = {}) => ({
+  projectId: body.projectId,
+  omsId: body.omsId,
+  nodeNo: body.nodeNo,
+  processId: body.processId,
+  subprocessId: body.subprocessId,
+  remark: body.remark || "",
+  checklist: (body.checklist || []).map((item) => ({
+    checklistId: item.checklistId,
+    value: item.value,
+  })),
+});
+
+const buildOmsSubmissionFormData = (body = {}) => {
+  const formData = new FormData();
+
+  formData.append("projectId", String(body.projectId || ""));
+  formData.append("omsId", String(body.omsId || ""));
+  formData.append("nodeNo", String(body.nodeNo || ""));
+  formData.append("processId", String(body.processId || ""));
+  formData.append("subprocessId", String(body.subprocessId || ""));
+  formData.append("remark", String(body.remark || ""));
+
+  (body.checklist || []).forEach((item, index) => {
+    formData.append(`checklist[${index}][checklistId]`, String(item.checklistId));
+    formData.append(`checklist[${index}][value]`, String(item.value || ""));
+
+    if (item.file) {
+      if (item.file.sizeKb !== null && typeof item.file.sizeKb !== "undefined") {
+        formData.append(`checklist[${index}][sizeKb]`, String(item.file.sizeKb));
+      }
+      if (item.file.width) {
+        formData.append(`checklist[${index}][width]`, String(item.file.width));
+      }
+      if (item.file.height) {
+        formData.append(`checklist[${index}][height]`, String(item.file.height));
+      }
+      if (item.file.latitude !== null && typeof item.file.latitude !== "undefined") {
+        formData.append(`checklist[${index}][latitude]`, String(item.file.latitude));
+      }
+      if (item.file.longitude !== null && typeof item.file.longitude !== "undefined") {
+        formData.append(`checklist[${index}][longitude]`, String(item.file.longitude));
+      }
+      if (item.file.takenAt) {
+        formData.append(`checklist[${index}][takenAt]`, String(item.file.takenAt));
+      }
+      if (item.file.type) {
+        formData.append(`checklist[${index}][mimeType]`, String(item.file.type));
+      }
+
+      const fileUri = stripFileScheme(
+        item.file.filePath || item.file.uri || item.file.local_uri || ""
+      );
+
+      if (!fileUri) {
+        return;
+      }
+
+      formData.append(`checklist[${index}][file]`, {
+        uri: `file://${fileUri}`,
+        name:
+          item.file.name ||
+          item.file.file_name ||
+          `checklist_${item.checklistId}.jpg`,
+        type: inferMimeType(item.file),
+      });
+    }
+  });
+
+  return formData;
+};
+
+const submitOmsChecklistToApi = async (payload = {}) => {
+  const body = buildOmsSubmissionBody(payload);
+  const hasFiles = body.checklist.some((item) => Boolean(item.file));
+  const data = hasFiles
+    ? buildOmsSubmissionFormData(body)
+    : buildOmsSubmissionJsonBody(body);
+
+  logSync("Submitting checklist to API", {
+    processId: body.processId,
+    subprocessId: body.subprocessId,
+    checklistCount: body.checklist.length,
+    hasFiles,
+  });
+
+  return apiRequest({
+    url: OMS_SUBMISSION_API_PATH,
+    method: "POST",
+    headers: hasFiles
+      ? {
+          Accept: "*/*",
+          "Content-Type": "multipart/form-data",
+        }
+      : {
+          Accept: "*/*",
+          "Content-Type": "application/json",
+        },
+    data,
+  });
 };
 
 const writeSubmissionDraftJson = async (submission) => {
@@ -702,15 +1074,6 @@ const writeSubmissionDraftJson = async (submission) => {
 
   await ensureDirectory(getDraftRootDir());
   await RNFS.writeFile(draftPath, JSON.stringify(draftJson, null, 2), "utf8");
-  console.log("[ChecklistDraft]", "Submit JSON ready", {
-    submissionId: submission.id,
-    draftPath,
-    processId: draftJson.process_id,
-    subprocessId: draftJson.subprocess_id,
-    answerCount: draftJson.answers?.length || 0,
-    photoCount: draftJson.photos?.length || 0,
-  });
-  console.log("[ChecklistDraft][JSON]", stringifySubmissionForLog(draftJson));
 
   return {
     draftJson,
@@ -747,12 +1110,14 @@ const syncQueue = async ({ submissionIds = null, maxItems = Infinity } = {}) => 
   const result = {
     checked: 0,
     prepared: 0,
+    synced: 0,
     failed: 0,
     skippedOffline: false,
     draftIds: [],
     draftPaths: [],
     failedIds: [],
-    submitApiConnected: false,
+    syncedIds: [],
+    submitApiConnected: true,
   };
 
   if (!(await canUseNetwork())) {
@@ -771,19 +1136,42 @@ const syncQueue = async ({ submissionIds = null, maxItems = Infinity } = {}) => 
   });
 
   for (const candidate of candidates) {
-    logSync("Preparing local submit JSON", {
+    logSync("Submitting queued checklist", {
       submissionId: candidate.id,
       status: candidate.status,
       summary: getPayloadSummary(candidate.payload),
     });
 
     try {
-      const prepared = await prepareQueuedSubmissionDraft(candidate);
-      result.prepared += 1;
-      result.draftIds.push(prepared.submission.id);
-      result.draftPaths.push(prepared.draftPath);
+      await updateQueuedSubmission(candidate.id, (item) => ({
+        ...item,
+        status: "syncing",
+        updatedAt: new Date().toISOString(),
+        lastError: "",
+      }));
+
+      const response = await submitOmsChecklistToApi(candidate.payload);
+      const syncedAt = new Date().toISOString();
+
+      await updateQueuedSubmission(candidate.id, (item) => ({
+        ...item,
+        status: "synced",
+        updatedAt: syncedAt,
+        lastAttemptAt: syncedAt,
+        lastError: "",
+      }));
+      await deleteSubmissionPhotos(candidate.id);
+      await deleteSubmissionDraft(candidate.id);
+
+      result.synced += 1;
+      result.syncedIds.push(candidate.id);
+      logSync("Queued checklist synced", {
+        submissionId: candidate.id,
+        serverSubmissionId: response?.submissionId,
+        statusLabel: response?.statusLabel,
+      });
     } catch (error) {
-      warnSync("Unable to prepare submit JSON; keeping draft local", error);
+      warnSync("Unable to sync queued submission; keeping draft local", error);
       const failedAt = new Date().toISOString();
       await updateQueuedSubmission(candidate.id, (item) => ({
         ...item,
@@ -796,7 +1184,7 @@ const syncQueue = async ({ submissionIds = null, maxItems = Infinity } = {}) => 
     }
   }
 
-  logSync("Local draft check finished; submit API not connected yet", result);
+  logSync("Checklist queue sync finished", result);
   return result;
 };
 
@@ -826,6 +1214,43 @@ export const submitChecklistOfflineFirst = async ({
     subOptionId: subOption?.id,
     summary: getPayloadSummary(payload),
   });
+  if (await canUseNetwork()) {
+    try {
+      const response = await submitOmsChecklistToApi(payload);
+
+      logSync("Offline-first submit finished via API", {
+        submitApiConnected: true,
+        serverSubmissionId: response?.submissionId,
+        statusLabel: response?.statusLabel,
+      });
+      return {
+        submission: null,
+        draftJson: null,
+        draftJsonPath: "",
+        syncResult: {
+          checked: 1,
+          prepared: 0,
+          synced: 1,
+          failed: 0,
+          skippedOffline: false,
+          draftIds: [],
+          draftPaths: [],
+          syncedIds: [response?.submissionId].filter(Boolean),
+          submitApiConnected: true,
+        },
+        synced: true,
+        response,
+      };
+    } catch (error) {
+      if (!shouldFallbackToOfflineSubmission(error)) {
+        warnSync("API submit failed while online; not falling back to offline", error);
+        throw error;
+      }
+
+      warnSync("API submit failed due to connectivity; falling back to offline queue", error);
+    }
+  }
+
   const submission = await enqueueChecklistSubmission({
     deviceType,
     section,
@@ -834,7 +1259,7 @@ export const submitChecklistOfflineFirst = async ({
   });
   const draft = await prepareQueuedSubmissionDraft(submission);
 
-  logSync("Offline-first submit finished", {
+  logSync("Offline-first submit finished with local draft fallback", {
     submissionId: draft.submission.id,
     draftPath: draft.draftPath,
     submitApiConnected: false,
@@ -846,13 +1271,16 @@ export const submitChecklistOfflineFirst = async ({
     syncResult: {
       checked: 1,
       prepared: 1,
+      synced: 0,
       failed: 0,
       skippedOffline: false,
       draftIds: [draft.submission.id],
       draftPaths: [draft.draftPath],
+      syncedIds: [],
       submitApiConnected: false,
     },
     synced: false,
+    response: null,
   };
 };
 

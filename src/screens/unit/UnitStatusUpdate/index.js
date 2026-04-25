@@ -47,6 +47,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     activeErrors,
     showStatusField,
     showRemarkField,
+    isReadOnly,
+    readOnlyNotice,
     isRemarkRequired,
     checklistItems,
     photoRequirements,
@@ -71,7 +73,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     isUpdatingLocation,
     isSubmitting,
     pickFromCamera,
-    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,
@@ -79,6 +80,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     openPhotoPreview,
     closePhotoPreview,
     statusOptions,
+    isPhotoProcessing,
+    photoProcessingRequirementId,
+    photoProcessingMessage,
   } = useUnitStatusUpdateViewModel(navigation, route);
 
   const checklistProgress = getChecklistProgress();
@@ -133,7 +137,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     });
   };
 
-  const renderSelectField = ({
+    const renderSelectField = ({
     elementKey,
     label,
     field,
@@ -146,7 +150,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     <View style={styles.fieldBlock} key={elementKey || field}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TouchableOpacity
-        style={[styles.selectField, error && styles.selectFieldError]}
+        style={[
+          styles.selectField,
+          error && styles.selectFieldError,
+          isReadOnly && styles.fieldDisabled,
+        ]}
         onPress={() =>
           openSelectModal({
             field,
@@ -155,7 +163,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             target,
           })
         }
-        activeOpacity={0.86}
+        activeOpacity={isReadOnly ? 1 : 0.86}
+        disabled={isReadOnly}
       >
         <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>
           {value || placeholder}
@@ -173,10 +182,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         style={[
           styles.singleLineInput,
           activeErrors[field.key] && styles.selectFieldError,
+          isReadOnly && styles.readOnlyInput,
         ]}
         placeholder={field.placeholder || "Enter value"}
         placeholderTextColor={colors.textSecondary}
         keyboardType={field.keyboardType || "default"}
+        editable={!isReadOnly}
         value={activeValues[field.key]}
         onChangeText={(text) => updateInputValue(field.key, text)}
       />
@@ -261,9 +272,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           </Text>
                           <TouchableOpacity
                             style={[
-                              styles.repeatableInlineSelect,
-                              itemErrors[groupField.key] && styles.selectFieldError,
-                            ]}
+                            styles.repeatableInlineSelect,
+                            itemErrors[groupField.key] && styles.selectFieldError,
+                            isReadOnly && styles.fieldDisabled,
+                          ]}
                             onPress={() =>
                               openSelectModal({
                                 field: groupField.key,
@@ -277,7 +289,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                                 },
                               })
                             }
-                            activeOpacity={0.86}
+                            activeOpacity={isReadOnly ? 1 : 0.86}
+                            disabled={isReadOnly}
                           >
                             <Text
                               style={[
@@ -313,12 +326,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           style={[
                             styles.repeatableInlineInput,
                             itemErrors[groupField.key] && styles.selectFieldError,
+                            isReadOnly && styles.readOnlyInput,
                             groupField.readOnly && styles.readOnlyInput,
                           ]}
                           placeholder={groupField.placeholder || "Enter value"}
                           placeholderTextColor={colors.textSecondary}
                           keyboardType={groupField.keyboardType || "default"}
-                          editable={groupField.readOnly !== true}
+                          editable={!isReadOnly && groupField.readOnly !== true}
                           value={item[groupField.key]}
                           onChangeText={(text) =>
                             updateRepeatableGroupItem(
@@ -341,9 +355,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
                 {items.length > (group.minItems || 0) ? (
                   <TouchableOpacity
-                    style={styles.repeatableRemoveButton}
-                    activeOpacity={0.86}
+                    style={[
+                      styles.repeatableRemoveButton,
+                      isReadOnly && styles.fieldDisabled,
+                    ]}
+                    activeOpacity={isReadOnly ? 1 : 0.86}
                     onPress={() => removeRepeatableGroupItem(group, itemIndex)}
+                    disabled={isReadOnly}
                   >
                     <Text style={styles.repeatableRemoveText}>Remove</Text>
                   </TouchableOpacity>
@@ -357,11 +375,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.repeatableAddButton,
+              isReadOnly && styles.repeatableAddButtonDisabled,
               group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonDisabled,
             ]}
-            activeOpacity={0.86}
+            activeOpacity={isReadOnly ? 1 : 0.86}
             onPress={() => addRepeatableGroupItem(group)}
-            disabled={group.maxItems ? items.length >= group.maxItems : false}
+            disabled={isReadOnly || (group.maxItems ? items.length >= group.maxItems : false)}
           >
             <Text
               style={[
@@ -469,6 +488,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               ) : null}
             </View>
 
+            {isReadOnly ? (
+              <View style={styles.readOnlyBanner}>
+                <Text style={styles.readOnlyBannerTitle}>Already Submitted</Text>
+                <Text style={styles.readOnlyBannerText}>
+                  {readOnlyNotice}
+                </Text>
+              </View>
+            ) : null}
+
             {showStatusField
               ? renderSelectField({
                   elementKey: "status",
@@ -520,9 +548,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       style={[
                         styles.checkItem,
                         checked && styles.checkItemChecked,
+                        isReadOnly && styles.fieldDisabled,
                       ]}
                       onPress={() => toggleChecklistItem(item.id)}
-                      activeOpacity={0.86}
+                      activeOpacity={isReadOnly ? 1 : 0.86}
+                      disabled={isReadOnly}
                     >
                       <View
                         style={[
@@ -558,10 +588,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   style={[
                     styles.remarkInput,
                     activeErrors.remark && styles.selectFieldError,
+                    isReadOnly && styles.readOnlyInput,
                   ]}
                   placeholder="Write remarks"
                   placeholderTextColor={colors.textSecondary}
                   multiline
+                  editable={!isReadOnly}
                   value={activeValues.remark}
                   onChangeText={updateRemarkValue}
                   textAlignVertical="top"
@@ -591,6 +623,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 {photoRequirements.map((requirement, index) => {
                   const media = activeValues.photos?.[requirement.id];
                   const slotError = activeErrors.photoSlots?.[requirement.id];
+                  const isProcessingPhoto =
+                    photoProcessingRequirementId === requirement.id;
 
                   return (
                     <View
@@ -608,6 +642,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           <TouchableOpacity
                             style={styles.photoRemoveBtn}
                             onPress={() => removeSelectedPhoto(requirement.id)}
+                            disabled={isProcessingPhoto || isReadOnly}
                           >
                             <Icons.delete height={20} width={20} />
                             <Text style={styles.photoRemoveBtnText}>
@@ -619,33 +654,52 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
                       <View style={styles.uploadActionsRow}>
                         <TouchableOpacity
-                          style={[styles.uploadButton, styles.uploadCameraButton]}
+                          style={[
+                            styles.uploadButton,
+                            styles.uploadCameraButton,
+                            isReadOnly && styles.fieldDisabled,
+                            isProcessingPhoto && styles.uploadButtonDisabled,
+                          ]}
                           onPress={() => pickFromCamera(requirement)}
-                          activeOpacity={0.88}
+                          activeOpacity={isReadOnly ? 1 : 0.88}
+                          disabled={isProcessingPhoto || isReadOnly}
                         >
-                          <Icons.uploadfile height={22} width={22} />
+                          {isProcessingPhoto ? (
+                            <ActivityIndicator
+                              size="small"
+                              color={colors.primaryBlue}
+                            />
+                          ) : (
+                            <Icons.uploadfile height={22} width={22} />
+                          )}
                           <Text style={styles.uploadButtonText}>
-                            {media ? "Retake Photo" : "Open Camera"}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.uploadButton, styles.uploadGalleryButton]}
-                          onPress={() => pickFromGallery(requirement)}
-                          activeOpacity={0.88}
-                        >
-                          <Icons.gallery height={22} width={22} />
-                          <Text style={styles.uploadGalleryButtonText}>
-                            Gallery
+                            {isProcessingPhoto
+                              ? "Preparing Photo..."
+                              : media
+                                ? "Retake Photo"
+                                : "Open Camera"}
                           </Text>
                         </TouchableOpacity>
                       </View>
+
+                      {isProcessingPhoto ? (
+                        <View style={styles.photoProcessingWrap}>
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primaryBlue}
+                          />
+                          <Text style={styles.photoProcessingText}>
+                            {photoProcessingMessage || "Preparing image..."}
+                          </Text>
+                        </View>
+                      ) : null}
 
                       {media?.uri ? (
                         <TouchableOpacity
                           style={styles.photoPreviewWrap}
                           onPress={() => openPhotoPreview(requirement.id)}
                           activeOpacity={0.9}
+                          disabled={isProcessingPhoto || isReadOnly}
                         >
                           {media.mediaType === "video" ? (
                             <View style={styles.videoPreviewPlaceholder}>
@@ -675,6 +729,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                             <Text style={styles.photoMetaText}>
                               Time: {media.takenAt}
                             </Text>
+                            {Number.isFinite(media.latitude) &&
+                            Number.isFinite(media.longitude) ? (
+                              <Text style={styles.photoMetaText}>
+                                Location: {media.latitude}, {media.longitude}
+                              </Text>
+                            ) : null}
                           </View>
                         </TouchableOpacity>
                       ) : (
@@ -754,8 +814,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         isUpdatingLocation && styles.locationBtnDisabled,
                       ]}
                       onPress={updateNodeLocation}
-                      disabled={isUpdatingLocation}
-                      activeOpacity={0.88}
+                      disabled={isUpdatingLocation || isReadOnly}
+                      activeOpacity={isReadOnly ? 1 : 0.88}
                     >
                       {isUpdatingLocation ? (
                         <ActivityIndicator size="small" color={colors.white} />
@@ -780,12 +840,30 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             <Button
               mode="contained"
               onPress={submitActiveSubOption}
-              style={styles.submitButton}
+              style={[
+                styles.submitButton,
+                (isSubmitting || isPhotoProcessing || isReadOnly) &&
+                  styles.submitButtonDisabled,
+              ]}
               contentStyle={styles.submitButtonContent}
+              buttonColor={
+                isSubmitting || isPhotoProcessing || isReadOnly
+                  ? "#EAF1F8"
+                  : colors.primaryBlue
+              }
+              textColor={
+                isSubmitting || isPhotoProcessing || isReadOnly
+                  ? colors.textSecondary
+                  : colors.white
+              }
               loading={isSubmitting}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPhotoProcessing || isReadOnly}
             >
-              {isSubmitting ? "Saving" : "Submit"}
+              {isSubmitting
+                ? "Saving"
+                : isPhotoProcessing
+                  ? "Preparing Photo..."
+                  : "Submit"}
             </Button>
           </View>
         </KeyboardAwareScrollView>

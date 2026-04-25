@@ -1,4 +1,4 @@
-export const STATUS_OPTIONS = ["Completed", "Partially Completed"];
+export const STATUS_OPTIONS = ["Pending", "Partially Completed", "Completed"];
 
 export const PIPE_SIZE_OPTIONS = [
   "50 mm",
@@ -68,6 +68,14 @@ export const DEFAULT_NODE_LOCATION = {
 const normalizeStoredStatus = (value) => {
   if (value === "Partial") {
     return "Partially Completed";
+  }
+
+  if (value === "Commented") {
+    return "Commented";
+  }
+
+  if (value === "Approved") {
+    return "Approved";
   }
 
   return value || "Pending";
@@ -232,9 +240,9 @@ export const MODULE_STATUS_SECTIONS = [
               {
                 key: "subChakName",
                 label: "Sub Chak Name",
-                placeholder: "V1",
+                placeholder: "O1",
                 readOnly: true,
-                getDefaultValue: ({ itemIndex }) => `V${itemIndex + 1}`,
+                getDefaultValue: ({ itemIndex }) => `O${itemIndex + 1}`,
               },
               {
                 key: "pipeSize",

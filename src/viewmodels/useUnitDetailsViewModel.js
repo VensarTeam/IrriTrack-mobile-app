@@ -1,69 +1,117 @@
-import { useEffect, useMemo, useState } from "react";
-import { getUnitStatusBySubOption } from "../constants/moduleStatusConfig";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { ROUTES } from "../navigation/routes";
+import { useAuth } from "../context/AuthContext";
+import {
+  getUnitProgressSummary,
+} from "../models/unitProgress";
 import { showAppAlert } from "../services/alertService";
-import useChecklistSections from "./useChecklistSections";
+import useUnitProgress from "../hooks/useUnitProgress";
+
+const toDisplayText = (value, fallback = "") => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    const preferredValue =
+      value.name ||
+      value.label ||
+      value.title ||
+      value.unitNo ||
+      value.nodeName ||
+      value.code ||
+      value.id;
+
+    if (preferredValue === null || preferredValue === undefined) {
+      return fallback;
+    }
+
+    return String(preferredValue);
+  }
+
+  return fallback;
+};
 
 const useUnitDetailsViewModel = (navigation, route) => {
+  const { user } = useAuth();
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
-  const unitLabel = unit.unitNo || `${module}-001`;
-  const projectName = route?.params?.projectName || "Kayampur Sitamau Pressurized Micro Lift Major Irrigation Project";
-
-  const detailItems = [
-    { label: "Unit Number", value: unitLabel },
-    { label: "Village", value: unit.village || "Village-A" },
-    { label: "Chak Area", value: unit.area || "30 ha" },
-    {
-      label: "Sub Chak Quantity",
-      value: unit.subChakQuantity || "8",
-    },
-  ];
-
-  const [updatePicker, setUpdatePicker] = useState({
-    visible: false,
-    section: null,
+  const unitLabel = toDisplayText(unit.unitNo, `${module}-001`);
+  const projectName =
+    toDisplayText(
+      route?.params?.projectName || route?.params?.project?.name,
+      "IrriTrack"
+    );
+  const projectId =
+    route?.params?.projectId ||
+    route?.params?.project?.id ||
+    route?.params?.project?.projectId ||
+    user?.projectId ||
+    "";
+  const unitId = unit?.id || route?.params?.unitId || "";
+  const { progress, isLoading, isRefreshing, error, refreshProgress } = useUnitProgress({
+    projectId,
+    unitId,
+    enabled: Boolean(projectId && unitId),
   });
-  const { sections } = useChecklistSections({ module, unit });
-  const [expandedSections, setExpandedSections] = useState({});
+  const [expandedProcesses, setExpandedProcesses] = useState({});
 
   useEffect(() => {
-    const firstSectionKey = sections[0]?.key;
+    const firstProcessId = progress.processes[0]?.id;
 
-    if (!firstSectionKey) return;
+    if (!firstProcessId) {
+      setExpandedProcesses({});
+      return;
+    }
 
-    setExpandedSections((prev) =>
-      sections.some((section) => prev[section.key])
-        ? prev
-        : { [firstSectionKey]: true }
+    setExpandedProcesses((currentValue) =>
+      progress.processes.some((process) => currentValue[process.id])
+        ? currentValue
+        : { [firstProcessId]: true },
     );
-  }, [sections]);
+  }, [progress.processes]);
 
-  const statusLookup = useMemo(() => getUnitStatusBySubOption(unit), [unit]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!projectId || !unitId) {
+        return undefined;
+      }
 
-  const openSection = (section, subOption) => {
-    navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
-      module,
-      unit,
-      projectName,
-      sectionKey: section.key,
-      subOptionId: subOption?.id,
-    });
-  };
+      void refreshProgress();
+      return undefined;
+    }, [projectId, refreshProgress, unitId]),
+  );
 
-  const openViewAll = () => {
-    navigation.navigate(ROUTES.ROOT.UNIT_STATUS_OVERVIEW, {
-      module,
-      unit,
-      projectName,
-    });
-  };
+  const detailItems = useMemo(
+    () =>
+      [
+        { label: "Unit Number", value: unitLabel },
+        { label: "Village", value: toDisplayText(unit.village) },
+        {
+          label: "Chak Area",
+          value: toDisplayText(unit.area || unit.chakArea),
+        },
+        {
+          label: "Sub Chak Qty",
+          value: toDisplayText(unit.subChakQuantity),
+        },
+      ].filter((item) => item.value.trim()),
+    [unit, unitLabel],
+  );
+
+  const summary = useMemo(() => getUnitProgressSummary(progress), [progress]);
 
   const openHelper = () => {
     showAppAlert({
       type: "info",
-      title: "Helper",
-      message: "Support videos and photos will be added here.",
+      title: "Progress Status",
+      message:
+        "This screen shows read-only process, subprocess, and checklist progress from the latest API data.",
     });
   };
 
@@ -71,66 +119,57 @@ const useUnitDetailsViewModel = (navigation, route) => {
     navigation.goBack();
   };
 
-  const toggleSection = (sectionKey) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionKey]: !prev[sectionKey],
+  const toggleProcess = (processId) => {
+    setExpandedProcesses((currentValue) => ({
+      ...currentValue,
+      [processId]: !currentValue[processId],
     }));
   };
 
-  const isSectionExpanded = (sectionKey) => !!expandedSections[sectionKey];
+  const isProcessExpanded = (processId) => Boolean(expandedProcesses[processId]);
 
-  const openUpdatePicker = (section) => {
-    setUpdatePicker({ visible: true, section });
+  const openViewAll = () => {
+    navigation.navigate(ROUTES.ROOT.UNIT_STATUS_OVERVIEW, {
+      module,
+      unit,
+      unitId,
+      projectId,
+      projectName,
+    });
   };
 
-  const closeUpdatePicker = () => {
-    setUpdatePicker({ visible: false, section: null });
+  const openSubprocessDetails = (process, subprocess) => {
+    navigation.navigate(ROUTES.ROOT.UNIT_STATUS_OVERVIEW, {
+      module,
+      unit,
+      unitId,
+      projectId,
+      projectName,
+      initialProcessId: process.id,
+      initialSubprocessId: subprocess.id,
+    });
   };
-
-  const selectUpdateOption = (subOption) => {
-    if (!updatePicker.section) return;
-    closeUpdatePicker();
-    openSection(updatePicker.section, subOption);
-  };
-
-  const openSubStatus = (section, subOption) => {
-    openSection(section, subOption);
-  };
-
-  const getUpdateOptions = () =>
-    (updatePicker.section?.subOptions || []).map((sub) => ({
-      ...sub,
-      displayLabel: sub.label,
-      status: statusLookup[sub.id] || "Pending",
-    }));
-
-  const getSectionSubStatuses = (section) =>
-    section.subOptions.map((sub) => ({
-      ...sub,
-      displayLabel: sub.label,
-      status: statusLookup[sub.id] || "Pending",
-    }));
 
   return {
     module,
     unit,
     unitLabel,
+    projectId,
+    unitId,
     projectName,
     detailItems,
-    sections,
+    processes: progress.processes,
+    summary,
+    isLoading,
+    isRefreshing,
+    error,
+    refreshProgress,
     openHelper,
     handleBack,
     openViewAll,
-    toggleSection,
-    isSectionExpanded,
-    updatePicker,
-    openUpdatePicker,
-    closeUpdatePicker,
-    selectUpdateOption,
-    openSubStatus,
-    getUpdateOptions,
-    getSectionSubStatuses,
+    toggleProcess,
+    isProcessExpanded,
+    openSubprocessDetails,
   };
 };
 

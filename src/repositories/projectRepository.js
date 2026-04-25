@@ -4,7 +4,7 @@ const projects = [
   createProject({
     id: 1,
     client: "Government of Madhya Pradesh",
-    name: "Kayampur Sitamau P.M.L.M.I.P",
+    name: "IrriTrack",
     area: "1,12,124.00 Ha",
   }),
 ];

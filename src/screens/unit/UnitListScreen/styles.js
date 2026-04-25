@@ -77,18 +77,13 @@ export default StyleSheet.create({
 
   filterPanel: {
     marginHorizontal: moderateScale(15),
-    marginBottom: verticalScale(12),
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(8),
     borderRadius: moderateScale(18),
-    backgroundColor: "#F5FAFF",
+    backgroundColor: colors.filterPanelSurface,
     borderWidth: 1,
-    borderColor: "#D8E7F5",
-    shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
+    borderColor: colors.filterPanelBorder,
+    marginBottom: verticalScale(10),
   },
 
   filterPanelHeader: {
@@ -141,10 +136,8 @@ export default StyleSheet.create({
 
   filterContainer: {
     flexDirection: "row",
-    paddingHorizontal: moderateScale(7),
     marginTop: verticalScale(6),
     justifyContent: "space-between",
-    paddingVertical: verticalScale(7),
     backgroundColor: "transparent",
     borderRadius: moderateScale(20),
   },
@@ -592,6 +585,14 @@ export default StyleSheet.create({
 
   processLabelOffline: {
     color: colors.white,
+  },
+
+  processValue: {
+    marginTop: verticalScale(4),
+    marginLeft: moderateScale(15),
+    fontSize: moderateScale(10),
+    lineHeight: moderateScale(12),
+    fontFamily: fonts.medium,
   },
 
   processTileRight: {

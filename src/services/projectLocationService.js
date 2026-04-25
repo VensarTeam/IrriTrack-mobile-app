@@ -19,7 +19,13 @@ const normalizeNames = (items = [], key) =>
   Array.from(
     new Set(
       items
-        .map((item) => String(item?.[key] || "").trim())
+        .map((item) => {
+          if (typeof item === "string") {
+            return String(item).trim();
+          }
+
+          return String(item?.[key] || "").trim();
+        })
         .filter(Boolean)
     )
   ).sort(compareByName);
@@ -115,6 +121,16 @@ const normalizeFilterResponse = (
     itemNormalizer = (items) => items,
   } = {}
 ) => {
+  if (Array.isArray(response?.items)) {
+    return {
+      items: itemNormalizer(response.items),
+      meta: {
+        ...createEmptyMeta({ page, limit }),
+        ...(response?.meta || {}),
+      },
+    };
+  }
+
   if (Array.isArray(response)) {
     return {
       items: itemNormalizer(response),
@@ -151,11 +167,7 @@ export const fetchProjectZones = async (
   });
 
   if (zoneResponseCache.has(cacheKey)) {
-    return normalizeFilterResponse(zoneResponseCache.get(cacheKey), {
-      page,
-      limit,
-      itemNormalizer: (items) => normalizeNames(items, "name"),
-    });
+    return zoneResponseCache.get(cacheKey);
   }
 
   if (!zoneRequestPromises.has(cacheKey)) {
@@ -215,11 +227,7 @@ export const fetchProjectVillageOptions = async (
   });
 
   if (villageResponseCache.has(cacheKey)) {
-    return normalizeFilterResponse(villageResponseCache.get(cacheKey), {
-      page,
-      limit,
-      itemNormalizer: normalizeVillageOptions,
-    });
+    return villageResponseCache.get(cacheKey);
   }
 
   if (!villageRequestPromises.has(cacheKey)) {

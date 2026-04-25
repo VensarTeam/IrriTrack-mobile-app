@@ -1,22 +1,30 @@
 import React from "react";
 import {
-  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
 import { Icon, Searchbar } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import { moderateScale, verticalScale } from "../constants/metrics";
+
+const SHIMMER_ITEM_COUNT = 6;
+const FOOTER_SHIMMER_ITEM_COUNT = 2;
+const SHIMMER_DURATION = 1100;
+const SHIMMER_TRAVEL_DISTANCE = moderateScale(240);
 
 const SearchableFilterModal = ({
   visible,
@@ -42,10 +50,35 @@ const SearchableFilterModal = ({
   const [isKeyboardVisible, setIsKeyboardVisible] = React.useState(false);
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const lastSearchBlurAtRef = React.useRef(0);
+  const shimmerProgress = React.useRef(new Animated.Value(0)).current;
   const usesControlledSearch = typeof onSearchQueryChange === "function";
   const activeSearchQuery = usesControlledSearch
     ? String(searchQuery || "")
     : localSearchQuery;
+
+  React.useEffect(() => {
+    if (!visible || !isLoading) {
+      shimmerProgress.stopAnimation();
+      shimmerProgress.setValue(0);
+      return undefined;
+    }
+
+    const animation = Animated.loop(
+      Animated.timing(shimmerProgress, {
+        toValue: 1,
+        duration: SHIMMER_DURATION,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+      shimmerProgress.setValue(0);
+    };
+  }, [isLoading, shimmerProgress, visible]);
 
   React.useEffect(() => {
     if (!visible) {
@@ -121,6 +154,10 @@ const SearchableFilterModal = ({
     windowHeight - topInset - androidSheetOffset - verticalScale(10),
     verticalScale(260)
   );
+  const shimmerTranslateX = shimmerProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-SHIMMER_TRAVEL_DISTANCE, SHIMMER_TRAVEL_DISTANCE],
+  });
 
   const handleRequestClose = React.useCallback(() => {
     const didRecentlyBlurSearchInput =
@@ -134,6 +171,137 @@ const SearchableFilterModal = ({
     onClose?.();
   }, [isKeyboardVisible, isSearchFocused, onClose]);
 
+  const renderOption = React.useCallback(
+    ({ item }) => {
+      const optionLabel = String(item || "");
+      const isActive = optionLabel === selectedValue;
+
+      return (
+        <TouchableOpacity
+          style={[styles.optionItem, isActive && styles.optionItemActive]}
+          onPress={() => onSelect(optionLabel)}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
+            {optionLabel}
+          </Text>
+
+          <View style={[styles.checkWrap, isActive && styles.checkWrapActive]}>
+            {isActive ? (
+              <Icon source="check" size={14} color={colors.white} />
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [onSelect, selectedValue]
+  );
+
+  const renderLoadingItem = React.useCallback(
+    ({ item }) => (
+      <View key={item} style={styles.shimmerItem}>
+        <View style={styles.shimmerItemCopy}>
+          <View style={[styles.shimmerBlock, styles.shimmerLinePrimary]}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.shimmerSweep,
+                {
+                  transform: [{ translateX: shimmerTranslateX }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(255,255,255,0)",
+                  "rgba(255,255,255,0.85)",
+                  "rgba(255,255,255,0)",
+                ]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.shimmerGradient}
+              />
+            </Animated.View>
+          </View>
+
+          <View style={[styles.shimmerBlock, styles.shimmerLineSecondary]}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.shimmerSweep,
+                {
+                  transform: [{ translateX: shimmerTranslateX }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(255,255,255,0)",
+                  "rgba(255,255,255,0.8)",
+                  "rgba(255,255,255,0)",
+                ]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.shimmerGradient}
+              />
+            </Animated.View>
+          </View>
+        </View>
+
+        <View style={[styles.shimmerBlock, styles.shimmerIndicator]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.shimmerSweep,
+              {
+                transform: [{ translateX: shimmerTranslateX }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[
+                "rgba(255,255,255,0)",
+                "rgba(255,255,255,0.82)",
+                "rgba(255,255,255,0)",
+              ]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.shimmerGradient}
+            />
+          </Animated.View>
+        </View>
+      </View>
+    ),
+    [shimmerTranslateX]
+  );
+
+  const keyExtractor = React.useCallback((item, index) => `${item}-${index}`, []);
+
+  const loadingData = React.useMemo(
+    () =>
+      Array.from({ length: SHIMMER_ITEM_COUNT }, (_, index) => `loading-${index}`),
+    []
+  );
+  const footerLoadingData = React.useMemo(
+    () =>
+      Array.from(
+        { length: FOOTER_SHIMMER_ITEM_COUNT },
+        (_, index) => `footer-loading-${index}`
+      ),
+    []
+  );
+  const isInitialLoading = isLoading && options.length === 0;
+
+  const listContentStyle = React.useMemo(
+    () => [
+      styles.listContent,
+      !isInitialLoading &&
+        filteredOptions.length === 0 &&
+        styles.listContentEmpty,
+    ],
+    [filteredOptions.length, isInitialLoading]
+  );
+
   return (
     <Modal
       visible={visible}
@@ -144,6 +312,7 @@ const SearchableFilterModal = ({
       onRequestClose={handleRequestClose}
     >
       <View style={[styles.overlay, { paddingTop: topInset }]}>
+        <Pressable style={styles.backdrop} onPress={handleRequestClose} />
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -155,7 +324,6 @@ const SearchableFilterModal = ({
               {
                 maxHeight: maxCardHeight,
                 marginBottom: androidSheetOffset,
-                paddingBottom: verticalScale(16) + bottomInset,
               },
             ]}
           >
@@ -179,92 +347,53 @@ const SearchableFilterModal = ({
             />
 
             <View style={styles.listWrap}>
-              <ScrollView
-                style={styles.listScroll}
+              <FlatList
+                data={isInitialLoading ? loadingData : filteredOptions}
+                keyExtractor={keyExtractor}
+                renderItem={isInitialLoading ? renderLoadingItem : renderOption}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-                contentContainerStyle={styles.listContent}
-                onScroll={({ nativeEvent }) => {
-                  const { contentOffset, contentSize, layoutMeasurement } =
-                    nativeEvent;
-                  const distanceFromEnd =
-                    contentSize.height -
-                    (contentOffset.y + layoutMeasurement.height);
-
-                  if (
-                    distanceFromEnd <= verticalScale(24) &&
-                    hasMoreOptions &&
-                    !isLoading &&
-                    !isFetchingMore
-                  ) {
+                keyboardDismissMode={
+                  Platform.OS === "ios" ? "interactive" : "on-drag"
+                }
+                contentContainerStyle={listContentStyle}
+                ListEmptyComponent={
+                  isInitialLoading ? null : (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyText}>{emptyMessage}</Text>
+                    </View>
+                  )
+                }
+                ListFooterComponent={
+                  isFetchingMore ? (
+                    <View style={styles.footerShimmerWrap}>
+                      {footerLoadingData.map((item) =>
+                        renderLoadingItem({ item })
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.listFooterSpace} />
+                  )
+                }
+                onEndReached={() => {
+                  if (!isInitialLoading && !isFetchingMore && hasMoreOptions) {
                     onEndReached?.();
                   }
                 }}
-                scrollEventThrottle={16}
-              >
-                {isLoading ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator size="small" color={colors.primaryBlue} />
-                    <Text style={styles.loadingText}>Loading options...</Text>
-                  </View>
-                ) : filteredOptions.length ? (
-                  filteredOptions.map((item) => {
-                    const isActive = item === selectedValue;
-
-                    return (
-                      <TouchableOpacity
-                        key={item}
-                        style={[
-                          styles.optionItem,
-                          isActive && styles.optionItemActive,
-                        ]}
-                        onPress={() => onSelect(item)}
-                        activeOpacity={0.85}
-                      >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            isActive && styles.optionTextActive,
-                          ]}
-                        >
-                          {item}
-                        </Text>
-
-                        <View
-                          style={[
-                            styles.checkWrap,
-                            isActive && styles.checkWrapActive,
-                          ]}
-                        >
-                          {isActive ? (
-                            <Icon
-                              source="check"
-                              size={14}
-                              color={colors.white}
-                            />
-                          ) : null}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>{emptyMessage}</Text>
-                  </View>
-                )}
-
-                {isFetchingMore ? (
-                  <View style={styles.footerLoading}>
-                    <ActivityIndicator size="small" color={colors.primaryBlue} />
-                  </View>
-                ) : null}
-              </ScrollView>
+                onEndReachedThreshold={0.25}
+              />
             </View>
 
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
+            <View
+              style={[
+                styles.footer,
+                { paddingBottom: verticalScale(16) + bottomInset },
+              ]}
+            >
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -279,6 +408,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(11, 21, 32, 0.32)",
   },
 
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
   keyboardAvoider: {
     flex: 1,
     justifyContent: "flex-end",
@@ -288,13 +421,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopLeftRadius: moderateScale(24),
     borderTopRightRadius: moderateScale(24),
-    paddingHorizontal: moderateScale(18),
+    paddingHorizontal: moderateScale(16),
     paddingTop: verticalScale(12),
-    minHeight: verticalScale(420),
-  },
-
-  cardExpanded: {
-    minHeight: verticalScale(310),
+    minHeight: verticalScale(480),
+    paddingTop: verticalScale(12),
   },
 
   handle: {
@@ -334,22 +464,26 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    paddingBottom: verticalScale(4),
+    paddingBottom: verticalScale(2),
     flexGrow: 1,
   },
+
+  listContentEmpty: {
+    justifyContent: "center",
+  },
+
   listWrap: {
     flex: 1,
-    minHeight: verticalScale(250),
+    minHeight: verticalScale(220),
   },
 
-  listScroll: {
-    flex: 1,
+  footerShimmerWrap: {
+    paddingTop: verticalScale(2),
+    paddingBottom: verticalScale(6),
   },
 
-  footerLoading: {
-    paddingVertical: verticalScale(12),
-    alignItems: "center",
-    justifyContent: "center",
+  listFooterSpace: {
+    height: verticalScale(4),
   },
 
   optionItem: {
@@ -359,9 +493,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E1EAF4",
     backgroundColor: "#FCFEFF",
-    borderRadius: moderateScale(16),
+    borderRadius: moderateScale(12),
     paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(6),
     marginBottom: verticalScale(10),
   },
 
@@ -415,8 +549,67 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  shimmerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#E1EAF4",
+    backgroundColor: "#FCFEFF",
+    borderRadius: moderateScale(16),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(12),
+    marginBottom: verticalScale(10),
+  },
+
+  shimmerItemCopy: {
+    flex: 1,
+    marginRight: moderateScale(14),
+  },
+
+  shimmerBlock: {
+    overflow: "hidden",
+    backgroundColor: "#E9F0F7",
+    borderRadius: moderateScale(999),
+  },
+
+  shimmerLinePrimary: {
+    width: "68%",
+    height: verticalScale(14),
+    marginBottom: verticalScale(8),
+  },
+
+  shimmerLineSecondary: {
+    width: "42%",
+    height: verticalScale(10),
+  },
+
+  shimmerIndicator: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+  },
+
+  shimmerSweep: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: -moderateScale(120),
+    width: moderateScale(96),
+  },
+
+  shimmerGradient: {
+    flex: 1,
+  },
+
+  footer: {
+    paddingTop: verticalScale(8),
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: "#EEF2F6",
+  },
+
   closeButton: {
-    marginTop: verticalScale(6),
     alignItems: "center",
     justifyContent: "center",
     borderRadius: moderateScale(16),

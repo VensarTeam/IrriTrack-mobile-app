@@ -19,6 +19,7 @@ const DEFAULT_META = {
 const createFilterState = () => ({
   items: EMPTY_ARRAY,
   meta: DEFAULT_META,
+  hasLoaded: false,
   isLoading: false,
   isFetchingMore: false,
 });
@@ -49,6 +50,7 @@ const mergeUniqueVillageOptions = (
 
 const useProjectLocationFilters = ({
   projectId,
+  zoneName = "All",
   activeFilterType = null,
   searchQuery = "",
 }) => {
@@ -70,7 +72,7 @@ const useProjectLocationFilters = ({
   useEffect(() => {
     const updateOnlineState = (state) => {
       const nextOnline =
-        Boolean(state?.isConnected) && state?.isInternetReachable !== false;
+        state?.isInternetReachable === true || state?.isConnected !== false;
       setIsOnline((currentValue) =>
         currentValue === nextOnline ? currentValue : nextOnline
       );
@@ -85,8 +87,15 @@ const useProjectLocationFilters = ({
   }, []);
 
   useEffect(() => {
+    const nextSearchQuery = String(searchQuery || "");
+
+    if (!nextSearchQuery.trim()) {
+      setDebouncedSearchQuery("");
+      return undefined;
+    }
+
     const timerId = setTimeout(() => {
-      setDebouncedSearchQuery(String(searchQuery || ""));
+      setDebouncedSearchQuery(nextSearchQuery);
     }, 250);
 
     return () => {
@@ -110,7 +119,9 @@ const useProjectLocationFilters = ({
       requestIdRef.current = requestId;
 
       setFilterState((currentState) => ({
-        ...currentState,
+        items: append ? currentState.items : EMPTY_ARRAY,
+        meta: append ? currentState.meta : DEFAULT_META,
+        hasLoaded: append ? currentState.hasLoaded : false,
         isLoading: !append,
         isFetchingMore: append,
       }));
@@ -123,6 +134,7 @@ const useProjectLocationFilters = ({
               limit: FILTER_PAGE_LIMIT,
             })
           : await fetchProjectVillageOptions(projectId, {
+              zoneName,
               searchQuery: currentSearchQuery,
               page,
               limit: FILTER_PAGE_LIMIT,
@@ -142,6 +154,7 @@ const useProjectLocationFilters = ({
                 )
             : response?.items || EMPTY_ARRAY,
           meta: response.meta || DEFAULT_META,
+          hasLoaded: true,
           isLoading: false,
           isFetchingMore: false,
         }));
@@ -166,6 +179,7 @@ const useProjectLocationFilters = ({
           ...currentState,
           items: append ? currentState.items : EMPTY_ARRAY,
           meta: append ? currentState.meta : DEFAULT_META,
+          hasLoaded: true,
           isLoading: false,
           isFetchingMore: false,
         }));
@@ -176,6 +190,7 @@ const useProjectLocationFilters = ({
       normalizedVillageSearchQuery,
       normalizedZoneSearchQuery,
       projectId,
+      zoneName,
     ]
   );
 
@@ -186,14 +201,33 @@ const useProjectLocationFilters = ({
       return;
     }
 
-    if (activeFilterType === "zone") {
-      void loadFilterOptions({ type: "zone", page: 1, append: false });
-    }
-
-    if (activeFilterType === "village") {
-      void loadFilterOptions({ type: "village", page: 1, append: false });
+    if (activeFilterType) {
+      void loadFilterOptions({ type: activeFilterType, page: 1, append: false });
     }
   }, [activeFilterType, isOnline, loadFilterOptions, projectId]);
+
+  const prepareFilterOptions = useCallback((type) => {
+    if (type !== "zone" && type !== "village") {
+      return;
+    }
+
+    if (type === "zone") {
+      zoneRequestIdRef.current += 1;
+    }
+
+    if (type === "village") {
+      villageRequestIdRef.current += 1;
+    }
+
+    const setFilterState = type === "zone" ? setZoneState : setVillageState;
+    setFilterState({
+      items: EMPTY_ARRAY,
+      meta: DEFAULT_META,
+      hasLoaded: false,
+      isLoading: true,
+      isFetchingMore: false,
+    });
+  }, []);
 
   const loadMoreFilterOptions = useCallback(() => {
     if (activeFilterType === "zone") {
@@ -241,9 +275,15 @@ const useProjectLocationFilters = ({
   return {
     isOnline,
     canUseLocationFilters: isOnline && Boolean(projectId),
-    isFilterOptionsLoading: currentFilterState.isLoading,
+    isFilterOptionsLoading:
+      currentFilterState.isLoading ||
+      (Boolean(activeFilterType) &&
+        isOnline &&
+        Boolean(projectId) &&
+        !currentFilterState.hasLoaded),
     isFetchingMoreFilterOptions: currentFilterState.isFetchingMore,
     hasMoreFilterOptions: Boolean(currentFilterState.meta?.hasNextPage),
+    prepareFilterOptions,
     loadMoreFilterOptions,
     zones,
     villages,

@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
   DEFAULT_NODE_LOCATION,
   STATUS_OPTIONS,
 } from "../constants/moduleStatusConfig";
+import { findUnitProgressSubprocess } from "../models/unitProgress";
 import { openLocation } from "../services/mapService";
 import { showAppAlert } from "../services/alertService";
 import {
+  getLatestChecklistSubmissionSnapshot,
   submitChecklistOfflineFirst,
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
+import {
+  getCachedContractorList,
+  refreshContractorList,
+} from "../services/contractorOfflineStore";
+import useUnitProgress from "../hooks/useUnitProgress";
 import useChecklistSections from "./useChecklistSections";
 
 const buildChecklistState = (checklistItems = []) =>
@@ -58,14 +65,6 @@ const buildRepeatableGroupState = (repeatableGroups = []) =>
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
 
-const stringifySubmissionForLog = (value) => {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch (error) {
-    return `[unserializable: ${error?.message || "unknown"}]`;
-  }
-};
-
 const buildUnitAddressSummary = (
   unit = {},
   baseLocation = DEFAULT_NODE_LOCATION
@@ -91,6 +90,23 @@ const formatGeocodeAddress = (place = {}) => {
 
   return parts.join(", ");
 };
+
+const normalizeText = (value) =>
+  String(value || "")
+    .replace(/&/g, "and")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const formatSubmissionStatusLabel = (value) =>
+  String(value || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase()) || "Completed";
+
+const isContractorSelectField = (field = {}) =>
+  field?.key === "contractorName" ||
+  normalizeText(field?.label).includes("contractor");
 
 const isVisibleByRule = (item, values, subOption) =>
   !item?.showWhen || item.showWhen({ values, subOption });
@@ -129,13 +145,118 @@ const getInitialFormValues = (section, unit) => {
   }, {});
 };
 
+const SUBMITTED_STATUS_KEYS = new Set([
+  "partial",
+  "completed",
+  "commented",
+  "approved",
+  "updated",
+]);
+
+const toFormStatusValue = (value = "") => {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+
+  if (
+    normalizedValue === "completed" ||
+    normalizedValue === "approved" ||
+    normalizedValue === "updated"
+  ) {
+    return "Completed";
+  }
+
+  if (normalizedValue === "partial" || normalizedValue === "commented") {
+    return "Partially Completed";
+  }
+
+  if (normalizedValue === "partially completed") {
+    return "Partially Completed";
+  }
+
+  return "Pending";
+};
+
+const parseCoordinateValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const latitude = Number(value.latitude);
+    const longitude = Number(value.longitude);
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude };
+    }
+
+    const updatedLocation = value.updated_location || value.updatedLocation;
+
+    if (updatedLocation) {
+      return parseCoordinateValue(updatedLocation);
+    }
+  }
+
+  const match = String(value)
+    .trim()
+    .match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    latitude: Number(match[1]),
+    longitude: Number(match[2]),
+  };
+};
+
+const parseRepeatableGroupItems = (group, rawValue) => {
+  let parsedValue = rawValue;
+
+  if (typeof parsedValue === "string") {
+    try {
+      parsedValue = JSON.parse(parsedValue);
+    } catch (error) {
+      parsedValue = [];
+    }
+  }
+
+  if (!Array.isArray(parsedValue)) {
+    return [];
+  }
+
+  return parsedValue.map((item, itemIndex) => {
+    const nextItem = createRepeatableGroupItem(group, itemIndex);
+
+    if (Array.isArray(item?.values)) {
+      item.values.forEach((field) => {
+        if (field?.key) {
+          nextItem[field.key] = field.value ?? "";
+        }
+      });
+
+      return nextItem;
+    }
+
+    if (item && typeof item === "object") {
+      Object.entries(item).forEach(([key, value]) => {
+        nextItem[key] = value ?? "";
+      });
+    }
+
+    return nextItem;
+  });
+};
+
 const useUnitStatusUpdateViewModel = (navigation, route) => {
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
-  const projectName = route?.params?.projectName || "Kayampur Sitamau P.M.I.P";
+  const projectId =
+    route?.params?.projectId || unit?.projectId || route?.params?.project?.id || "";
+  const projectName = route?.params?.projectName || "IrriTrack";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
   const { sections, masterSource } = useChecklistSections({ module, unit });
+  const hydratedSubOptionsRef = useRef({});
 
   const section =
     sections.find((item) => item.key === sectionKey) || sections[0];
@@ -160,8 +281,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     visible: false,
     media: null,
   });
+  const [photoProcessingState, setPhotoProcessingState] = useState({
+    requirementId: "",
+    message: "",
+  });
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contractors, setContractors] = useState([]);
+  const [localSubmissionSnapshot, setLocalSubmissionSnapshot] = useState(null);
+  const { progress } = useUnitProgress({
+    projectId,
+    unitId: unit?.id || route?.params?.unitId || "",
+    enabled: Boolean(projectId && (unit?.id || route?.params?.unitId)),
+  });
 
   useEffect(() => {
     const nextSection =
@@ -184,7 +316,45 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setActiveSubOptionId(nextSubOptionId);
     setFormValues(getInitialFormValues(nextSection, unit));
     setFieldErrors({});
+    hydratedSubOptionsRef.current = {};
   }, [masterSource, requestedSubOptionId, sectionKey, sections, unit]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadContractors = async () => {
+      try {
+        const cachedContractors = await getCachedContractorList();
+
+        if (isMounted && cachedContractors.length) {
+          setContractors(cachedContractors);
+        }
+      } catch (error) {
+        console.log("[ContractorOptions]", "Local contractor cache unavailable", {
+          message: error?.message,
+        });
+      }
+
+      try {
+        const refreshedContractors = await refreshContractorList();
+
+        if (isMounted) {
+          setContractors(refreshedContractors);
+        }
+      } catch (error) {
+        console.log("[ContractorOptions]", "Contractor refresh failed", {
+          message: error?.message,
+          status: error?.status,
+        });
+      }
+    };
+
+    void loadContractors();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const activeSubOption = useMemo(
     () =>
@@ -205,8 +375,35 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const showStatusField = activeSubOption.showStatusField !== false;
   const showRemarkField = activeSubOption.showRemarkField !== false;
 
+  const contractorLookup = useMemo(() => {
+    const lookup = new Map();
+
+    contractors.forEach((contractor) => {
+      if (contractor.optionLabel) {
+        lookup.set(contractor.optionLabel, contractor);
+      }
+
+      if (contractor.firmName) {
+        lookup.set(contractor.firmName, contractor);
+      }
+    });
+
+    return lookup;
+  }, [contractors]);
+  const contractorOptions = useMemo(
+    () => contractors.map((contractor) => contractor.optionLabel).filter(Boolean),
+    [contractors]
+  );
+
   const selectFields = (activeSubOption.selectFields || []).filter((field) =>
     isVisibleByRule(field, activeValues, activeSubOption)
+  ).map((field) =>
+    isContractorSelectField(field) && contractorOptions.length
+      ? {
+          ...field,
+          options: contractorOptions,
+        }
+      : field
   );
   const inputFields = (activeSubOption.inputFields || []).filter((field) =>
     isVisibleByRule(field, activeValues, activeSubOption)
@@ -229,6 +426,276 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const getSubOptionLabel = (subOption) => subOption.label;
 
   const activeSubOptionLabel = activeSubOption.label;
+  const progressMatch = useMemo(
+    () =>
+      activeSubOption?.apiSubprocessId
+        ? findUnitProgressSubprocess(progress, activeSubOption.apiSubprocessId)
+        : null,
+    [activeSubOption?.apiSubprocessId, progress]
+  );
+  const submittedFromServer = Boolean(
+    progressMatch?.subprocess &&
+      SUBMITTED_STATUS_KEYS.has(progressMatch.subprocess.status.key)
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLocalSnapshot = async () => {
+      const snapshot = await getLatestChecklistSubmissionSnapshot({
+        unitId: unit?.id || route?.params?.unitId || "",
+        processId: activeSubOption?.apiProcessId,
+        subprocessId: activeSubOption?.apiSubprocessId,
+      });
+
+      if (isMounted) {
+        setLocalSubmissionSnapshot(snapshot);
+      }
+    };
+
+    if (!activeSubOption?.apiProcessId || !activeSubOption?.apiSubprocessId) {
+      setLocalSubmissionSnapshot(null);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    void loadLocalSnapshot();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    activeSubOption?.apiProcessId,
+    activeSubOption?.apiSubprocessId,
+    route?.params?.unitId,
+    unit?.id,
+  ]);
+
+  const submittedFromLocal = Boolean(localSubmissionSnapshot?.payload);
+  const isReadOnly = submittedFromServer || submittedFromLocal;
+  const readOnlyNotice = submittedFromServer
+    ? "Already submitted from server data."
+    : submittedFromLocal
+      ? "Already submitted and saved on this device."
+      : "";
+
+  useEffect(() => {
+    const subOptionId = activeSubOption?.id;
+
+    if (!subOptionId || !isReadOnly) {
+      return;
+    }
+
+    const hydrationSource = submittedFromLocal
+      ? `local:${localSubmissionSnapshot?.id || ""}:${localSubmissionSnapshot?.updatedAt || ""}`
+      : `server:${progressMatch?.subprocess?.status?.key || ""}`;
+
+    if (hydratedSubOptionsRef.current[subOptionId] === hydrationSource) {
+      return;
+    }
+
+    const baseValues =
+      formValues[subOptionId] ||
+      getInitialFormValues({ subOptions: [activeSubOption] }, unit)[subOptionId];
+    const nextValues = {
+      ...baseValues,
+      checks: { ...baseValues.checks },
+      photos: { ...baseValues.photos },
+      repeatableGroups: { ...baseValues.repeatableGroups },
+    };
+
+    if (submittedFromServer && progressMatch?.subprocess) {
+      const subprocess = progressMatch.subprocess;
+
+      if (showStatusField) {
+        nextValues.status = toFormStatusValue(subprocess.status.label);
+      }
+
+      const checklistsById = new Map(
+        (subprocess.checklists || []).map((item) => [String(item.id), item])
+      );
+
+      checklistItems.forEach((item) => {
+        const checklist = checklistsById.get(String(item.checklistId || item.id));
+        nextValues.checks[item.id] = checklist
+          ? checklist.status.key !== "pending"
+          : nextValues.checks[item.id];
+      });
+
+      selectFields.forEach((field) => {
+        const checklist = checklistsById.get(String(field.checklistId || field.key));
+        const detailValue =
+          checklist?.detail?.rawValue ??
+          checklist?.detail?.value ??
+          checklist?.rawChecklist?.value;
+
+        if (detailValue !== null && typeof detailValue !== "undefined") {
+          nextValues[field.key] = String(detailValue);
+        }
+      });
+
+      inputFields.forEach((field) => {
+        const checklist = checklistsById.get(String(field.checklistId || field.key));
+        const detailValue =
+          checklist?.detail?.rawValue ??
+          checklist?.detail?.value ??
+          checklist?.rawChecklist?.value;
+
+        if (detailValue !== null && typeof detailValue !== "undefined") {
+          nextValues[field.key] = String(detailValue);
+        }
+      });
+
+      if (showRemarkField && activeSubOption.remarkChecklist?.checklistId) {
+        const remarkChecklist = checklistsById.get(
+          String(activeSubOption.remarkChecklist.checklistId)
+        );
+        const detailValue =
+          remarkChecklist?.detail?.rawValue ??
+          remarkChecklist?.detail?.value ??
+          remarkChecklist?.rawChecklist?.value;
+
+        if (detailValue !== null && typeof detailValue !== "undefined") {
+          nextValues.remark = String(detailValue);
+        }
+      }
+
+      if (activeSubOption.locationChecklist?.checklistId) {
+        const locationChecklist = checklistsById.get(
+          String(activeSubOption.locationChecklist.checklistId)
+        );
+        const coordinates = parseCoordinateValue(
+          locationChecklist?.detail?.rawValue ??
+            locationChecklist?.detail?.value ??
+            locationChecklist?.rawChecklist?.value
+        );
+
+        if (coordinates) {
+          nextValues.updatedLocation = coordinates;
+          nextValues.updatedAddress = formatCoordinates(coordinates);
+        }
+      }
+
+      repeatableGroups.forEach((group) => {
+        const checklist = checklistsById.get(String(group.checklistId || group.key));
+        const items = parseRepeatableGroupItems(
+          group,
+          checklist?.detail?.rawValue ??
+            checklist?.detail?.value ??
+            checklist?.rawChecklist?.value
+        );
+
+        if (items.length) {
+          nextValues.repeatableGroups[group.key] = items;
+        }
+      });
+    }
+
+    if (submittedFromLocal && localSubmissionSnapshot?.payload) {
+      const payload = localSubmissionSnapshot.payload;
+      const answersById = new Map(
+        (payload.answers || [])
+          .filter((item) => item?.checklist_id)
+          .map((item) => [String(item.checklist_id), item])
+      );
+
+      if (showStatusField && payload.status) {
+        nextValues.status = payload.status;
+      }
+
+      checklistItems.forEach((item) => {
+        const answer = answersById.get(String(item.checklistId || item.id));
+        if (answer) {
+          nextValues.checks[item.id] = Boolean(answer.value);
+        }
+      });
+
+      selectFields.forEach((field) => {
+        const answer = answersById.get(String(field.checklistId || field.key));
+        if (answer) {
+          nextValues[field.key] = String(answer.display_value || answer.value || "");
+        }
+      });
+
+      inputFields.forEach((field) => {
+        const answer = answersById.get(String(field.checklistId || field.key));
+        if (answer) {
+          nextValues[field.key] = String(answer.value || "");
+        }
+      });
+
+      if (showRemarkField) {
+        nextValues.remark = String(payload.remark || "");
+      }
+
+      if (activeSubOption.locationChecklist?.checklistId) {
+        const answer = answersById.get(
+          String(activeSubOption.locationChecklist.checklistId)
+        );
+        const coordinates = parseCoordinateValue(answer?.value);
+
+        if (coordinates) {
+          nextValues.updatedLocation = coordinates;
+          nextValues.updatedAddress =
+            answer?.value?.updated_address ||
+            answer?.value?.updatedAddress ||
+            formatCoordinates(coordinates);
+        }
+      }
+
+      repeatableGroups.forEach((group) => {
+        const answer = answersById.get(String(group.checklistId || group.key));
+        const items = parseRepeatableGroupItems(group, answer?.value);
+
+        if (items.length) {
+          nextValues.repeatableGroups[group.key] = items;
+        }
+      });
+
+      (payload.photos || []).forEach((photo) => {
+        const requirement = photoRequirements.find(
+          (item) => String(item.checklistId) === String(photo.checklistId)
+        );
+
+        if (requirement) {
+          nextValues.photos[requirement.id] = {
+            uri: photo.filePath ? `file://${photo.filePath}` : "",
+            filePath: photo.filePath,
+            name: photo.name,
+            source: "local",
+            sizeKb: photo.sizeKb,
+            width: photo.width,
+            height: photo.height,
+            mediaType: photo.mediaType,
+            type: photo.type,
+            takenAt: photo.takenAt,
+            latitude: photo.latitude,
+            longitude: photo.longitude,
+          };
+        }
+      });
+    }
+
+    hydratedSubOptionsRef.current[subOptionId] = hydrationSource;
+    updateValuesForSubOption(subOptionId, nextValues);
+  }, [
+    activeSubOption,
+    checklistItems,
+    formValues,
+    inputFields,
+    localSubmissionSnapshot,
+    photoRequirements,
+    progressMatch,
+    repeatableGroups,
+    selectFields,
+    showRemarkField,
+    showStatusField,
+    submittedFromLocal,
+    submittedFromServer,
+    unit,
+    isReadOnly,
+  ]);
 
   const getChecklistProgress = () => {
     const total = checklistItems.length;
@@ -242,6 +709,38 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     ).length;
 
     return { completed, total };
+  };
+
+  const getSelectFieldSubmissionDetails = (field) => {
+    const selectedValue = activeValues[field.key] || "";
+
+    if (!selectedValue || !isContractorSelectField(field)) {
+      return {
+        value: selectedValue,
+        metadata: {},
+      };
+    }
+
+    const contractor = contractorLookup.get(selectedValue);
+
+    if (!contractor) {
+      return {
+        value: selectedValue,
+        metadata: {},
+      };
+    }
+
+    return {
+      value: contractor.firmName,
+      metadata: {
+        display_value: selectedValue,
+        contractor_id: contractor.id,
+        contractor_firm_name: contractor.firmName,
+        contractor_owner_name: contractor.ownerName,
+        contractor_mobile_number: contractor.mobileNumber,
+        contractor_email: contractor.email,
+      },
+    };
   };
 
   const updateValuesForSubOption = (subOptionId, updates) => {
@@ -259,11 +758,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const updateInputValue = (field, value) => {
+    if (isReadOnly) return;
     updateActiveValues({ [field]: value });
     clearFieldError(field);
   };
 
   const updateRemarkValue = (value) => {
+    if (isReadOnly) return;
     updateActiveValues({ remark: value });
     clearFieldError("remark");
     clearFieldError("form");
@@ -330,6 +831,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const updateRepeatableGroupItem = (groupKey, itemIndex, fieldKey, value) => {
+    if (isReadOnly) return;
     const currentItems = activeValues.repeatableGroups?.[groupKey] || [];
     const nextItems = currentItems.map((item, index) =>
       index === itemIndex ? { ...item, [fieldKey]: value } : item
@@ -346,6 +848,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const addRepeatableGroupItem = (group) => {
+    if (isReadOnly) return;
     const currentItems = activeValues.repeatableGroups?.[group.key] || [];
     if (group.maxItems && currentItems.length >= group.maxItems) return;
 
@@ -363,6 +866,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const removeRepeatableGroupItem = (group, itemIndex) => {
+    if (isReadOnly) return;
     const currentItems = activeValues.repeatableGroups?.[group.key] || [];
     const nextItems = currentItems.filter((_, index) => index !== itemIndex);
 
@@ -407,6 +911,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const selectPickerValue = (value) => {
+    if (isReadOnly) {
+      setPickerState((prev) => ({ ...prev, visible: false }));
+      return;
+    }
     if (pickerState.target?.type === "repeatable") {
       updateRepeatableGroupItem(
         pickerState.target.groupKey,
@@ -427,6 +935,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const toggleChecklistItem = (itemId) => {
+    if (isReadOnly) return;
     updateActiveValues({
       checks: {
         ...(activeValues.checks || {}),
@@ -454,15 +963,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     await openLocation(latitude, longitude);
   };
 
-  const requestLocationPermission = async () => {
+  const requestLocationPermission = async ({ silent = false } = {}) => {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      showAppAlert({
-        type: "warning",
-        title: "Permission required",
-        message: "Location permission is needed to update current location.",
-      });
+      if (!silent) {
+        showAppAlert({
+          type: "warning",
+          title: "Permission required",
+          message: "Location permission is needed to update current location.",
+        });
+      }
       return false;
     }
 
@@ -488,6 +999,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const updateNodeLocation = async () => {
+    if (isReadOnly) return;
     if (isUpdatingLocation) return;
 
     setIsUpdatingLocation(true);
@@ -501,7 +1013,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       if (!hasPermission) return;
 
       const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.Low,
       });
 
       const nextLocation = {
@@ -548,29 +1060,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
   };
 
-  const requestPhotoPermission = async (source) => {
-    if (source === "camera") {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
-      if (status !== "granted") {
-        showAppAlert({
-          type: "warning",
-          title: "Permission required",
-          message: "Camera permission is required.",
-        });
-        return false;
-      }
-
-      return true;
-    }
-
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const requestPhotoPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
     if (status !== "granted") {
       showAppAlert({
         type: "warning",
         title: "Permission required",
-        message: "Gallery permission is required.",
+        message: "Camera permission is required.",
       });
       return false;
     }
@@ -578,13 +1075,62 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return true;
   };
 
-  const setSelectedPhoto = async (asset, source, requirement) => {
+  const getPhotoCaptureLocation = async () => {
+    const fallbackLocation =
+      activeValues.updatedLocation ||
+      activeValues.defaultLocation ||
+      {
+        latitude: unit?.latitude ?? DEFAULT_NODE_LOCATION.latitude,
+        longitude: unit?.longitude ?? DEFAULT_NODE_LOCATION.longitude,
+      };
+
+    try {
+      const hasPermission = await requestLocationPermission({ silent: true });
+
+      if (!hasPermission) {
+        return fallbackLocation;
+      }
+
+      const lastKnownPosition = await Location.getLastKnownPositionAsync({
+        maxAge: 1000 * 60 * 5,
+      });
+
+      if (lastKnownPosition?.coords) {
+        return {
+          latitude: Number(lastKnownPosition.coords.latitude.toFixed(6)),
+          longitude: Number(lastKnownPosition.coords.longitude.toFixed(6)),
+        };
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
+      });
+
+      return {
+        latitude: Number(position.coords.latitude.toFixed(6)),
+        longitude: Number(position.coords.longitude.toFixed(6)),
+      };
+    } catch (error) {
+      return fallbackLocation;
+    }
+  };
+
+  const setSelectedPhoto = async (
+    asset,
+    source,
+    requirement,
+    captureLocation = null
+  ) => {
     if (!asset?.uri) return;
 
     let selectedAsset;
+    let resolvedCaptureLocation = null;
 
     try {
-      selectedAsset = await compressChecklistImage(asset);
+      [selectedAsset, resolvedCaptureLocation] = await Promise.all([
+        compressChecklistImage(asset),
+        Promise.resolve(captureLocation),
+      ]);
     } catch (error) {
       showAppAlert({
         type: "danger",
@@ -602,6 +1148,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       ? Math.max(1, Math.round(selectedAsset.fileSize / 1024))
       : selectedAsset.sizeKb || null;
     const mediaType = selectedAsset.type === "video" ? "video" : "image";
+    const latitude = Number(resolvedCaptureLocation?.latitude);
+    const longitude = Number(resolvedCaptureLocation?.longitude);
 
     updateActiveValues({
       photos: {
@@ -620,6 +1168,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             selectedAsset.type ||
             (mediaType === "video" ? "video/mp4" : "image/jpeg"),
           takenAt: new Date().toLocaleString(),
+          latitude: Number.isFinite(latitude) ? latitude : null,
+          longitude: Number.isFinite(longitude) ? longitude : null,
         },
       },
     });
@@ -645,41 +1195,43 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const pickFromCamera = async (requirement) => {
-    const hasPermission = await requestPhotoPermission("camera");
+    if (isReadOnly) return;
+    const hasPermission = await requestPhotoPermission();
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: requirement.allowVideo
         ? ImagePicker.MediaTypeOptions.All
         : ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 0.6,
       allowsEditing: false,
     });
 
     if (!result.canceled) {
-      await setSelectedPhoto(result.assets?.[0], "camera", requirement);
-    }
-  };
+      setPhotoProcessingState({
+        requirementId: requirement.id,
+        message: "Preparing image and location...",
+      });
 
-  const pickFromGallery = async (requirement) => {
-    const hasPermission = await requestPhotoPermission("gallery");
-    if (!hasPermission) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: requirement.allowVideo
-        ? ImagePicker.MediaTypeOptions.All
-        : ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-      allowsEditing: false,
-      selectionLimit: 1,
-    });
-
-    if (!result.canceled) {
-      await setSelectedPhoto(result.assets?.[0], "gallery", requirement);
+      try {
+        const captureLocationPromise = getPhotoCaptureLocation();
+        await setSelectedPhoto(
+          result.assets?.[0],
+          "camera",
+          requirement,
+          captureLocationPromise
+        );
+      } finally {
+        setPhotoProcessingState({
+          requirementId: "",
+          message: "",
+        });
+      }
     }
   };
 
   const removeSelectedPhoto = (requirementId) => {
+    if (isReadOnly) return;
     updateActiveValues({
       photos: {
         ...activeValues.photos,
@@ -885,7 +1437,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     });
 
     selectFields.forEach((field) => {
-      answers.push(buildAnswer(field, activeValues[field.key] || ""));
+      const { value, metadata } = getSelectFieldSubmissionDetails(field);
+      answers.push(buildAnswer(field, value, metadata));
     });
 
     inputFields.forEach((field) => {
@@ -951,6 +1504,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
                 height: media.height,
                 media_type: media.mediaType,
                 taken_at: media.takenAt,
+                latitude: media.latitude,
+                longitude: media.longitude,
               }
             : null,
         })
@@ -986,10 +1541,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       unit: {
         unit_id: unit?.id || null,
         unit_no: unitLabel,
+        project_id: projectId || unit?.projectId || null,
         village: unit?.village || "",
         distributor: unit?.distributor || "",
         zone: unit?.zone || "",
       },
+      projectId: projectId || unit?.projectId || null,
       unitId: unit?.id || null,
       unitNo: unitLabel,
       sectionKey: section.key,
@@ -1011,12 +1568,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         response: activeValues.checks?.[item.id] ? 1 : 0,
         checked: activeValues.checks?.[item.id] ? 1 : 0,
       })),
-      selectValues: selectFields.map((field) => ({
-        key: field.key,
-        checklist_id: field.checklistId || null,
-        label: field.label,
-        value: activeValues[field.key],
-      })),
+      selectValues: selectFields.map((field) => {
+        const { value, metadata } = getSelectFieldSubmissionDetails(field);
+
+        return {
+          key: field.key,
+          checklist_id: field.checklistId || null,
+          label: field.label,
+          value,
+          ...metadata,
+        };
+      }),
       inputValues: inputFields.map((field) => ({
         key: field.key,
         checklist_id: field.checklistId || null,
@@ -1047,6 +1609,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   };
 
   const submitActiveSubOption = async () => {
+    if (isReadOnly) {
+      showAppAlert({
+        type: "info",
+        title: "Already submitted",
+        message: readOnlyNotice || "This subprocess is already submitted.",
+      });
+      return;
+    }
+
     if (isSubmitting || !validateForm()) return;
 
     const payload = buildSubmissionPayload();
@@ -1062,14 +1633,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       selectCount: payload.selectValues.length,
       inputCount: payload.inputValues.length,
     });
-    console.log("[ChecklistSubmitPayload]", {
-      module,
-      unitNo: payload.unitNo,
-      process: payload.process_description,
-      subprocess: payload.subprocess_description,
-      submittedAt: payload.submittedAt,
-    });
-    console.log("[ChecklistSubmitPayload][JSON]", stringifySubmissionForLog(payload));
     setIsSubmitting(true);
 
     try {
@@ -1079,33 +1642,30 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         subOption: activeSubOption,
         payload,
       });
-      console.log("[ChecklistDraft]", "Saved local submit draft", {
+      console.log("[ChecklistSubmit]", "Submit result", {
         submissionId: result.submission?.id,
         draftJsonPath: result.draftJsonPath,
+        synced: result.synced,
+        serverSubmissionId: result.response?.submissionId,
         processId: result.draftJson?.process_id,
         subprocessId: result.draftJson?.subprocess_id,
         answerCount: result.draftJson?.answers?.length || 0,
       });
-      console.log("[ChecklistSubmitDraft]", {
-        submissionId: result.submission?.id,
-        draftJsonPath: result.draftJsonPath,
-        processId: result.draftJson?.process_id,
-        subprocessId: result.draftJson?.subprocess_id,
-      });
-      console.log(
-        "[ChecklistSubmitDraft][JSON]",
-        stringifySubmissionForLog(result.draftJson)
-      );
-
       const activeIndex = section.subOptions.findIndex(
         (item) => item.id === activeSubOption.id
       );
       const hasNext = activeIndex < section.subOptions.length - 1;
+      const wasSynced = Boolean(result.synced);
+      const submissionStatusLabel = formatSubmissionStatusLabel(
+        result.response?.statusLabel
+      );
 
       showAppAlert({
-        type: "info",
-        title: "Saved locally",
-        message: `${activeSubOptionLabel} JSON draft is saved on this device. Submit API is not connected yet.`,
+        type: wasSynced ? "success" : "info",
+        title: wasSynced ? "Submitted successfully" : "Saved locally",
+        message: wasSynced
+          ? `${activeSubOptionLabel} submitted successfully with ${submissionStatusLabel} status.`
+          : `${activeSubOptionLabel} is saved on this device and will sync when internet is available.`,
         actions: [
           {
             label: hasNext ? "Next" : "Done",
@@ -1155,6 +1715,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeErrors,
     showStatusField,
     showRemarkField,
+    isReadOnly,
+    readOnlyNotice,
     isRemarkRequired,
     checklistItems,
     photoRequirements,
@@ -1165,6 +1727,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     photoPreviewState,
     isUpdatingLocation,
     isSubmitting,
+    isPhotoProcessing: Boolean(photoProcessingState.requirementId),
+    photoProcessingRequirementId: photoProcessingState.requirementId,
+    photoProcessingMessage: photoProcessingState.message,
     setActiveSubOptionId,
     openSelectModal,
     getPickerSelectedValue,
@@ -1180,7 +1745,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     openMapForLocation,
     updateNodeLocation,
     pickFromCamera,
-    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,

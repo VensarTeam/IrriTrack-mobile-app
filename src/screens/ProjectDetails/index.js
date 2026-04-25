@@ -31,8 +31,8 @@ const HEADER_ICON_SIZE = 24;
 const KPI_ARROW_ICON_SIZE = 14;
 const SECTION_ARROW_ICON_SIZE = 14;
 const CHART_COMPACT_WIDTH = 360;
-const COMPACT_PIE_RADIUS = 62;
-const COMPACT_PIE_INNER_RADIUS = 39;
+const COMPACT_PIE_RADIUS = 50;
+const COMPACT_PIE_INNER_RADIUS = 31;
 const SHIMMER_DURATION = 1300;
 
 const ProjectDetailsScreen = ({ route }) => {
@@ -60,7 +60,8 @@ const ProjectDetailsScreen = ({ route }) => {
     projectHeaderSubtitle,
     toggleSection,
     setSelectedStage,
-    setFilterType,
+    openLocationFilter,
+    closeLocationFilter,
     setLocationFilterSearchQuery,
     loadMoreFilterOptions,
     applyLocationFilter,
@@ -223,7 +224,7 @@ const ProjectDetailsScreen = ({ route }) => {
     const { data, percent } = buildPieChartData(stages, stageLabel);
 
     return (
-      <View style={styles.pieWrapper}>
+      <View style={[styles.pieWrapper, compact && styles.pieWrapperCompact]}>
         <PieChart
           donut
           radius={compact ? compactPieRadius : pieRadius}
@@ -251,8 +252,16 @@ const ProjectDetailsScreen = ({ route }) => {
     >
       <View style={[styles.summaryDot, { backgroundColor: color }]} />
       <View style={styles.summaryTextWrap}>
-        <Text style={styles.summaryLabel}>{label}</Text>
-        <Text style={styles.summaryValue}>{value}</Text>
+        <Text
+          style={[styles.summaryLabel, compact && styles.summaryLabelCompact]}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[styles.summaryValue, compact && styles.summaryValueCompact]}
+        >
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -495,7 +504,7 @@ const ProjectDetailsScreen = ({ route }) => {
                       value={zone}
                       icon={Icons.zone}
                       active={zone !== "All"}
-                      onPress={() => setFilterType("zone")}
+                      onPress={() => openLocationFilter("zone")}
                     />
 
                     <FilterField
@@ -503,7 +512,7 @@ const ProjectDetailsScreen = ({ route }) => {
                       value={village}
                       icon={Icons.village}
                       active={village !== "All"}
-                      onPress={() => setFilterType("village")}
+                      onPress={() => openLocationFilter("village")}
                     />
                   </View>
                 </View>
@@ -546,17 +555,47 @@ const ProjectDetailsScreen = ({ route }) => {
                     <View
                       style={[
                         styles.kpiAccentBar,
+                        shouldUseOfflineKpiLayout && styles.kpiAccentBarOffline,
                         { backgroundColor: item.accent },
                       ]}
                     />
-                    <View style={styles.kpiContent}>
-                      <View style={styles.kpiHeaderRow}>
-                        <Text style={[styles.kpiKey, { color: item.text }]}>
-                          {item.key}
-                        </Text>
+                    <View
+                      style={[
+                        styles.kpiContent,
+                        shouldUseOfflineKpiLayout && styles.kpiContentOffline,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.kpiHeaderRow,
+                          shouldUseOfflineKpiLayout && styles.kpiHeaderRowOffline,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.kpiTextBlock,
+                            shouldUseOfflineKpiLayout && styles.kpiTextBlockOffline,
+                          ]}
+                        >
+                          <Text style={[styles.kpiKey, { color: item.text }]}>
+                            {item.key}
+                          </Text>
+                          {shouldUseOfflineKpiLayout ? (
+                            <Text
+                              style={[
+                                styles.kpiValue,
+                                styles.kpiValueOffline,
+                                { color: item.accent },
+                              ]}
+                            >
+                              {item.value}
+                            </Text>
+                          ) : null}
+                        </View>
                         <View
                           style={[
                             styles.kpiArrowWrap,
+                            shouldUseOfflineKpiLayout && styles.kpiArrowWrapOffline,
                             { backgroundColor: item.chipBg },
                           ]}
                         >
@@ -567,9 +606,11 @@ const ProjectDetailsScreen = ({ route }) => {
                           />
                         </View>
                       </View>
-                      <Text style={[styles.kpiValue, { color: item.accent }]}>
-                        {item.value}
-                      </Text>
+                      {!shouldUseOfflineKpiLayout ? (
+                        <Text style={[styles.kpiValue, { color: item.accent }]}>
+                          {item.value}
+                        </Text>
+                      ) : null}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -602,6 +643,7 @@ const ProjectDetailsScreen = ({ route }) => {
                     <TouchableOpacity
                       style={[
                         styles.sectionHeader,
+                        !isOnline && styles.sectionHeaderOffline,
                         { backgroundColor: colors.white },
                       ]}
                       onPress={() => toggleSection(key)}
@@ -610,6 +652,7 @@ const ProjectDetailsScreen = ({ route }) => {
                         <View
                           style={[
                             styles.sectionAccent,
+                            !isOnline && styles.sectionAccentOffline,
                             { backgroundColor: moduleTheme.accent },
                           ]}
                         />
@@ -627,10 +670,17 @@ const ProjectDetailsScreen = ({ route }) => {
                       <View
                         style={[
                           styles.sectionIconWrap,
+                          !isOnline && styles.sectionIconWrapOffline,
                           { backgroundColor: moduleTheme.chipBg },
                         ]}
                       >
-                        {expanded === key ? (
+                        {!isOnline ? (
+                          <Icon
+                            source={expanded === key ? "chevron-up" : "chevron-down"}
+                            size={sectionArrowIconSize}
+                            color={moduleTheme.text}
+                          />
+                        ) : expanded === key ? (
                           <Icons.up
                             width={sectionArrowIconSize}
                             height={sectionArrowIconSize}
@@ -920,7 +970,7 @@ const ProjectDetailsScreen = ({ route }) => {
           hasMoreOptions={hasMoreFilterOptions}
           selectedValue={getActiveLocationFilterValue()}
           onSelect={applyLocationFilter}
-          onClose={() => setFilterType(null)}
+          onClose={closeLocationFilter}
           onEndReached={loadMoreFilterOptions}
           searchQuery={locationFilterSearchQuery}
           onSearchQueryChange={setLocationFilterSearchQuery}

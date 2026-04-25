@@ -34,7 +34,7 @@ const AppLockScreen = () => {
           />
         </View>
 
-        <Text style={styles.title}>Unlock IDICM</Text>
+        <Text style={styles.title}>Unlock IrriTrack</Text>
         <Text style={styles.subtitle}>
           Use your device security to continue.
         </Text>

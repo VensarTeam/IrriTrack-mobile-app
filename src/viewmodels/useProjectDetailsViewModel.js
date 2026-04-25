@@ -9,6 +9,7 @@ import {
 } from "../models/projectDetails";
 import { fetchProjectDetails } from "../services/projectDetailsService";
 import {
+  getCachedOmsBasicUnitsCount,
   syncOmsBasicUnitsForProjectInBackground,
 } from "../services/omsOfflineStore";
 import { showAppAlert } from "../services/alertService";
@@ -41,6 +42,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const [projectDetails, setProjectDetails] = useState(fallbackProjectDetails);
   const [isProjectDetailsLoading, setIsProjectDetailsLoading] = useState(false);
   const [projectDetailsError, setProjectDetailsError] = useState("");
+  const [cachedOmsUnitsCount, setCachedOmsUnitsCount] = useState(0);
   const chartAnim = useRef(new Animated.Value(0)).current;
   const latestRequestIdRef = useRef(0);
 
@@ -50,12 +52,14 @@ const useProjectDetailsViewModel = (navigation, route) => {
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
     hasMoreFilterOptions,
+    prepareFilterOptions,
     loadMoreFilterOptions,
     zones,
     villages,
     villageOptions,
   } = useProjectLocationFilters({
     projectId,
+    zoneName: zone,
     activeFilterType: filterType,
     searchQuery: locationFilterSearchQuery,
   });
@@ -71,6 +75,37 @@ const useProjectDetailsViewModel = (navigation, route) => {
   }, [fallbackProjectDetails]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadCachedOmsCount = async () => {
+      if (!projectId) {
+        if (isMounted) {
+          setCachedOmsUnitsCount(0);
+        }
+        return;
+      }
+
+      try {
+        const count = await getCachedOmsBasicUnitsCount(projectId);
+
+        if (isMounted) {
+          setCachedOmsUnitsCount(count);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setCachedOmsUnitsCount(0);
+        }
+      }
+    };
+
+    void loadCachedOmsCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
     if (!expanded) return;
 
     chartAnim.setValue(0);
@@ -81,6 +116,20 @@ const useProjectDetailsViewModel = (navigation, route) => {
       useNativeDriver: true,
     }).start();
   }, [expanded, chartAnim]);
+
+  useEffect(() => {
+    if (!projectId || !isOnline) {
+      return;
+    }
+
+    void syncOmsBasicUnitsForProjectInBackground(projectId).then(() => {
+      void getCachedOmsBasicUnitsCount(projectId)
+        .then((count) => {
+          setCachedOmsUnitsCount(count);
+        })
+        .catch(() => {});
+    });
+  }, [isOnline, projectId]);
 
   useEffect(() => {
     if (!canUseLocationFilters) {
@@ -185,6 +234,16 @@ const useProjectDetailsViewModel = (navigation, route) => {
     }
 
     setSelectedStage("All");
+    closeLocationFilter();
+  };
+
+  const openLocationFilter = (nextFilterType) => {
+    setLocationFilterSearchQuery("");
+    prepareFilterOptions(nextFilterType);
+    setFilterType(nextFilterType);
+  };
+
+  const closeLocationFilter = () => {
     setLocationFilterSearchQuery("");
     setFilterType(null);
   };
@@ -306,11 +365,19 @@ const useProjectDetailsViewModel = (navigation, route) => {
     },
   ];
 
-  const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => ({
-    key: moduleKey,
-    value: dataSet[moduleKey]?.totalUnits || 0,
-    ...moduleThemes[moduleKey],
-  }));
+  const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => {
+    const apiTotalUnits = dataSet[moduleKey]?.totalUnits || 0;
+    const totalUnits =
+      moduleKey === "OMS"
+        ? Math.max(apiTotalUnits, cachedOmsUnitsCount)
+        : apiTotalUnits;
+
+    return {
+      key: moduleKey,
+      value: totalUnits,
+      ...moduleThemes[moduleKey],
+    };
+  });
 
   const getModuleTheme = (module) => moduleThemes[module] || moduleThemes.OMS;
 
@@ -364,7 +431,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
     projectHeaderSubtitle: projectDetails?.name || project?.name || "",
     toggleSection,
     setSelectedStage,
-    setFilterType,
+    openLocationFilter,
+    closeLocationFilter,
     setLocationFilterSearchQuery,
     loadMoreFilterOptions,
     applyLocationFilter,

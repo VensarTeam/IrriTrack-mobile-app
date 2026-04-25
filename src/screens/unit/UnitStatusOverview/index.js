@@ -1,49 +1,91 @@
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Icon, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
 
-const getStatusColor = (value) => {
-  if (value === "Completed" || value === "Updated") return colors.completed;
-  if (value === "Partially Completed" || value === "Partial")
-    return colors.partial;
-  return colors.pending;
+const getStatusColors = (statusKey) => {
+  if (
+    statusKey === "completed" ||
+    statusKey === "approved" ||
+    statusKey === "updated"
+  ) {
+    return {
+      solid: colors.completed,
+      soft: "#E8FFF2",
+      text: "#117A4D",
+    };
+  }
+
+  if (statusKey === "commented") {
+    return {
+      solid: colors.primaryBlue,
+      soft: "#EAF3FF",
+      text: colors.primaryBlue,
+    };
+  }
+
+  if (statusKey === "partial") {
+    return {
+      solid: colors.partial,
+      soft: "#FFF7E3",
+      text: "#A56D00",
+    };
+  }
+
+  return {
+    solid: colors.pending,
+    soft: "#FFF2E5",
+    text: "#A85D10",
+  };
 };
 
-const isCompletedStatus = (value) =>
-  value === "Completed" || value === "Updated";
+const StatusPill = ({ status }) => {
+  const palette = getStatusColors(status?.key);
+
+  return (
+    <View style={[styles.statusPill, { backgroundColor: palette.soft }]}>
+      <View
+        style={[styles.statusPillDot, { backgroundColor: palette.solid }]}
+      />
+      <Text style={[styles.statusPillText, { color: palette.text }]}>
+        {status?.label || "Pending"}
+      </Text>
+    </View>
+  );
+};
 
 const UnitStatusOverviewScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const {
     module,
     unit,
+    unitLabel,
     projectName,
-    sections,
-    allStatusesCompleted,
+    processes,
+    summary,
+    isLoading,
+    error,
+    refreshProgress,
+    selectedProcess,
+    selectedSubprocess,
     handleBack,
-    downloadReportPdf,
-    downloadCertificate,
+    openSubprocessModal,
+    closeSubprocessModal,
   } = useUnitStatusOverviewViewModel(navigation, route);
-  const totalStatuses = sections.reduce(
-    (sum, section) => sum + section.subStatuses.length,
-    0,
-  );
-  const completedStatuses = sections.reduce(
-    (sum, section) =>
-      sum +
-      section.subStatuses.filter((item) => isCompletedStatus(item.status))
-        .length,
-    0,
-  );
-  const pendingStatuses = Math.max(totalStatuses - completedStatuses, 0);
-  const overviewSummary = [
-    { key: "processes", value: sections.length, label: "Processes" },
-    { key: "completed", value: completedStatuses, label: "Completed" },
-    { key: "pending", value: pendingStatuses, label: "Pending" },
-  ];
+  const sheetBottomPadding = insets.bottom + 20;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -57,130 +99,217 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero Card ── */}
         <View style={styles.heroCard}>
           <View style={styles.heroOrb1} pointerEvents="none" />
           <View style={styles.heroOrb2} pointerEvents="none" />
-          <View style={styles.heroOrb3} pointerEvents="none" />
-
           <View style={styles.heroTopRow}>
             <View style={styles.heroBadge}>
-               <Text style={styles.heroBadgeText}>PROJECT</Text>
+              <Text style={styles.heroBadgeText}>PROJECT</Text>
             </View>
             <View style={styles.heroUnitBadge}>
-              <Text style={styles.heroUnitText}>
-                Unit: {unit?.unitNo || `${module}-001`}
-              </Text>
+              <Text style={styles.heroUnitText}>{unitLabel}</Text>
             </View>
           </View>
 
           <Text style={styles.heroTitle} numberOfLines={2}>
             {projectName}
           </Text>
+
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStatChip}>
+              <Text style={styles.heroStatValue}>{summary.processCount}</Text>
+              <Text style={styles.heroStatLabel}>Processes</Text>
+            </View>
+            <View style={[styles.heroStatChip, styles.heroStatChipGreen]}>
+              <Text style={styles.heroStatValue}>
+                {summary.completedSubprocessCount}
+              </Text>
+              <Text style={styles.heroStatLabel}>Completed</Text>
+            </View>
+            <View style={[styles.heroStatChip, styles.heroStatChipAmber]}>
+              <Text style={styles.heroStatValue}>
+                {summary.pendingSubprocessCount}
+              </Text>
+              <Text style={styles.heroStatLabel}>Pending</Text>
+            </View>
+          </View>
         </View>
 
-        {/* ── Section Cards ── */}
-        {sections.map((section) => (
-          <View key={section.key} style={styles.sectionCard}>
-            <View style={styles.sectionHeadRow}>
-              <View style={styles.sectionIconWrap}>
-                <IconButton
-                  icon="clipboard-list-outline"
-                  size={14}
-                  iconColor={colors.primaryBlue}
-                />
-              </View>
-              <View style={styles.sectionHeadCopy}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionSubtitle} numberOfLines={1}>
-                  {section.description}
-                </Text>
-              </View>
-              <View style={styles.sectionCountBadge}>
-                <Text style={styles.sectionCountText}>
-                  {section.subStatuses.length} step
-                  {section.subStatuses.length === 1 ? "" : "s"}
-                </Text>
-              </View>
-            </View>
+        {isLoading ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>Loading all process status...</Text>
+            <Text style={styles.stateCopy}>
+              We are fetching the latest subprocess and checklist data.
+            </Text>
+          </View>
+        ) : null}
 
-            <View style={styles.subStatusList}>
-              {section.subStatuses.map((item, index) => {
-                const statusColor = getStatusColor(item.status);
-                return (
-                  <View
-                    key={item.id}
-                    style={[
-                      styles.subStatusItem,
-                      index === section.subStatuses.length - 1 &&
-                        styles.subStatusItemLast,
-                    ]}
-                  >
-                    <View style={styles.subStatusCopy}>
-                      <View style={styles.subStatusDot} />
-                      <Text style={styles.subStatusLabel}>
-                        {item.displayLabel}
+        {error ? (
+          <View style={[styles.stateCard, styles.stateCardError]}>
+            <Text style={styles.stateTitle}>Unable to load status</Text>
+            <Text style={styles.stateCopy}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={refreshProgress}
+              activeOpacity={0.86}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {!isLoading && !error && !processes.length ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>No process data available</Text>
+            <Text style={styles.stateCopy}>
+              This node does not have any checklist progress from the API yet.
+            </Text>
+          </View>
+        ) : null}
+
+        {!error
+          ? processes.map((process) => {
+              return (
+                <View key={process.id} style={styles.sectionCard}>
+                  <View style={styles.sectionHeadRow}>
+                    <View style={styles.sectionHeadCopy}>
+                      <View style={styles.sectionBadge}>
+                        <Text style={styles.sectionBadgeText}>PROCESS</Text>
+                      </View>
+                      <View style={styles.sectionTitleRow}>
+                        <Text style={styles.sectionTitle}>{process.name}</Text>
+                        <StatusPill status={process.status} />
+                      </View>
+                      <Text style={styles.sectionSubtitle}>
+                        {process.subprocessCount} subprocess
+                        {process.subprocessCount === 1 ? "" : "es"} •{" "}
+                        {process.checklistCount} checklist
+                        {process.checklistCount === 1 ? "" : "s"}
                       </Text>
                     </View>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { backgroundColor: statusColor },
-                      ]}
-                    >
-                      <Text style={styles.statusPillText}>{item.status}</Text>
-                    </View>
                   </View>
-                );
-              })}
-            </View>
-          </View>
-        ))}
 
-        {/* ── Actions Card ── */}
-        <View style={styles.actionsCard}>
-          <View style={styles.actionsHeadRow}>
-            <View style={styles.actionsIconWrap}>
+                  <View style={styles.subStatusList}>
+                    {process.subprocesses.map((subprocess, subprocessIndex) => (
+                      <TouchableOpacity
+                        key={subprocess.id}
+                        style={[
+                          styles.subStatusItem,
+                          subprocessIndex === process.subprocesses.length - 1 &&
+                            styles.subStatusItemLast,
+                        ]}
+                        activeOpacity={0.86}
+                        onPress={() => openSubprocessModal(process, subprocess)}
+                      >
+                        <View style={styles.subStatusCopy}>
+                          <Text style={styles.subStatusLabel}>
+                            {subprocess.name}
+                          </Text>
+                          <Text style={styles.subStatusHint}>
+                            {subprocess.checklistCount} checklist
+                            {subprocess.checklistCount === 1 ? "" : "s"}
+                          </Text>
+                        </View>
+                        <View style={styles.subStatusMeta}>
+                          <StatusPill status={subprocess.status} />
+                          <Icon
+                            source="chevron-right"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              );
+            })
+          : null}
+      </ScrollView>
+
+      <Modal
+        visible={Boolean(selectedSubprocess)}
+        transparent
+        animationType="slide"
+        onRequestClose={closeSubprocessModal}
+      >
+        <View style={styles.sheetOverlay}>
+          <Pressable style={styles.sheetBackdrop} onPress={closeSubprocessModal} />
+
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderCopy}>
+                <Text style={styles.sheetEyebrow}>
+                  {selectedProcess?.name || "Checklist Status"}
+                </Text>
+                <Text style={styles.sheetTitle}>
+                  {selectedSubprocess?.name || "Subprocess"}
+                </Text>
+                <Text style={styles.sheetSubtitle}>
+                  Only filled values are shown below when the API provides them.
+                </Text>
+              </View>
+
               <IconButton
-                icon="clipboard-list-outline"
-                size={16}
-                iconColor={colors.primaryBlue}
+                icon="close"
+                size={20}
+                iconColor={colors.textDark}
+                onPress={closeSubprocessModal}
               />
             </View>
-            <View>
-              <Text style={styles.actionsTitle}>Downloads</Text>
-              <Text style={styles.actionsSubtitle}>
-                Export the status summary or certificate.
+
+            <View style={styles.sheetStatusRow}>
+              <StatusPill status={selectedSubprocess?.status} />
+              <Text style={styles.sheetStatusCount}>
+                {selectedSubprocess?.checklistCount || 0} checklist
+                {(selectedSubprocess?.checklistCount || 0) === 1 ? "" : "s"}
               </Text>
             </View>
-          </View>
 
-          <TouchableOpacity
-            style={styles.reportButton}
-            onPress={downloadReportPdf}
-          >
-            {/* <Icons.download width={14} height={14} color={colors.primaryBlue} /> */}
-            <IconButton
-              icon="download-outline"
-              size={14}
-              iconColor={colors.primaryBlue}
-            />
-            <Text style={styles.reportButtonText}>Download Report PDF</Text>
-          </TouchableOpacity>
-
-          {allStatusesCompleted ? (
-            <TouchableOpacity
-              style={styles.certificateButton}
-              onPress={downloadCertificate}
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={[
+                styles.sheetScrollContent,
+                { paddingBottom: sheetBottomPadding },
+              ]}
+              showsVerticalScrollIndicator={false}
             >
-              <Icons.download width={14} height={14} color={colors.white} />
-              <Text style={styles.certificateButtonText}>
-                Download Certificate
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+              {(selectedSubprocess?.checklists || []).map((checklist, index) => (
+                <View
+                  key={checklist.id}
+                  style={[
+                    styles.checklistCard,
+                    index === (selectedSubprocess?.checklists || []).length - 1 &&
+                      styles.checklistCardLast,
+                  ]}
+                >
+                  <View style={styles.checklistHead}>
+                    <View style={styles.checklistCopy}>
+                      <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                      {!checklist.isRequired ? (
+                        <Text style={styles.optionalText}>Optional</Text>
+                      ) : null}
+                      {checklist.detail?.value ? (
+                        <Text style={styles.checklistDetail}>
+                          {checklist.detail.label}: {checklist.detail.value}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    {checklist.isRequired ? (
+                      <View style={styles.checklistMeta}>
+                        <StatusPill status={checklist.status} />
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 };
