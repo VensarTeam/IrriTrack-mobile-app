@@ -79,6 +79,7 @@ const UnitDetailsScreen = ({ navigation, route }) => {
     detailItems,
     processes,
     summary,
+    overviewActionLabel,
     isLoading,
     isRefreshing,
     error,
@@ -99,7 +100,7 @@ const UnitDetailsScreen = ({ navigation, route }) => {
           {`OMS-${unitLabel}`}
         </Text>
         <IconButton
-          icon="information-outline"
+          icon="help-circle-outline"
           iconColor={colors.primaryBlue}
           size={20}
           onPress={openHelper}
@@ -190,7 +191,7 @@ const UnitDetailsScreen = ({ navigation, route }) => {
             </Text>
           </View>
           <TouchableOpacity style={styles.viewAllButton} onPress={openViewAll}>
-            <Text style={styles.viewAllText}>All Status</Text>
+            <Text style={styles.viewAllText}>{overviewActionLabel}</Text>
           </TouchableOpacity>
         </View>
 

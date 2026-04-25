@@ -2,6 +2,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   Modal,
   ScrollView,
   Text,
@@ -33,6 +34,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     source: null,
     title: "",
   });
+  const formScrollRef = React.useRef(null);
 
   const {
     module,
@@ -48,6 +50,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     showStatusField,
     showRemarkField,
     isReadOnly,
+    readOnlyTitle,
     readOnlyNotice,
     isRemarkRequired,
     checklistItems,
@@ -137,6 +140,27 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     });
   };
 
+  const scrollFocusedFieldIntoView = React.useCallback((event) => {
+    const target =
+      event?.target ??
+      event?.nativeEvent?.target ??
+      null;
+
+    if (!target) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        formScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard?.(
+          target,
+          80,
+          true
+        );
+      }, 80);
+    });
+  }, []);
+
     const renderSelectField = ({
     elementKey,
     label,
@@ -155,14 +179,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
           error && styles.selectFieldError,
           isReadOnly && styles.fieldDisabled,
         ]}
-        onPress={() =>
+        onPress={() => {
+          Keyboard.dismiss();
           openSelectModal({
             field,
             title: label,
             options,
             target,
-          })
-        }
+          });
+        }}
         activeOpacity={isReadOnly ? 1 : 0.86}
         disabled={isReadOnly}
       >
@@ -276,7 +301,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                             itemErrors[groupField.key] && styles.selectFieldError,
                             isReadOnly && styles.fieldDisabled,
                           ]}
-                            onPress={() =>
+                            onPress={() => {
+                              Keyboard.dismiss();
                               openSelectModal({
                                 field: groupField.key,
                                 title: groupField.label,
@@ -287,8 +313,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                                   itemIndex,
                                   fieldKey: groupField.key,
                                 },
-                              })
-                            }
+                              });
+                            }}
                             activeOpacity={isReadOnly ? 1 : 0.86}
                             disabled={isReadOnly}
                           >
@@ -412,6 +438,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         </View>
 
         <KeyboardAwareScrollView
+          innerRef={formScrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -453,8 +480,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.stepScroll}
+            contentContainerStyle={styles.stepScrollContent}
           >
-            {section.subOptions.map((sub) => (
+            {section.subOptions.map((sub, index) => (
               <TouchableOpacity
                 key={sub.id}
                 style={[
@@ -464,14 +492,41 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 onPress={() => setActiveSubOptionId(sub.id)}
                 activeOpacity={0.85}
               >
-                <Text
+                <View
                   style={[
-                    styles.stepChipText,
-                    sub.id === activeSubOptionId && styles.stepChipTextActive,
+                    styles.stepChipNumber,
+                    sub.id === activeSubOptionId && styles.stepChipNumberActive,
                   ]}
                 >
-                  {getSubOptionLabel(sub)}
-                </Text>
+                  <Text
+                    style={[
+                      styles.stepChipNumberText,
+                      sub.id === activeSubOptionId &&
+                        styles.stepChipNumberTextActive,
+                    ]}
+                  >
+                    {index + 1}
+                  </Text>
+                </View>
+
+                <View style={styles.stepChipContent}>
+                  <Text
+                    style={[
+                      styles.stepChipText,
+                      sub.id === activeSubOptionId && styles.stepChipTextActive,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {getSubOptionLabel(sub)}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.stepChipDot,
+                    sub.id === activeSubOptionId && styles.stepChipDotActive,
+                  ]}
+                />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -490,7 +545,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             {isReadOnly ? (
               <View style={styles.readOnlyBanner}>
-                <Text style={styles.readOnlyBannerTitle}>Already Submitted</Text>
+                <Text style={styles.readOnlyBannerTitle}>{readOnlyTitle}</Text>
                 <Text style={styles.readOnlyBannerText}>
                   {readOnlyNotice}
                 </Text>
@@ -595,6 +650,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   multiline
                   editable={!isReadOnly}
                   value={activeValues.remark}
+                  onFocus={scrollFocusedFieldIntoView}
                   onChangeText={updateRemarkValue}
                   textAlignVertical="top"
                 />
@@ -787,7 +843,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                                 styles.locationMiniBtnTextDisabled,
                             ]}
                           >
-                            View Map
+                            Directions
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -869,7 +925,12 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         </KeyboardAwareScrollView>
       </View>
 
-      <Modal visible={pickerState.visible} transparent animationType="fade">
+      <Modal
+        visible={pickerState.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePicker}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{pickerState.title}</Text>

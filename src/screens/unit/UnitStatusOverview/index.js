@@ -1,9 +1,11 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -74,6 +76,8 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
     unit,
     unitLabel,
     projectName,
+    screenTitle,
+    canReviewChecklist,
     processes,
     summary,
     isLoading,
@@ -81,6 +85,12 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
     refreshProgress,
     selectedProcess,
     selectedSubprocess,
+    selectedSubprocessDetails,
+    reviewRemark,
+    reviewError,
+    isReviewSubmitting,
+    updateReviewRemark,
+    submitReview,
     handleBack,
     openSubprocessModal,
     closeSubprocessModal,
@@ -91,7 +101,7 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <IconButton icon="arrow-left" onPress={handleBack} />
-        <Text style={styles.headerTitle}>All Status</Text>
+        <Text style={styles.headerTitle}>{screenTitle}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -212,11 +222,11 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                         </View>
                         <View style={styles.subStatusMeta}>
                           <StatusPill status={subprocess.status} />
-                          <Icon
+                          {/* <Icon
                             source="chevron-right"
                             size={18}
                             color={colors.textSecondary}
-                          />
+                          /> */}
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -248,7 +258,9 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                   {selectedSubprocess?.name || "Subprocess"}
                 </Text>
                 <Text style={styles.sheetSubtitle}>
-                  Only filled values are shown below when the API provides them.
+                  {canReviewChecklist
+                    ? "Review checklist values, remarks, and submit your decision."
+                    : "Only filled values are shown below when the API provides them."}
                 </Text>
               </View>
 
@@ -306,6 +318,78 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                   </View>
                 </View>
               ))}
+
+              {selectedSubprocessDetails.length ? (
+                <View style={styles.reviewDetailsSection}>
+                  <Text style={styles.sectionBlockTitle}>Review Details</Text>
+                  <View style={styles.detailMetaGrid}>
+                    {selectedSubprocessDetails.map((item) => (
+                      <View key={item.key} style={styles.detailMetaCard}>
+                        <Text style={styles.detailMetaLabel}>{item.label}</Text>
+                        <Text style={styles.detailMetaValue}>{item.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              {canReviewChecklist ? (
+                <View style={styles.reviewActionSection}>
+                  <Text style={styles.sectionBlockTitle}>Approval Action</Text>
+                  <Text style={styles.reviewActionSubtitle}>
+                    Add a comment only if you want to reject this subprocess.
+                  </Text>
+
+                  <TextInput
+                    style={[
+                      styles.reviewRemarkInput,
+                      reviewError && styles.reviewRemarkInputError,
+                    ]}
+                    placeholder="Write rejection comment"
+                    placeholderTextColor={colors.textSecondary}
+                    multiline
+                    value={reviewRemark}
+                    onChangeText={updateReviewRemark}
+                    textAlignVertical="top"
+                  />
+
+                  {reviewError ? (
+                    <Text style={styles.reviewErrorText}>{reviewError}</Text>
+                  ) : null}
+
+                  <View style={styles.reviewActionRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.reviewActionButton,
+                        styles.reviewRejectButton,
+                        isReviewSubmitting && styles.reviewActionButtonDisabled,
+                      ]}
+                      activeOpacity={isReviewSubmitting ? 1 : 0.88}
+                      disabled={isReviewSubmitting}
+                      onPress={() => submitReview("reject")}
+                    >
+                      <Text style={styles.reviewRejectText}>Reject</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.reviewActionButton,
+                        styles.reviewApproveButton,
+                        isReviewSubmitting && styles.reviewActionButtonDisabled,
+                      ]}
+                      activeOpacity={isReviewSubmitting ? 1 : 0.88}
+                      disabled={isReviewSubmitting}
+                      onPress={() => submitReview("approve")}
+                    >
+                      {isReviewSubmitting ? (
+                        <ActivityIndicator size="small" color={colors.white} />
+                      ) : (
+                        <Text style={styles.reviewApproveText}>Approve</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
             </ScrollView>
           </View>
         </View>

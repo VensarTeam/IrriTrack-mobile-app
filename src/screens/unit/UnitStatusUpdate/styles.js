@@ -141,30 +141,91 @@ export default StyleSheet.create({
     marginBottom: verticalScale(12),
   },
 
+  stepScrollContent: {
+    paddingRight: moderateScale(6),
+  },
+
   stepChip: {
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(8),
+    minWidth: moderateScale(132),
+    maxWidth: moderateScale(152),
+    minHeight: verticalScale(48),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(7),
     borderRadius: moderateScale(14),
     backgroundColor: colors.white,
     marginRight: moderateScale(8),
     borderWidth: 1,
     borderColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 1,
   },
 
   stepChipActive: {
     backgroundColor: colors.primaryBlue,
     borderColor: colors.primaryBlue,
-    elevation: 1,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  stepChipNumber: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: moderateScale(8),
+  },
+
+  stepChipNumberActive: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+
+  stepChipNumberText: {
+    fontSize: moderateScale(10),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  stepChipNumberTextActive: {
+    color: colors.white,
+  },
+
+  stepChipContent: {
+    flex: 1,
+    minWidth: 0,
   },
 
   stepChipText: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(10.5),
+    lineHeight: moderateScale(13),
     color: colors.textSecondary,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.semiBold,
   },
 
   stepChipTextActive: {
     color: colors.white,
+  },
+
+  stepChipDot: {
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
+    backgroundColor: colors.border,
+    marginLeft: moderateScale(8),
+  },
+
+  stepChipDotActive: {
+    backgroundColor: colors.white,
   },
 
   formCard: {
@@ -210,6 +271,30 @@ export default StyleSheet.create({
   },
 
   readOnlyBannerText: {
+    fontSize: moderateScale(10.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(15),
+  },
+
+  reviewInfoCard: {
+    marginBottom: verticalScale(8),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: "#DDE7F1",
+    backgroundColor: "#F8FBFE",
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+  },
+
+  reviewInfoTitle: {
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(2),
+  },
+
+  reviewInfoText: {
     fontSize: moderateScale(10.5),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
@@ -834,7 +919,7 @@ locationMetaText: {
 locationMiniBtn: {
   minHeight: verticalScale(30),
   borderRadius: moderateScale(999),
-  backgroundColor: colors.surfaceBlueSoft,
+  backgroundColor: colors.primaryBlue,
   borderWidth: 1,
   borderColor: colors.primaryBlue,
   paddingHorizontal: moderateScale(12),
@@ -859,7 +944,7 @@ locationMiniBtnDisabled: {
 
 locationMiniBtnText: {
   fontSize: moderateScale(10),
-  color: colors.primaryBlue,
+  color: colors.white,
   fontFamily: fonts.bold,
   letterSpacing: 0.3,
 },
@@ -925,6 +1010,91 @@ locationBtnSecondaryText: {
   letterSpacing: 0.4,
 },
 
+  reviewPanel: {
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(2),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.surfaceBluePale,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(12),
+  },
+
+  reviewPanelTitle: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  reviewPanelSubtitle: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(10.5),
+    lineHeight: moderateScale(15),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  reviewRemarkInput: {
+    marginTop: verticalScale(10),
+    minHeight: verticalScale(92),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  reviewActionsRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+    marginTop: verticalScale(12),
+  },
+
+  reviewActionButton: {
+    flex: 1,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+
+  reviewRejectButton: {
+    backgroundColor: "#FFF4F2",
+    borderColor: "#E7B8AE",
+  },
+
+  reviewApproveButton: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+
+  reviewRejectButtonText: {
+    fontSize: moderateScale(11.5),
+    color: "#B14530",
+    fontFamily: fonts.bold,
+  },
+
+  reviewApproveButtonText: {
+    fontSize: moderateScale(11.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  reviewActionButtonDisabled: {
+    backgroundColor: "#EAF1F8",
+    borderColor: "#D7E3F1",
+  },
+
+  reviewActionButtonTextDisabled: {
+    color: colors.textSecondary,
+  },
+
   submitButton: {
     marginTop: verticalScale(8),
     borderRadius: moderateScale(12),
@@ -932,9 +1102,9 @@ locationBtnSecondaryText: {
   },
 
   submitButtonDisabled: {
-    backgroundColor: "#EAF1F8",
+    backgroundColor: "#b8cee5",
     borderWidth: 1,
-    borderColor: "#D7E3F1",
+    borderColor: "#b8cee5",
     shadowOpacity: 0,
     elevation: 0,
   },

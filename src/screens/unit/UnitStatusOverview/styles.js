@@ -422,6 +422,128 @@ export default StyleSheet.create({
     marginBottom: 0,
   },
 
+  reviewDetailsSection: {
+    marginTop: verticalScale(16),
+  },
+
+  sectionBlockTitle: {
+    fontSize: moderateScale(13),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(10),
+  },
+
+  detailMetaGrid: {
+    gap: moderateScale(8),
+  },
+
+  detailMetaCard: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.surfaceBluePale,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+  },
+
+  detailMetaLabel: {
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(4),
+    letterSpacing: 0.3,
+  },
+
+  detailMetaValue: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
+    lineHeight: moderateScale(18),
+  },
+
+  reviewActionSection: {
+    marginTop: verticalScale(18),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    backgroundColor: "#F8FBFE",
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
+  },
+
+  reviewActionSubtitle: {
+    fontSize: moderateScale(10.5),
+    lineHeight: moderateScale(15),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(10),
+  },
+
+  reviewRemarkInput: {
+    minHeight: verticalScale(92),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  reviewRemarkInputError: {
+    borderColor: colors.danger,
+  },
+
+  reviewErrorText: {
+    marginTop: verticalScale(6),
+    fontSize: moderateScale(10),
+    color: colors.danger,
+    fontFamily: fonts.medium,
+  },
+
+  reviewActionRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+    marginTop: verticalScale(12),
+  },
+
+  reviewActionButton: {
+    flex: 1,
+    minHeight: verticalScale(46),
+    borderRadius: moderateScale(14),
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+
+  reviewActionButtonDisabled: {
+    opacity: 0.78,
+  },
+
+  reviewRejectButton: {
+    backgroundColor: "#FFF3F0",
+    borderColor: "#E5B7AA",
+  },
+
+  reviewApproveButton: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+
+  reviewRejectText: {
+    fontSize: moderateScale(11.5),
+    color: "#B24531",
+    fontFamily: fonts.bold,
+  },
+
+  reviewApproveText: {
+    fontSize: moderateScale(11.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
   checklistHead: {
     flexDirection: "row",
     alignItems: "flex-start",

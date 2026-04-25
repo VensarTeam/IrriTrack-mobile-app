@@ -39,6 +39,7 @@ const ProjectDetailsScreen = ({ route }) => {
   const navigation = useNavigation();
   const {
     isOnline,
+    canViewProjectInsights,
     canUseLocationFilters,
     dataSet,
     expanded,
@@ -71,6 +72,7 @@ const ProjectDetailsScreen = ({ route }) => {
     getStageSummary,
     getSectionHighlights,
     kpiCards,
+    canOpenModuleList,
     getModuleTheme,
     handleBack,
     openModuleList,
@@ -358,7 +360,8 @@ const ProjectDetailsScreen = ({ route }) => {
   const hasAnyModuleStages = Object.values(dataSet).some(
     (moduleData) => (moduleData?.stages || []).length > 0,
   );
-  const shouldUseOfflineKpiLayout = !isOnline || !hasAnyModuleStages;
+  const shouldUseOfflineKpiLayout =
+    !canViewProjectInsights || !isOnline || !hasAnyModuleStages;
   const showSkeletonLoader = isProjectDetailsLoading && !hasAnyModuleStages;
   const showInlineLoadingShimmer =
     isProjectDetailsLoading && hasAnyModuleStages;
@@ -550,7 +553,8 @@ const ProjectDetailsScreen = ({ route }) => {
                       },
                     ]}
                     onPress={() => openModuleList(item.key)}
-                    activeOpacity={0.85}
+                    activeOpacity={canOpenModuleList(item.key) ? 0.85 : 1}
+                    disabled={!canOpenModuleList(item.key)}
                   >
                     <View
                       style={[
@@ -616,7 +620,8 @@ const ProjectDetailsScreen = ({ route }) => {
                 ))}
               </View>
 
-              {Object.keys(dataSet).map((key) => {
+              {canViewProjectInsights
+                ? Object.keys(dataSet).map((key) => {
                 const moduleData = dataSet[key];
                 const stages = moduleData?.stages || [];
                 const moduleTheme = getModuleTheme(key);
@@ -949,7 +954,8 @@ const ProjectDetailsScreen = ({ route }) => {
                     )}
                   </View>
                 );
-              })}
+              })
+                : null}
             </>
           )}
         </ScrollView>

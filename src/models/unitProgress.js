@@ -28,6 +28,11 @@ const DETAIL_VALUE_KEYS = [
   "comments",
 ];
 
+const formatDetailLabel = (value = "") =>
+  String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
 const toTitleCase = (value = "") =>
   String(value || "")
     .trim()
@@ -137,6 +142,73 @@ const getChecklistDetail = (checklist = {}) => {
   };
 };
 
+const getNamedDetailItem = (source = {}, keys = [], label = "") => {
+  const matchedKey = keys.find((key) => {
+    const value = source?.[key];
+
+    if (value === null || typeof value === "undefined") {
+      return false;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
+  });
+
+  if (!matchedKey) {
+    return null;
+  }
+
+  const rawValue = source?.[matchedKey];
+  const value = normalizeDetailValue(rawValue);
+
+  if (!value) {
+    return null;
+  }
+
+  return {
+    key: matchedKey,
+    label: label || formatDetailLabel(matchedKey),
+    value,
+    rawValue,
+  };
+};
+
+const getSubprocessDetailItems = (subprocess = {}) =>
+  [
+    getNamedDetailItem(subprocess, ["remark", "remarks"], "Remark"),
+    getNamedDetailItem(
+      subprocess,
+      [
+        "reviewRemark",
+        "review_remarks",
+        "reviewComment",
+        "review_comment",
+        "comment",
+        "comments",
+        "rejectRemark",
+        "reject_remark",
+      ],
+      "Review Comment"
+    ),
+    getNamedDetailItem(
+      subprocess,
+      ["reviewedBy", "reviewed_by", "approvedBy", "approved_by"],
+      "Reviewed By"
+    ),
+    getNamedDetailItem(
+      subprocess,
+      ["reviewedAt", "reviewed_at", "approvedAt", "approved_at"],
+      "Reviewed On"
+    ),
+  ].filter(Boolean);
+
 export const createUnitProgressChecklist = (checklist = {}, index = 0) => {
   const status = normalizeUnitProgressStatus(checklist);
   const detail = getChecklistDetail(checklist);
@@ -176,6 +248,7 @@ export const createUnitProgressSubprocess = (subprocess = {}, index = 0) => {
       subprocess.description ||
       `Subprocess ${index + 1}`,
     status: normalizeUnitProgressStatus(subprocess),
+    detailItems: getSubprocessDetailItems(subprocess),
     checklists,
     checklistCount: checklists.length,
     completedChecklistCount: checklists.filter(
@@ -184,6 +257,7 @@ export const createUnitProgressSubprocess = (subprocess = {}, index = 0) => {
         item.status.key === "approved" ||
         item.status.key === "updated",
     ).length,
+    rawSubprocess: subprocess,
   };
 };
 

@@ -38,7 +38,7 @@ const toDisplayText = (value, fallback = "") => {
 };
 
 const useUnitDetailsViewModel = (navigation, route) => {
-  const { user } = useAuth();
+  const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
   const unit = route?.params?.unit || {};
   const unitLabel = toDisplayText(unit.unitNo, `${module}-001`);
@@ -60,6 +60,19 @@ const useUnitDetailsViewModel = (navigation, route) => {
     enabled: Boolean(projectId && unitId),
   });
   const [expandedProcesses, setExpandedProcesses] = useState({});
+
+  useEffect(() => {
+    if (roleAccess.canOpenUnitDetails) {
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.replace(ROUTES.ROOT.APP_TABS);
+  }, [navigation, roleAccess.canOpenUnitDetails]);
 
   useEffect(() => {
     const firstProcessId = progress.processes[0]?.id;
@@ -105,6 +118,9 @@ const useUnitDetailsViewModel = (navigation, route) => {
   );
 
   const summary = useMemo(() => getUnitProgressSummary(progress), [progress]);
+  const overviewActionLabel = roleAccess.canReviewChecklist
+    ? "Review"
+    : "All Status";
 
   const openHelper = () => {
     showAppAlert({
@@ -160,6 +176,7 @@ const useUnitDetailsViewModel = (navigation, route) => {
     detailItems,
     processes: progress.processes,
     summary,
+    overviewActionLabel,
     isLoading,
     isRefreshing,
     error,

@@ -25,7 +25,7 @@ const getProjectHeaderTitle = (projectDetails, fallbackProject, routeProjectName
   "Project Details";
 
 const useProjectDetailsViewModel = (navigation, route) => {
-  const { user } = useAuth();
+  const { user, roleAccess } = useAuth();
   const project = route?.params?.project || null;
   const projectId = project?.id || project?.projectId || user?.projectId || "";
   const fallbackProjectDetails = useMemo(
@@ -380,10 +380,16 @@ const useProjectDetailsViewModel = (navigation, route) => {
   });
 
   const getModuleTheme = (module) => moduleThemes[module] || moduleThemes.OMS;
+  const canOpenModuleList = (module) =>
+    !roleAccess.isContributor || String(module || "").toUpperCase() === "OMS";
 
   const handleBack = () => navigation.goBack();
 
   const openModuleList = (module) => {
+    if (!canOpenModuleList(module)) {
+      return;
+    }
+
     if (module === "OMS") {
       if (isOnline && projectId) {
         void syncOmsBasicUnitsForProjectInBackground(projectId);
@@ -404,7 +410,9 @@ const useProjectDetailsViewModel = (navigation, route) => {
 
   return {
     isOnline,
-    canUseLocationFilters,
+    canViewProjectInsights: roleAccess.canViewProjectInsights,
+    canUseLocationFilters:
+      canUseLocationFilters && roleAccess.canViewProjectInsights,
     dataSet,
     expanded,
     selectedStage,
@@ -442,6 +450,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     getStageSummary,
     getSectionHighlights,
     kpiCards,
+    canOpenModuleList,
     getModuleTheme,
     handleBack,
     openModuleList,

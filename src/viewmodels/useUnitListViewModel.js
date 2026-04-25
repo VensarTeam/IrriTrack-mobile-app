@@ -158,7 +158,7 @@ const mergeUnitsById = (currentUnits = [], nextUnits = []) => {
 };
 
 const useUnitListViewModel = (navigation, route) => {
-  const { user } = useAuth();
+  const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
   const project = route?.params?.project || null;
   const projectId = project?.id || project?.projectId || user?.projectId || "";
@@ -438,6 +438,10 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const openUnitDetails = (unit) => {
+    if (!roleAccess.canOpenUnitDetails) {
+      return;
+    }
+
     navigation.navigate(ROUTES.ROOT.UNIT_DETAILS, {
       module,
       unit,
@@ -447,6 +451,26 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const openProcess = (unit, process) => {
+    if (!roleAccess.canOpenProcessTabs) {
+      showAppAlert({
+        type: "warning",
+        title: "Action unavailable",
+        message: "You do not have access to open this process.",
+      });
+      return;
+    }
+
+    if (roleAccess.canReviewChecklist) {
+      navigation.navigate(ROUTES.ROOT.UNIT_STATUS_OVERVIEW, {
+        module,
+        unit,
+        unitId: unit?.id || "",
+        projectId: projectId || unit?.projectId || "",
+        projectName,
+      });
+      return;
+    }
+
     navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
       module,
       unit,
@@ -516,6 +540,7 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   return {
+    canOpenUnitDetails: roleAccess.canOpenUnitDetails,
     canUseLocationFilters,
     module,
     zones,

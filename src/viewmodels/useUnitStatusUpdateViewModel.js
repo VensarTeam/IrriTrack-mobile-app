@@ -13,10 +13,12 @@ import {
   submitChecklistOfflineFirst,
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
+import { submitOmsReviewAction } from "../services/omsReviewService";
 import {
   getCachedContractorList,
   refreshContractorList,
 } from "../services/contractorOfflineStore";
+import { useAuth } from "../context/AuthContext";
 import useUnitProgress from "../hooks/useUnitProgress";
 import useChecklistSections from "./useChecklistSections";
 
@@ -248,6 +250,7 @@ const parseRepeatableGroupItems = (group, rawValue) => {
 };
 
 const useUnitStatusUpdateViewModel = (navigation, route) => {
+  const { roleAccess } = useAuth();
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const projectId =
@@ -473,12 +476,32 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   ]);
 
   const submittedFromLocal = Boolean(localSubmissionSnapshot?.payload);
-  const isReadOnly = submittedFromServer || submittedFromLocal;
-  const readOnlyNotice = submittedFromServer
-    ? "Already submitted from server data."
-    : submittedFromLocal
-      ? "Already submitted and saved on this device."
-      : "";
+  const isRoleReadOnly = !roleAccess.canEditChecklist;
+  const isReadOnly = isRoleReadOnly || submittedFromServer || submittedFromLocal;
+  const readOnlyTitle = isRoleReadOnly ? "View Only" : "Already Submitted";
+  const readOnlyNotice = isRoleReadOnly
+    ? roleAccess.checklistReadOnlyNotice ||
+      "This role can review checklist data but cannot edit it."
+    : submittedFromServer
+      ? "Already submitted from server data."
+      : submittedFromLocal
+        ? "Already submitted and saved on this device."
+        : "";
+  const canReviewChecklist = roleAccess.canReviewChecklist;
+  const canShowReviewActions = canReviewChecklist && submittedFromServer;
+  const reviewActionNotice = canReviewChecklist
+    ? submittedFromServer
+      ? roleAccess.reviewNotice
+      : "Approval actions will be available after this checklist is synced from the server."
+    : "";
+  const [reviewRemark, setReviewRemark] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+
+  useEffect(() => {
+    setReviewRemark("");
+    setReviewError("");
+  }, [activeSubOption?.id]);
 
   useEffect(() => {
     const subOptionId = activeSubOption?.id;
@@ -768,6 +791,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     updateActiveValues({ remark: value });
     clearFieldError("remark");
     clearFieldError("form");
+  };
+
+  const updateReviewRemark = (value) => {
+    setReviewRemark(value);
+
+    if (reviewError) {
+      setReviewError("");
+    }
   };
 
   const clearRepeatableGroupFieldError = (groupKey, itemIndex, fieldKey) => {
@@ -1612,8 +1643,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     if (isReadOnly) {
       showAppAlert({
         type: "info",
-        title: "Already submitted",
-        message: readOnlyNotice || "This subprocess is already submitted.",
+        title: readOnlyTitle,
+        message: readOnlyNotice || "This subprocess is not editable.",
       });
       return;
     }
@@ -1698,6 +1729,51 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
   };
 
+  const submitReviewAction = async (decision) => {
+    if (!canReviewChecklist) {
+      return;
+    }
+
+    if (!submittedFromServer) {
+      showAppAlert({
+        type: "info",
+        title: "Review unavailable",
+        message:
+          "Approval actions are available after the submitted checklist is loaded from the server.",
+      });
+      return;
+    }
+
+    if (decision === "reject" && !reviewRemark.trim()) {
+      setReviewError("Remark is required to reject a checklist.");
+      return;
+    }
+
+    setIsReviewSubmitting(true);
+
+    try {
+      await submitOmsReviewAction({
+        action: decision,
+        module,
+        projectId,
+        unitId: unit?.id || route?.params?.unitId || "",
+        processId: section.apiProcessId || null,
+        subprocessId: activeSubOption.apiSubprocessId || null,
+        remark: reviewRemark.trim(),
+      });
+    } catch (error) {
+      showAppAlert({
+        type: "info",
+        title: decision === "approve" ? "Approval ready" : "Reject ready",
+        message:
+          error?.message ||
+          "Review API is not configured yet. Wire the endpoint in omsReviewService.",
+      });
+    } finally {
+      setIsReviewSubmitting(false);
+    }
+  };
+
   const handleBack = () => {
     navigation.goBack();
   };
@@ -1716,7 +1792,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     showStatusField,
     showRemarkField,
     isReadOnly,
+    readOnlyTitle,
     readOnlyNotice,
+    canReviewChecklist,
+    canShowReviewActions,
+    reviewActionNotice,
+    reviewRemark,
+    reviewError,
     isRemarkRequired,
     checklistItems,
     photoRequirements,
@@ -1727,6 +1809,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     photoPreviewState,
     isUpdatingLocation,
     isSubmitting,
+    isReviewSubmitting,
     isPhotoProcessing: Boolean(photoProcessingState.requirementId),
     photoProcessingRequirementId: photoProcessingState.requirementId,
     photoProcessingMessage: photoProcessingState.message,
@@ -1737,6 +1820,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     closePicker,
     updateInputValue,
     updateRemarkValue,
+    updateReviewRemark,
     updateRepeatableGroupItem,
     addRepeatableGroupItem,
     removeRepeatableGroupItem,
@@ -1747,6 +1831,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     pickFromCamera,
     removeSelectedPhoto,
     submitActiveSubOption,
+    submitReviewAction,
     handleBack,
     getSubOptionLabel,
     openPhotoPreview,

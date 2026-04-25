@@ -45,6 +45,7 @@ const UnitListScreen = ({ navigation, route }) => {
   const shimmerTravelDistance = width + 180;
   const onEndReachedCalledDuringMomentumRef = React.useRef(false);
   const {
+    canOpenUnitDetails,
     canUseLocationFilters,
     module,
     zones,
@@ -196,9 +197,10 @@ const UnitListScreen = ({ navigation, route }) => {
 
       return (
         <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
+          style={[styles.card, !canOpenUnitDetails && styles.cardDisabled]}
+          activeOpacity={canOpenUnitDetails ? 0.9 : 1}
           onPress={() => openUnitDetails(item)}
+          disabled={!canOpenUnitDetails}
         >
           <View style={styles.cardTopRow}>
             <View style={styles.unitInfoBlock}>
@@ -231,9 +233,10 @@ const UnitListScreen = ({ navigation, route }) => {
 
     return (
       <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.9}
+        style={[styles.card, !canOpenUnitDetails && styles.cardDisabled]}
+        activeOpacity={canOpenUnitDetails ? 0.9 : 1}
         onPress={() => openUnitDetails(item)}
+        disabled={!canOpenUnitDetails}
       >
         <View style={styles.cardTopRow}>
           <View style={styles.unitInfoBlock}>
@@ -403,7 +406,7 @@ const UnitListScreen = ({ navigation, route }) => {
         </View>
         <View style={styles.headerActionSlot}>
           <IconButton
-            icon="eye-outline"
+            icon="information-outline"
             iconColor={colors.primaryBlue}
             size={22}
             style={styles.headerInfoButton}
@@ -551,8 +554,8 @@ const UnitListScreen = ({ navigation, route }) => {
             <View style={styles.legendList}>
               <LegendItem
                 color={colors.completed}
-                title="Completed"
-                subtitle="Every step in the process has been finished."
+                title="Completed / Approved"
+                subtitle="The process is fully finished or approved after review."
               />
               <LegendItem
                 color={colors.pending}
@@ -563,6 +566,11 @@ const UnitListScreen = ({ navigation, route }) => {
                 color={colors.partial}
                 title="Partial Completed"
                 subtitle="The process is underway but still has remaining steps."
+              />
+              <LegendItem
+                color={colors.primaryBlue}
+                title="Commented"
+                subtitle="Work was reviewed with comments or sent back for correction."
               />
             </View>
 

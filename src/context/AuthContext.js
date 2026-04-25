@@ -36,6 +36,7 @@ import {
   saveAuthSession,
 } from "../services/authStorage";
 import { authenticateDeviceForAppUnlock } from "../services/deviceAuthentication";
+import { createRoleAccess } from "../services/roleAccess";
 
 const AuthContext = createContext(null);
 
@@ -360,10 +361,16 @@ export const AuthProvider = ({ children }) => {
     await clearSession();
   }, [clearSession]);
 
+  const roleAccess = useMemo(
+    () => createRoleAccess(session?.user?.role),
+    [session?.user?.role]
+  );
+
   const value = useMemo(
     () => ({
       session,
       user: session?.user ?? null,
+      roleAccess,
       isAuthenticated: isSessionAvailable(session),
       isRestoring,
       isAppLocked,
@@ -383,6 +390,7 @@ export const AuthProvider = ({ children }) => {
       isUnlocking,
       logout,
       refreshProfile,
+      roleAccess,
       session,
       unlockError,
       unlockSession,

@@ -328,6 +328,10 @@ export default StyleSheet.create({
     shadowRadius: 12,
   },
 
+  cardDisabled: {
+    borderColor: "#D6E2EF",
+  },
+
   skeletonCard: {
     backgroundColor: "#FCFEFF",
     borderWidth: 1,
