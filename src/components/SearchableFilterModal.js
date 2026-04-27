@@ -500,8 +500,13 @@ const styles = StyleSheet.create({
   },
 
   optionItemActive: {
-    borderColor: colors.primaryBlue,
-    backgroundColor: "#EEF6FF",
+    borderColor: "#1E5AB6",
+    backgroundColor: "#2B66C3",
+    shadowColor: "#184A96",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 3,
   },
 
   optionText: {
@@ -513,7 +518,7 @@ const styles = StyleSheet.create({
   },
 
   optionTextActive: {
-    color: colors.primaryBlue,
+    color: colors.white,
     fontFamily: fonts.bold,
   },
 
@@ -527,7 +532,9 @@ const styles = StyleSheet.create({
   },
 
   checkWrapActive: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
   },
 
   emptyState: {

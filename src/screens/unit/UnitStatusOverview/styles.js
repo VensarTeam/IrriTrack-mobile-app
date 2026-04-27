@@ -196,12 +196,11 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
-  sectionCard: {
+  processCard: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: moderateScale(18),
-    paddingVertical: verticalScale(12),
     paddingHorizontal: moderateScale(14),
     marginBottom: verticalScale(10),
     shadowColor: "#123B63",
@@ -211,12 +210,16 @@ export default StyleSheet.create({
     elevation: 2,
   },
 
-  sectionHeadRow: {
-    marginBottom: verticalScale(10),
+  processHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: verticalScale(12),
+    paddingRight: moderateScale(2),
   },
 
-  sectionHeadCopy: {
+  processHeadCopy: {
     flex: 1,
+    paddingRight: moderateScale(10),
   },
 
   sectionBadge: {
@@ -235,70 +238,241 @@ export default StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  sectionTitleRow: {
+  processTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: verticalScale(8),
   },
 
-  sectionTitle: {
+  processTitle: {
     flex: 1,
-    paddingRight: moderateScale(10),
     fontSize: moderateScale(14),
     fontFamily: fonts.bold,
     color: colors.textDark,
+    paddingRight: moderateScale(10),
   },
 
-  sectionSubtitle: {
+  processMeta: {
     fontSize: moderateScale(11),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
   },
 
-  subStatusList: {
+  processChevronWrap: {
+    width: moderateScale(28),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  subprocessList: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(4),
   },
 
-  subStatusItem: {
+  subprocessItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: verticalScale(10),
+    paddingVertical: verticalScale(11),
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
 
-  subStatusItemLast: {
+  subprocessItemLast: {
     borderBottomWidth: 0,
-    paddingBottom: verticalScale(4),
   },
 
-  subStatusCopy: {
+  subprocessLead: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingRight: moderateScale(10),
   },
 
-  subStatusLabel: {
+  subprocessDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(999),
+    marginTop: verticalScale(5),
+    marginRight: moderateScale(10),
+  },
+
+  subprocessCopy: {
+    flex: 1,
+  },
+
+  subprocessLabel: {
     fontSize: moderateScale(12.5),
     color: colors.textDark,
     fontFamily: fonts.medium,
     lineHeight: moderateScale(18),
   },
 
-  subStatusHint: {
-    marginTop: verticalScale(3),
-    fontSize: moderateScale(10.5),
+  subprocessHint: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(11),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
   },
 
-  subStatusMeta: {
+  subprocessMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(6),
+  },
+
+  processReviewPanel: {
+    marginTop: verticalScale(12),
+    marginBottom: verticalScale(12),
+    borderWidth: 1,
+    borderColor: "#D9E8F8",
+    borderRadius: moderateScale(18),
+    backgroundColor: "#F7FBFF",
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
+  },
+
+  processReviewHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(12),
+  },
+
+  processReviewCopy: {
+    flex: 1,
+    paddingRight: moderateScale(10),
+  },
+
+  processReviewTitle: {
+    fontSize: moderateScale(14),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  processReviewSubtitle: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  metricChipRow: {
+    flexDirection: "row",
+    gap: moderateScale(8),
+    marginBottom: verticalScale(12),
+  },
+
+  metricChip: {
+    flex: 1,
+    borderRadius: moderateScale(14),
+    paddingVertical: verticalScale(10),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  metricChipSuccess: {
+    backgroundColor: "#EBFFF4",
+    borderColor: "#BCEBD0",
+  },
+
+  metricChipWarning: {
+    backgroundColor: "#FFF8E8",
+    borderColor: "#F2D6A2",
+  },
+
+  metricChipValue: {
+    fontSize: moderateScale(17),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  metricChipLabel: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  processActionRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+  },
+
+  processReviewNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: moderateScale(12),
+  },
+
+  processReviewNoticeText: {
+    flex: 1,
+    fontSize: moderateScale(11.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(16),
+  },
+
+  processApprovedNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EBFFF4",
+    borderWidth: 1,
+    borderColor: "#BCEBD0",
+    paddingHorizontal: moderateScale(12),
+  },
+
+  processApprovedNoticeText: {
+    fontSize: moderateScale(11.5),
+    color: colors.completed,
+    fontFamily: fonts.bold,
+  },
+
+  processActionButton: {
+    flex: 1,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(12),
+  },
+
+  processRejectButton: {
+    backgroundColor: "#FFF4F1",
+    borderWidth: 1,
+    borderColor: "#F6C8BC",
+  },
+
+  processApproveButton: {
+    backgroundColor: colors.primaryBlue,
+  },
+
+  processRejectText: {
+    fontSize: moderateScale(12),
+    color: colors.danger,
+    fontFamily: fonts.bold,
+  },
+
+  processApproveText: {
+    fontSize: moderateScale(12),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   statusPill: {
@@ -396,6 +570,24 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  directionButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(9),
+    marginBottom: verticalScale(12),
+  },
+
+  directionButtonText: {
+    fontSize: moderateScale(11.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
   sheetScroll: {
     flexGrow: 0,
   },
@@ -420,6 +612,132 @@ export default StyleSheet.create({
 
   checklistCardLast: {
     marginBottom: 0,
+  },
+
+  checklistHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: moderateScale(10),
+  },
+
+  checklistCopy: {
+    flex: 1,
+  },
+
+  checklistTitle: {
+    fontSize: moderateScale(12.5),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(18),
+  },
+
+  optionalText: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  checklistMeta: {
+    paddingLeft: moderateScale(8),
+  },
+
+  valueBlock: {
+    marginTop: verticalScale(10),
+  },
+
+  valueLabel: {
+    marginBottom: verticalScale(6),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.bold,
+    letterSpacing: 0.3,
+  },
+
+  valueHighlight: {
+    borderRadius: moderateScale(12),
+    backgroundColor: "#EEF6FF",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(9),
+  },
+
+  valueHighlightText: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
+    lineHeight: moderateScale(18),
+  },
+
+  arrayGroup: {
+    gap: moderateScale(8),
+  },
+
+  arrayCard: {
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F7FAFD",
+    borderWidth: 1,
+    borderColor: "#DDE7F1",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(9),
+  },
+
+  arrayRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: moderateScale(10),
+    paddingVertical: verticalScale(3),
+  },
+
+  arrayKey: {
+    flex: 1,
+    fontSize: moderateScale(11),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(16),
+  },
+
+  arrayValue: {
+    flex: 1,
+    fontSize: moderateScale(11.5),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
+    lineHeight: moderateScale(16),
+    textAlign: "right",
+  },
+
+  fileRow: {
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F7FAFD",
+    borderWidth: 1,
+    borderColor: "#DDE7F1",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(10),
+  },
+
+  fileName: {
+    fontSize: moderateScale(11.5),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
+    lineHeight: moderateScale(17),
+    marginBottom: verticalScale(8),
+  },
+
+  viewImageButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.primaryBlue,
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(7),
+  },
+
+  viewImageButtonText: {
+    fontSize: moderateScale(11),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   reviewDetailsSection: {
@@ -540,6 +858,136 @@ export default StyleSheet.create({
 
   reviewApproveText: {
     fontSize: moderateScale(11.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  imageOverlay: {
+    flex: 1,
+    backgroundColor: colors.modalOverlay,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(18),
+  },
+
+  imageBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  imageCard: {
+    width: "100%",
+    maxHeight: "76%",
+    borderRadius: moderateScale(22),
+    backgroundColor: colors.white,
+    overflow: "hidden",
+  },
+
+  imageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: moderateScale(16),
+    paddingTop: verticalScale(14),
+    paddingBottom: verticalScale(6),
+  },
+
+  imageTitle: {
+    flex: 1,
+    fontSize: moderateScale(14),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(20),
+    paddingRight: moderateScale(8),
+  },
+
+  previewImage: {
+    width: "100%",
+    height: verticalScale(360),
+    backgroundColor: "#F2F6FA",
+  },
+
+  rejectOverlay: {
+    flex: 1,
+    backgroundColor: colors.modalOverlay,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(18),
+  },
+
+  rejectBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  rejectCard: {
+    width: "100%",
+    borderRadius: moderateScale(22),
+    backgroundColor: colors.white,
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: verticalScale(18),
+    shadowColor: "#123B63",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+
+  rejectEyebrow: {
+    fontSize: moderateScale(11),
+    color: colors.danger,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(4),
+  },
+
+  rejectTitle: {
+    fontSize: moderateScale(18),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: moderateScale(24),
+  },
+
+  rejectSubtitle: {
+    marginTop: verticalScale(6),
+    marginBottom: verticalScale(12),
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  rejectActionRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+    marginTop: verticalScale(14),
+  },
+
+  rejectSecondaryButton: {
+    flex: 1,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  rejectSecondaryText: {
+    fontSize: moderateScale(12),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  rejectPrimaryButton: {
+    flex: 1.2,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  rejectPrimaryText: {
+    fontSize: moderateScale(12),
     color: colors.white,
     fontFamily: fonts.bold,
   },

@@ -28,6 +28,9 @@ const DETAIL_VALUE_KEYS = [
   "comments",
 ];
 
+const FILE_STORAGE_BASE_URL =
+  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+
 const formatDetailLabel = (value = "") =>
   String(value || "")
     .replace(/[_-]+/g, " ")
@@ -71,6 +74,25 @@ const normalizeDetailValue = (value) => {
     } catch (error) {
       return "";
     }
+  }
+
+  return "";
+};
+
+const getProgressFileUrl = (checklist = {}) => {
+  const rawValue = String(checklist?.value || "").trim();
+  const objectKey = String(checklist?.objectKey || "").trim();
+
+  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
+    return rawValue;
+  }
+
+  if (objectKey) {
+    return `${FILE_STORAGE_BASE_URL}${objectKey.replace(/^\/+/, "")}`;
+  }
+
+  if (rawValue) {
+    return `${FILE_STORAGE_BASE_URL}${rawValue.replace(/^\/+/, "")}`;
   }
 
   return "";
@@ -212,6 +234,10 @@ const getSubprocessDetailItems = (subprocess = {}) =>
 export const createUnitProgressChecklist = (checklist = {}, index = 0) => {
   const status = normalizeUnitProgressStatus(checklist);
   const detail = getChecklistDetail(checklist);
+  const valueType = String(
+    checklist.valueType || checklist.value_type || "",
+  ).trim();
+  const isFile = valueType === "file";
 
   return {
     id:
@@ -226,6 +252,11 @@ export const createUnitProgressChecklist = (checklist = {}, index = 0) => {
     isRequired: checklist.isRequired !== false && checklist.is_required !== false,
     status,
     detail,
+    valueType,
+    isFile,
+    fileUrl: isFile ? getProgressFileUrl(checklist) : "",
+    metadata: checklist.metadata || null,
+    objectKey: checklist.objectKey || "",
     rawChecklist: checklist,
   };
 };
@@ -267,6 +298,19 @@ export const createUnitProgressProcess = (process = {}, index = 0) => {
         createUnitProgressSubprocess(item, subprocessIndex),
       )
     : [];
+  const completedSubprocessCount = subprocesses.filter(
+    (item) =>
+      item.status.key === "completed" ||
+      item.status.key === "approved" ||
+      item.status.key === "updated",
+  ).length;
+  const partialSubprocessCount = subprocesses.filter(
+    (item) => item.status.key === "partial" || item.status.key === "commented",
+  ).length;
+  const pendingSubprocessCount = Math.max(
+    subprocesses.length - completedSubprocessCount - partialSubprocessCount,
+    0,
+  );
 
   return {
     id: process.processId || process.process_id || `process-${index + 1}`,
@@ -278,6 +322,9 @@ export const createUnitProgressProcess = (process = {}, index = 0) => {
     status: normalizeUnitProgressStatus(process),
     subprocesses,
     subprocessCount: subprocesses.length,
+    completedSubprocessCount,
+    partialSubprocessCount,
+    pendingSubprocessCount,
     checklistCount: subprocesses.reduce(
       (count, item) => count + item.checklists.length,
       0,
@@ -313,9 +360,24 @@ export const getUnitProgressSummary = (progress = createEmptyUnitProgress()) => 
   const partialSubprocesses = subprocesses.filter(
     (item) => item.status.key === "partial" || item.status.key === "commented",
   ).length;
+  const completedProcesses = processes.filter(
+    (item) =>
+      item.status.key === "completed" ||
+      item.status.key === "approved" ||
+      item.status.key === "updated",
+  ).length;
+  const partialProcesses = processes.filter(
+    (item) => item.status.key === "partial" || item.status.key === "commented",
+  ).length;
 
   return {
     processCount: processes.length,
+    completedProcessCount: completedProcesses,
+    partialProcessCount: partialProcesses,
+    pendingProcessCount: Math.max(
+      processes.length - completedProcesses - partialProcesses,
+      0,
+    ),
     subprocessCount: subprocesses.length,
     completedSubprocessCount: completedSubprocesses,
     partialSubprocessCount: partialSubprocesses,

@@ -127,7 +127,10 @@ const OfflineChecklistSyncGate = () => {
       }
 
       try {
-        const pendingCount = await getPendingChecklistSubmissionCount();
+        const ownerUserId = String(user?.id || user?.mobile || "").trim();
+        const pendingCount = await getPendingChecklistSubmissionCount({
+          ownerUserId,
+        });
 
         if (!pendingCount) {
           logGate("Queue sync skipped; no pending checklist submissions");
@@ -142,7 +145,9 @@ const OfflineChecklistSyncGate = () => {
           type: networkState?.type,
         });
 
-        const result = await syncQueuedChecklistSubmissions();
+        const result = await syncQueuedChecklistSubmissions({
+          ownerUserId,
+        });
         logGate("Queue sync finished", {
           checked: result.checked,
           synced: result.synced,

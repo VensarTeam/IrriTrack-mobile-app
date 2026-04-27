@@ -64,7 +64,10 @@ const warnSync = (message, error) => {
   });
 };
 
+const getOwnerUserId = (value = "") => String(value || "").trim();
+
 const getPayloadSummary = (payload = {}) => ({
+  ownerUserId: payload.local_owner_user_id || "",
   unitNo: payload.unitNo,
   sectionKey: payload.sectionKey,
   subOptionId: payload.subOptionId,
@@ -108,6 +111,7 @@ const getDatabase = async () => {
       await db.executeSql(`
         CREATE TABLE IF NOT EXISTS checklist_submission_queue (
           id TEXT PRIMARY KEY NOT NULL,
+          owner_user_id TEXT,
           status TEXT NOT NULL,
           device_type TEXT,
           created_at TEXT NOT NULL,
@@ -118,10 +122,25 @@ const getDatabase = async () => {
           payload_json TEXT NOT NULL
         );
       `);
+      try {
+        await db.executeSql(`
+          ALTER TABLE checklist_submission_queue
+          ADD COLUMN owner_user_id TEXT;
+        `);
+      } catch (error) {
+        const message = String(error?.message || "").toLowerCase();
+        if (!message.includes("duplicate column")) {
+          throw error;
+        }
+      }
       logSync("Ready table", { table: "checklist_submission_queue" });
       await db.executeSql(`
         CREATE INDEX IF NOT EXISTS idx_checklist_submission_queue_status
         ON checklist_submission_queue(status, created_at);
+      `);
+      await db.executeSql(`
+        CREATE INDEX IF NOT EXISTS idx_checklist_submission_queue_owner_status
+        ON checklist_submission_queue(owner_user_id, status, created_at);
       `);
       logSync("Ready index", {
         index: "idx_checklist_submission_queue_status",
@@ -180,6 +199,7 @@ const rowsToArray = (rows) =>
 
 const parseQueueRow = (row) => ({
   id: row.id,
+  ownerUserId: getOwnerUserId(row.owner_user_id),
   status: row.status,
   deviceType: row.device_type,
   createdAt: row.created_at,
@@ -566,6 +586,7 @@ const saveQueuedSubmission = async (submission) => {
       INSERT OR REPLACE INTO checklist_submission_queue
         (
           id,
+          owner_user_id,
           status,
           device_type,
           created_at,
@@ -575,10 +596,11 @@ const saveQueuedSubmission = async (submission) => {
           attempts,
           payload_json
         )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     [
       submission.id,
+      getOwnerUserId(submission.ownerUserId),
       submission.status,
       submission.deviceType,
       submission.createdAt,
@@ -620,6 +642,7 @@ export const getLatestChecklistSubmissionSnapshot = async ({
   unitId,
   processId,
   subprocessId,
+  ownerUserId = "",
 } = {}) => {
   if (!unitId || !processId || !subprocessId) {
     return null;
@@ -640,6 +663,7 @@ export const getLatestChecklistSubmissionSnapshot = async ({
   const targetUnitId = String(unitId);
   const targetProcessId = Number(processId);
   const targetSubprocessId = Number(subprocessId);
+  const targetOwnerUserId = getOwnerUserId(ownerUserId);
 
   return rowsToArray(result.rows)
     .map(parseQueueRow)
@@ -647,6 +671,7 @@ export const getLatestChecklistSubmissionSnapshot = async ({
       const payload = item.payload || {};
 
       return (
+        (!targetOwnerUserId || item.ownerUserId === targetOwnerUserId) &&
         String(payload.unitId || payload.unit?.unit_id || "") === targetUnitId &&
         Number(payload.process_id) === targetProcessId &&
         Number(payload.subprocess_id) === targetSubprocessId
@@ -654,7 +679,11 @@ export const getLatestChecklistSubmissionSnapshot = async ({
     }) || null;
 };
 
-const getSyncCandidates = async ({ submissionIds = null, maxItems = Infinity }) => {
+const getSyncCandidates = async ({
+  submissionIds = null,
+  maxItems = Infinity,
+  ownerUserId = "",
+}) => {
   const db = await getDatabase();
   logSync("Reading sync candidates from SQLite", {
     submissionIds,
@@ -671,9 +700,11 @@ const getSyncCandidates = async ({ submissionIds = null, maxItems = Infinity }) 
     SYNCABLE_QUEUE_STATUSES
   );
   const wantedIds = Array.isArray(submissionIds) ? new Set(submissionIds) : null;
+  const targetOwnerUserId = getOwnerUserId(ownerUserId);
 
   const candidates = rowsToArray(result.rows)
     .map(parseQueueRow)
+    .filter((item) => !targetOwnerUserId || item.ownerUserId === targetOwnerUserId)
     .filter((item) => !wantedIds || wantedIds.has(item.id))
     .slice(0, maxItems);
   logSync("Sync candidates ready", {
@@ -688,6 +719,7 @@ export const enqueueChecklistSubmission = async ({
   section,
   subOption,
   payload,
+  ownerUserId = "",
 }) => {
   logSync("Queueing checklist submission", {
     deviceType,
@@ -707,6 +739,7 @@ export const enqueueChecklistSubmission = async ({
   const now = new Date().toISOString();
   const submission = {
     id,
+    ownerUserId: getOwnerUserId(ownerUserId),
     status: "queued",
     attempts: 0,
     deviceType,
@@ -716,6 +749,7 @@ export const enqueueChecklistSubmission = async ({
     lastError: "",
     payload: {
       ...payload,
+      local_owner_user_id: getOwnerUserId(ownerUserId),
       ...processReference,
       photos,
     },
@@ -762,6 +796,7 @@ export const buildChecklistSubmitJson = (submission) => {
   const photos = submission.payload?.photos || [];
 
   return {
+    owner_user_id: getOwnerUserId(submission.ownerUserId),
     offline_submission_id: submission.id,
     offline_status: submission.status,
     offline_created_at: submission.createdAt,
@@ -804,24 +839,62 @@ const toChecklistApiValue = (value, fallback = "") => {
   }
 
   if (Array.isArray(value) || typeof value === "object") {
-    if (
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      (value.updated_location || value.default_location)
-    ) {
-      const location = value.updated_location || value.default_location;
-      const latitude = Number(location?.latitude);
-      const longitude = Number(location?.longitude);
-
-      if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
-        return `${latitude},${longitude}`;
-      }
-    }
-
-    return JSON.stringify(value);
+    return value;
   }
 
   return fallback;
+};
+
+const inferChecklistValueType = ({ item = {}, value, hasFile = false } = {}) => {
+  const explicitValueType = item.valueType || item.value_type;
+
+  if (typeof explicitValueType === "string" && explicitValueType.trim()) {
+    return explicitValueType.trim();
+  }
+
+  if (hasFile) {
+    return "file";
+  }
+
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  if (value && typeof value === "object") {
+    return "object";
+  }
+
+  const normalizedInputType = String(item.input_type || item.inputType || "")
+    .trim()
+    .toLowerCase();
+  const normalizedDataType = String(item.data_type || item.dataType || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalizedInputType === "photo") {
+    return "file";
+  }
+
+  if (
+    ["number"].includes(normalizedInputType) ||
+    ["int", "integer", "float", "double", "decimal", "number"].includes(
+      normalizedDataType
+    )
+  ) {
+    return "number";
+  }
+
+  return "string";
+};
+
+const toPositiveIntegerOrNull = (value) => {
+  const numericValue = Number(value);
+
+  if (!Number.isInteger(numericValue) || numericValue < 1) {
+    return null;
+  }
+
+  return numericValue;
 };
 
 const isChecklistValueEmpty = (value) => {
@@ -863,14 +936,8 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
     return payload.answers
       .filter((item) => item?.checklist_id)
       .filter((item) => item?.is_required !== false || !isChecklistValueEmpty(item?.value))
-      .map((item) => ({
-        checklistId: item.checklist_id,
-        value:
-          typeof item?.display_value === "string" &&
-          typeof item?.value === "boolean"
-            ? item.display_value
-            : toChecklistApiValue(item?.value),
-        file: item?.file
+      .map((item) => {
+        const file = item?.file
           ? {
               ...item.file,
               filePath: item.file.file_path || item.file.filePath || item.file.local_uri,
@@ -885,8 +952,25 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
               latitude: item.file.latitude ?? null,
               longitude: item.file.longitude ?? null,
             }
-          : null,
-      }));
+          : null;
+        const value = file
+          ? `__FILE_${item.checklist_id}__`
+          : typeof item?.display_value === "string" &&
+              typeof item?.value === "boolean"
+            ? item.display_value
+            : toChecklistApiValue(item?.value);
+
+        return {
+          checklistId: item.checklist_id,
+          value,
+          valueType: inferChecklistValueType({
+            item,
+            value: item?.value,
+            hasFile: Boolean(file),
+          }),
+          file,
+        };
+      });
   }
 
   const checklistEntries = [];
@@ -897,6 +981,7 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
     checklistEntries.push({
       checklistId: item.checklist_id,
       value: toChecklistApiValue(item.value),
+      valueType: inferChecklistValueType({ item, value: item.value }),
     });
   });
 
@@ -906,6 +991,7 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
     checklistEntries.push({
       checklistId: item.checklist_id,
       value: toChecklistApiValue(item.value),
+      valueType: inferChecklistValueType({ item, value: item.value }),
     });
   });
 
@@ -915,6 +1001,7 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
     checklistEntries.push({
       checklistId: item.checklist_id,
       value: item.checked ? "Yes" : "No",
+      valueType: "string",
     });
   });
 
@@ -923,14 +1010,13 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
 
     checklistEntries.push({
       checklistId: item.checklist_id,
-      value: JSON.stringify(
-        (item.items || []).map((repeatableItem) =>
-          (repeatableItem.values || []).reduce((acc, field) => {
-            acc[field.key] = field.value;
-            return acc;
-          }, {})
-        )
+      value: (item.items || []).map((repeatableItem) =>
+        (repeatableItem.values || []).reduce((acc, field) => {
+          acc[field.key] = field.value;
+          return acc;
+        }, {})
       ),
+      valueType: "array",
     });
   });
 
@@ -939,7 +1025,8 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
 
     checklistEntries.push({
       checklistId: photo.checklistId,
-      value: photo.name || "photo",
+      value: `__FILE_${photo.checklistId}__`,
+      valueType: "file",
       file: photo,
     });
   });
@@ -959,8 +1046,8 @@ const buildOmsSubmissionBody = (payload = {}) => {
       payload.unit?.projectId,
     omsId: payload.unitId || payload.omsId || payload.oms_id || payload.omsid,
     nodeNo: payload.unitNo || payload.nodeNo || payload.node_no,
-    processId: payload.process_id,
-    subprocessId: payload.subprocess_id,
+    processId: toPositiveIntegerOrNull(payload.process_id),
+    subprocessId: toPositiveIntegerOrNull(payload.subprocess_id),
     remark: payload.remark || "",
     checklist,
   };
@@ -976,67 +1063,83 @@ const buildOmsSubmissionJsonBody = (body = {}) => ({
   checklist: (body.checklist || []).map((item) => ({
     checklistId: item.checklistId,
     value: item.value,
+    valueType: item.valueType || "",
   })),
 });
 
 const buildOmsSubmissionFormData = (body = {}) => {
   const formData = new FormData();
 
-  formData.append("projectId", String(body.projectId || ""));
-  formData.append("omsId", String(body.omsId || ""));
-  formData.append("nodeNo", String(body.nodeNo || ""));
-  formData.append("processId", String(body.processId || ""));
-  formData.append("subprocessId", String(body.subprocessId || ""));
-  formData.append("remark", String(body.remark || ""));
+  const payload = {
+    projectId: body.projectId || null,
+    omsId: body.omsId || null,
+    nodeNo: body.nodeNo || "",
+    processId: body.processId ?? null,
+    subprocessId: body.subprocessId ?? null,
+    remark: body.remark || "",
+    checklist: (body.checklist || []).map((item) => ({
+      checklistId: item.checklistId,
+      value: item.value,
+      ...(item.valueType ? { valueType: item.valueType } : {}),
+    })),
+  };
 
-  (body.checklist || []).forEach((item, index) => {
-    formData.append(`checklist[${index}][checklistId]`, String(item.checklistId));
-    formData.append(`checklist[${index}][value]`, String(item.value || ""));
+  formData.append("payload", JSON.stringify(payload));
 
-    if (item.file) {
-      if (item.file.sizeKb !== null && typeof item.file.sizeKb !== "undefined") {
-        formData.append(`checklist[${index}][sizeKb]`, String(item.file.sizeKb));
-      }
-      if (item.file.width) {
-        formData.append(`checklist[${index}][width]`, String(item.file.width));
-      }
-      if (item.file.height) {
-        formData.append(`checklist[${index}][height]`, String(item.file.height));
-      }
-      if (item.file.latitude !== null && typeof item.file.latitude !== "undefined") {
-        formData.append(`checklist[${index}][latitude]`, String(item.file.latitude));
-      }
-      if (item.file.longitude !== null && typeof item.file.longitude !== "undefined") {
-        formData.append(`checklist[${index}][longitude]`, String(item.file.longitude));
-      }
-      if (item.file.takenAt) {
-        formData.append(`checklist[${index}][takenAt]`, String(item.file.takenAt));
-      }
-      if (item.file.type) {
-        formData.append(`checklist[${index}][mimeType]`, String(item.file.type));
-      }
-
-      const fileUri = stripFileScheme(
-        item.file.filePath || item.file.uri || item.file.local_uri || ""
-      );
-
-      if (!fileUri) {
-        return;
-      }
-
-      formData.append(`checklist[${index}][file]`, {
-        uri: `file://${fileUri}`,
-        name:
-          item.file.name ||
-          item.file.file_name ||
-          `checklist_${item.checklistId}.jpg`,
-        type: inferMimeType(item.file),
-      });
+  (body.checklist || []).forEach((item) => {
+    if (!item.file) {
+      return;
     }
+
+    const fileUri = stripFileScheme(
+      item.file.filePath || item.file.uri || item.file.local_uri || ""
+    );
+
+    if (!fileUri) {
+      return;
+    }
+
+    formData.append(String(item.checklistId), {
+      uri: `file://${fileUri}`,
+      name:
+        item.file.name ||
+        item.file.file_name ||
+        `checklist_${item.checklistId}.jpg`,
+      type: inferMimeType(item.file),
+    });
   });
 
   return formData;
 };
+
+const getOmsSubmissionPreview = (body = {}) => ({
+  projectId: body.projectId || null,
+  omsId: body.omsId || null,
+  nodeNo: body.nodeNo || "",
+  processId: body.processId ?? null,
+  subprocessId: body.subprocessId ?? null,
+  remark: body.remark || "",
+  checklist: (body.checklist || []).map((item) => ({
+    checklistId: item.checklistId,
+    valueType: item.valueType || "",
+    value: item.value,
+    fileKey: item.file ? String(item.checklistId) : null,
+    file: item.file
+      ? {
+          name:
+            item.file.name ||
+            item.file.file_name ||
+            `checklist_${item.checklistId}.jpg`,
+          path:
+            item.file.filePath ||
+            item.file.uri ||
+            item.file.local_uri ||
+            "",
+          type: inferMimeType(item.file),
+        }
+      : null,
+  })),
+});
 
 const submitOmsChecklistToApi = async (payload = {}) => {
   const body = buildOmsSubmissionBody(payload);
@@ -1051,6 +1154,10 @@ const submitOmsChecklistToApi = async (payload = {}) => {
     checklistCount: body.checklist.length,
     hasFiles,
   });
+  console.log(
+    "[ChecklistSubmit] Server payload",
+    JSON.stringify(getOmsSubmissionPreview(body), null, 2)
+  );
 
   return apiRequest({
     url: OMS_SUBMISSION_API_PATH,
@@ -1100,7 +1207,11 @@ const prepareQueuedSubmissionDraft = async (submission) => {
   };
 };
 
-const syncQueue = async ({ submissionIds = null, maxItems = Infinity } = {}) => {
+const syncQueue = async ({
+  submissionIds = null,
+  maxItems = Infinity,
+  ownerUserId = "",
+} = {}) => {
   logSync("Checking local checklist drafts", {
     submissionIds,
     maxItems: Number.isFinite(maxItems) ? maxItems : "all",
@@ -1127,7 +1238,7 @@ const syncQueue = async ({ submissionIds = null, maxItems = Infinity } = {}) => 
   }
 
   const candidates = await withQueueLock(() =>
-    getSyncCandidates({ submissionIds, maxItems })
+    getSyncCandidates({ submissionIds, maxItems, ownerUserId })
   );
   result.checked = candidates.length;
   logSync("Local draft candidates selected", {
@@ -1207,6 +1318,7 @@ export const submitChecklistOfflineFirst = async ({
   section,
   subOption,
   payload,
+  ownerUserId = "",
 }) => {
   logSync("Offline-first submit requested", {
     deviceType,
@@ -1256,6 +1368,7 @@ export const submitChecklistOfflineFirst = async ({
     section,
     subOption,
     payload,
+    ownerUserId,
   });
   const draft = await prepareQueuedSubmissionDraft(submission);
 
@@ -1284,18 +1397,34 @@ export const submitChecklistOfflineFirst = async ({
   };
 };
 
-export const getPendingChecklistSubmissionCount = async () => {
+export const getPendingChecklistSubmissionCount = async ({
+  ownerUserId = "",
+} = {}) => {
   const db = await getDatabase();
-  const [result] = await db.executeSql(
-    `
-      SELECT COUNT(*) AS pending_count
-      FROM checklist_submission_queue
-      WHERE status IN (?, ?, ?, ?);
-    `,
-    LOCAL_DRAFT_STATUSES
-  );
+  const targetOwnerUserId = getOwnerUserId(ownerUserId);
+  const [result] = targetOwnerUserId
+    ? await db.executeSql(
+        `
+          SELECT COUNT(*) AS pending_count
+          FROM checklist_submission_queue
+          WHERE owner_user_id = ?
+            AND status IN (?, ?, ?, ?);
+        `,
+        [targetOwnerUserId, ...LOCAL_DRAFT_STATUSES]
+      )
+    : await db.executeSql(
+        `
+          SELECT COUNT(*) AS pending_count
+          FROM checklist_submission_queue
+          WHERE status IN (?, ?, ?, ?);
+        `,
+        LOCAL_DRAFT_STATUSES
+      );
 
   const pendingCount = Number(result.rows.item(0)?.pending_count || 0);
-  logSync("Pending checklist submission count", { pendingCount });
+  logSync("Pending checklist submission count", {
+    pendingCount,
+    ownerUserId: targetOwnerUserId,
+  });
   return pendingCount;
 };

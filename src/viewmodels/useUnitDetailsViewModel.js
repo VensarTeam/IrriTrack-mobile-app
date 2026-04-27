@@ -2,9 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { ROUTES } from "../navigation/routes";
 import { useAuth } from "../context/AuthContext";
-import {
-  getUnitProgressSummary,
-} from "../models/unitProgress";
 import { showAppAlert } from "../services/alertService";
 import useUnitProgress from "../hooks/useUnitProgress";
 
@@ -117,7 +114,6 @@ const useUnitDetailsViewModel = (navigation, route) => {
     [unit, unitLabel],
   );
 
-  const summary = useMemo(() => getUnitProgressSummary(progress), [progress]);
   const overviewActionLabel = roleAccess.canReviewChecklist
     ? "Review"
     : "All Status";
@@ -175,7 +171,6 @@ const useUnitDetailsViewModel = (navigation, route) => {
     projectName,
     detailItems,
     processes: progress.processes,
-    summary,
     overviewActionLabel,
     isLoading,
     isRefreshing,

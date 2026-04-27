@@ -60,6 +60,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   } = useProjectLocationFilters({
     projectId,
     zoneName: zone,
+    villageName: village,
     activeFilterType: filterType,
     searchQuery: locationFilterSearchQuery,
   });
@@ -227,6 +228,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
 
     if (filterType === "zone") {
       setZone(item);
+      setVillage("All");
     }
 
     if (filterType === "village") {
@@ -368,7 +370,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => {
     const apiTotalUnits = dataSet[moduleKey]?.totalUnits || 0;
     const totalUnits =
-      moduleKey === "OMS"
+      moduleKey === "OMS" && !hasActiveLocationFilters
         ? Math.max(apiTotalUnits, cachedOmsUnitsCount)
         : apiTotalUnits;
 
@@ -390,6 +392,14 @@ const useProjectDetailsViewModel = (navigation, route) => {
       return;
     }
 
+    if (!isOnline && module !== "OMS") {
+      showAppAlert({
+        title: `Module is under development`,
+        message: `The ${module} is coming soon. Meanwhile, you can view the list of OMS units.`,
+      });
+      return;
+    }
+
     if (module === "OMS") {
       if (isOnline && projectId) {
         void syncOmsBasicUnitsForProjectInBackground(projectId);
@@ -402,8 +412,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
       });
     } else {
       showAppAlert({
-        title: "Module not available",
-        message: `The ${module} module details screen is not available yet.`,
+        title: "Module is under development",
+        message: `The ${module} is coming soon. Meanwhile, you can view the list of OMS units.`,
       });
     }
   };

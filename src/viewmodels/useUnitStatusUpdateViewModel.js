@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   DEFAULT_NODE_LOCATION,
   STATUS_OPTIONS,
@@ -100,11 +101,154 @@ const normalizeText = (value) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const NUMBER_DATA_TYPES = new Set([
+  "int",
+  "integer",
+  "float",
+  "double",
+  "decimal",
+  "number",
+]);
+
+const FILE_STORAGE_BASE_URL =
+  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+
+const inferChecklistValueType = (source = {}, value, extra = {}) => {
+  if (extra.valueType) {
+    return extra.valueType;
+  }
+
+  if (extra.file) {
+    return "file";
+  }
+
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  if (value && typeof value === "object") {
+    return "object";
+  }
+
+  const normalizedInputType = normalizeText(
+    source.inputType || extra.input_type || ""
+  );
+  const normalizedDataType = normalizeText(
+    source.dataType || extra.data_type || ""
+  );
+
+  if (normalizedInputType === "photo") {
+    return "file";
+  }
+
+  if (
+    normalizedInputType === "number" ||
+    NUMBER_DATA_TYPES.has(normalizedDataType)
+  ) {
+    return "number";
+  }
+
+  return "string";
+};
+
 const formatSubmissionStatusLabel = (value) =>
   String(value || "")
     .replace(/[_-]+/g, " ")
     .trim()
     .replace(/\b\w/g, (character) => character.toUpperCase()) || "Completed";
+
+const toPositiveIntegerOrNull = (value) => {
+  const numericValue = Number(value);
+
+  if (!Number.isInteger(numericValue) || numericValue < 1) {
+    return null;
+  }
+
+  return numericValue;
+};
+
+const findProgressSubprocessMatch = (
+  progress = { processes: [] },
+  {
+    subprocessId = null,
+    processName = "",
+    subprocessName = "",
+  } = {}
+) => {
+  const normalizedSubprocessId = String(subprocessId || "").trim();
+
+  if (normalizedSubprocessId) {
+    return findUnitProgressSubprocess(progress, normalizedSubprocessId);
+  }
+
+  const normalizedProcessName = normalizeText(processName);
+  const normalizedSubprocessName = normalizeText(subprocessName);
+
+  if (!normalizedSubprocessName) {
+    return null;
+  }
+
+  for (const process of progress.processes || []) {
+    const matchesProcess =
+      !normalizedProcessName || normalizeText(process.name) === normalizedProcessName;
+
+    if (!matchesProcess) {
+      continue;
+    }
+
+    const subprocess = (process.subprocesses || []).find(
+      (item) => normalizeText(item.name) === normalizedSubprocessName
+    );
+
+    if (subprocess) {
+      return {
+        process,
+        subprocess,
+      };
+    }
+  }
+
+  return null;
+};
+
+const getProgressChecklistMatch = (
+  checklistsById,
+  checklistsByName,
+  source = {},
+  fallbackLabel = ""
+) => {
+  const checklistId = String(source.checklistId || source.id || source.key || "").trim();
+
+  if (checklistId && checklistsById.has(checklistId)) {
+    return checklistsById.get(checklistId) || null;
+  }
+
+  const candidateNames = [
+    source.label,
+    source.description,
+    fallbackLabel,
+  ]
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+
+  for (const candidateName of candidateNames) {
+    if (checklistsByName.has(candidateName)) {
+      return checklistsByName.get(candidateName) || null;
+    }
+  }
+
+  return null;
+};
+
+const toSentenceCase = (value = "") => {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return "";
+  }
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
 
 const isContractorSelectField = (field = {}) =>
   field?.key === "contractorName" ||
@@ -119,6 +263,26 @@ const isRequiredByRule = (item, values, subOption) => {
   }
 
   return item?.required !== false;
+};
+
+const getFieldValidationMessage = ({ field = {}, type = "select" } = {}) => {
+  const label =
+    field.validationLabel ||
+    field.label ||
+    field.title ||
+    field.description ||
+    "this field";
+  const normalizedLabel = normalizeText(label);
+
+  if (normalizedLabel.includes("contractor")) {
+    return "Please select contractor";
+  }
+
+  if (type === "input") {
+    return `Please enter ${String(label).trim().toLowerCase()}`;
+  }
+
+  return `Please select ${String(label).trim().toLowerCase()}`;
 };
 
 const getInitialFormValues = (section, unit) => {
@@ -249,8 +413,68 @@ const parseRepeatableGroupItems = (group, rawValue) => {
   });
 };
 
+const getServerPhotoUri = (remoteValue, objectKey = "") => {
+  const rawValue = String(remoteValue || "").trim();
+  const rawObjectKey = String(objectKey || "").trim();
+
+  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
+    return rawValue;
+  }
+
+  if (rawObjectKey) {
+    return `${FILE_STORAGE_BASE_URL}${rawObjectKey.replace(/^\/+/, "")}`;
+  }
+
+  if (rawValue) {
+    return `${FILE_STORAGE_BASE_URL}${rawValue.replace(/^\/+/, "")}`;
+  }
+
+  return "";
+};
+
+const buildProgressHydrationSignature = (match = null) => {
+  if (!match?.subprocess) {
+    return "server:none";
+  }
+
+  const checklistSignature = (match.subprocess.checklists || [])
+    .map((checklist) => {
+      const rawChecklist = checklist.rawChecklist || {};
+      const detailValue =
+        checklist.detail?.rawValue ??
+        checklist.detail?.value ??
+        rawChecklist.value ??
+        rawChecklist.objectKey ??
+        "";
+      const updatedAt =
+        rawChecklist.updatedAt ||
+        rawChecklist.updated_at ||
+        rawChecklist.submittedAt ||
+        rawChecklist.submitted_at ||
+        "";
+
+      return [
+        checklist.id,
+        checklist.status?.key || "",
+        JSON.stringify(detailValue),
+        rawChecklist.objectKey || "",
+        updatedAt,
+      ].join(":");
+    })
+    .join("|");
+
+  return [
+    "server",
+    match.process?.id || "",
+    match.subprocess.id || "",
+    match.subprocess.status?.key || "",
+    checklistSignature,
+  ].join(":");
+};
+
 const useUnitStatusUpdateViewModel = (navigation, route) => {
-  const { roleAccess } = useAuth();
+  const { roleAccess, user } = useAuth();
+  const ownerUserId = String(user?.id || user?.mobile || "").trim();
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const projectId =
@@ -291,8 +515,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contractors, setContractors] = useState([]);
-  const [localSubmissionSnapshot, setLocalSubmissionSnapshot] = useState(null);
-  const { progress } = useUnitProgress({
+  const [localSubmissionSnapshots, setLocalSubmissionSnapshots] = useState({});
+  const {
+    progress,
+    refreshProgress,
+  } = useUnitProgress({
     projectId,
     unitId: unit?.id || route?.params?.unitId || "",
     enabled: Boolean(projectId && (unit?.id || route?.params?.unitId)),
@@ -429,53 +656,107 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const getSubOptionLabel = (subOption) => subOption.label;
 
   const activeSubOptionLabel = activeSubOption.label;
-  const progressMatch = useMemo(
+  const submissionProcessId = toPositiveIntegerOrNull(
+    activeSubOption.apiProcessId || section.apiProcessId
+  );
+  const submissionSubprocessId = toPositiveIntegerOrNull(
+    activeSubOption.apiSubprocessId
+  );
+  const progressMatchesBySubOptionId = useMemo(
     () =>
-      activeSubOption?.apiSubprocessId
-        ? findUnitProgressSubprocess(progress, activeSubOption.apiSubprocessId)
-        : null,
-    [activeSubOption?.apiSubprocessId, progress]
+      section.subOptions.reduce((acc, subOption) => {
+        const subprocessId = toPositiveIntegerOrNull(subOption.apiSubprocessId);
+        acc[subOption.id] = findProgressSubprocessMatch(progress, {
+          subprocessId,
+          processName: section.apiDescription || section.title,
+          subprocessName: subOption.apiDescription || subOption.label,
+        });
+        return acc;
+      }, {}),
+    [progress, section.apiDescription, section.subOptions, section.title]
   );
-  const submittedFromServer = Boolean(
-    progressMatch?.subprocess &&
-      SUBMITTED_STATUS_KEYS.has(progressMatch.subprocess.status.key)
-  );
+  const progressMatch = progressMatchesBySubOptionId[activeSubOption.id] || null;
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadLocalSnapshot = async () => {
-      const snapshot = await getLatestChecklistSubmissionSnapshot({
-        unitId: unit?.id || route?.params?.unitId || "",
-        processId: activeSubOption?.apiProcessId,
-        subprocessId: activeSubOption?.apiSubprocessId,
-      });
-
-      if (isMounted) {
-        setLocalSubmissionSnapshot(snapshot);
-      }
-    };
-
-    if (!activeSubOption?.apiProcessId || !activeSubOption?.apiSubprocessId) {
-      setLocalSubmissionSnapshot(null);
-      return () => {
-        isMounted = false;
-      };
+  const loadLocalSnapshots = useCallback(async () => {
+    if (!section.subOptions.length) {
+      setLocalSubmissionSnapshots({});
+      return;
     }
 
-    void loadLocalSnapshot();
+    const nextSnapshots = {};
 
-    return () => {
-      isMounted = false;
-    };
+    await Promise.all(
+      section.subOptions.map(async (subOption) => {
+        const processId = toPositiveIntegerOrNull(
+          subOption.apiProcessId || section.apiProcessId
+        );
+        const subprocessId = toPositiveIntegerOrNull(subOption.apiSubprocessId);
+
+        if (!processId || !subprocessId) {
+          return;
+        }
+
+          const snapshot = await getLatestChecklistSubmissionSnapshot({
+            unitId: unit?.id || route?.params?.unitId || "",
+            processId,
+            subprocessId,
+            ownerUserId,
+          });
+
+        if (snapshot) {
+          nextSnapshots[subOption.id] = snapshot;
+        }
+      })
+    );
+
+    setLocalSubmissionSnapshots(nextSnapshots);
   }, [
-    activeSubOption?.apiProcessId,
-    activeSubOption?.apiSubprocessId,
+    ownerUserId,
     route?.params?.unitId,
+    section.apiProcessId,
+    section.subOptions,
     unit?.id,
   ]);
 
-  const submittedFromLocal = Boolean(localSubmissionSnapshot?.payload);
+  useEffect(() => {
+    void loadLocalSnapshots();
+  }, [loadLocalSnapshots]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadLocalSnapshots();
+      void refreshProgress();
+    }, [loadLocalSnapshots, refreshProgress])
+  );
+
+  const localSubmissionSnapshot = localSubmissionSnapshots[activeSubOption.id] || null;
+  const stepSubmissionStateById = useMemo(
+    () =>
+      section.subOptions.reduce((acc, subOption) => {
+        const serverMatch = progressMatchesBySubOptionId[subOption.id];
+        const localSnapshot = localSubmissionSnapshots[subOption.id] || null;
+        const submittedFromServer = Boolean(
+          serverMatch?.subprocess &&
+            SUBMITTED_STATUS_KEYS.has(serverMatch.subprocess.status.key)
+        );
+        const submittedFromLocal = Boolean(localSnapshot?.payload);
+
+        acc[subOption.id] = {
+          submittedFromServer,
+          submittedFromLocal,
+          isSubmitted: submittedFromServer || submittedFromLocal,
+        };
+
+        return acc;
+      }, {}),
+    [localSubmissionSnapshots, progressMatchesBySubOptionId, section.subOptions]
+  );
+  const submittedFromServer = Boolean(
+    stepSubmissionStateById[activeSubOption.id]?.submittedFromServer
+  );
+  const submittedFromLocal = Boolean(
+    stepSubmissionStateById[activeSubOption.id]?.submittedFromLocal
+  );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
   const isReadOnly = isRoleReadOnly || submittedFromServer || submittedFromLocal;
   const readOnlyTitle = isRoleReadOnly ? "View Only" : "Already Submitted";
@@ -512,7 +793,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     const hydrationSource = submittedFromLocal
       ? `local:${localSubmissionSnapshot?.id || ""}:${localSubmissionSnapshot?.updatedAt || ""}`
-      : `server:${progressMatch?.subprocess?.status?.key || ""}`;
+      : buildProgressHydrationSignature(progressMatch);
 
     if (hydratedSubOptionsRef.current[subOptionId] === hydrationSource) {
       return;
@@ -538,16 +819,27 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const checklistsById = new Map(
         (subprocess.checklists || []).map((item) => [String(item.id), item])
       );
+      const checklistsByName = new Map(
+        (subprocess.checklists || []).map((item) => [normalizeText(item.name), item])
+      );
 
       checklistItems.forEach((item) => {
-        const checklist = checklistsById.get(String(item.checklistId || item.id));
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          item
+        );
         nextValues.checks[item.id] = checklist
           ? checklist.status.key !== "pending"
           : nextValues.checks[item.id];
       });
 
       selectFields.forEach((field) => {
-        const checklist = checklistsById.get(String(field.checklistId || field.key));
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          field
+        );
         const detailValue =
           checklist?.detail?.rawValue ??
           checklist?.detail?.value ??
@@ -559,7 +851,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       inputFields.forEach((field) => {
-        const checklist = checklistsById.get(String(field.checklistId || field.key));
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          field
+        );
         const detailValue =
           checklist?.detail?.rawValue ??
           checklist?.detail?.value ??
@@ -571,8 +867,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       if (showRemarkField && activeSubOption.remarkChecklist?.checklistId) {
-        const remarkChecklist = checklistsById.get(
-          String(activeSubOption.remarkChecklist.checklistId)
+        const remarkChecklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          activeSubOption.remarkChecklist,
+          activeSubOption.remarkLabel || "Remark"
         );
         const detailValue =
           remarkChecklist?.detail?.rawValue ??
@@ -585,8 +884,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
 
       if (activeSubOption.locationChecklist?.checklistId) {
-        const locationChecklist = checklistsById.get(
-          String(activeSubOption.locationChecklist.checklistId)
+        const locationChecklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          activeSubOption.locationChecklist
         );
         const coordinates = parseCoordinateValue(
           locationChecklist?.detail?.rawValue ??
@@ -601,7 +902,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
 
       repeatableGroups.forEach((group) => {
-        const checklist = checklistsById.get(String(group.checklistId || group.key));
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          group,
+          group.title
+        );
         const items = parseRepeatableGroupItems(
           group,
           checklist?.detail?.rawValue ??
@@ -612,6 +918,55 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         if (items.length) {
           nextValues.repeatableGroups[group.key] = items;
         }
+      });
+
+      photoRequirements.forEach((requirement) => {
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
+          requirement
+        );
+        const remoteValue =
+          checklist?.detail?.rawValue ??
+          checklist?.detail?.value ??
+          checklist?.rawChecklist?.value;
+        const metadata = checklist?.rawChecklist?.metadata || {};
+        const remoteUri = getServerPhotoUri(
+          remoteValue,
+          checklist?.rawChecklist?.objectKey || ""
+        );
+
+        if (!remoteUri) {
+          return;
+        }
+
+        const mimeType = metadata.mimeType || metadata.mime_type || "";
+        const sizeBytes = Number(metadata.sizeBytes || metadata.size_bytes);
+
+        nextValues.photos[requirement.id] = {
+          uri: remoteUri,
+          filePath: "",
+          name:
+            metadata.originalName ||
+            metadata.original_name ||
+            checklist?.name ||
+            requirement.label,
+          source: "server",
+          sizeKb: Number.isFinite(sizeBytes)
+            ? Math.max(1, Math.round(sizeBytes / 1024))
+            : null,
+          width: metadata.width ?? null,
+          height: metadata.height ?? null,
+          mediaType: String(mimeType).startsWith("video/") ? "video" : "image",
+          type: mimeType || null,
+          takenAt:
+            checklist?.rawChecklist?.updatedAt ||
+            checklist?.rawChecklist?.submittedAt ||
+            "Synced from server",
+          latitude: metadata.latitude ?? null,
+          longitude: metadata.longitude ?? null,
+          objectKey: checklist?.rawChecklist?.objectKey || "",
+        };
       });
     }
 
@@ -1287,9 +1642,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const validateForm = () => {
     const nextErrors = {};
+    let firstErrorMessage = "";
+
+    const setFirstErrorMessage = (message) => {
+      if (!firstErrorMessage && message) {
+        firstErrorMessage = message;
+      }
+    };
 
     if (showStatusField && !activeValues.status) {
       nextErrors.status = "Please select status";
+      setFirstErrorMessage("Please select status");
     }
 
     selectFields.forEach((field) => {
@@ -1297,7 +1660,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         isRequiredByRule(field, activeValues, activeSubOption) &&
         !activeValues[field.key]
       ) {
-        nextErrors[field.key] = "Please select an option";
+        const message = getFieldValidationMessage({
+          field,
+          type: "select",
+        });
+        nextErrors[field.key] = message;
+        setFirstErrorMessage(message);
       }
     });
 
@@ -1307,12 +1675,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         isRequiredByRule(field, activeValues, activeSubOption) &&
         !`${value ?? ""}`.trim()
       ) {
-        nextErrors[field.key] = "Please enter a value";
+        const message = getFieldValidationMessage({
+          field,
+          type: "input",
+        });
+        nextErrors[field.key] = message;
+        setFirstErrorMessage(message);
       }
     });
 
     if (showRemarkField && isRemarkRequired && !activeValues.remark.trim()) {
       nextErrors.remark = "Remark is required";
+      setFirstErrorMessage("Remark is required");
     }
 
     if (
@@ -1321,6 +1695,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       !activeValues.updatedLocation
     ) {
       nextErrors.form = "Please update current location";
+      setFirstErrorMessage("Please update current location");
     }
 
     const missingChecklistItems = checklistItems.filter(
@@ -1333,6 +1708,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       nextErrors.form =
         nextErrors.form ||
         `Please complete ${missingChecklistItems.length} required checklist item(s)`;
+      setFirstErrorMessage(
+        `Please complete ${missingChecklistItems.length} required checklist item(s)`
+      );
     }
 
     if (repeatableGroups.length) {
@@ -1350,6 +1728,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           groupError.message = `Only ${group.maxItems} ${group.itemLabel || "item"} entries are allowed`;
         }
 
+        setFirstErrorMessage(groupError.message);
+
         const itemErrors = {};
 
         items.forEach((item, itemIndex) => {
@@ -1358,10 +1738,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           (group.itemFields || []).forEach((field) => {
             const isRequired = field.required !== false;
             if (isRequired && !`${item[field.key] ?? ""}`.trim()) {
-              currentItemErrors[field.key] =
-                field.type === "select"
-                  ? "Please select an option"
-                  : "Please enter a value";
+              const message = getFieldValidationMessage({
+                field,
+                type: field.type === "select" ? "select" : "input",
+              });
+              currentItemErrors[field.key] = message;
+              setFirstErrorMessage(message);
             }
           });
 
@@ -1393,6 +1775,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
       if (missingRequirements.length) {
         nextErrors.photos = `Please upload ${missingRequirements.length} required file(s)`;
+        setFirstErrorMessage(
+          `Please upload ${missingRequirements.length} required file(s)`
+        );
         nextErrors.photoSlots = missingRequirements.reduce((acc, requirement) => {
           acc[requirement.id] = "Required";
           return acc;
@@ -1415,20 +1800,29 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       [activeSubOption.id]: nextErrors,
     }));
 
-    return Object.keys(nextErrors).length === 0;
+    return {
+      isValid: Object.keys(nextErrors).length === 0,
+      firstErrorMessage,
+    };
   };
 
-  const buildAnswer = (source = {}, value, extra = {}) => ({
-    checklist_id: source.checklistId || null,
-    description: source.label || source.description || "",
-    input_type: source.inputType || extra.input_type || "text",
-    data_type: source.dataType || extra.data_type || "varchar",
-    input_unit: source.inputUnit ?? null,
-    seq_no: source.seqNo ?? null,
-    is_required: source.required !== false,
-    value,
-    ...extra,
-  });
+  const buildAnswer = (source = {}, value, extra = {}) => {
+    const valueType = inferChecklistValueType(source, value, extra);
+
+    return {
+      checklist_id: source.checklistId || null,
+      description: source.label || source.description || "",
+      input_type: source.inputType || extra.input_type || "text",
+      data_type: source.dataType || extra.data_type || "varchar",
+      input_unit: source.inputUnit ?? null,
+      seq_no: source.seqNo ?? null,
+      is_required: source.required !== false,
+      value,
+      value_type: valueType,
+      valueType,
+      ...extra,
+    };
+  };
 
   const buildChecklistAnswers = () => {
     const answers = [];
@@ -1502,18 +1896,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             seqNo: group.seqNo ?? null,
             required: group.required !== false,
           },
-          (activeValues.repeatableGroups?.[group.key] || []).map(
-            (item, index) => ({
-              item_index: index + 1,
-              values: (group.itemFields || []).map((field) => ({
-                key: field.key,
-                label: field.label,
-                value: item[field.key],
-              })),
-            })
+          (activeValues.repeatableGroups?.[group.key] || []).map((item) =>
+            (group.itemFields || []).reduce((acc, field) => {
+              acc[field.key] = item[field.key];
+              return acc;
+            }, {})
           ),
           {
             key: group.key,
+            valueType: "array",
           }
         )
       );
@@ -1523,6 +1914,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const media = activeValues.photos?.[requirement.id] || null;
       answers.push(
         buildAnswer(requirement, media?.filePath || media?.uri || "", {
+          valueType: "file",
           file: media
             ? {
                 file_name: media.name,
@@ -1563,7 +1955,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       .filter((item) => item.uri);
 
     return {
-      draft_version: 1,
+      draft_version: 2,
       submit_type: "oms_checklist_submission",
       module,
       deviceType: module,
@@ -1582,10 +1974,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       unitNo: unitLabel,
       sectionKey: section.key,
       subOptionId: activeSubOption.id,
-      process_id: section.apiProcessId || null,
+      process_id: submissionProcessId,
       process_description: section.apiDescription || section.title || "",
       process_seq_no: section.apiSeqNo ?? null,
-      subprocess_id: activeSubOption.apiSubprocessId || null,
+      subprocess_id: submissionSubprocessId,
       subprocess_description:
         activeSubOption.apiDescription || activeSubOption.label || "",
       subprocess_seq_no: activeSubOption.apiSeqNo ?? null,
@@ -1649,7 +2041,39 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       return;
     }
 
-    if (isSubmitting || !validateForm()) return;
+    if (isSubmitting) return;
+
+    const { isValid, firstErrorMessage } = validateForm();
+
+    if (!isValid) {
+      showAppAlert({
+        type: "warning",
+        title: "Incomplete checklist",
+        message:
+          toSentenceCase(firstErrorMessage) ||
+          "Please fix the highlighted fields before submitting.",
+      });
+      return;
+    }
+
+    if (!submissionProcessId || !submissionSubprocessId) {
+      console.log("[ChecklistForm]", "Submission blocked: missing API ids", {
+        source: masterSource,
+        sectionKey: section.key,
+        subOptionId: activeSubOption.id,
+        processId: activeSubOption.apiProcessId || section.apiProcessId || null,
+        subprocessId: activeSubOption.apiSubprocessId || null,
+      });
+      showAppAlert({
+        type: "warning",
+        title: "Submission unavailable",
+        message:
+          masterSource === "static"
+            ? "Checklist master IDs are not loaded yet on this device. Please sync checklist master data and try again."
+            : "Process or subprocess mapping is missing for this checklist. Please refresh master data and try again.",
+      });
+      return;
+    }
 
     const payload = buildSubmissionPayload();
     console.log("[ChecklistForm]", "Submit pressed", {
@@ -1672,7 +2096,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         section,
         subOption: activeSubOption,
         payload,
+        ownerUserId,
       });
+      await loadLocalSnapshots();
+      await refreshProgress();
       console.log("[ChecklistSubmit]", "Submit result", {
         submissionId: result.submission?.id,
         draftJsonPath: result.draftJsonPath,
@@ -1787,6 +2214,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOption,
     activeSubOptionLabel,
     activeSubOptionId,
+    stepSubmissionStateById,
     activeValues,
     activeErrors,
     showStatusField,

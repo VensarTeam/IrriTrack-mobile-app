@@ -103,41 +103,6 @@ export default StyleSheet.create({
     color: colors.white,
     fontFamily: fonts.bold,
     lineHeight: moderateScale(22),
-    marginBottom: verticalScale(14),
-  },
-
-  heroSummaryRow: {
-    flexDirection: "row",
-    gap: moderateScale(8),
-  },
-
-  heroSummaryChip: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.18)",
-    borderRadius: moderateScale(12),
-    paddingVertical: verticalScale(8),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  heroSummaryChipHighlight: {
-    backgroundColor: "rgba(27,191,117,0.24)",
-    borderColor: "rgba(27,191,117,0.38)",
-  },
-
-  heroSummaryValue: {
-    fontSize: moderateScale(17),
-    color: colors.white,
-    fontFamily: fonts.bold,
-  },
-
-  heroSummaryLabel: {
-    marginTop: verticalScale(2),
-    fontSize: moderateScale(9.5),
-    color: "rgba(255,255,255,0.74)",
-    fontFamily: fonts.medium,
   },
 
   sectionMetaBlock: {
@@ -243,7 +208,7 @@ export default StyleSheet.create({
   },
 
   viewAllText: {
-    fontSize: moderateScale(11),
+    fontSize: moderateScale(13),
     color: colors.white,
     fontFamily: fonts.bold,
   },
@@ -405,9 +370,23 @@ export default StyleSheet.create({
     borderBottomWidth: 0,
   },
 
+  subprocessLead: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingRight: moderateScale(10),
+  },
+
+  subprocessDot: {
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(999),
+    marginTop: verticalScale(5),
+    marginRight: moderateScale(10),
+  },
+
   subprocessCopy: {
     flex: 1,
-    paddingRight: moderateScale(10),
   },
 
   subprocessLabel: {

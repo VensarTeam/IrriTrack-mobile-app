@@ -91,12 +91,14 @@ const buildFilterCacheKey = ({
   projectId,
   searchQuery = "",
   zoneName = "",
+  villageId = "",
   page = FILTER_PAGE,
   limit = FILTER_PAGE_LIMIT,
 }) =>
   [
     String(projectId || "").trim(),
     String(zoneName || "").trim() || "ALL",
+    String(villageId || "").trim() || "ALL",
     String(searchQuery || "").trim().toLowerCase() || "ALL",
     String(page || FILTER_PAGE),
     String(limit || FILTER_PAGE_LIMIT),
@@ -147,6 +149,7 @@ const normalizeFilterResponse = (
 export const fetchProjectZones = async (
   projectId,
   {
+    villageId = "",
     searchQuery = "",
     page = FILTER_PAGE,
     limit = FILTER_PAGE_LIMIT,
@@ -161,6 +164,7 @@ export const fetchProjectZones = async (
 
   const cacheKey = buildFilterCacheKey({
     projectId,
+    villageId,
     searchQuery,
     page,
     limit,
@@ -179,6 +183,7 @@ export const fetchProjectZones = async (
           projectId,
           page,
           limit,
+          ...(villageId ? { villageId } : {}),
           ...(String(searchQuery || "").trim()
             ? { q: String(searchQuery || "").trim() }
             : {}),

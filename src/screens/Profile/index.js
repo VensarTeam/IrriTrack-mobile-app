@@ -19,6 +19,7 @@ const ProfileScreen = ({ navigation }) => {
   const {
     user,
     initials,
+    canShowSyncActions,
     isRefreshingProfile,
     isSyncingMasterData,
     isSyncingOmsData,
@@ -106,60 +107,62 @@ const ProfileScreen = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.syncCard}>
-          <View style={styles.syncHeaderRow}>
-            <View>
-              <Text style={styles.syncTitle}>Sync</Text>
-              <Text style={styles.syncSubtitle}>Offline data sync</Text>
+        {canShowSyncActions ? (
+          <View style={styles.syncCard}>
+            <View style={styles.syncHeaderRow}>
+              <View>
+                <Text style={styles.syncTitle}>Sync</Text>
+                <Text style={styles.syncSubtitle}>Offline data sync</Text>
+              </View>
+              <Icon source="sync" size={22} color={colors.navyFresh} />
             </View>
-            <Icon source="sync" size={22} color={colors.navyFresh} />
-          </View>
 
-          <View style={styles.syncActionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.syncButton,
-                isSyncingMasterData && styles.actionButtonDisabled,
-              ]}
-              onPress={handleSyncMasterData}
-              disabled={isSyncingMasterData}
-              activeOpacity={0.88}
-            >
-              {isSyncingMasterData ? (
-                <ActivityIndicator size="small" color={colors.navyFreshDark} />
-              ) : (
-                <Icon
-                  source="database-refresh-outline"
-                  size={20}
-                  color={colors.navyFreshDark}
-                />
-              )}
-              <Text style={styles.syncButtonText}>
-                {isSyncingMasterData ? "Syncing" : "Master Data"}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.syncActionsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.syncButton,
+                  isSyncingMasterData && styles.actionButtonDisabled,
+                ]}
+                onPress={handleSyncMasterData}
+                disabled={isSyncingMasterData}
+                activeOpacity={0.88}
+              >
+                {isSyncingMasterData ? (
+                  <ActivityIndicator size="small" color={colors.navyFreshDark} />
+                ) : (
+                  <Icon
+                    source="database-refresh-outline"
+                    size={20}
+                    color={colors.navyFreshDark}
+                  />
+                )}
+                <Text style={styles.syncButtonText}>
+                  {isSyncingMasterData ? "Syncing" : "Master Data"}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.syncButton,
-                styles.syncButtonPrimary,
-                isSyncingOmsData && styles.actionButtonDisabled,
-              ]}
-              onPress={handleSyncOmsData}
-              disabled={isSyncingOmsData}
-              activeOpacity={0.88}
-            >
-              {isSyncingOmsData ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Icon source="cloud-sync-outline" size={20} color={colors.white} />
-              )}
-              <Text style={styles.syncButtonPrimaryText}>
-                {isSyncingOmsData ? "Checking" : "Pending Work"}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.syncButton,
+                  styles.syncButtonPrimary,
+                  isSyncingOmsData && styles.actionButtonDisabled,
+                ]}
+                onPress={handleSyncOmsData}
+                disabled={isSyncingOmsData}
+                activeOpacity={0.88}
+              >
+                {isSyncingOmsData ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Icon source="cloud-sync-outline" size={20} color={colors.white} />
+                )}
+                <Text style={styles.syncButtonPrimaryText}>
+                  {isSyncingOmsData ? "Checking" : "Pending Work"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Icon source="logout-variant" size={21} color={colors.white} />

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -17,6 +18,131 @@ import { Icon, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
+
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const formatValueLabel = (value = "") =>
+  String(value || "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const formatValueText = (value) => {
+  if (value === null || typeof value === "undefined") {
+    return "";
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return "";
+};
+
+const ChecklistValueBlock = ({ checklist, onViewImage }) => {
+  const rawValue = checklist?.detail?.rawValue;
+  const valueText = checklist?.detail?.value || "";
+
+  if (checklist?.isFile) {
+    return (
+      <View style={styles.valueBlock}>
+        <Text style={styles.valueLabel}>
+          {checklist?.detail?.label || "Attachment"}
+        </Text>
+        <View style={styles.fileRow}>
+          <Text style={styles.fileName} numberOfLines={2}>
+            {checklist?.metadata?.originalName ||
+              checklist?.metadata?.original_name ||
+              checklist?.name ||
+              "Uploaded file"}
+          </Text>
+          {checklist.fileUrl ? (
+            <TouchableOpacity
+              style={styles.viewImageButton}
+              activeOpacity={0.88}
+              onPress={() =>
+                onViewImage({
+                  uri: checklist.fileUrl,
+                  title: checklist.name,
+                })
+              }
+            >
+              <Text style={styles.viewImageButtonText}>View Image</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  if (Array.isArray(rawValue) && rawValue.length) {
+    return (
+      <View style={styles.valueBlock}>
+        <Text style={styles.valueLabel}>
+          {checklist?.detail?.label || "Submitted Values"}
+        </Text>
+        <View style={styles.arrayGroup}>
+          {rawValue.map((item, itemIndex) => (
+            <View key={`${checklist.id}-${itemIndex}`} style={styles.arrayCard}>
+              {isPlainObject(item) ? (
+                Object.entries(item).map(([key, value]) => (
+                  <View key={key} style={styles.arrayRow}>
+                    <Text style={styles.arrayKey}>{formatValueLabel(key)}</Text>
+                    <Text style={styles.arrayValue}>
+                      {formatValueText(value) || "-"}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.arrayValue}>{formatValueText(item)}</Text>
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (isPlainObject(rawValue)) {
+    return (
+      <View style={styles.valueBlock}>
+        <Text style={styles.valueLabel}>
+          {checklist?.detail?.label || "Submitted Values"}
+        </Text>
+        <View style={styles.arrayCard}>
+          {Object.entries(rawValue).map(([key, value]) => (
+            <View key={key} style={styles.arrayRow}>
+              <Text style={styles.arrayKey}>{formatValueLabel(key)}</Text>
+              <Text style={styles.arrayValue}>
+                {formatValueText(value) || "-"}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (!valueText) {
+    return null;
+  }
+
+  return (
+    <View style={styles.valueBlock}>
+      <Text style={styles.valueLabel}>
+        {checklist?.detail?.label || "Submitted Value"}
+      </Text>
+      <View style={styles.valueHighlight}>
+        <Text style={styles.valueHighlightText}>{valueText}</Text>
+      </View>
+    </View>
+  );
+};
 
 const getStatusColors = (statusKey) => {
   if (
@@ -69,11 +195,24 @@ const StatusPill = ({ status }) => {
   );
 };
 
+const ProcessMetricChip = ({ label, value, tone = "default" }) => {
+  const toneStyles = {
+    default: styles.metricChip,
+    success: [styles.metricChip, styles.metricChipSuccess],
+    warning: [styles.metricChip, styles.metricChipWarning],
+  };
+
+  return (
+    <View style={toneStyles[tone] || toneStyles.default}>
+      <Text style={styles.metricChipValue}>{value}</Text>
+      <Text style={styles.metricChipLabel}>{label}</Text>
+    </View>
+  );
+};
+
 const UnitStatusOverviewScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const {
-    module,
-    unit,
     unitLabel,
     projectName,
     screenTitle,
@@ -86,14 +225,24 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
     selectedProcess,
     selectedSubprocess,
     selectedSubprocessDetails,
+    selectedSubprocessLocation,
+    selectedReviewProcess,
+    imagePreview,
     reviewRemark,
     reviewError,
     isReviewSubmitting,
     updateReviewRemark,
     submitReview,
     handleBack,
+    toggleProcess,
+    isProcessExpanded,
     openSubprocessModal,
     closeSubprocessModal,
+    openSelectedSubprocessDirections,
+    openImagePreview,
+    closeImagePreview,
+    openRejectFlow,
+    closeRejectFlow,
   } = useUnitStatusOverviewViewModel(navigation, route);
   const sheetBottomPadding = insets.bottom + 20;
 
@@ -132,15 +281,15 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
             </View>
             <View style={[styles.heroStatChip, styles.heroStatChipGreen]}>
               <Text style={styles.heroStatValue}>
-                {summary.completedSubprocessCount}
+                {summary.completedProcessCount}
               </Text>
-              <Text style={styles.heroStatLabel}>Completed</Text>
+              <Text style={styles.heroStatLabel}>Completed Process</Text>
             </View>
             <View style={[styles.heroStatChip, styles.heroStatChipAmber]}>
               <Text style={styles.heroStatValue}>
-                {summary.pendingSubprocessCount}
+                {summary.pendingProcessCount}
               </Text>
-              <Text style={styles.heroStatLabel}>Pending</Text>
+              <Text style={styles.heroStatLabel}>Pending Process</Text>
             </View>
           </View>
         </View>
@@ -179,58 +328,183 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
 
         {!error
           ? processes.map((process) => {
+              const expanded = isProcessExpanded(process.id);
+              const isProcessApproved = process.status?.key === "approved";
+              const isProcessReviewReady =
+                process.subprocessCount > 0 &&
+                process.completedSubprocessCount === process.subprocessCount;
+
               return (
-                <View key={process.id} style={styles.sectionCard}>
-                  <View style={styles.sectionHeadRow}>
-                    <View style={styles.sectionHeadCopy}>
+                <View key={process.id} style={styles.processCard}>
+                  <TouchableOpacity
+                    style={styles.processHead}
+                    activeOpacity={0.88}
+                    onPress={() => toggleProcess(process.id)}
+                  >
+                    <View style={styles.processHeadCopy}>
                       <View style={styles.sectionBadge}>
                         <Text style={styles.sectionBadgeText}>PROCESS</Text>
                       </View>
-                      <View style={styles.sectionTitleRow}>
-                        <Text style={styles.sectionTitle}>{process.name}</Text>
+                      <View style={styles.processTitleRow}>
+                        <Text style={styles.processTitle}>{process.name}</Text>
                         <StatusPill status={process.status} />
                       </View>
-                      <Text style={styles.sectionSubtitle}>
+
+                      <Text style={styles.processMeta}>
                         {process.subprocessCount} subprocess
                         {process.subprocessCount === 1 ? "" : "es"} •{" "}
                         {process.checklistCount} checklist
                         {process.checklistCount === 1 ? "" : "s"}
                       </Text>
                     </View>
-                  </View>
 
-                  <View style={styles.subStatusList}>
-                    {process.subprocesses.map((subprocess, subprocessIndex) => (
-                      <TouchableOpacity
-                        key={subprocess.id}
-                        style={[
-                          styles.subStatusItem,
-                          subprocessIndex === process.subprocesses.length - 1 &&
-                            styles.subStatusItemLast,
-                        ]}
-                        activeOpacity={0.86}
-                        onPress={() => openSubprocessModal(process, subprocess)}
-                      >
-                        <View style={styles.subStatusCopy}>
-                          <Text style={styles.subStatusLabel}>
-                            {subprocess.name}
+                    <View style={styles.processChevronWrap}>
+                      <Icon
+                        source={expanded ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color={colors.primaryBlue}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {expanded ? (
+                    <View style={styles.subprocessList}>
+                      {process.subprocesses.map((subprocess, subprocessIndex) => (
+                        <TouchableOpacity
+                          key={subprocess.id}
+                          style={[
+                            styles.subprocessItem,
+                            subprocessIndex === process.subprocesses.length - 1 &&
+                              styles.subprocessItemLast,
+                          ]}
+                          activeOpacity={0.86}
+                          onPress={() => openSubprocessModal(process, subprocess)}
+                        >
+                          <View style={styles.subprocessLead}>
+                            <View
+                              style={[
+                                styles.subprocessDot,
+                                {
+                                  backgroundColor: getStatusColors(
+                                    subprocess.status?.key
+                                  ).solid,
+                                },
+                              ]}
+                            />
+                            <View style={styles.subprocessCopy}>
+                              <Text style={styles.subprocessLabel}>
+                                {subprocess.name}
+                              </Text>
+                              <Text style={styles.subprocessHint}>
+                                {subprocess.checklistCount} checklist
+                                {subprocess.checklistCount === 1 ? "" : "s"}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.subprocessMeta}>
+                            <StatusPill status={subprocess.status} />
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : null}
+
+                  {expanded && canReviewChecklist ? (
+                    <View style={styles.processReviewPanel}>
+                      <View style={styles.processReviewHeader}>
+                        <View style={styles.processReviewCopy}>
+                          <Text style={styles.processReviewTitle}>
+                            Review Process
                           </Text>
-                          <Text style={styles.subStatusHint}>
-                            {subprocess.checklistCount} checklist
-                            {subprocess.checklistCount === 1 ? "" : "s"}
+                          <Text style={styles.processReviewSubtitle}>
+                            {isProcessApproved
+                              ? "This process has already been approved by the manager."
+                              : isProcessReviewReady
+                              ? "All subprocesses are completed. You can now approve or reject this process."
+                              : "Approve or reject will appear after all subprocesses in this process are completed."}
                           </Text>
                         </View>
-                        <View style={styles.subStatusMeta}>
-                          <StatusPill status={subprocess.status} />
-                          {/* <Icon
-                            source="chevron-right"
-                            size={18}
+                        <StatusPill status={process.status} />
+                      </View>
+
+                      <View style={styles.metricChipRow}>
+                        <ProcessMetricChip
+                          label="Completed"
+                          value={process.completedSubprocessCount}
+                          tone="success"
+                        />
+                        <ProcessMetricChip
+                          label="Partial"
+                          value={process.partialSubprocessCount}
+                          tone="warning"
+                        />
+                        <ProcessMetricChip
+                          label="Pending"
+                          value={process.pendingSubprocessCount}
+                        />
+                      </View>
+
+                      {isProcessApproved ? (
+                        <View style={styles.processApprovedNotice}>
+                          <Icon
+                            source="check-decagram"
+                            size={16}
+                            color={colors.completed}
+                          />
+                          <Text style={styles.processApprovedNoticeText}>
+                            Approved
+                          </Text>
+                        </View>
+                      ) : isProcessReviewReady ? (
+                        <View style={styles.processActionRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.processActionButton,
+                              styles.processRejectButton,
+                              isReviewSubmitting && styles.reviewActionButtonDisabled,
+                            ]}
+                            activeOpacity={isReviewSubmitting ? 1 : 0.9}
+                            disabled={isReviewSubmitting}
+                            onPress={() => openRejectFlow(process)}
+                          >
+                            <Text style={styles.processRejectText}>Reject</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.processActionButton,
+                              styles.processApproveButton,
+                              isReviewSubmitting && styles.reviewActionButtonDisabled,
+                            ]}
+                            activeOpacity={isReviewSubmitting ? 1 : 0.9}
+                            disabled={isReviewSubmitting}
+                            onPress={() => submitReview({ decision: "approve", process })}
+                          >
+                            {isReviewSubmitting ? (
+                              <ActivityIndicator size="small" color={colors.white} />
+                            ) : (
+                              <Text style={styles.processApproveText}>
+                                Approve Process
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={styles.processReviewNotice}>
+                          <Icon
+                            source="clock-outline"
+                            size={16}
                             color={colors.textSecondary}
-                          /> */}
+                          />
+                          <Text style={styles.processReviewNoticeText}>
+                            {process.completedSubprocessCount} of{" "}
+                            {process.subprocessCount} subprocess
+                            {process.subprocessCount === 1 ? "" : "es"} completed.
+                          </Text>
                         </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                      )}
+                    </View>
+                  ) : null}
                 </View>
               );
             })
@@ -259,7 +533,7 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 </Text>
                 <Text style={styles.sheetSubtitle}>
                   {canReviewChecklist
-                    ? "Review checklist values, remarks, and submit your decision."
+                    ? "Review checklist values and remarks for this subprocess."
                     : "Only filled values are shown below when the API provides them."}
                 </Text>
               </View>
@@ -279,6 +553,21 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 {(selectedSubprocess?.checklistCount || 0) === 1 ? "" : "s"}
               </Text>
             </View>
+
+            {selectedSubprocessLocation ? (
+              <TouchableOpacity
+                style={styles.directionButton}
+                activeOpacity={0.88}
+                onPress={openSelectedSubprocessDirections}
+              >
+                <Icon
+                  source="directions"
+                  size={16}
+                  color={colors.white}
+                />
+                <Text style={styles.directionButtonText}>Check Direction</Text>
+              </TouchableOpacity>
+            ) : null}
 
             <ScrollView
               style={styles.sheetScroll}
@@ -303,11 +592,10 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                       {!checklist.isRequired ? (
                         <Text style={styles.optionalText}>Optional</Text>
                       ) : null}
-                      {checklist.detail?.value ? (
-                        <Text style={styles.checklistDetail}>
-                          {checklist.detail.label}: {checklist.detail.value}
-                        </Text>
-                      ) : null}
+                      <ChecklistValueBlock
+                        checklist={checklist}
+                        onViewImage={openImagePreview}
+                      />
                     </View>
 
                     {checklist.isRequired ? (
@@ -333,64 +621,110 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 </View>
               ) : null}
 
-              {canReviewChecklist ? (
-                <View style={styles.reviewActionSection}>
-                  <Text style={styles.sectionBlockTitle}>Approval Action</Text>
-                  <Text style={styles.reviewActionSubtitle}>
-                    Add a comment only if you want to reject this subprocess.
-                  </Text>
-
-                  <TextInput
-                    style={[
-                      styles.reviewRemarkInput,
-                      reviewError && styles.reviewRemarkInputError,
-                    ]}
-                    placeholder="Write rejection comment"
-                    placeholderTextColor={colors.textSecondary}
-                    multiline
-                    value={reviewRemark}
-                    onChangeText={updateReviewRemark}
-                    textAlignVertical="top"
-                  />
-
-                  {reviewError ? (
-                    <Text style={styles.reviewErrorText}>{reviewError}</Text>
-                  ) : null}
-
-                  <View style={styles.reviewActionRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.reviewActionButton,
-                        styles.reviewRejectButton,
-                        isReviewSubmitting && styles.reviewActionButtonDisabled,
-                      ]}
-                      activeOpacity={isReviewSubmitting ? 1 : 0.88}
-                      disabled={isReviewSubmitting}
-                      onPress={() => submitReview("reject")}
-                    >
-                      <Text style={styles.reviewRejectText}>Reject</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.reviewActionButton,
-                        styles.reviewApproveButton,
-                        isReviewSubmitting && styles.reviewActionButtonDisabled,
-                      ]}
-                      activeOpacity={isReviewSubmitting ? 1 : 0.88}
-                      disabled={isReviewSubmitting}
-                      onPress={() => submitReview("approve")}
-                    >
-                      {isReviewSubmitting ? (
-                        <ActivityIndicator size="small" color={colors.white} />
-                      ) : (
-                        <Text style={styles.reviewApproveText}>Approve</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : null}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={imagePreview.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeImagePreview}
+      >
+        <View style={styles.imageOverlay}>
+          <Pressable style={styles.imageBackdrop} onPress={closeImagePreview} />
+          <View style={styles.imageCard}>
+            <View style={styles.imageHeader}>
+              <Text style={styles.imageTitle} numberOfLines={2}>
+                {imagePreview.title || "Submitted Image"}
+              </Text>
+              <IconButton
+                icon="close"
+                size={20}
+                iconColor={colors.textDark}
+                onPress={closeImagePreview}
+              />
+            </View>
+
+            {imagePreview.uri ? (
+              <Image
+                source={{ uri: imagePreview.uri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(selectedReviewProcess)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeRejectFlow}
+      >
+        <View style={styles.rejectOverlay}>
+          <Pressable style={styles.rejectBackdrop} onPress={closeRejectFlow} />
+
+          <View style={styles.rejectCard}>
+            <Text style={styles.rejectEyebrow}>Reject Process</Text>
+            <Text style={styles.rejectTitle}>
+              {selectedReviewProcess?.name || "Selected Process"}
+            </Text>
+            <Text style={styles.rejectSubtitle}>
+              Add a short manager comment so the team knows what needs to be
+              corrected before resubmission.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.reviewRemarkInput,
+                reviewError && styles.reviewRemarkInputError,
+              ]}
+              placeholder="Write rejection comment"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              value={reviewRemark}
+              onChangeText={updateReviewRemark}
+              textAlignVertical="top"
+            />
+
+            {reviewError ? (
+              <Text style={styles.reviewErrorText}>{reviewError}</Text>
+            ) : null}
+
+            <View style={styles.rejectActionRow}>
+              <TouchableOpacity
+                style={styles.rejectSecondaryButton}
+                activeOpacity={0.9}
+                onPress={closeRejectFlow}
+              >
+                <Text style={styles.rejectSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.rejectPrimaryButton,
+                  isReviewSubmitting && styles.reviewActionButtonDisabled,
+                ]}
+                activeOpacity={isReviewSubmitting ? 1 : 0.9}
+                disabled={isReviewSubmitting}
+                onPress={() =>
+                  submitReview({
+                    decision: "reject",
+                    process: selectedReviewProcess,
+                    remark: reviewRemark,
+                  })
+                }
+              >
+                {isReviewSubmitting ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.rejectPrimaryText}>Reject Process</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

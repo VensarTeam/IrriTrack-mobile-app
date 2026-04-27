@@ -3,6 +3,7 @@ import {
   FLUSHING_PRESSURE_OPTIONS,
   LEAKAGE_RECTIFICATION_REASON_OPTIONS,
   OFFLINE_RECTIFICATION_REASON_OPTIONS,
+  OUTLET_IDENTIFICATION_PIPE_SIZE_OPTIONS,
   PIPE_SIZE_OPTIONS,
   REINSTALL_MATERIAL_OPTIONS,
   SIGNAL_STRENGTH_OPTIONS,
@@ -132,7 +133,7 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
           key: "pipeSize",
           type: "select",
           label: "Pipe Size",
-          options: PIPE_SIZE_OPTIONS,
+          options: OUTLET_IDENTIFICATION_PIPE_SIZE_OPTIONS,
           placeholder: "Select pipe size",
         },
       ],
@@ -168,10 +169,19 @@ const getChecklistBase = (checklist = {}) => ({
   apiChecklist: checklist,
 });
 
-const getFieldLabel = (checklist = {}) =>
-  checklist.input_unit
-    ? `${checklist.description} (${checklist.input_unit})`
+const getFieldLabel = (checklist = {}) => {
+  const rawInputUnit = String(checklist.input_unit || "").trim();
+  const normalizedInputUnit = rawInputUnit.toLowerCase();
+  const hasRealInputUnit =
+    rawInputUnit &&
+    normalizedInputUnit !== "[null]" &&
+    normalizedInputUnit !== "null" &&
+    normalizedInputUnit !== "undefined";
+
+  return hasRealInputUnit
+    ? `${checklist.description} (${rawInputUnit})`
     : checklist.description;
+};
 
 const isLocationChecklist = (checklist = {}) => {
   const label = normalizeText(checklist.description);
@@ -179,11 +189,27 @@ const isLocationChecklist = (checklist = {}) => {
   return label.includes("current location") || label.includes("node location");
 };
 
+const isOutletPipeCountChecklist = (checklist = {}) => {
+  const checklistId = Number(checklist?.checklist_id);
+  const label = normalizeText(checklist?.description);
+
+  return checklistId === 9 || label.includes("no of outlet pipes");
+};
+
 const addChecklistToSubOption = (subOption, checklist) => {
   const base = getChecklistBase(checklist);
   const fieldLabel = getFieldLabel(checklist);
   const inputType = normalizeText(checklist.input_type);
   const fieldKey = `api_${inputType || "field"}_${checklist.checklist_id}`;
+
+  if (isOutletPipeCountChecklist(checklist)) {
+    subOption.checklistItems.push({
+      id: fieldKey,
+      label: fieldLabel,
+      ...base,
+    });
+    return;
+  }
 
   if (inputType === "tick") {
     subOption.checklistItems.push({
@@ -250,13 +276,13 @@ const addChecklistToSubOption = (subOption, checklist) => {
   });
 };
 
-const buildSubOption = (subprocess = {}, index = 0) => {
+const buildSubOption = (subprocess = {}, index = 0, parentProcess = {}) => {
   const subOption = {
     id: getSubOptionId(subprocess, index),
     label: subprocess.description,
     apiDescription: subprocess.description,
     apiSubprocessId: subprocess.subprocess_id,
-    apiProcessId: subprocess.process_id,
+    apiProcessId: subprocess.process_id || parentProcess.process_id,
     apiSeqNo: subprocess.seq_no,
     showStatusField: false,
     showRemarkField: false,
@@ -288,6 +314,7 @@ export const buildChecklistSectionsFromMaster = ({
     apiProcessId: process.process_id,
     apiSeqNo: process.seq_no,
     subOptions: sortBySequence(process.subprocesses || []).map(
-      (subprocess, subprocessIndex) => buildSubOption(subprocess, subprocessIndex)
+      (subprocess, subprocessIndex) =>
+        buildSubOption(subprocess, subprocessIndex, process)
     ),
   }));

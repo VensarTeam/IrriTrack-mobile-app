@@ -51,6 +51,7 @@ const mergeUniqueVillageOptions = (
 const useProjectLocationFilters = ({
   projectId,
   zoneName = "All",
+  villageName = "All",
   activeFilterType = null,
   searchQuery = "",
 }) => {
@@ -68,6 +69,13 @@ const useProjectLocationFilters = ({
     activeFilterType === "village"
       ? String(debouncedSearchQuery || "").trim()
       : "";
+  const selectedVillageId = useMemo(
+    () =>
+      villageName === "All"
+        ? ""
+        : villageState.items.find((item) => item?.name === villageName)?.id || "",
+    [villageName, villageState.items]
+  );
 
   useEffect(() => {
     const updateOnlineState = (state) => {
@@ -129,6 +137,7 @@ const useProjectLocationFilters = ({
       try {
         const response = isZoneFilter
           ? await fetchProjectZones(projectId, {
+              villageId: selectedVillageId,
               searchQuery: currentSearchQuery,
               page,
               limit: FILTER_PAGE_LIMIT,
@@ -190,6 +199,7 @@ const useProjectLocationFilters = ({
       normalizedVillageSearchQuery,
       normalizedZoneSearchQuery,
       projectId,
+      selectedVillageId,
       zoneName,
     ]
   );

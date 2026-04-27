@@ -173,6 +173,11 @@ export default StyleSheet.create({
     elevation: 3,
   },
 
+  stepChipSubmitted: {
+    borderColor: "#BFE7CF",
+    backgroundColor: "#F3FCF7",
+  },
+
   stepChipNumber: {
     width: moderateScale(22),
     height: moderateScale(22),
@@ -190,6 +195,11 @@ export default StyleSheet.create({
     borderColor: "rgba(255,255,255,0.28)",
   },
 
+  stepChipNumberSubmitted: {
+    backgroundColor: "#DFF6E8",
+    borderColor: "#BFE7CF",
+  },
+
   stepChipNumberText: {
     fontSize: moderateScale(10),
     color: colors.primaryBlue,
@@ -198,6 +208,10 @@ export default StyleSheet.create({
 
   stepChipNumberTextActive: {
     color: colors.white,
+  },
+
+  stepChipNumberTextSubmitted: {
+    color: colors.primaryGreen,
   },
 
   stepChipContent: {
@@ -216,6 +230,21 @@ export default StyleSheet.create({
     color: colors.white,
   },
 
+  stepChipTextSubmitted: {
+    color: colors.primaryGreen,
+  },
+
+  stepChipStatus: {
+    marginTop: verticalScale(3),
+    fontSize: moderateScale(9),
+    color: colors.primaryGreen,
+    fontFamily: fonts.bold,
+  },
+
+  stepChipStatusActive: {
+    color: colors.primaryGreen,
+  },
+
   stepChipDot: {
     width: moderateScale(6),
     height: moderateScale(6),
@@ -226,6 +255,10 @@ export default StyleSheet.create({
 
   stepChipDotActive: {
     backgroundColor: colors.white,
+  },
+
+  stepChipDotSubmitted: {
+    backgroundColor: colors.primaryGreen,
   },
 
   formCard: {

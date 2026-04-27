@@ -9,6 +9,15 @@ export const PIPE_SIZE_OPTIONS = [
   "125 mm",
 ];
 
+export const OUTLET_IDENTIFICATION_PIPE_SIZE_OPTIONS = [
+  "75 mm",
+  "90 mm",
+  "110 mm",
+  "125 mm",
+  "140 mm",
+  "160 mm",
+];
+
 export const CONTRACTOR_OPTIONS = [
   "Contractor-1",
   "Contractor-2",
@@ -248,7 +257,7 @@ export const MODULE_STATUS_SECTIONS = [
                 key: "pipeSize",
                 type: "select",
                 label: "Pipe Size",
-                options: PIPE_SIZE_OPTIONS,
+                options: OUTLET_IDENTIFICATION_PIPE_SIZE_OPTIONS,
                 placeholder: "Select pipe size",
               },
             ],

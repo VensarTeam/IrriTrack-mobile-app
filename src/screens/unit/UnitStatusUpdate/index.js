@@ -44,6 +44,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     activeSubOption,
     activeSubOptionLabel,
     activeSubOptionId,
+    stepSubmissionStateById,
     setActiveSubOptionId,
     activeValues,
     activeErrors,
@@ -483,51 +484,74 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.stepScrollContent}
           >
             {section.subOptions.map((sub, index) => (
-              <TouchableOpacity
-                key={sub.id}
-                style={[
-                  styles.stepChip,
-                  sub.id === activeSubOptionId && styles.stepChipActive,
-                ]}
-                onPress={() => setActiveSubOptionId(sub.id)}
-                activeOpacity={0.85}
-              >
-                <View
-                  style={[
-                    styles.stepChipNumber,
-                    sub.id === activeSubOptionId && styles.stepChipNumberActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.stepChipNumberText,
-                      sub.id === activeSubOptionId &&
-                        styles.stepChipNumberTextActive,
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                </View>
+              (() => {
+                const submissionState = stepSubmissionStateById[sub.id] || {};
+                const isSubmitted = Boolean(submissionState.isSubmitted);
 
-                <View style={styles.stepChipContent}>
-                  <Text
+                return (
+                  <TouchableOpacity
+                    key={sub.id}
                     style={[
-                      styles.stepChipText,
-                      sub.id === activeSubOptionId && styles.stepChipTextActive,
+                      styles.stepChip,
+                      sub.id === activeSubOptionId && styles.stepChipActive,
+                      isSubmitted && styles.stepChipSubmitted,
                     ]}
-                    numberOfLines={2}
+                    onPress={() => setActiveSubOptionId(sub.id)}
+                    activeOpacity={0.85}
                   >
-                    {getSubOptionLabel(sub)}
-                  </Text>
-                </View>
+                    <View
+                      style={[
+                        styles.stepChipNumber,
+                        sub.id === activeSubOptionId && styles.stepChipNumberActive,
+                        isSubmitted && styles.stepChipNumberSubmitted,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.stepChipNumberText,
+                          sub.id === activeSubOptionId &&
+                            styles.stepChipNumberTextActive,
+                          isSubmitted && styles.stepChipNumberTextSubmitted,
+                        ]}
+                      >
+                        {index + 1}
+                      </Text>
+                    </View>
 
-                <View
-                  style={[
-                    styles.stepChipDot,
-                    sub.id === activeSubOptionId && styles.stepChipDotActive,
-                  ]}
-                />
-              </TouchableOpacity>
+                    <View style={styles.stepChipContent}>
+                      <Text
+                        style={[
+                          styles.stepChipText,
+                          sub.id === activeSubOptionId && styles.stepChipTextActive,
+                          isSubmitted && styles.stepChipTextSubmitted,
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {getSubOptionLabel(sub)}
+                      </Text>
+                      {isSubmitted ? (
+                        <Text
+                          style={[
+                            styles.stepChipStatus,
+                            sub.id === activeSubOptionId &&
+                              styles.stepChipStatusActive,
+                          ]}
+                        >
+                          Submitted
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    <View
+                      style={[
+                        styles.stepChipDot,
+                        sub.id === activeSubOptionId && styles.stepChipDotActive,
+                        isSubmitted && styles.stepChipDotSubmitted,
+                      ]}
+                    />
+                  </TouchableOpacity>
+                );
+              })()
             ))}
           </ScrollView>
 
@@ -919,7 +943,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 ? "Saving"
                 : isPhotoProcessing
                   ? "Preparing Photo..."
-                  : "Submit"}
+                  : isReadOnly
+                    ? readOnlyTitle === "Already Submitted"
+                      ? "Submitted"
+                      : "Locked"
+                    : "Submit"}
             </Button>
           </View>
         </KeyboardAwareScrollView>

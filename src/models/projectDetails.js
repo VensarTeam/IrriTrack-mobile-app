@@ -14,6 +14,28 @@ const toSafeNumber = (value) => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
+const getMajorComponentNumberByLabels = (components = [], labels = []) => {
+  const normalizedLabels = labels.map((label) =>
+    String(label || "").trim().toLowerCase()
+  );
+
+  for (const component of components) {
+    const componentName = String(component?.component || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalizedLabels.includes(componentName)) {
+      const numericValue = toSafeNumber(component?.qty);
+
+      if (numericValue > 0) {
+        return numericValue;
+      }
+    }
+  }
+
+  return 0;
+};
+
 const normalizeModuleKey = (value = "") =>
   MODULE_KEY_ALIASES[String(value || "").trim().toUpperCase()] || null;
 
@@ -35,7 +57,7 @@ export const createEmptyProjectModule = (module) => ({
   stages: [],
 });
 
-const normalizeModules = (modules = {}) => {
+const normalizeModules = (modules = {}, majorComponents = []) => {
   // Keep the UI contract stable even when the backend only returns OMS today.
   const normalizedModules = SUPPORTED_MODULE_KEYS.reduce((accumulator, module) => {
     accumulator[module] = createEmptyProjectModule(module);
@@ -62,6 +84,26 @@ const normalizeModules = (modules = {}) => {
     };
   });
 
+  normalizedModules.OMS.totalUnits =
+    normalizedModules.OMS.totalUnits ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "Outlet Management System (OMS)",
+      "OMS",
+    ]);
+  normalizedModules.RMS.totalUnits =
+    normalizedModules.RMS.totalUnits ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "Remote Management System (RMS)",
+      "RMS",
+    ]);
+  normalizedModules.GW.totalUnits =
+    normalizedModules.GW.totalUnits ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "LORA Gateway",
+      "LoRa Gateway",
+      "Gateway",
+    ]);
+
   return normalizedModules;
 };
 
@@ -77,7 +119,10 @@ export const createProjectDetails = (data = {}) => ({
   majorComponents: Array.isArray(data.majorComponents) ? data.majorComponents : [],
   customFields: Array.isArray(data.customFields) ? data.customFields : [],
   updatedAt: data.updatedAt || "",
-  modules: normalizeModules(data.modules),
+  modules: normalizeModules(
+    data.modules,
+    Array.isArray(data.majorComponents) ? data.majorComponents : []
+  ),
 });
 
 export const createEmptyProjectDetails = (project = {}) =>

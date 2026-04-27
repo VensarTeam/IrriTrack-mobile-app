@@ -598,13 +598,21 @@ const getStatusColor = (value) => {
 
 const ProcessTile = ({ process, isWide, onPress,isOffline=false }) => {
   const statusColor = getStatusColor(process.value);
+  const statusText = process.progressLabel
+    ? process.value
+      ? `${process.value} • ${process.progressLabel}`
+      : process.progressLabel
+    : process.value;
+  const accessibilityLabel = statusText
+    ? `${process.label}, ${statusText}`
+    : process.label;
 
   return (
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${process.label}, ${process.value}`}
+      accessibilityLabel={accessibilityLabel}
       style={[
         styles.processTile,
         isWide && styles.processTileWide,
@@ -648,17 +656,17 @@ const ProcessTile = ({ process, isWide, onPress,isOffline=false }) => {
           </Text>
         </View>
 
-        <Text
-          style={[
-            styles.processValue,
-            { color: isOffline ? "rgba(255, 255, 255, 0.9)" : statusColor },
-          ]}
-          numberOfLines={1}
-        >
-          {process.progressLabel
-            ? `${process.value} • ${process.progressLabel}`
-            : process.value}
-        </Text>
+        {statusText ? (
+          <Text
+            style={[
+              styles.processValue,
+              { color: isOffline ? "rgba(255, 255, 255, 0.9)" : statusColor },
+            ]}
+            numberOfLines={1}
+          >
+            {statusText}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.processTileRight}>

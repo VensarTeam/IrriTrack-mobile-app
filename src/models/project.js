@@ -10,6 +10,28 @@ const toSafeNumber = (value) => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
+const getMajorComponentNumberByLabels = (components = [], labels = []) => {
+  const normalizedLabels = labels.map((label) =>
+    String(label || "").trim().toLowerCase()
+  );
+
+  for (const component of components) {
+    const componentName = String(component?.component || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalizedLabels.includes(componentName)) {
+      const numericValue = toSafeNumber(component?.qty);
+
+      if (numericValue > 0) {
+        return numericValue;
+      }
+    }
+  }
+
+  return 0;
+};
+
 const getCustomFieldNumberByLabels = (fields = [], labels = []) => {
   for (const label of labels) {
     const value = getCustomFieldValue(fields, label);
@@ -25,10 +47,17 @@ const getCustomFieldNumberByLabels = (fields = [], labels = []) => {
 
 const buildProjectModules = (data = {}, customFields = []) => {
   const modules = data.modules || {};
+  const majorComponents = Array.isArray(data.majorComponents)
+    ? data.majorComponents
+    : [];
   const omsTotalUnits =
     toSafeNumber(data.omsTotalUnits) ||
     toSafeNumber(data.omsUnits) ||
     toSafeNumber(modules?.OMS?.totalUnits) ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "Outlet Management System (OMS)",
+      "OMS",
+    ]) ||
     getCustomFieldNumberByLabels(customFields, [
       "OMS Total Units",
       "OMS Units",
@@ -38,6 +67,10 @@ const buildProjectModules = (data = {}, customFields = []) => {
     toSafeNumber(data.rmsTotalUnits) ||
     toSafeNumber(data.rmsUnits) ||
     toSafeNumber(modules?.RMS?.totalUnits) ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "Remote Management System (RMS)",
+      "RMS",
+    ]) ||
     getCustomFieldNumberByLabels(customFields, [
       "RMS Total Units",
       "RMS Units",
@@ -48,6 +81,11 @@ const buildProjectModules = (data = {}, customFields = []) => {
     toSafeNumber(data.gatewayTotalUnits) ||
     toSafeNumber(data.gwUnits) ||
     toSafeNumber(modules?.GW?.totalUnits) ||
+    getMajorComponentNumberByLabels(majorComponents, [
+      "LORA Gateway",
+      "LoRa Gateway",
+      "Gateway",
+    ]) ||
     getCustomFieldNumberByLabels(customFields, [
       "GW Total Units",
       "GW Units",

@@ -6,6 +6,8 @@ import {
   getUnitProgressSummary,
 } from "../models/unitProgress";
 import useUnitProgress from "../hooks/useUnitProgress";
+import { showAppAlert } from "../services/alertService";
+import { openDirections } from "../services/mapService";
 import { submitOmsReviewAction } from "../services/omsReviewService";
 
 const toDisplayText = (value, fallback = "") => {
@@ -37,6 +39,37 @@ const toDisplayText = (value, fallback = "") => {
   return fallback;
 };
 
+const parseChecklistLocation = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const primaryLocation = value.updated_location || value.updatedLocation || value;
+    const fallbackLocation = value.default_location || value.defaultLocation;
+    const candidate = primaryLocation || fallbackLocation;
+    const latitude = Number(candidate?.latitude);
+    const longitude = Number(candidate?.longitude);
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+
+  const match = String(value)
+    .trim()
+    .match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    latitude: Number(match[1]),
+    longitude: Number(match[2]),
+  };
+};
+
 const useUnitStatusOverviewViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
@@ -58,6 +91,13 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
   const [reviewRemark, setReviewRemark] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+  const [expandedProcesses, setExpandedProcesses] = useState({});
+  const [selectedReviewProcess, setSelectedReviewProcess] = useState(null);
+  const [imagePreview, setImagePreview] = useState({
+    visible: false,
+    uri: "",
+    title: "",
+  });
   const { progress, isLoading, error, refreshProgress } = useUnitProgress({
     projectId,
     unitId,
@@ -77,6 +117,21 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
 
     navigation.replace(ROUTES.ROOT.APP_TABS);
   }, [navigation, roleAccess.canViewUnitStatus]);
+
+  useEffect(() => {
+    const firstProcessId = progress.processes[0]?.id;
+
+    if (!firstProcessId) {
+      setExpandedProcesses({});
+      return;
+    }
+
+    setExpandedProcesses((currentValue) =>
+      progress.processes.some((process) => currentValue[process.id])
+        ? currentValue
+        : { [firstProcessId]: true }
+    );
+  }, [progress.processes]);
 
   useEffect(() => {
     if (
@@ -108,6 +163,19 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
   const selectedProcess = selectedSubprocessState?.process || null;
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const selectedSubprocessDetails = selectedSubprocess?.detailItems || [];
+  const selectedSubprocessLocation = useMemo(() => {
+    for (const checklist of selectedSubprocess?.checklists || []) {
+      const coordinates = parseChecklistLocation(
+        checklist?.detail?.rawValue ?? checklist?.rawChecklist?.value
+      );
+
+      if (coordinates) {
+        return coordinates;
+      }
+    }
+
+    return null;
+  }, [selectedSubprocess]);
 
   const updateReviewRemark = (value) => {
     setReviewRemark(value);
@@ -121,6 +189,15 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     navigation.goBack();
   };
 
+  const toggleProcess = (processId) => {
+    setExpandedProcesses((currentValue) => ({
+      ...currentValue,
+      [processId]: !currentValue[processId],
+    }));
+  };
+
+  const isProcessExpanded = (processId) => Boolean(expandedProcesses[processId]);
+
   const openSubprocessModal = (process, subprocess) => {
     setSelectedSubprocessState({ process, subprocess });
   };
@@ -129,13 +206,61 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     setSelectedSubprocessState(null);
   };
 
-  const submitReview = async (decision) => {
-    if (!canReviewChecklist || !selectedSubprocess) {
+  const openImagePreview = ({ uri = "", title = "" } = {}) => {
+    if (!uri) {
       return;
     }
 
-    if (decision === "reject" && !reviewRemark.trim()) {
-      setReviewError("Comment is required to reject this subprocess.");
+    setImagePreview({
+      visible: true,
+      uri,
+      title,
+    });
+  };
+
+  const closeImagePreview = () => {
+    setImagePreview({
+      visible: false,
+      uri: "",
+      title: "",
+    });
+  };
+
+  const openSelectedSubprocessDirections = async () => {
+    if (!selectedSubprocessLocation) {
+      showAppAlert({
+        type: "info",
+        title: "Location unavailable",
+        message: "Directions are not available for this subprocess yet.",
+      });
+      return;
+    }
+
+    await openDirections(
+      selectedSubprocessLocation.latitude,
+      selectedSubprocessLocation.longitude
+    );
+  };
+
+  const closeRejectFlow = () => {
+    setSelectedReviewProcess(null);
+    setReviewRemark("");
+    setReviewError("");
+  };
+
+  const openRejectFlow = (process) => {
+    setSelectedReviewProcess(process);
+    setReviewRemark("");
+    setReviewError("");
+  };
+
+  const submitReview = async ({ decision, process, remark = "" }) => {
+    if (!canReviewChecklist || !process) {
+      return;
+    }
+
+    if (decision === "reject" && !remark.trim()) {
+      setReviewError("Comment is required to reject this process.");
       return;
     }
 
@@ -147,11 +272,28 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
         module,
         projectId,
         unitId,
-        processId: selectedProcess?.id || null,
-        subprocessId: selectedSubprocess.id,
-        remark: reviewRemark.trim(),
+        processId: process.id || null,
+        subprocessId: null,
+        remark: remark.trim(),
+      });
+      await refreshProgress();
+      closeRejectFlow();
+      showAppAlert({
+        type: "success",
+        title: decision === "approve" ? "Process Approved" : "Process Rejected",
+        message:
+          decision === "approve"
+            ? `${process.name} was approved for this node.`
+            : `${process.name} was sent back with your comment.`,
       });
     } catch (nextError) {
+      showAppAlert({
+        type: "danger",
+        title: "Unable to submit review",
+        message:
+          nextError?.message ||
+          "Review API is not configured yet. Wire the endpoint in omsReviewService.",
+      });
       setReviewError(
         nextError?.message ||
           "Review API is not configured yet. Wire the endpoint in omsReviewService."
@@ -176,14 +318,24 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     selectedProcess,
     selectedSubprocess,
     selectedSubprocessDetails,
+    selectedSubprocessLocation,
+    selectedReviewProcess,
+    imagePreview,
     reviewRemark,
     reviewError,
     isReviewSubmitting,
     updateReviewRemark,
     submitReview,
     handleBack,
+    toggleProcess,
+    isProcessExpanded,
     openSubprocessModal,
     closeSubprocessModal,
+    openSelectedSubprocessDirections,
+    openImagePreview,
+    closeImagePreview,
+    openRejectFlow,
+    closeRejectFlow,
   };
 };
 

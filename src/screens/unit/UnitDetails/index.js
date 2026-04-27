@@ -63,22 +63,12 @@ const StatusPill = ({ status }) => {
   );
 };
 
-const SummaryChip = ({ label, value, highlight = false }) => (
-  <View
-    style={[styles.heroSummaryChip, highlight && styles.heroSummaryChipHighlight]}
-  >
-    <Text style={styles.heroSummaryValue}>{value}</Text>
-    <Text style={styles.heroSummaryLabel}>{label}</Text>
-  </View>
-);
-
 const UnitDetailsScreen = ({ navigation, route }) => {
   const {
     unitLabel,
     projectName,
     detailItems,
     processes,
-    summary,
     overviewActionLabel,
     isLoading,
     isRefreshing,
@@ -135,16 +125,6 @@ const UnitDetailsScreen = ({ navigation, route }) => {
           <Text style={styles.heroTitle} numberOfLines={2}>
             {projectName}
           </Text>
-
-          <View style={styles.heroSummaryRow}>
-            <SummaryChip label="Processes" value={summary.processCount} />
-            <SummaryChip
-              label="Completed"
-              value={summary.completedSubprocessCount}
-              highlight
-            />
-            <SummaryChip label="Checklist" value={summary.checklistCount} />
-          </View>
         </View>
 
         <View style={styles.sectionMetaBlock}>
@@ -270,14 +250,26 @@ const UnitDetailsScreen = ({ navigation, route }) => {
                             openSubprocessDetails(process, subprocess)
                           }
                         >
-                          <View style={styles.subprocessCopy}>
-                            <Text style={styles.subprocessLabel}>
-                              {subprocess.name}
-                            </Text>
-                            <Text style={styles.subprocessHint}>
-                              {subprocess.checklistCount} checklist
-                              {subprocess.checklistCount === 1 ? "" : "s"}
-                            </Text>
+                          <View style={styles.subprocessLead}>
+                            <View
+                              style={[
+                                styles.subprocessDot,
+                                {
+                                  backgroundColor: getStatusColors(
+                                    subprocess.status?.key
+                                  ).solid,
+                                },
+                              ]}
+                            />
+                            <View style={styles.subprocessCopy}>
+                              <Text style={styles.subprocessLabel}>
+                                {subprocess.name}
+                              </Text>
+                              <Text style={styles.subprocessHint}>
+                                {subprocess.checklistCount} checklist
+                                {subprocess.checklistCount === 1 ? "" : "s"}
+                              </Text>
+                            </View>
                           </View>
 
                           <View style={styles.subprocessMeta}>

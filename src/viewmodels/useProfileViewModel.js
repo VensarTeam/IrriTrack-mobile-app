@@ -10,7 +10,7 @@ import {
 import { refreshOfflineMasterData } from "../services/offlineMasterSync";
 
 const useProfileViewModel = (navigation) => {
-  const { logout, refreshProfile, user: authenticatedUser } = useAuth();
+  const { logout, refreshProfile, user: authenticatedUser, roleAccess } = useAuth();
   const [isRefreshingProfile, setIsRefreshingProfile] = useState(false);
   const [isSyncingMasterData, setIsSyncingMasterData] = useState(false);
   const [isSyncingOmsData, setIsSyncingOmsData] = useState(false);
@@ -100,7 +100,10 @@ const useProfileViewModel = (navigation) => {
     console.log("[ChecklistProfile]", "Manual OMS data sync pressed");
 
     try {
-      const pendingCount = await getPendingChecklistSubmissionCount();
+      const ownerUserId = String(user?.id || user?.mobile || "").trim();
+      const pendingCount = await getPendingChecklistSubmissionCount({
+        ownerUserId,
+      });
 
       if (!pendingCount) {
         showAppAlert({
@@ -111,7 +114,9 @@ const useProfileViewModel = (navigation) => {
         return;
       }
 
-      const result = await syncQueuedChecklistSubmissions();
+      const result = await syncQueuedChecklistSubmissions({
+        ownerUserId,
+      });
       const syncedCount = result.synced || 0;
       const syncMessage = result.skippedOffline
         ? "Network unavailable. OMS data is still saved locally."
@@ -172,6 +177,7 @@ const useProfileViewModel = (navigation) => {
   return {
     user,
     initials,
+    canShowSyncActions: !roleAccess.isReviewer,
     isRefreshingProfile,
     isSyncingMasterData,
     isSyncingOmsData,

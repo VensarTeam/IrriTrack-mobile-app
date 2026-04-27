@@ -27,6 +27,7 @@ const buildProjectDetailsParams = ({ zoneName, villageId }) => {
   }
 
   if (villageId) {
+    // Project details filtering expects the camelCase query key.
     params.villageId = villageId;
   }
 
@@ -79,11 +80,19 @@ export const fetchProjectDetails = async ({
   }
 
   if (!projectDetailsRequestPromises.has(cacheKey)) {
+    const params = buildProjectDetailsParams({ zoneName, villageId });
+    console.log("[ProjectDetails]", "Fetching project details", {
+      projectId,
+      zoneName: zoneName || "All",
+      villageId: villageId || "",
+      params,
+    });
+
     projectDetailsRequestPromises.set(
       cacheKey,
       fetchWithFallbackPaths({
         paths: PROJECT_DETAILS_API_PATHS(projectId),
-        params: buildProjectDetailsParams({ zoneName, villageId }),
+        params,
       })
         .then((response) => {
           const normalizedProjectDetails = createProjectDetails(response);

@@ -29,6 +29,28 @@ const resolveContextValue = (value, context = {}) => {
   );
 };
 
+const formatChecklistLabelWithUnitContext = (item = {}, context = {}) => {
+  const resolvedLabel = resolveContextValue(item.label, context);
+  const subChakQuantity = getUnitSubChakQuantity(context.unit);
+  const checklistId = Number(item?.checklistId);
+  const normalizedLabel = String(resolvedLabel || "").trim();
+
+  if (!normalizedLabel) {
+    return resolvedLabel;
+  }
+
+  if (
+    checklistId === 9 &&
+    Number.isFinite(subChakQuantity) &&
+    subChakQuantity > 0 &&
+    !/\(\s*\d+\s*\)/.test(normalizedLabel)
+  ) {
+    return `${normalizedLabel} (${subChakQuantity})`;
+  }
+
+  return resolvedLabel;
+};
+
 const applyUnitAwareSectionContext = (sections = [], module, unit) => {
   const subChakQuantity = getUnitSubChakQuantity(unit);
 
@@ -44,7 +66,7 @@ const applyUnitAwareSectionContext = (sections = [], module, unit) => {
       checklistItems: (sub.checklistItems || []).map((item) => ({
         ...item,
         label: applyModuleText(
-          resolveContextValue(item.label, { module, unit }),
+          formatChecklistLabelWithUnitContext(item, { module, unit }),
           module
         ),
       })),

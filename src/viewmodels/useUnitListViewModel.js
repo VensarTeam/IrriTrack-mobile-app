@@ -182,6 +182,7 @@ const useUnitListViewModel = (navigation, route) => {
   } = useProjectLocationFilters({
     projectId,
     zoneName: zone,
+    villageName: village,
     activeFilterType: filterType,
     searchQuery: locationFilterSearchQuery,
   });
@@ -504,7 +505,10 @@ const useUnitListViewModel = (navigation, route) => {
 
       const statusLookup = getUnitStatusBySubOption(unit);
       const states = (section.subOptions || []).map(
-        (subOption) => statusLookup[subOption.id] || "Pending"
+        (subOption) => statusLookup[subOption.id] || null
+      );
+      const hasTrackedState = states.some(
+        (state) => state && !PENDING_STATES.includes(state)
       );
       const completedCount = states.filter((state) =>
         COMPLETED_STATES.includes(state)
@@ -515,7 +519,10 @@ const useUnitListViewModel = (navigation, route) => {
         label: getProcessLabel(section),
         sectionKey: section.key,
         subOptionId: section.subOptions[0]?.id,
-        value: getProcessValue(states),
+        value:
+          isOfflineOmsList && !hasTrackedState
+            ? ""
+            : getProcessValue(states.map((state) => state || "Pending")),
         progressLabel: "",
       };
     });
