@@ -829,6 +829,28 @@ export default StyleSheet.create({
     height: verticalScale(170),
   },
 
+  photoPreviewImageWrap: {
+    position: "relative",
+  },
+
+  photoWatermark: {
+    position: "absolute",
+    left: moderateScale(10),
+    right: moderateScale(10),
+    bottom: verticalScale(10),
+    borderRadius: moderateScale(10),
+    backgroundColor: "rgba(0,0,0,0.58)",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
+  },
+
+  photoWatermarkText: {
+    fontSize: moderateScale(9.5),
+    color: colors.white,
+    fontFamily: fonts.medium,
+    lineHeight: moderateScale(14),
+  },
+
   videoPreviewPlaceholder: {
     height: verticalScale(140),
     backgroundColor: colors.surfaceBlue,
@@ -1224,6 +1246,10 @@ locationBtnSecondaryText: {
     borderRadius: moderateScale(14),
     padding: moderateScale(10),
     maxHeight: "80%",
+  },
+
+  previewImageWrap: {
+    position: "relative",
   },
 
   referencePreviewCard: {

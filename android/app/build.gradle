@@ -151,7 +151,7 @@ android {
         variant.outputs.configureEach { output ->
             def abiName = output.getFilter(OutputFile.ABI)
             def abiSuffix = abiName ? "-${abiName}" : ""
-            outputFileName = "IDMS(${variant.versionName})${abiSuffix}.apk"
+            outputFileName = "IrriTrack(${variant.versionName})${abiSuffix}.apk"
         }
     }
 }

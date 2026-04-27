@@ -141,6 +141,39 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     });
   };
 
+  const getPhotoLocationLabel = React.useCallback((media) => {
+    if (
+      !Number.isFinite(media?.latitude) ||
+      !Number.isFinite(media?.longitude)
+    ) {
+      return "";
+    }
+
+    return `${media.latitude}, ${media.longitude}`;
+  }, []);
+
+  const renderPhotoWatermark = React.useCallback(
+    (media) => {
+      const locationLabel = getPhotoLocationLabel(media);
+
+      if (!media?.takenAt && !locationLabel) {
+        return null;
+      }
+
+      return (
+        <View style={styles.photoWatermark}>
+          {media?.takenAt ? (
+            <Text style={styles.photoWatermarkText}>{media.takenAt}</Text>
+          ) : null}
+          {locationLabel ? (
+            <Text style={styles.photoWatermarkText}>{locationLabel}</Text>
+          ) : null}
+        </View>
+      );
+    },
+    [getPhotoLocationLabel]
+  );
+
   const scrollFocusedFieldIntoView = React.useCallback((event) => {
     const target =
       event?.target ??
@@ -788,31 +821,24 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                               </Text>
                             </View>
                           ) : (
-                            <Image
-                              source={{ uri: media.uri }}
-                              style={styles.photoPreviewImage}
-                              resizeMode="cover"
-                            />
+                            <View style={styles.photoPreviewImageWrap}>
+                              <Image
+                                source={{ uri: media.uri }}
+                                style={styles.photoPreviewImage}
+                                resizeMode="cover"
+                              />
+                              {renderPhotoWatermark(media)}
+                            </View>
                           )}
 
                           <View style={styles.photoMetaCard}>
                             <Text style={styles.photoMetaText}>
-                              File: {media.name}
-                            </Text>
-                            <Text style={styles.photoMetaText}>
-                              Source: {media.source}
-                            </Text>
-                            <Text style={styles.photoMetaText}>
                               Size:{" "}
                               {media.sizeKb ? `${media.sizeKb}KB` : "Unknown"}
                             </Text>
-                            <Text style={styles.photoMetaText}>
-                              Time: {media.takenAt}
-                            </Text>
-                            {Number.isFinite(media.latitude) &&
-                            Number.isFinite(media.longitude) ? (
+                            {getPhotoLocationLabel(media) ? (
                               <Text style={styles.photoMetaText}>
-                                Location: {media.latitude}, {media.longitude}
+                                Location: {getPhotoLocationLabel(media)}
                               </Text>
                             ) : null}
                           </View>
@@ -1018,18 +1044,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   </Text>
                 </View>
               ) : (
-                <Image
-                  source={{ uri: photoPreviewState.media.uri }}
-                  style={styles.previewImage}
-                  resizeMode="contain"
-                />
+                <View style={styles.previewImageWrap}>
+                  <Image
+                    source={{ uri: photoPreviewState.media.uri }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                  {renderPhotoWatermark(photoPreviewState.media)}
+                </View>
               )
-            ) : null}
-
-            {photoPreviewState.media ? (
-              <Text style={styles.previewMetaText}>
-                Captured: {photoPreviewState.media.takenAt}
-              </Text>
             ) : null}
 
             <TouchableOpacity

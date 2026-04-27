@@ -127,9 +127,9 @@ const useProjectLocationFilters = ({
       requestIdRef.current = requestId;
 
       setFilterState((currentState) => ({
-        items: append ? currentState.items : EMPTY_ARRAY,
-        meta: append ? currentState.meta : DEFAULT_META,
-        hasLoaded: append ? currentState.hasLoaded : false,
+        items: currentState.items,
+        meta: currentState.meta,
+        hasLoaded: currentState.hasLoaded,
         isLoading: !append,
         isFetchingMore: append,
       }));
@@ -161,7 +161,9 @@ const useProjectLocationFilters = ({
                   currentState.items,
                   response?.items || EMPTY_ARRAY
                 )
-            : response?.items || EMPTY_ARRAY,
+            : (response?.items || EMPTY_ARRAY).length
+              ? response.items
+              : currentState.items,
           meta: response.meta || DEFAULT_META,
           hasLoaded: true,
           isLoading: false,
@@ -186,8 +188,8 @@ const useProjectLocationFilters = ({
 
         setFilterState((currentState) => ({
           ...currentState,
-          items: append ? currentState.items : EMPTY_ARRAY,
-          meta: append ? currentState.meta : DEFAULT_META,
+          items: currentState.items,
+          meta: currentState.meta,
           hasLoaded: true,
           isLoading: false,
           isFetchingMore: false,
@@ -230,13 +232,13 @@ const useProjectLocationFilters = ({
     }
 
     const setFilterState = type === "zone" ? setZoneState : setVillageState;
-    setFilterState({
-      items: EMPTY_ARRAY,
-      meta: DEFAULT_META,
-      hasLoaded: false,
-      isLoading: true,
+    setFilterState((currentState) => ({
+      items: currentState.items,
+      meta: currentState.meta,
+      hasLoaded: currentState.hasLoaded,
+      isLoading: currentState.items.length === 0,
       isFetchingMore: false,
-    });
+    }));
   }, []);
 
   const loadMoreFilterOptions = useCallback(() => {

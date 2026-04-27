@@ -290,7 +290,7 @@ const SearchableFilterModal = ({
       ),
     []
   );
-  const isInitialLoading = isLoading && options.length === 0;
+  const isInitialLoading = isLoading;
 
   const listContentStyle = React.useMemo(
     () => [
