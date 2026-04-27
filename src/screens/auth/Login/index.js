@@ -66,7 +66,6 @@ const LoginScreen = ({ navigation }) => {
           />
         </View>
         <Text style={styles.systemText}>{APP_NAME}</Text>
-        <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>
 
       <View style={styles.sheet}>

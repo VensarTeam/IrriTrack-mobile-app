@@ -144,7 +144,7 @@ const AndroidSplash = ({ onLayout }) => {
                 style={styles.logoFrame}
               >
                 <Image
-                  source={require("../assets/images/logo.png")}
+                  source={require("../assets/images/logo2.png")}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: "68%",
-    height: "68%",
+    width: "78%",
+    height: "78%",
   },
 
   copyWrap: {
