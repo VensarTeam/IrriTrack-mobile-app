@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    marginTop: verticalScale(6),
+    marginTop: verticalScale(6), 
     fontSize: moderateScale(13),
     fontFamily: fonts.semiBold,
     color: splashPalette.subtitle,
