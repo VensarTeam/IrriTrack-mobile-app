@@ -88,14 +88,14 @@ export default StyleSheet.create({
   },
 
   unitNumberLabel: {
-    fontSize: moderateScale(9),
+    fontSize: moderateScale(13),
     color: colors.white,
     fontFamily: fonts.medium,
     marginBottom: verticalScale(2),
   },
 
   unitNumberText: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(18),
     color: colors.white,
     fontFamily: fonts.bold,
   },

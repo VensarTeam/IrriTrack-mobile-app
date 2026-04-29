@@ -782,7 +782,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                                 color={colors.primaryBlue}
                               />
                             ) : (
-                              <Icons.camera height={22} width={22} />
+                              <Icons.uploadfile height={22} width={22} />
                             )}
                             <Text style={styles.uploadButtonText}>
                               {isProcessingPhoto

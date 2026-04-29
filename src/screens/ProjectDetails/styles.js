@@ -567,12 +567,14 @@ export default StyleSheet.create({
   },
 
   sectionHeader: {
+    flex:1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderRadius: moderateScale(14),
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(9),
+    backgroundColor:'red'
   },
 
   sectionHeaderOffline: {
@@ -856,7 +858,7 @@ export default StyleSheet.create({
   stageBoardButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    alignSelf:'flex-end',
     gap: moderateScale(4),
     minHeight: verticalScale(34),
     paddingHorizontal: moderateScale(12),
@@ -865,10 +867,12 @@ export default StyleSheet.create({
     borderWidth: 1,
     backgroundColor: colors.white,
     maxWidth: "52%",
+    marginLeft: "auto",
+    marginRight: moderateScale(4),
   },
 
   stageBoardButtonText: {
-    fontSize: fontScale(9.5),
+    fontSize: fontScale(11),
     fontFamily: fonts.bold,
     letterSpacing: 0.2,
   },

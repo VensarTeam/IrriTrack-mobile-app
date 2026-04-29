@@ -224,6 +224,7 @@ const useWorkStatusViewModel = (navigation, route) => {
   const [submissionHistory, setSubmissionHistory] = useState(null);
   const [isSubmissionHistoryLoading, setIsSubmissionHistoryLoading] = useState(false);
   const [submissionHistoryError, setSubmissionHistoryError] = useState("");
+  const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
   const [workflowStatusOverrides, setWorkflowStatusOverrides] = useState({});
   const [reviewRemark, setReviewRemark] = useState("");
   const [reviewError, setReviewError] = useState("");
@@ -310,7 +311,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     return () => {
       isCancelled = true;
     };
-  }, [selectedHistoryWorkItem]);
+  }, [historyRefreshTick, selectedHistoryWorkItem]);
 
   const resolveProcessRoute = useCallback(
     (item) => {
@@ -429,13 +430,10 @@ const useWorkStatusViewModel = (navigation, route) => {
   const countsByTab = useMemo(
     () =>
       tabs.reduce((acc, tab) => {
-        acc[tab] =
-          stageLabel === "All"
-            ? resolveCountByTab({ tab, counts, roleAccess })
-            : (itemsByTab[tab] || []).length;
+        acc[tab] = resolveCountByTab({ tab, counts, roleAccess });
         return acc;
       }, {}),
-    [counts, itemsByTab, roleAccess, stageLabel, tabs]
+    [counts, roleAccess, tabs]
   );
 
   const unitsByTab = useMemo(
@@ -522,6 +520,14 @@ const useWorkStatusViewModel = (navigation, route) => {
     setSubmissionHistoryError("");
     setIsSubmissionHistoryLoading(false);
   }, []);
+
+  const refreshSubmissionHistory = useCallback(() => {
+    if (!selectedHistoryWorkItem) {
+      return;
+    }
+
+    setHistoryRefreshTick((currentValue) => currentValue + 1);
+  }, [selectedHistoryWorkItem]);
 
   const updateReviewRemark = useCallback((value) => {
     setReviewRemark(value);
@@ -677,6 +683,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     closeWorkItemSheet,
     openSubmissionHistory,
     closeSubmissionHistory,
+    refreshSubmissionHistory,
     updateReviewRemark,
     submitWorkItemAction,
     refreshSelectedProgress,

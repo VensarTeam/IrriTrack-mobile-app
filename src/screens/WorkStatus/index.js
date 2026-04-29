@@ -3,7 +3,10 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -336,15 +339,21 @@ const WorkStatusScreen = ({ route, navigation }) => {
     closeWorkItemSheet,
     openSubmissionHistory,
     closeSubmissionHistory,
+    refreshSubmissionHistory,
     updateReviewRemark,
     submitWorkItemAction,
+    refreshSelectedProgress,
     getUnitSubtitle,
     getUnitWorkBucket,
     handleBack,
   } = useWorkStatusViewModel(navigation, route);
   const layout = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [isRejectMode, setIsRejectMode] = React.useState(false);
+  const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] =
+    React.useState(false);
+  const [isRejectSubmitPending, setIsRejectSubmitPending] = React.useState(false);
+  const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] =
+    React.useState(false);
   const selectedProcess = selectedProgressMatch?.process || null;
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
@@ -361,8 +370,67 @@ const WorkStatusScreen = ({ route, navigation }) => {
       selectedWorkflowStatusKey === "verified");
 
   React.useEffect(() => {
-    setIsRejectMode(false);
+    setIsRejectRemarkModalVisible(false);
+    setIsRejectSubmitPending(false);
   }, [selectedWorkItem?.submissionId, selectedWorkflowStatusKey]);
+
+  React.useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setIsRejectKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setIsRejectKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!isRejectSubmitPending || isWorkflowSubmitting) {
+      return;
+    }
+
+    if (!reviewError) {
+      setIsRejectRemarkModalVisible(false);
+    }
+
+    setIsRejectSubmitPending(false);
+  }, [isRejectSubmitPending, isWorkflowSubmitting, reviewError]);
+
+  const openRejectRemarkModal = React.useCallback(() => {
+    updateReviewRemark("");
+    setIsRejectRemarkModalVisible(true);
+  }, [updateReviewRemark]);
+
+  const closeRejectRemarkModal = React.useCallback(() => {
+    if (isWorkflowSubmitting) {
+      return;
+    }
+
+    setIsRejectRemarkModalVisible(false);
+    updateReviewRemark("");
+  }, [isWorkflowSubmitting, updateReviewRemark]);
+
+  const handleRejectModalRequestClose = React.useCallback(() => {
+    if (isWorkflowSubmitting) {
+      return;
+    }
+
+    if (isRejectKeyboardVisible) {
+      Keyboard.dismiss();
+      return;
+    }
+
+    closeRejectRemarkModal();
+  }, [closeRejectRemarkModal, isRejectKeyboardVisible, isWorkflowSubmitting]);
+
+  const submitRejectFromModal = React.useCallback(async () => {
+    setIsRejectSubmitPending(true);
+    await submitWorkItemAction("reject");
+  }, [submitWorkItemAction]);
 
   const routes = React.useMemo(
     () =>
@@ -546,14 +614,21 @@ const WorkStatusScreen = ({ route, navigation }) => {
               >
                 {tabRoute.title}
               </Text>
-              <Text
+              <View
                 style={[
-                  styles.tabCountText,
-                  focused && styles.tabCountTextActive,
+                  styles.tabCountBadge,
+                  focused && styles.tabCountBadgeActive,
                 ]}
               >
-                {count}
-              </Text>
+                <Text
+                  style={[
+                    styles.tabCountText,
+                    focused && styles.tabCountTextActive,
+                  ]}
+                >
+                  {count}
+                </Text>
+              </View>
             </View>
           );
         }}
@@ -564,6 +639,81 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Modal
+        visible={isRejectRemarkModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleRejectModalRequestClose}
+      >
+        <Pressable
+          style={styles.rejectModalBackdrop}
+          onPress={handleRejectModalRequestClose}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.rejectModalRoot}
+          >
+            <Pressable style={styles.rejectModalCard} onPress={() => {}}>
+              <Text style={styles.rejectModalTitle}>Reject Remark</Text>
+              <Text style={styles.rejectModalSubtitle}>
+                Add a short remark before sending this subprocess back.
+              </Text>
+
+              <TextInput
+                style={[
+                  styles.reviewRemarkInput,
+                  styles.rejectModalInput,
+                  reviewError && styles.reviewRemarkInputError,
+                ]}
+                placeholder="Write reject remark"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                value={reviewRemark}
+                onChangeText={updateReviewRemark}
+                textAlignVertical="top"
+                autoFocus
+              />
+
+              {reviewError ? (
+                <Text style={styles.reviewErrorText}>{reviewError}</Text>
+              ) : null}
+
+              <View style={styles.rejectModalActionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.reviewActionButton,
+                    styles.reviewCancelButton,
+                    isWorkflowSubmitting && styles.reviewActionButtonDisabled,
+                  ]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={closeRejectRemarkModal}
+                >
+                  <Text style={styles.reviewCancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.reviewActionButton,
+                    styles.reviewRejectButton,
+                    isWorkflowSubmitting && styles.reviewActionButtonDisabled,
+                  ]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={submitRejectFromModal}
+                >
+                  {isWorkflowSubmitting ? (
+                    <ActivityIndicator size="small" color={colors.danger} />
+                  ) : (
+                    <Text style={styles.reviewRejectText}>Submit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
+
       <View style={styles.container}>
         <View style={styles.header}>
           <IconButton icon="arrow-left" onPress={handleBack} size={22} />
@@ -606,6 +756,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
               <Icon source="alert-circle-outline" size={28} color={colors.primaryOrange} />
             </View>
             <Text style={styles.stateText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              activeOpacity={0.88}
+              onPress={refresh}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <TabView
@@ -699,6 +856,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   <Text style={styles.sheetStateText}>
                     {submissionHistoryError}
                   </Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    activeOpacity={0.88}
+                    onPress={refreshSubmissionHistory}
+                  >
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (submissionHistory?.history || []).length ? (
                 <View style={styles.historyTimeline}>
@@ -862,6 +1026,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
               ) : selectedProgressError ? (
                 <View style={styles.sheetStateCard}>
                   <Text style={styles.sheetStateText}>{selectedProgressError}</Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    activeOpacity={0.88}
+                    onPress={refreshSelectedProgress}
+                  >
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <>
@@ -944,9 +1115,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     <View style={styles.workflowSection}>
                       <Text style={styles.sectionBlockTitle}>Workflow</Text>
                       <Text style={styles.reviewActionSubtitle}>
-                        {isRejectMode
-                          ? "Add a short remark before sending this subprocess back."
-                          : selectedWorkflowStatusKey === "commented"
+                        {selectedWorkflowStatusKey === "commented"
                           ? "This subprocess was commented and is waiting for field rectification."
                           : selectedWorkflowStatusKey === "approved"
                           ? "This subprocess is already approved."
@@ -957,45 +1126,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
                           : "This submitted subprocess is ready for review."}
                       </Text>
 
-                      {isRejectMode && canRejectSelected ? (
-                        <TextInput
-                          style={[
-                            styles.reviewRemarkInput,
-                            reviewError && styles.reviewRemarkInputError,
-                          ]}
-                          placeholder="Write reject remark"
-                          placeholderTextColor={colors.textSecondary}
-                          multiline
-                          value={reviewRemark}
-                          onChangeText={updateReviewRemark}
-                          textAlignVertical="top"
-                        />
-                      ) : null}
-
-                      {reviewError ? (
+                      {reviewError && !isRejectRemarkModalVisible ? (
                         <Text style={styles.reviewErrorText}>{reviewError}</Text>
                       ) : null}
 
                       {canVerifySelected || canApproveSelected || canRejectSelected ? (
                         <View style={styles.reviewActionRow}>
-                          {isRejectMode ? (
-                            <TouchableOpacity
-                              style={[
-                                styles.reviewActionButton,
-                                styles.reviewCancelButton,
-                                isWorkflowSubmitting &&
-                                  styles.reviewActionButtonDisabled,
-                              ]}
-                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
-                              disabled={isWorkflowSubmitting}
-                              onPress={() => {
-                                setIsRejectMode(false);
-                                updateReviewRemark("");
-                              }}
-                            >
-                              <Text style={styles.reviewCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                          ) : canRejectSelected ? (
+                          {canRejectSelected ? (
                             <TouchableOpacity
                               style={[
                                 styles.reviewActionButton,
@@ -1005,13 +1142,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
                               ]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
-                              onPress={() => setIsRejectMode(true)}
+                              onPress={openRejectRemarkModal}
                             >
                               <Text style={styles.reviewRejectText}>Reject</Text>
                             </TouchableOpacity>
                           ) : null}
 
-                          {!isRejectMode && canVerifySelected ? (
+                          {canVerifySelected ? (
                             <TouchableOpacity
                               style={[
                                 styles.reviewActionButton,
@@ -1034,7 +1171,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                             </TouchableOpacity>
                           ) : null}
 
-                          {!isRejectMode && canApproveSelected ? (
+                          {canApproveSelected ? (
                             <TouchableOpacity
                               style={[
                                 styles.reviewActionButton,
@@ -1050,26 +1187,6 @@ const WorkStatusScreen = ({ route, navigation }) => {
                                 <ActivityIndicator size="small" color={colors.white} />
                               ) : (
                                 <Text style={styles.reviewApproveText}>Approve</Text>
-                              )}
-                            </TouchableOpacity>
-                          ) : null}
-
-                          {isRejectMode ? (
-                            <TouchableOpacity
-                              style={[
-                                styles.reviewActionButton,
-                                styles.reviewRejectButton,
-                                isWorkflowSubmitting &&
-                                  styles.reviewActionButtonDisabled,
-                              ]}
-                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
-                              disabled={isWorkflowSubmitting}
-                              onPress={() => submitWorkItemAction("reject")}
-                            >
-                              {isWorkflowSubmitting ? (
-                                <ActivityIndicator size="small" color={colors.danger} />
-                              ) : (
-                                <Text style={styles.reviewRejectText}>Submit Reject</Text>
                               )}
                             </TouchableOpacity>
                           ) : null}

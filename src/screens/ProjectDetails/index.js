@@ -722,6 +722,33 @@ const ProjectDetailsScreen = ({ route }) => {
                                 {key} Status
                               </Text>
                             </View>
+                            <TouchableOpacity
+                                  style={[
+                                    styles.stageBoardButton,
+                                    { borderColor: moduleTheme.soft },
+                                  ]}
+                                  onPress={() =>
+                                    openStageStatusBoard({
+                                      moduleKey: key,
+                                      stageLabel: selectedStage,
+                                    })
+                                  }
+                                  activeOpacity={0.86}
+                                >
+                                  <Icons.work
+                                    height={16}
+                                    width={16}
+                                    // color={item.accent}
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.stageBoardButtonText,
+                                      { color: moduleTheme.accent },
+                                    ]}
+                                  >
+                                    Work Status
+                                  </Text>
+                                </TouchableOpacity>
                           </View>
                           <View
                             style={[
@@ -811,33 +838,6 @@ const ProjectDetailsScreen = ({ route }) => {
                                     Swipe for details
                                   </Text>
                                 </View>
-                                <TouchableOpacity
-                                  style={[
-                                    styles.stageBoardButton,
-                                    { borderColor: moduleTheme.soft },
-                                  ]}
-                                  onPress={() =>
-                                    openStageStatusBoard({
-                                      moduleKey: key,
-                                      stageLabel: selectedStage,
-                                    })
-                                  }
-                                  activeOpacity={0.86}
-                                >
-                                  <Icons.work
-                                    height={16}
-                                    width={16}
-                                    // color={item.accent}
-                                  />
-                                  <Text
-                                    style={[
-                                      styles.stageBoardButtonText,
-                                      { color: moduleTheme.accent },
-                                    ]}
-                                  >
-                                    Work Status
-                                  </Text>
-                                </TouchableOpacity>
                               </View>
                               <ScrollView
                                 horizontal

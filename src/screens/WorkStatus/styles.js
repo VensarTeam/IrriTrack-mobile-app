@@ -24,8 +24,6 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(8),
-    paddingTop: verticalScale(2),
-    paddingBottom: verticalScale(8),
   },
 
   headerTitle: {
@@ -42,7 +40,6 @@ export default StyleSheet.create({
 
   headerCard: {
     marginHorizontal: moderateScale(15),
-    marginTop: verticalScale(4),
     borderRadius: moderateScale(22),
     backgroundColor: "#F4F8FC",
   },
@@ -147,7 +144,7 @@ export default StyleSheet.create({
   },
 
   tabStyle: {
-    width: moderateScale(108),
+    width: moderateScale(122),
     minHeight: verticalScale(44),
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(4),
@@ -167,29 +164,43 @@ export default StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: moderateScale(5),
+    justifyContent: "space-between",
+    gap: moderateScale(8),
   },
 
   tabLabel: {
     fontSize: fontScale(12),
     color: colors.textSecondary,
     fontFamily: fonts.semiBold,
+    flex: 1,
   },
 
+  tabCountBadge: {
+    minWidth: moderateScale(22),
+    height: moderateScale(22),
+    paddingHorizontal: moderateScale(6),
+    borderRadius: moderateScale(11),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+  },
+
+  tabCountBadgeActive: {
+    backgroundColor: colors.white,
+  },
   tabCountText: {
     fontSize: fontScale(11),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   tabLabelActive: {
-    color: colors.primaryBlue,
+    color: colors.white,
     fontFamily: fonts.bold,
   },
 
   tabCountTextActive: {
-    color: colors.primaryBlue,
+    color: colors.white,
   },
 
   sceneContent: {
@@ -380,6 +391,22 @@ export default StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: fonts.medium,
     textAlign: "center",
+  },
+
+  retryButton: {
+    minHeight: verticalScale(38),
+    marginTop: verticalScale(14),
+    paddingHorizontal: moderateScale(18),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryBlue,
+  },
+
+  retryButtonText: {
+    fontSize: fontScale(11.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   sheetOverlay: {
@@ -967,5 +994,51 @@ export default StyleSheet.create({
     fontSize: fontScale(11.5),
     color: colors.completed,
     fontFamily: fonts.bold,
+  },
+
+  rejectModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(6, 20, 35, 0.55)",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(18),
+  },
+
+  rejectModalRoot: {
+    flex: 1,
+    justifyContent: "center",
+  },
+
+  rejectModalCard: {
+    borderRadius: moderateScale(18),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
+  },
+
+  rejectModalTitle: {
+    fontSize: fontScale(14),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  rejectModalSubtitle: {
+    marginTop: verticalScale(6),
+    fontSize: fontScale(10.5),
+    lineHeight: fontScale(15),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(12),
+  },
+
+  rejectModalInput: {
+    minHeight: verticalScale(110),
+  },
+
+  rejectModalActionRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+    marginTop: verticalScale(12),
   },
 });
