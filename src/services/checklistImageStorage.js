@@ -1,5 +1,10 @@
 import ImageResizer from "react-native-image-resizer";
 import RNFS from "react-native-fs";
+import Marker, {
+  ImageFormat,
+  Position,
+  TextBackgroundType,
+} from "react-native-image-marker";
 
 const TARGET_SIZE_BYTES = 500 * 1024;
 const RESIZE_ATTEMPTS = [
@@ -34,6 +39,89 @@ const getFileName = (asset = {}, fallbackPath = "") => {
   return pathParts[pathParts.length - 1] || `checklist_photo_${Date.now()}.jpg`;
 };
 
+const getWatermarkLocationLabel = (location = {}) => {
+  const latitude = Number(location?.latitude);
+  const longitude = Number(location?.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return "";
+  }
+
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+};
+
+const sanitizeMarkerFilename = (value = "") =>
+  String(value || `checklist_photo_${Date.now()}`)
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "") || `checklist_photo_${Date.now()}`;
+
+const applyChecklistImageWatermark = async (
+  asset,
+  {
+    takenAt = "",
+    captureLocation = null,
+  } = {}
+) => {
+  if (!asset?.uri || !isImageAsset(asset)) {
+    return asset;
+  }
+
+  const watermarkLines = [takenAt, getWatermarkLocationLabel(captureLocation)].filter(
+    Boolean
+  );
+
+  if (!watermarkLines.length) {
+    return asset;
+  }
+
+  const stampedPath = await Marker.markText({
+    backgroundImage: {
+      src: asset.uri,
+      scale: 1,
+    },
+    watermarkTexts: [
+      {
+        text: watermarkLines.join("\n"),
+        position: {
+          position: Position.bottomRight,
+        },
+        style: {
+          color: "#FFFFFF",
+          fontSize: 24,
+          bold: true,
+          textBackgroundStyle: {
+            type: TextBackgroundType.none,
+            color: "#00000099",
+            paddingX: 14,
+            paddingY: 10,
+            cornerRadius: 12,
+          },
+        },
+      },
+    ],
+    quality: Math.min(100, Math.max(70, asset.compressionQuality || 85)),
+    filename: `${sanitizeMarkerFilename(asset.fileName || asset.name)}_wm`,
+    saveFormat: ImageFormat.jpg,
+  });
+
+  const filePath = getAssetFilePath({ uri: stampedPath, filePath: stampedPath });
+  const fileSize = await getFileSizeBytes(filePath || stampedPath);
+
+  return {
+    ...asset,
+    uri: toFileUri(filePath || stampedPath),
+    filePath,
+    fileName: `${sanitizeMarkerFilename(asset.fileName || asset.name)}_wm.jpg`,
+    name: `${sanitizeMarkerFilename(asset.fileName || asset.name)}_wm.jpg`,
+    fileSize,
+    sizeKb: fileSize ? Math.max(1, Math.round(fileSize / 1024)) : asset.sizeKb || null,
+    type: "image/jpeg",
+    mimeType: "image/jpeg",
+    watermarked: true,
+  };
+};
+
 const buildPhotoAsset = async (asset, resized, resizeConfig) => {
   const filePath = getAssetFilePath(resized);
   const sizeBytes = resized.size || (await getFileSizeBytes(filePath));
@@ -60,7 +148,13 @@ const isImageAsset = (asset = {}) =>
   asset.type !== "video" &&
   !String(asset.mimeType || asset.type || "").toLowerCase().startsWith("video/");
 
-export const compressChecklistImage = async (asset) => {
+export const compressChecklistImage = async (
+  asset,
+  {
+    takenAt = "",
+    captureLocation = null,
+  } = {}
+) => {
   if (!asset?.uri || !isImageAsset(asset)) {
     return asset;
   }
@@ -70,7 +164,7 @@ export const compressChecklistImage = async (asset) => {
     asset.fileSize || (await getFileSizeBytes(originalFilePath || asset.uri));
 
   if (originalSizeBytes > 0 && originalSizeBytes <= TARGET_SIZE_BYTES) {
-    return {
+    const normalizedAsset = {
       ...asset,
       uri: asset.uri,
       filePath: originalFilePath,
@@ -84,6 +178,11 @@ export const compressChecklistImage = async (asset) => {
       mimeType: asset.mimeType || asset.type || "image/jpeg",
       compressed: false,
     };
+
+    return applyChecklistImageWatermark(normalizedAsset, {
+      takenAt,
+      captureLocation,
+    });
   }
 
   let smallestResult = null;
@@ -112,9 +211,15 @@ export const compressChecklistImage = async (asset) => {
     }
 
     if (currentSize > 0 && currentSize <= TARGET_SIZE_BYTES) {
-      return normalizedAsset;
+      return applyChecklistImageWatermark(normalizedAsset, {
+        takenAt,
+        captureLocation,
+      });
     }
   }
 
-  return smallestResult || asset;
+  return applyChecklistImageWatermark(smallestResult || asset, {
+    takenAt,
+    captureLocation,
+  });
 };

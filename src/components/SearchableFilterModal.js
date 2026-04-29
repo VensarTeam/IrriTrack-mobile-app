@@ -30,6 +30,7 @@ const SearchableFilterModal = ({
   visible,
   title,
   subtitle,
+  totalItems = null,
   options = [],
   isLoading = false,
   isFetchingMore = false,
@@ -175,6 +176,10 @@ const SearchableFilterModal = ({
     ({ item }) => {
       const optionLabel = String(item || "");
       const isActive = optionLabel === selectedValue;
+      const displayLabel =
+        optionLabel === "All" && Number.isFinite(totalItems)
+          ? `All (${totalItems})`
+          : optionLabel;
 
       return (
         <TouchableOpacity
@@ -183,7 +188,7 @@ const SearchableFilterModal = ({
           activeOpacity={0.85}
         >
           <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
-            {optionLabel}
+            {displayLabel}
           </Text>
 
           <View style={[styles.checkWrap, isActive && styles.checkWrapActive]}>
@@ -194,7 +199,7 @@ const SearchableFilterModal = ({
         </TouchableOpacity>
       );
     },
-    [onSelect, selectedValue]
+    [onSelect, selectedValue, totalItems]
   );
 
   const renderLoadingItem = React.useCallback(
@@ -328,7 +333,14 @@ const SearchableFilterModal = ({
             ]}
           >
             <View style={styles.handle} />
-            <Text style={styles.title}>{title}</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>{title}</Text>
+              {Number.isFinite(totalItems) ? (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{totalItems}</Text>
+                </View>
+              ) : null}
+            </View>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
             <Searchbar
@@ -440,6 +452,33 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(18),
     fontFamily: fonts.bold,
     color: colors.textDark,
+    flexShrink: 1,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(8),
+    flexWrap: "wrap",
+  },
+
+  countBadge: {
+    minHeight: verticalScale(28),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.primaryBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+  },
+
+  countBadgeText: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+    color: colors.white,
   },
 
   subtitle: {
@@ -447,6 +486,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     lineHeight: moderateScale(18),
     color: colors.textSecondary,
+    flexShrink: 1,
   },
 
   searchbar: {

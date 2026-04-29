@@ -3,6 +3,7 @@ export const ROUTES = {
     AUTH_STACK: "AuthStack",
     APP_TABS: "AppTabs",
     PROJECT_DETAILS: "ProjectDetails",
+    WORK_STATUS: "WorkStatus",
     UNIT_LIST_SCREEN: "UnitListScreen",
     UNIT_DETAILS: "UnitDetails",
     UNIT_STATUS_UPDATE: "UnitStatusUpdate",

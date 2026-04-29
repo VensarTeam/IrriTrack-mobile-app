@@ -9,7 +9,9 @@ const STATUS_KEY_BY_CODE = {
 const STATUS_LABEL_BY_KEY = {
   pending: "Pending",
   partial: "Partial",
+  submitted: "Submitted",
   completed: "Completed",
+  verified: "Verified",
   commented: "Commented",
   approved: "Approved",
   updated: "Updated",
@@ -113,7 +115,10 @@ export const normalizeUnitProgressStatus = ({
       pending: "pending",
       partial: "partial",
       "partially completed": "partial",
+      submitted: "submitted",
       completed: "completed",
+      verified: "verified",
+      rejected: "commented",
       commented: "commented",
       approved: "approved",
       updated: "updated",
@@ -212,6 +217,8 @@ const getSubprocessDetailItems = (subprocess = {}) =>
         "review_remarks",
         "reviewComment",
         "review_comment",
+        "rejectionRemark",
+        "rejection_remark",
         "comment",
         "comments",
         "rejectRemark",
@@ -221,12 +228,28 @@ const getSubprocessDetailItems = (subprocess = {}) =>
     ),
     getNamedDetailItem(
       subprocess,
-      ["reviewedBy", "reviewed_by", "approvedBy", "approved_by"],
+      [
+        "verifiedByName",
+        "verified_by_name",
+        "verifiedBy",
+        "verified_by",
+        "reviewedBy",
+        "reviewed_by",
+        "approvedBy",
+        "approved_by",
+      ],
       "Reviewed By"
     ),
     getNamedDetailItem(
       subprocess,
-      ["reviewedAt", "reviewed_at", "approvedAt", "approved_at"],
+      [
+        "verifiedAt",
+        "verified_at",
+        "reviewedAt",
+        "reviewed_at",
+        "approvedAt",
+        "approved_at",
+      ],
       "Reviewed On"
     ),
   ].filter(Boolean);
@@ -320,6 +343,12 @@ export const createUnitProgressProcess = (process = {}, index = 0) => {
       process.description ||
       `Process ${index + 1}`,
     status: normalizeUnitProgressStatus(process),
+    reviewRemark:
+      process.rejectionRemark ||
+      process.rejection_remark ||
+      process.reviewRemark ||
+      process.review_remark ||
+      "",
     subprocesses,
     subprocessCount: subprocesses.length,
     completedSubprocessCount,
@@ -329,6 +358,7 @@ export const createUnitProgressProcess = (process = {}, index = 0) => {
       (count, item) => count + item.checklists.length,
       0,
     ),
+    rawProcess: process,
   };
 };
 

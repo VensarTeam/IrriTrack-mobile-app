@@ -53,6 +53,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     isReadOnly,
     readOnlyTitle,
     readOnlyNotice,
+    isCommentedForEdit,
     isRemarkRequired,
     checklistItems,
     photoRequirements,
@@ -74,6 +75,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
+    confirmUpdatedLocation,
+    discardPendingUpdatedLocation,
     isUpdatingLocation,
     isSubmitting,
     pickFromCamera,
@@ -123,7 +126,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         : "Current location not captured yet",
       disabled: !activeValues.updatedLocation,
     },
-  ];
+  ].filter((item) => !(item.key === "default" && item.disabled));
+  const hasPendingUpdatedLocation = Boolean(activeValues.pendingUpdatedLocation);
 
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
@@ -140,39 +144,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
       title: "",
     });
   };
-
-  const getPhotoLocationLabel = React.useCallback((media) => {
-    if (
-      !Number.isFinite(media?.latitude) ||
-      !Number.isFinite(media?.longitude)
-    ) {
-      return "";
-    }
-
-    return `${media.latitude}, ${media.longitude}`;
-  }, []);
-
-  const renderPhotoWatermark = React.useCallback(
-    (media) => {
-      const locationLabel = getPhotoLocationLabel(media);
-
-      if (!media?.takenAt && !locationLabel) {
-        return null;
-      }
-
-      return (
-        <View style={styles.photoWatermark}>
-          {media?.takenAt ? (
-            <Text style={styles.photoWatermarkText}>{media.takenAt}</Text>
-          ) : null}
-          {locationLabel ? (
-            <Text style={styles.photoWatermarkText}>{locationLabel}</Text>
-          ) : null}
-        </View>
-      );
-    },
-    [getPhotoLocationLabel]
-  );
 
   const scrollFocusedFieldIntoView = React.useCallback((event) => {
     const target =
@@ -520,6 +491,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               (() => {
                 const submissionState = stepSubmissionStateById[sub.id] || {};
                 const isSubmitted = Boolean(submissionState.isSubmitted);
+                const isCommented = Boolean(submissionState.isCommented);
 
                 return (
                   <TouchableOpacity
@@ -562,7 +534,17 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       >
                         {getSubOptionLabel(sub)}
                       </Text>
-                      {isSubmitted ? (
+                      {isCommented ? (
+                        <Text
+                          style={[
+                            styles.stepChipStatus,
+                            sub.id === activeSubOptionId &&
+                              styles.stepChipStatusActive,
+                          ]}
+                        >
+                          Commented
+                        </Text>
+                      ) : isSubmitted ? (
                         <Text
                           style={[
                             styles.stepChipStatus,
@@ -605,6 +587,16 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 <Text style={styles.readOnlyBannerTitle}>{readOnlyTitle}</Text>
                 <Text style={styles.readOnlyBannerText}>
                   {readOnlyNotice}
+                </Text>
+              </View>
+            ) : null}
+
+            {isCommentedForEdit ? (
+              <View style={styles.readOnlyBanner}>
+                <Text style={styles.readOnlyBannerTitle}>Commented</Text>
+                <Text style={styles.readOnlyBannerText}>
+                  Rectify this subprocess with fresh details. Previously submitted
+                  values are intentionally hidden for this correction flow.
                 </Text>
               </View>
             ) : null}
@@ -725,12 +717,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   </Text>
                   <View style={styles.sectionCountBadge}>
                     <Text style={styles.sectionCountBadgeText}>
-                      {photoRequirements.length} required
+                      {photoRequirements.length} photo
+                      {photoRequirements.length === 1 ? "" : "s"}
                     </Text>
                   </View>
                 </View>
                 <Text style={styles.sectionHelperText}>
-                  Capture clear site photos so the submission is easy to verify.
+                  {isCommentedForEdit
+                    ? "Capture fresh rectification photos for this commented subprocess."
+                    : "Capture clear site photos so the submission is easy to verify."}
                 </Text>
 
                 {photoRequirements.map((requirement, index) => {
@@ -738,6 +733,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   const slotError = activeErrors.photoSlots?.[requirement.id];
                   const isProcessingPhoto =
                     photoProcessingRequirementId === requirement.id;
+                  const isServerPrefilledPhoto = media?.source === "server";
+                  const canEditPhoto =
+                    !isReadOnly && !isServerPrefilledPhoto && !isProcessingPhoto;
 
                   return (
                     <View
@@ -751,11 +749,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         <Text style={styles.photoSlotTitle}>
                           {index + 1}. {requirement.label}
                         </Text>
-                        {media ? (
+                        {media && !isServerPrefilledPhoto ? (
                           <TouchableOpacity
                             style={styles.photoRemoveBtn}
                             onPress={() => removeSelectedPhoto(requirement.id)}
-                            disabled={isProcessingPhoto || isReadOnly}
+                            disabled={!canEditPhoto}
                           >
                             <Icons.delete height={20} width={20} />
                             <Text style={styles.photoRemoveBtnText}>
@@ -765,35 +763,37 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         ) : null}
                       </View>
 
-                      <View style={styles.uploadActionsRow}>
-                        <TouchableOpacity
-                          style={[
-                            styles.uploadButton,
-                            styles.uploadCameraButton,
-                            isReadOnly && styles.fieldDisabled,
-                            isProcessingPhoto && styles.uploadButtonDisabled,
-                          ]}
-                          onPress={() => pickFromCamera(requirement)}
-                          activeOpacity={isReadOnly ? 1 : 0.88}
-                          disabled={isProcessingPhoto || isReadOnly}
-                        >
-                          {isProcessingPhoto ? (
-                            <ActivityIndicator
-                              size="small"
-                              color={colors.primaryBlue}
-                            />
-                          ) : (
-                            <Icons.uploadfile height={22} width={22} />
-                          )}
-                          <Text style={styles.uploadButtonText}>
-                            {isProcessingPhoto
-                              ? "Preparing Photo..."
-                              : media
-                                ? "Retake Photo"
-                                : "Open Camera"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
+                      {!isServerPrefilledPhoto ? (
+                        <View style={styles.uploadActionsRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.uploadButton,
+                              styles.uploadCameraButton,
+                              !canEditPhoto && styles.fieldDisabled,
+                              isProcessingPhoto && styles.uploadButtonDisabled,
+                            ]}
+                            onPress={() => pickFromCamera(requirement)}
+                            activeOpacity={canEditPhoto ? 0.88 : 1}
+                            disabled={!canEditPhoto}
+                          >
+                            {isProcessingPhoto ? (
+                              <ActivityIndicator
+                                size="small"
+                                color={colors.primaryBlue}
+                              />
+                            ) : (
+                              <Icons.camera height={22} width={22} />
+                            )}
+                            <Text style={styles.uploadButtonText}>
+                              {isProcessingPhoto
+                                ? "Preparing Photo..."
+                                : media
+                                  ? "Retake Photo"
+                                  : "Open Camera"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
 
                       {isProcessingPhoto ? (
                         <View style={styles.photoProcessingWrap}>
@@ -821,14 +821,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                               </Text>
                             </View>
                           ) : (
-                            <View style={styles.photoPreviewImageWrap}>
-                              <Image
-                                source={{ uri: media.uri }}
-                                style={styles.photoPreviewImage}
-                                resizeMode="cover"
-                              />
-                              {renderPhotoWatermark(media)}
-                            </View>
+                            <Image
+                              source={{ uri: media.uri }}
+                              style={styles.photoPreviewImage}
+                              resizeMode="cover"
+                            />
                           )}
 
                           <View style={styles.photoMetaCard}>
@@ -836,11 +833,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                               Size:{" "}
                               {media.sizeKb ? `${media.sizeKb}KB` : "Unknown"}
                             </Text>
-                            {getPhotoLocationLabel(media) ? (
-                              <Text style={styles.photoMetaText}>
-                                Location: {getPhotoLocationLabel(media)}
-                              </Text>
-                            ) : null}
                           </View>
                         </TouchableOpacity>
                       ) : (
@@ -934,6 +926,53 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           : "Update Current Location"}
                       </Text>
                     </TouchableOpacity>
+                  ) : null}
+
+                  {hasPendingUpdatedLocation ? (
+                    <View style={styles.locationConfirmationCard}>
+                      <Text style={styles.locationConfirmationTitle}>
+                        Use this updated location?
+                      </Text>
+                      <Text style={styles.locationConfirmationAddress}>
+                        {activeValues.pendingUpdatedAddress ||
+                          "Resolving address..."}
+                      </Text>
+                      <Text style={styles.locationConfirmationMeta}>
+                        {activeValues.pendingUpdatedAt
+                          ? `Captured on ${activeValues.pendingUpdatedAt}`
+                          : "New location captured"}
+                      </Text>
+
+                      <View style={styles.locationConfirmationActions}>
+                        <TouchableOpacity
+                          style={[
+                            styles.locationBtn,
+                            styles.locationBtnSecondary,
+                          ]}
+                          onPress={discardPendingUpdatedLocation}
+                          disabled={isUpdatingLocation || isReadOnly}
+                          activeOpacity={isReadOnly ? 1 : 0.88}
+                        >
+                          <Text style={styles.locationBtnSecondaryText}>
+                            Cancel
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.locationBtn,
+                            styles.locationBtnPrimary,
+                          ]}
+                          onPress={confirmUpdatedLocation}
+                          disabled={isUpdatingLocation || isReadOnly}
+                          activeOpacity={isReadOnly ? 1 : 0.88}
+                        >
+                          <Text style={styles.locationBtnPrimaryText}>
+                            Yes, Use This
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   ) : null}
                 </View>
               </View>
@@ -1044,14 +1083,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   </Text>
                 </View>
               ) : (
-                <View style={styles.previewImageWrap}>
-                  <Image
-                    source={{ uri: photoPreviewState.media.uri }}
-                    style={styles.previewImage}
-                    resizeMode="contain"
-                  />
-                  {renderPhotoWatermark(photoPreviewState.media)}
-                </View>
+                <Image
+                  source={{ uri: photoPreviewState.media.uri }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
               )
             ) : null}
 

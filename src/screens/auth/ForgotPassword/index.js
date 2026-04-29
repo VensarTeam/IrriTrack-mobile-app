@@ -14,8 +14,9 @@ import FormInput from "../../../components/FormInput";
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import useForgotPasswordViewModel from "../../../viewmodels/useForgotPasswordViewModel";
-import { APP_NAME, PROJECT_FULL_FORM } from "../../../constants/appInfo";
+import { PROJECT_FULL_FORM } from "../../../constants/appInfo";
 import { verticalScale } from "../../../constants/metrics";
+import BrandText from "../../../components/BrandText";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -253,7 +254,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <BrandText style={styles.systemText} />
       </View>
 
       <View style={styles.sheet}>

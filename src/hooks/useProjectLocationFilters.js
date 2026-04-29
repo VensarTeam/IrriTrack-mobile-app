@@ -213,10 +213,16 @@ const useProjectLocationFilters = ({
       return;
     }
 
-    if (activeFilterType) {
-      void loadFilterOptions({ type: activeFilterType, page: 1, append: false });
-    }
-  }, [activeFilterType, isOnline, loadFilterOptions, projectId]);
+    void loadFilterOptions({ type: "zone", page: 1, append: false });
+    void loadFilterOptions({ type: "village", page: 1, append: false });
+  }, [
+    activeFilterType,
+    isOnline,
+    loadFilterOptions,
+    projectId,
+    selectedVillageId,
+    zoneName,
+  ]);
 
   const prepareFilterOptions = useCallback((type) => {
     if (type !== "zone" && type !== "village") {
@@ -300,6 +306,15 @@ const useProjectLocationFilters = ({
     zones,
     villages,
     villageOptions,
+    filterTotalItems: currentFilterState.hasLoaded
+      ? Number(currentFilterState.meta?.totalItems || 0)
+      : null,
+    zoneTotalItems: zoneState.hasLoaded
+      ? Number(zoneState.meta?.totalItems || 0)
+      : null,
+    villageTotalItems: villageState.hasLoaded
+      ? Number(villageState.meta?.totalItems || 0)
+      : null,
   };
 };
 

@@ -48,6 +48,11 @@ const UnitListScreen = ({ navigation, route }) => {
     canOpenUnitDetails,
     canUseLocationFilters,
     module,
+    statusBoardEnabled,
+    statusBoardTitle,
+    statusBoardStageLabel,
+    selectedStatusBucket,
+    statusBoardCounts,
     zones,
     villages,
     search,
@@ -57,6 +62,9 @@ const UnitListScreen = ({ navigation, route }) => {
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
     hasMoreFilterOptions,
+    filterTotalItems,
+    zoneTotalItems,
+    villageTotalItems,
     locationFilterSearchQuery,
     isInitialLoading,
     isRefreshing,
@@ -67,6 +75,7 @@ const UnitListScreen = ({ navigation, route }) => {
     emptySubtitle,
     emptyActionLabel,
     setSearch,
+    setSelectedStatusBucket,
     openFilterSheet,
     closeFilterSheet,
     setLocationFilterSearchQuery,
@@ -330,11 +339,17 @@ const UnitListScreen = ({ navigation, route }) => {
   const FilterButton = ({
     title,
     label,
+    totalCount = 0,
     active,
     disabled,
     onPress,
     icon: FilterIcon,
-  }) => (
+  }) => {
+    const displayLabel = Number.isFinite(totalCount)
+      ? `${label} (${totalCount})`
+      : label;
+
+    return (
     <TouchableOpacity
       style={[
         styles.filterBtn,
@@ -371,7 +386,7 @@ const UnitListScreen = ({ navigation, route }) => {
             minimumFontScale={0.8}
             ellipsizeMode="tail"
           >
-            {label}
+            {displayLabel}
           </Text>
         </View>
       </View>
@@ -380,7 +395,8 @@ const UnitListScreen = ({ navigation, route }) => {
         <Icons.down width={10} height={10} />
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   const CompactMeta = ({ label, value }) => (
     <View style={styles.compactMeta}>
@@ -402,7 +418,9 @@ const UnitListScreen = ({ navigation, route }) => {
           <IconButton icon="arrow-left" onPress={handleBack} />
         </View>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>{module} Units</Text>
+          <Text style={styles.headerTitle}>
+            {statusBoardEnabled ? statusBoardTitle : `${module} Units`}
+          </Text>
         </View>
         <View style={styles.headerActionSlot}>
           <IconButton
@@ -451,6 +469,7 @@ const UnitListScreen = ({ navigation, route }) => {
             <FilterButton
               title="Zone"
               label={zone}
+              totalCount={zoneTotalItems}
               icon={Icons.zone}
               active={zone !== "All"}
               onPress={() => openFilterSheet("zone")}
@@ -459,10 +478,48 @@ const UnitListScreen = ({ navigation, route }) => {
             <FilterButton
               title="Village"
               label={village}
+              totalCount={villageTotalItems}
               icon={Icons.village}
               active={village !== "All"}
               onPress={() => openFilterSheet("village")}
             />
+          </View>
+        </View>
+      ) : null}
+
+      {statusBoardEnabled ? (
+        <View style={styles.statusBoardPanel}>
+          <Text style={styles.statusBoardTitle}>
+            {statusBoardStageLabel === "All"
+              ? "Overall Status"
+              : `${statusBoardStageLabel} Status`}
+          </Text>
+          <View style={styles.statusBoardChipRow}>
+            {["Approved", "Requested", "Pending", "Rejected"].map((item) => {
+              const isActive = selectedStatusBucket === item;
+              const count = Number(statusBoardCounts?.[item] || 0);
+
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    styles.statusBoardChip,
+                    isActive && styles.statusBoardChipActive,
+                  ]}
+                  onPress={() => setSelectedStatusBucket(item)}
+                  activeOpacity={0.86}
+                >
+                  <Text
+                    style={[
+                      styles.statusBoardChipText,
+                      isActive && styles.statusBoardChipTextActive,
+                    ]}
+                  >
+                    {item} ({count})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -523,6 +580,7 @@ const UnitListScreen = ({ navigation, route }) => {
               ? "Choose any zone to refine the unit results."
               : "Choose any village to refine the unit results."
           }
+          totalItems={filterTotalItems}
           options={filterOptions}
           isLoading={isFilterOptionsLoading}
           isFetchingMore={isFetchingMoreFilterOptions}

@@ -57,6 +57,9 @@ const useProjectDetailsViewModel = (navigation, route) => {
     zones,
     villages,
     villageOptions,
+    filterTotalItems,
+    zoneTotalItems,
+    villageTotalItems,
   } = useProjectLocationFilters({
     projectId,
     zoneName: zone,
@@ -220,7 +223,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const toggleSection = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedStage("All");
-    setExpanded(expanded === key ? null : key);
+    setExpanded(key);
   };
 
   const applyLocationFilter = (item) => {
@@ -286,6 +289,18 @@ const useProjectDetailsViewModel = (navigation, route) => {
           : "All zones overview";
 
   const dataSet = projectDetails?.modules || fallbackProjectDetails.modules;
+
+  useEffect(() => {
+    const firstExpandedKey = Object.keys(dataSet || {}).find(
+      (key) => (dataSet?.[key]?.stages || []).length > 0
+    );
+
+    if (!firstExpandedKey) {
+      return;
+    }
+
+    setExpanded((prev) => prev || firstExpandedKey);
+  }, [dataSet]);
 
   const getStageSummary = (stages = [], stageLabel = selectedStage) => {
     if (stageLabel === "All") {
@@ -418,6 +433,27 @@ const useProjectDetailsViewModel = (navigation, route) => {
     }
   };
 
+  const openStageStatusBoard = ({ moduleKey = "OMS", stageLabel = "All" } = {}) => {
+    const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
+    if (normalizedModuleKey !== "OMS") {
+      showAppAlert({
+        title: "Work status is under development",
+        message: `Dedicated ${normalizedModuleKey} work status tabs will be available soon.`,
+      });
+      return;
+    }
+
+    navigation.navigate(ROUTES.ROOT.WORK_STATUS, {
+      module: normalizedModuleKey,
+      project,
+      projectName: route?.params?.projectName || project?.name,
+      stageLabel: stageLabel || "All",
+      zoneName: zone,
+      villageName: village,
+      villageId: selectedVillageId,
+    });
+  };
+
   return {
     isOnline,
     canViewProjectInsights: roleAccess.canViewProjectInsights,
@@ -430,6 +466,9 @@ const useProjectDetailsViewModel = (navigation, route) => {
     village,
     zones,
     villages,
+    filterTotalItems,
+    zoneTotalItems,
+    villageTotalItems,
     filterType,
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
@@ -464,6 +503,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     getModuleTheme,
     handleBack,
     openModuleList,
+    openStageStatusBoard,
   };
 };
 

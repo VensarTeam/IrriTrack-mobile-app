@@ -200,10 +200,31 @@ export default StyleSheet.create({
     marginLeft: moderateScale(8),
   },
 
+  filterTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+    flexWrap: "wrap",
+    marginBottom: verticalScale(2),
+  },
+
   filterTitle: {
     fontSize: moderateScale(10),
     color: colors.textSecondary,
-    marginBottom: verticalScale(2),
+  },
+
+  filterCountBadge: {
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(1),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#E7F1FF",
+    alignSelf: "flex-start",
+  },
+
+  filterCountBadgeText: {
+    fontSize: moderateScale(8.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   filterValue: {
@@ -224,6 +245,54 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: moderateScale(6),
+  },
+
+  statusBoardPanel: {
+    marginHorizontal: moderateScale(15),
+    marginBottom: verticalScale(10),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(18),
+    backgroundColor: "#F8FBFF",
+    borderWidth: 1,
+    borderColor: "#D9E8F7",
+  },
+
+  statusBoardTitle: {
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(8),
+  },
+
+  statusBoardChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: moderateScale(8),
+  },
+
+  statusBoardChip: {
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D9E8F7",
+  },
+
+  statusBoardChipActive: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+
+  statusBoardChipText: {
+    fontSize: moderateScale(10.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  statusBoardChipTextActive: {
+    color: colors.white,
   },
 
   listContent: {

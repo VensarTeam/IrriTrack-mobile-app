@@ -14,7 +14,7 @@ export const authenticateDeviceForAppUnlock = async () => {
   }
 
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: "Unlock IDICM",
+    promptMessage: "Unlock IrriTrack",
     cancelLabel: "Cancel",
     fallbackLabel: "Use device passcode",
     disableDeviceFallback: false,

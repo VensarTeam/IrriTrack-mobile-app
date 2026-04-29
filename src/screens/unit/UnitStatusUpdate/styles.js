@@ -829,28 +829,6 @@ export default StyleSheet.create({
     height: verticalScale(170),
   },
 
-  photoPreviewImageWrap: {
-    position: "relative",
-  },
-
-  photoWatermark: {
-    position: "absolute",
-    left: moderateScale(10),
-    right: moderateScale(10),
-    bottom: verticalScale(10),
-    borderRadius: moderateScale(10),
-    backgroundColor: "rgba(0,0,0,0.58)",
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(6),
-  },
-
-  photoWatermarkText: {
-    fontSize: moderateScale(9.5),
-    color: colors.white,
-    fontFamily: fonts.medium,
-    lineHeight: moderateScale(14),
-  },
-
   videoPreviewPlaceholder: {
     height: verticalScale(140),
     backgroundColor: colors.surfaceBlue,
@@ -1021,11 +999,50 @@ locationActionsRow: {
   gap: verticalScale(8),
 },
 
+locationConfirmationCard: {
+  borderRadius: moderateScale(16),
+  borderWidth: 1,
+  borderColor: colors.filterPanelBorder,
+  backgroundColor: colors.surfaceBluePale,
+  paddingHorizontal: moderateScale(12),
+  paddingVertical: verticalScale(12),
+},
+
+locationConfirmationTitle: {
+  fontSize: moderateScale(11),
+  color: colors.primaryBlue,
+  fontFamily: fonts.bold,
+  marginBottom: verticalScale(6),
+},
+
+locationConfirmationAddress: {
+  fontSize: moderateScale(12),
+  lineHeight: moderateScale(18),
+  color: colors.textDark,
+  fontFamily: fonts.medium,
+},
+
+locationConfirmationMeta: {
+  marginTop: verticalScale(6),
+  fontSize: moderateScale(10.5),
+  color: colors.textSecondary,
+  fontFamily: fonts.medium,
+},
+
+locationConfirmationActions: {
+  marginTop: verticalScale(10),
+  flexDirection: "row",
+  alignItems: "center",
+  gap: moderateScale(10),
+},
+
 locationBtn: {
   flexDirection: "row",
   gap: moderateScale(6),
   borderRadius: moderateScale(14),
   paddingVertical: verticalScale(12),
+  paddingHorizontal: moderateScale(14),
+  flex: 1,
   alignItems: "center",
   justifyContent: "center",
 },
@@ -1248,9 +1265,6 @@ locationBtnSecondaryText: {
     maxHeight: "80%",
   },
 
-  previewImageWrap: {
-    position: "relative",
-  },
 
   referencePreviewCard: {
     backgroundColor: colors.white,

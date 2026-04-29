@@ -14,7 +14,8 @@ import colors from "../../../constants/colors";
 import { moderateScale } from "../../../constants/metrics";
 import WelcomeModal from "../../../components/WelcomeModal";
 import useOtpViewModel from "../../../viewmodels/useOtpViewModel";
-import { APP_NAME, PROJECT_FULL_FORM } from "../../../constants/appInfo";
+import { PROJECT_FULL_FORM } from "../../../constants/appInfo";
+import BrandText from "../../../components/BrandText";
 
 const OtpScreen = ({ route, navigation }) => {
   const {
@@ -64,7 +65,7 @@ const OtpScreen = ({ route, navigation }) => {
           resizeMode="contain"
         />
 
-        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <BrandText style={styles.systemText} />
         <Text style={styles.systemSubText}>{PROJECT_FULL_FORM}</Text>
       </View>
 

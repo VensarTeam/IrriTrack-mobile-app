@@ -68,16 +68,29 @@ const buildRepeatableGroupState = (repeatableGroups = []) =>
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
 
+const getUnitBaseLocation = (unit = {}) => {
+  const latitude = Number(unit?.latitude);
+  const longitude = Number(unit?.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+  };
+};
+
 const buildUnitAddressSummary = (
   unit = {},
-  baseLocation = DEFAULT_NODE_LOCATION
+  baseLocation = null
 ) => {
-  const unitLocation = {
-    latitude: unit?.latitude ?? baseLocation?.latitude,
-    longitude: unit?.longitude ?? baseLocation?.longitude,
-  };
+  if (!baseLocation) {
+    return "";
+  }
 
-  return formatCoordinates(unitLocation);
+  return formatCoordinates(baseLocation);
 };
 
 const formatGeocodeAddress = (place = {}) => {
@@ -286,10 +299,7 @@ const getFieldValidationMessage = ({ field = {}, type = "select" } = {}) => {
 };
 
 const getInitialFormValues = (section, unit) => {
-  const baseLocation = {
-    latitude: unit?.latitude ?? DEFAULT_NODE_LOCATION.latitude,
-    longitude: unit?.longitude ?? DEFAULT_NODE_LOCATION.longitude,
-  };
+  const baseLocation = getUnitBaseLocation(unit);
 
   return section.subOptions.reduce((acc, sub) => {
     acc[sub.id] = {
@@ -303,6 +313,9 @@ const getInitialFormValues = (section, unit) => {
       updatedLocation: null,
       updatedAddress: "",
       updatedAt: null,
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
       ...buildSelectFieldState(sub.selectFields),
       ...buildInputFieldState(sub.inputFields),
     };
@@ -314,10 +327,26 @@ const getInitialFormValues = (section, unit) => {
 const SUBMITTED_STATUS_KEYS = new Set([
   "partial",
   "completed",
-  "commented",
   "approved",
   "updated",
 ]);
+
+const SERVER_PREFILL_STATUS_KEYS = new Set([
+  "partial",
+  "completed",
+  "approved",
+  "updated",
+]);
+
+const RECTIFICATION_PHOTO_REQUIREMENT = {
+  id: "rectificationPhoto",
+  checklistId: null,
+  label: "Rectification Image",
+  inputType: "photo",
+  dataType: "image",
+  required: false,
+  synthetic: true,
+};
 
 const toFormStatusValue = (value = "") => {
   const normalizedValue = String(value || "").trim().toLowerCase();
@@ -477,6 +506,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const ownerUserId = String(user?.id || user?.mobile || "").trim();
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
+  const workItem = route?.params?.workItem || null;
   const projectId =
     route?.params?.projectId || unit?.projectId || route?.params?.project?.id || "";
   const projectName = route?.params?.projectName || "IrriTrack";
@@ -592,6 +622,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       section.subOptions[0],
     [activeSubOptionId, section.subOptions]
   );
+  const workItemStatusKey = String(
+    workItem?.requestBucket || workItem?.status || ""
+  )
+    .trim()
+    .toLowerCase();
+  const workItemSubprocessId = String(workItem?.subprocessId || "").trim();
+  const isCommentedWorkItem = workItemStatusKey === "commented" || workItemStatusKey === "rejected";
 
   const activeValues =
     formValues[activeSubOption.id] ||
@@ -735,30 +772,58 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       section.subOptions.reduce((acc, subOption) => {
         const serverMatch = progressMatchesBySubOptionId[subOption.id];
         const localSnapshot = localSubmissionSnapshots[subOption.id] || null;
+        const subprocessStatusKey = String(
+          serverMatch?.subprocess?.status?.key || ""
+        ).trim().toLowerCase();
+        const processStatusKey = String(
+          serverMatch?.process?.status?.key || ""
+        ).trim().toLowerCase();
+        const isWorkflowCommented =
+          isCommentedWorkItem &&
+          workItemSubprocessId &&
+          String(subOption.apiSubprocessId || "").trim() === workItemSubprocessId;
+        const isCommented =
+          isWorkflowCommented ||
+          subprocessStatusKey === "commented" ||
+          processStatusKey === "commented";
+        const serverStatusKey = isCommented
+          ? "commented"
+          : subprocessStatusKey || processStatusKey;
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
-            SUBMITTED_STATUS_KEYS.has(serverMatch.subprocess.status.key)
+            SUBMITTED_STATUS_KEYS.has(serverStatusKey)
         );
-        const submittedFromLocal = Boolean(localSnapshot?.payload);
+        const submittedFromLocal = !isCommented && Boolean(localSnapshot?.payload);
 
         acc[subOption.id] = {
+          processStatusKey,
+          subprocessStatusKey,
+          serverStatusKey,
+          isCommented,
           submittedFromServer,
           submittedFromLocal,
-          isSubmitted: submittedFromServer || submittedFromLocal,
+          isSubmitted:
+            (!isCommented && submittedFromServer) || submittedFromLocal,
         };
 
         return acc;
       }, {}),
-    [localSubmissionSnapshots, progressMatchesBySubOptionId, section.subOptions]
+    [
+      isCommentedWorkItem,
+      localSubmissionSnapshots,
+      progressMatchesBySubOptionId,
+      section.subOptions,
+      workItemSubprocessId,
+    ]
   );
-  const submittedFromServer = Boolean(
-    stepSubmissionStateById[activeSubOption.id]?.submittedFromServer
-  );
-  const submittedFromLocal = Boolean(
-    stepSubmissionStateById[activeSubOption.id]?.submittedFromLocal
-  );
+  const activeSubmissionState = stepSubmissionStateById[activeSubOption.id] || {};
+  const activeServerStatusKey = activeSubmissionState.serverStatusKey || "";
+  const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
+  const submittedFromServer = Boolean(activeSubmissionState.submittedFromServer);
+  const submittedFromLocal = Boolean(activeSubmissionState.submittedFromLocal);
   const isRoleReadOnly = !roleAccess.canEditChecklist;
-  const isReadOnly = isRoleReadOnly || submittedFromServer || submittedFromLocal;
+  const isReadOnly =
+    isRoleReadOnly || (!isCommentedForEdit && submittedFromServer) || submittedFromLocal;
   const readOnlyTitle = isRoleReadOnly ? "View Only" : "Already Submitted";
   const readOnlyNotice = isRoleReadOnly
     ? roleAccess.checklistReadOnlyNotice ||
@@ -770,6 +835,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         : "";
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const canShowReviewActions = canReviewChecklist && submittedFromServer;
+  const displayPhotoRequirements = useMemo(() => {
+    if (!isCommentedForEdit || !photoRequirements.length) {
+      return photoRequirements;
+    }
+
+    return [RECTIFICATION_PHOTO_REQUIREMENT];
+  }, [isCommentedForEdit, photoRequirements]);
+  const activePhotoRequirements = displayPhotoRequirements;
   const reviewActionNotice = canReviewChecklist
     ? submittedFromServer
       ? roleAccess.reviewNotice
@@ -786,8 +859,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   useEffect(() => {
     const subOptionId = activeSubOption?.id;
+    const shouldHydrateFromServer = SERVER_PREFILL_STATUS_KEYS.has(
+      activeServerStatusKey
+    );
 
-    if (!subOptionId || !isReadOnly) {
+    if (!subOptionId || (!isReadOnly && !shouldHydrateFromServer)) {
       return;
     }
 
@@ -809,7 +885,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       repeatableGroups: { ...baseValues.repeatableGroups },
     };
 
-    if (submittedFromServer && progressMatch?.subprocess) {
+    if (shouldHydrateFromServer && progressMatch?.subprocess) {
       const subprocess = progressMatch.subprocess;
 
       if (showStatusField) {
@@ -898,6 +974,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         if (coordinates) {
           nextValues.updatedLocation = coordinates;
           nextValues.updatedAddress = formatCoordinates(coordinates);
+          nextValues.pendingUpdatedLocation = null;
+          nextValues.pendingUpdatedAddress = "";
+          nextValues.pendingUpdatedAt = null;
         }
       }
 
@@ -920,10 +999,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         }
       });
 
-      photoRequirements.forEach((requirement) => {
-        const checklist = getProgressChecklistMatch(
-          checklistsById,
-          checklistsByName,
+    photoRequirements.forEach((requirement) => {
+      const checklist = getProgressChecklistMatch(
+        checklistsById,
+        checklistsByName,
           requirement
         );
         const remoteValue =
@@ -1019,6 +1098,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             answer?.value?.updated_address ||
             answer?.value?.updatedAddress ||
             formatCoordinates(coordinates);
+          nextValues.pendingUpdatedLocation = null;
+          nextValues.pendingUpdatedAddress = "";
+          nextValues.pendingUpdatedAt = null;
         }
       }
 
@@ -1058,10 +1140,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     hydratedSubOptionsRef.current[subOptionId] = hydrationSource;
     updateValuesForSubOption(subOptionId, nextValues);
   }, [
+    activeServerStatusKey,
     activeSubOption,
     checklistItems,
     formValues,
     inputFields,
+    isCommentedForEdit,
     localSubmissionSnapshot,
     photoRequirements,
     progressMatch,
@@ -1415,9 +1499,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         updatedLocation: nextLocation,
       });
       updateValuesForSubOption(currentSubOptionId, {
-        updatedLocation: nextLocation,
-        updatedAt: capturedAt,
-        updatedAddress: "Resolving address...",
+        pendingUpdatedLocation: nextLocation,
+        pendingUpdatedAt: capturedAt,
+        pendingUpdatedAddress: "Resolving address...",
       });
 
       void getReadableAddress(
@@ -1429,7 +1513,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           hasAddress: !!address,
         });
         updateValuesForSubOption(currentSubOptionId, {
-          updatedAddress: address || "Address unavailable (offline/network issue)",
+          pendingUpdatedAddress:
+            address || "Address unavailable (offline/network issue)",
         });
       });
     } catch (error) {
@@ -1459,6 +1544,33 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
 
     return true;
+  };
+
+  const confirmUpdatedLocation = () => {
+    if (isReadOnly) return;
+    if (!activeValues.pendingUpdatedLocation) return;
+
+    updateActiveValues({
+      updatedLocation: activeValues.pendingUpdatedLocation,
+      updatedAddress:
+        activeValues.pendingUpdatedAddress ||
+        formatCoordinates(activeValues.pendingUpdatedLocation),
+      updatedAt: activeValues.pendingUpdatedAt || new Date().toLocaleString(),
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
+    });
+    clearFieldError("form");
+  };
+
+  const discardPendingUpdatedLocation = () => {
+    if (isReadOnly) return;
+
+    updateActiveValues({
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
+    });
   };
 
   const getPhotoCaptureLocation = async () => {
@@ -1511,17 +1623,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     let selectedAsset;
     let resolvedCaptureLocation = null;
+    const capturedAt = new Date().toLocaleString();
 
     try {
-      [selectedAsset, resolvedCaptureLocation] = await Promise.all([
-        compressChecklistImage(asset),
-        Promise.resolve(captureLocation),
-      ]);
+      resolvedCaptureLocation = await Promise.resolve(captureLocation);
+      selectedAsset = await compressChecklistImage(asset, {
+        takenAt: capturedAt,
+        captureLocation: resolvedCaptureLocation,
+      });
     } catch (error) {
       showAppAlert({
         type: "danger",
-        title: "Photo compression failed",
-        message: "Unable to prepare this photo. Please capture it again.",
+        title: "Photo processing failed",
+        message: "Unable to prepare this photo with watermark. Please capture it again.",
       });
       return;
     }
@@ -1553,7 +1667,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             selectedAsset.mimeType ||
             selectedAsset.type ||
             (mediaType === "video" ? "video/mp4" : "image/jpeg"),
-          takenAt: new Date().toLocaleString(),
+          takenAt: capturedAt,
           latitude: Number.isFinite(latitude) ? latitude : null,
           longitude: Number.isFinite(longitude) ? longitude : null,
         },
@@ -1766,8 +1880,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
     }
 
-    if (photoRequirements.length) {
-      const missingRequirements = photoRequirements.filter(
+    if (activePhotoRequirements.length) {
+      const missingRequirements = activePhotoRequirements.filter(
         (requirement) =>
           isRequiredByRule(requirement, activeValues, activeSubOption) &&
           !activeValues.photos?.[requirement.id]?.uri
@@ -1910,8 +2024,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       );
     });
 
-    photoRequirements.forEach((requirement) => {
+    activePhotoRequirements.forEach((requirement) => {
       const media = activeValues.photos?.[requirement.id] || null;
+      if (requirement.synthetic) {
+        return;
+      }
       answers.push(
         buildAnswer(requirement, media?.filePath || media?.uri || "", {
           valueType: "file",
@@ -1940,7 +2057,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const buildSubmissionPayload = () => {
     const submittedAt = new Date().toISOString();
-    const photos = photoRequirements
+    const photos = activePhotoRequirements
       .map((requirement) => ({
         checklistId: requirement.checklistId || null,
         requirementId: requirement.id,
@@ -2097,6 +2214,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         subOption: activeSubOption,
         payload,
         ownerUserId,
+        offlineOnly: isCommentedForEdit,
       });
       await loadLocalSnapshots();
       await refreshProgress();
@@ -2123,7 +2241,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         title: wasSynced ? "Submitted successfully" : "Saved locally",
         message: wasSynced
           ? `${activeSubOptionLabel} submitted successfully with ${submissionStatusLabel} status.`
-          : `${activeSubOptionLabel} is saved on this device and will sync when internet is available.`,
+          : isCommentedForEdit
+            ? `${activeSubOptionLabel} rectification is saved locally for supervisor follow-up.`
+            : `${activeSubOptionLabel} is saved on this device and will sync when internet is available.`,
         actions: [
           {
             label: hasNext ? "Next" : "Done",
@@ -2161,6 +2281,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       return;
     }
 
+    if (!workItem?.submissionId) {
+      showAppAlert({
+        type: "info",
+        title: "Workflow unavailable",
+        message:
+          "Open this item from Work Status to continue with verify, approve, or reject actions.",
+      });
+      return;
+    }
+
     if (!submittedFromServer) {
       showAppAlert({
         type: "info",
@@ -2181,11 +2311,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     try {
       await submitOmsReviewAction({
         action: decision,
-        module,
-        projectId,
-        unitId: unit?.id || route?.params?.unitId || "",
-        processId: section.apiProcessId || null,
-        subprocessId: activeSubOption.apiSubprocessId || null,
+        submissionId: workItem?.submissionId || "",
         remark: reviewRemark.trim(),
       });
     } catch (error) {
@@ -2215,6 +2341,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOptionLabel,
     activeSubOptionId,
     stepSubmissionStateById,
+    isCommentedForEdit,
     activeValues,
     activeErrors,
     showStatusField,
@@ -2229,7 +2356,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     reviewError,
     isRemarkRequired,
     checklistItems,
-    photoRequirements,
+    photoRequirements: activePhotoRequirements,
     selectFields,
     inputFields,
     repeatableGroups,
@@ -2256,6 +2383,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
+    confirmUpdatedLocation,
+    discardPendingUpdatedLocation,
     pickFromCamera,
     removeSelectedPhoto,
     submitActiveSubOption,

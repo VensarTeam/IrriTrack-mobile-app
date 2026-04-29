@@ -86,13 +86,19 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     user?.projectId ||
     "";
   const unitId = unit?.id || route?.params?.unitId || "";
+  const workItem = route?.params?.workItem || null;
+  const selectedSubmissionId = String(workItem?.submissionId || "").trim();
+  const selectedWorkflowProcessId = Number(workItem?.processId) || null;
+  const selectedWorkflowSubprocessId = Number(workItem?.subprocessId) || null;
   const initialSubprocessId = route?.params?.initialSubprocessId || null;
+  const focusSubprocessId = initialSubprocessId || selectedWorkflowSubprocessId;
   const [hasAppliedInitialFocus, setHasAppliedInitialFocus] = useState(false);
   const [reviewRemark, setReviewRemark] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [expandedProcesses, setExpandedProcesses] = useState({});
-  const [selectedReviewProcess, setSelectedReviewProcess] = useState(null);
+  const [workflowStatusOverrides, setWorkflowStatusOverrides] = useState({});
+  const [selectedReviewTarget, setSelectedReviewTarget] = useState(null);
   const [imagePreview, setImagePreview] = useState({
     visible: false,
     uri: "",
@@ -135,22 +141,23 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
 
   useEffect(() => {
     if (
-      !initialSubprocessId ||
+      !focusSubprocessId ||
       hasAppliedInitialFocus ||
       !progress.processes.length
     ) {
       return;
     }
 
-    const match = findUnitProgressSubprocess(progress, initialSubprocessId);
+    const match = findUnitProgressSubprocess(progress, focusSubprocessId);
 
     if (!match) {
       return;
     }
 
     setSelectedSubprocessState(match);
+    setExpandedProcesses({ [match.process.id]: true });
     setHasAppliedInitialFocus(true);
-  }, [hasAppliedInitialFocus, initialSubprocessId, progress]);
+  }, [focusSubprocessId, hasAppliedInitialFocus, progress]);
 
   useEffect(() => {
     setReviewRemark("");
@@ -158,10 +165,24 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
   }, [selectedSubprocessState?.subprocess?.id]);
 
   const summary = useMemo(() => getUnitProgressSummary(progress), [progress]);
-  const screenTitle = roleAccess.canReviewChecklist ? "Review" : "All Status";
+  const screenTitle = "All Status";
   const selectedSubprocess = selectedSubprocessState?.subprocess || null;
   const selectedProcess = selectedSubprocessState?.process || null;
   const canReviewChecklist = roleAccess.canReviewChecklist;
+  const reviewCapabilities = useMemo(
+    () => ({
+      role: roleAccess.role,
+      canVerify: Boolean(roleAccess.canVerifyChecklist),
+      canApprove: Boolean(roleAccess.canApproveChecklist),
+      canReject: Boolean(roleAccess.canRejectChecklist),
+    }),
+    [
+      roleAccess.canApproveChecklist,
+      roleAccess.canRejectChecklist,
+      roleAccess.canVerifyChecklist,
+      roleAccess.role,
+    ]
+  );
   const selectedSubprocessDetails = selectedSubprocess?.detailItems || [];
   const selectedSubprocessLocation = useMemo(() => {
     for (const checklist of selectedSubprocess?.checklists || []) {
@@ -243,24 +264,34 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
   };
 
   const closeRejectFlow = () => {
-    setSelectedReviewProcess(null);
+    setSelectedReviewTarget(null);
     setReviewRemark("");
     setReviewError("");
   };
 
-  const openRejectFlow = (process) => {
-    setSelectedReviewProcess(process);
+  const openRejectFlow = (target) => {
+    setSelectedReviewTarget(target);
     setReviewRemark("");
     setReviewError("");
   };
 
-  const submitReview = async ({ decision, process, remark = "" }) => {
+  const submitReview = async ({ decision, process, subprocess = null, remark = "" }) => {
     if (!canReviewChecklist || !process) {
       return;
     }
 
+    if (!selectedSubmissionId) {
+      showAppAlert({
+        type: "info",
+        title: "Workflow unavailable",
+        message:
+          "Open this item from Work Status to continue with verify, approve, or reject actions.",
+      });
+      return;
+    }
+
     if (decision === "reject" && !remark.trim()) {
-      setReviewError("Comment is required to reject this process.");
+      setReviewError("Comment is required to reject this subprocess.");
       return;
     }
 
@@ -269,22 +300,33 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     try {
       await submitOmsReviewAction({
         action: decision,
-        module,
-        projectId,
-        unitId,
-        processId: process.id || null,
-        subprocessId: null,
+        submissionId: selectedSubmissionId,
         remark: remark.trim(),
       });
+      setWorkflowStatusOverrides((currentValue) => ({
+        ...currentValue,
+        [String(subprocess?.id || process.id)]: decision === "reject"
+          ? "commented"
+          : decision === "verify"
+          ? "verified"
+          : "approved",
+      }));
       await refreshProgress();
       closeRejectFlow();
       showAppAlert({
         type: "success",
-        title: decision === "approve" ? "Process Approved" : "Process Rejected",
+        title:
+          decision === "approve"
+            ? "Subprocess Approved"
+            : decision === "verify"
+            ? "Subprocess Verified"
+            : "Subprocess Rejected",
         message:
           decision === "approve"
-            ? `${process.name} was approved for this node.`
-            : `${process.name} was sent back with your comment.`,
+            ? `${subprocess?.name || process.name} was approved for this node.`
+            : decision === "verify"
+            ? `${subprocess?.name || process.name} was verified for this node.`
+            : `${subprocess?.name || process.name} was sent back with your comment.`,
       });
     } catch (nextError) {
       showAppAlert({
@@ -310,6 +352,7 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     projectName,
     screenTitle,
     canReviewChecklist,
+    reviewCapabilities,
     processes: progress.processes,
     summary,
     isLoading,
@@ -319,8 +362,13 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
     selectedSubprocess,
     selectedSubprocessDetails,
     selectedSubprocessLocation,
-    selectedReviewProcess,
+    selectedReviewTarget,
+    workflowStatusOverrides,
     imagePreview,
+    workItem,
+    selectedSubmissionId,
+    selectedWorkflowProcessId,
+    selectedWorkflowSubprocessId,
     reviewRemark,
     reviewError,
     isReviewSubmitting,

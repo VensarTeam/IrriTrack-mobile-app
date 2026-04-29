@@ -7,13 +7,13 @@ import FormInput from "../../../components/FormInput";
 import { Button } from "react-native-paper";
 import colors from "../../../constants/colors";
 import {
-  APP_NAME,
   APP_VERSION,
   PROJECT_FULL_FORM,
 } from "../../../constants/appInfo";
 import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
 import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
 import WelcomeModal from "../../../components/WelcomeModal";
+import BrandText from "../../../components/BrandText";
 
 const LoginScreen = ({ navigation }) => {
   const {
@@ -65,7 +65,7 @@ const LoginScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.systemText}>{APP_NAME}</Text>
+        <BrandText style={styles.systemText} />
       </View>
 
       <View style={styles.sheet}>

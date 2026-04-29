@@ -183,13 +183,34 @@ export default StyleSheet.create({
     marginLeft: moderateScale(9),
   },
 
+  filterFieldTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+    flexWrap: "wrap",
+    marginBottom: verticalScale(1),
+  },
+
   filterFieldTitle: {
     fontSize: fontScale(9),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
-    marginBottom: verticalScale(1),
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+
+  filterCountBadge: {
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(1),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.filterIconActiveSurface,
+    alignSelf: "flex-start",
+  },
+
+  filterCountBadgeText: {
+    fontSize: fontScale(8.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   filterFieldValue: {
@@ -438,6 +459,41 @@ export default StyleSheet.create({
   kpiValueOffline: {
     marginTop: verticalScale(4),
     lineHeight: fontScale(24),
+  },
+
+  kpiValueOfflineFixedWidth: {
+    width: moderateScale(64),
+    textAlign: "left",
+  },
+
+  kpiOfflineValueRow: {
+    marginTop: verticalScale(6),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(8),
+  },
+
+  kpiInlineAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(4),
+    minWidth: moderateScale(118),
+    minHeight: verticalScale(32),
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(999),
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+
+  kpiInlineActionText: {
+    fontSize: fontScale(9.5),
+    fontFamily: fonts.bold,
+    letterSpacing: 0.2,
+    flexShrink: 1,
   },
 
   /* ================= EXPAND SECTION ================= */
@@ -781,6 +837,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: moderateScale(10),
     paddingHorizontal: moderateScale(1),
     marginBottom: verticalScale(5),
   },
@@ -794,6 +851,26 @@ export default StyleSheet.create({
     fontSize: fontScale(10),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
+  },
+
+  stageBoardButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(4),
+    minHeight: verticalScale(34),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(999),
+    borderWidth: 1,
+    backgroundColor: colors.white,
+    maxWidth: "52%",
+  },
+
+  stageBoardButtonText: {
+    fontSize: fontScale(9.5),
+    fontFamily: fonts.bold,
+    letterSpacing: 0.2,
   },
 
   stageTabContainer: {

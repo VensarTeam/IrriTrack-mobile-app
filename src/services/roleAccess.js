@@ -1,10 +1,8 @@
 const CONTRIBUTOR_ROLES = new Set([
-  "field_engineer",
-  "engineer",
-  "technician",
+  "supervisor",
 ]);
 
-const REVIEWER_ROLES = new Set(["manager", "admin"]);
+const REVIEWER_ROLES = new Set(["manager", "admin", "engineer"]);
 
 const toRoleLabel = (role = "") =>
   String(role || "")
@@ -32,6 +30,10 @@ export const createRoleAccess = (role) => {
       isContributor: false,
       isReviewer: false,
       isManagedRole: false,
+      canVerifyChecklist: false,
+      canApproveChecklist: false,
+      canRejectChecklist: false,
+      prefersSingleReviewAction: false,
       canViewProjectInsights: true,
       canOpenModuleList: true,
       canOpenUnitDetails: true,
@@ -52,6 +54,12 @@ export const createRoleAccess = (role) => {
     isContributor,
     isReviewer,
     isManagedRole,
+    canVerifyChecklist:
+      normalizedRole === "engineer" || normalizedRole === "manager",
+    canApproveChecklist: normalizedRole === "manager",
+    canRejectChecklist:
+      normalizedRole === "engineer" || normalizedRole === "manager",
+    prefersSingleReviewAction: false,
     canViewProjectInsights: isReviewer,
     canOpenModuleList: true,
     canOpenUnitDetails: isReviewer,
@@ -60,16 +68,19 @@ export const createRoleAccess = (role) => {
     canEditChecklist: isContributor,
     canReviewChecklist: isReviewer,
     projectDetailsNotice: isContributor
-      ? "Module-wise analytics are available for manager and admin roles. You can continue with OMS checklist work from the cards below."
+      ? "Module-wise analytics are available for admin, manager, and engineer roles. You can continue with OMS checklist work from the cards below."
       : "",
     unitListNotice: isContributor
-      ? "Open a process card to fill the checklist. Unit details are available for manager and admin roles."
+      ? "Open a process card to fill the checklist. Unit details are available for admin, manager, and engineer roles."
       : "Open a unit card for full status details, or use a process card to review checklist data.",
     checklistReadOnlyNotice: isReviewer
-      ? "Manager and admin roles can review submitted checklist data here, but cannot edit field entries."
+      ? "Admin, manager, and engineer roles can review submitted checklist data here, but cannot edit field entries."
       : "",
-    reviewNotice: isReviewer
-      ? "Approve or reject after reviewing the submitted checklist data."
-      : "",
+    reviewNotice:
+      normalizedRole === "admin"
+        ? "Admin can view every submission here, but cannot verify, approve, or reject."
+        : isReviewer
+          ? "Review workflow actions are available after opening a submitted item from Work Status."
+          : "",
   };
 };

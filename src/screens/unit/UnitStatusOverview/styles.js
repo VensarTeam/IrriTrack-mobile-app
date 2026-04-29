@@ -281,6 +281,16 @@ export default StyleSheet.create({
     borderBottomColor: colors.border,
   },
 
+  subprocessItemActive: {
+    marginHorizontal: -moderateScale(8),
+    marginVertical: verticalScale(4),
+    paddingHorizontal: moderateScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#F5FAFF",
+    borderWidth: 1,
+    borderColor: "#D9E8F8",
+  },
+
   subprocessItemLast: {
     borderBottomWidth: 0,
   },
@@ -316,6 +326,13 @@ export default StyleSheet.create({
     fontSize: moderateScale(11),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
+  },
+
+  subprocessActionHint: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(10.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   subprocessMeta: {
@@ -463,6 +480,12 @@ export default StyleSheet.create({
     backgroundColor: colors.primaryBlue,
   },
 
+  processVerifyButton: {
+    backgroundColor: "#EAF3FF",
+    borderWidth: 1,
+    borderColor: "#B7D3F5",
+  },
+
   processRejectText: {
     fontSize: moderateScale(12),
     color: colors.danger,
@@ -472,6 +495,12 @@ export default StyleSheet.create({
   processApproveText: {
     fontSize: moderateScale(12),
     color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  processVerifyText: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
     fontFamily: fonts.bold,
   },
 

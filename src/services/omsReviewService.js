@@ -1,45 +1,35 @@
 import { apiRequest } from "./apiClient";
 
-const OMS_REVIEW_STATUS_BY_ACTION = {
-  reject: 3,
-  approve: 4,
-};
-
 export const submitOmsReviewAction = async ({
   action,
-  projectId,
-  unitId,
-  processId,
+  submissionId,
   remark = "",
 } = {}) => {
-  const status = OMS_REVIEW_STATUS_BY_ACTION[String(action || "").trim()];
+  const normalizedAction = String(action || "").trim().toLowerCase();
 
-  if (!projectId || !unitId || !processId || !status) {
-    throw new Error("Project, OMS, process, or review action is missing.");
+  if (!submissionId || !normalizedAction) {
+    throw new Error("Submission or workflow action is missing.");
   }
 
   const body = {
-    level: "process",
-    processId: Number(processId),
-    status,
+    action: normalizedAction,
   };
 
-  if (status === 3) {
+  if (normalizedAction === "reject") {
     if (!String(remark || "").trim()) {
-      throw new Error("Comment is required to reject this process.");
+      throw new Error("Remark is required to reject this submission.");
     }
 
-    body.comment = String(remark).trim();
+    body.remark = String(remark).trim();
   }
 
-  console.log("[OMSReview]", "Submitting review action", {
-    projectId,
-    omsId: unitId,
+  console.log("[OMSReview]", "Submitting workflow action", {
+    submissionId,
     body,
   });
 
   return apiRequest({
-    url: `/api/v1/oms/${projectId}/${unitId}/status`,
+    url: `/api/v1/oms/submissions/${submissionId}/workflow-status`,
     method: "PATCH",
     headers: {
       Accept: "*/*",
@@ -48,3 +38,4 @@ export const submitOmsReviewAction = async ({
     data: body,
   });
 };
+

@@ -7,6 +7,7 @@ import fonts from "../constants/fonts";
 import typography from "../constants/typography";
 import { moderateScale, verticalScale } from "../constants/metrics";
 import { useAuth } from "../context/AuthContext";
+import BrandText from "./BrandText";
 
 const AppLockScreen = () => {
   const { isUnlocking, unlockError, unlockSession, logout } = useAuth();
@@ -34,7 +35,7 @@ const AppLockScreen = () => {
           />
         </View>
 
-        <Text style={styles.title}>Unlock IrriTrack</Text>
+        <BrandText style={styles.title} prefix="Unlock " />
         <Text style={styles.subtitle}>
           Use your device security to continue.
         </Text>

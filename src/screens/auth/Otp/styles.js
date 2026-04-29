@@ -30,7 +30,7 @@ export default StyleSheet.create({
 
   systemText: {
     color: colors.navyFresh,
-    fontSize: typography.h2,
+    fontSize: moderateScale(32),
     fontFamily: fonts.medium,
     textAlign: "center",
   },

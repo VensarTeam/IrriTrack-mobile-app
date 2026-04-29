@@ -46,10 +46,13 @@ const ProjectDetailsScreen = ({ route }) => {
     selectedStage,
     zone,
     village,
+    zoneTotalItems,
+    villageTotalItems,
     filterType,
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
     hasMoreFilterOptions,
+    filterTotalItems,
     locationFilterSearchQuery,
     locationFilterOptions,
     hasActiveLocationFilters,
@@ -76,6 +79,7 @@ const ProjectDetailsScreen = ({ route }) => {
     getModuleTheme,
     handleBack,
     openModuleList,
+    openStageStatusBoard,
   } = useProjectDetailsViewModel(navigation, route);
   const { width } = useWindowDimensions();
   const stagePagerRef = React.useRef(null);
@@ -271,55 +275,62 @@ const ProjectDetailsScreen = ({ route }) => {
   const FilterField = ({
     title,
     value,
+    totalCount = 0,
     icon: FilterIcon,
     active,
     disabled,
     onPress,
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.filterField,
-        active && styles.filterFieldActive,
-        disabled && styles.filterFieldDisabled,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.85}
-      disabled={disabled}
-    >
-      <View
+  }) => {
+    const displayValue = Number.isFinite(totalCount)
+      ? `${value} (${totalCount})`
+      : value;
+
+    return (
+      <TouchableOpacity
         style={[
-          styles.filterIconWrap,
-          active && styles.filterIconWrapActive,
-          disabled && styles.filterIconWrapDisabled,
+          styles.filterField,
+          active && styles.filterFieldActive,
+          disabled && styles.filterFieldDisabled,
         ]}
+        onPress={onPress}
+        activeOpacity={0.85}
+        disabled={disabled}
       >
-        {FilterIcon ? (
-          <FilterIcon width={filterIconSize} height={filterIconSize} />
-        ) : null}
-      </View>
-
-      <View style={styles.filterFieldTextWrap}>
-        <Text style={styles.filterFieldTitle}>{title}</Text>
-        <Text
+        <View
           style={[
-            styles.filterFieldValue,
-            active && styles.filterFieldValueActive,
+            styles.filterIconWrap,
+            active && styles.filterIconWrapActive,
+            disabled && styles.filterIconWrapDisabled,
           ]}
-          numberOfLines={1}
         >
-          {value}
-        </Text>
-      </View>
+          {FilterIcon ? (
+            <FilterIcon width={filterIconSize} height={filterIconSize} />
+          ) : null}
+        </View>
 
-      <View style={styles.filterArrowWrap}>
-        <Icon
-          source={disabled ? "lock-outline" : "chevron-down"}
-          size={filterArrowSize}
-          color={disabled ? colors.textSecondary : colors.primaryBlue}
-        />
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.filterFieldTextWrap}>
+          <Text style={styles.filterFieldTitle}>{title}</Text>
+          <Text
+            style={[
+              styles.filterFieldValue,
+              active && styles.filterFieldValueActive,
+            ]}
+            numberOfLines={1}
+          >
+            {displayValue}
+          </Text>
+        </View>
+
+        <View style={styles.filterArrowWrap}>
+          <Icon
+            source={disabled ? "lock-outline" : "chevron-down"}
+            size={filterArrowSize}
+            color={disabled ? colors.textSecondary : colors.primaryBlue}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const CompactMeta = ({ label, value }) => (
     <View style={styles.compactMeta}>
@@ -505,6 +516,7 @@ const ProjectDetailsScreen = ({ route }) => {
                     <FilterField
                       title="Zone"
                       value={zone}
+                      totalCount={zoneTotalItems}
                       icon={Icons.zone}
                       active={zone !== "All"}
                       onPress={() => openLocationFilter("zone")}
@@ -513,6 +525,7 @@ const ProjectDetailsScreen = ({ route }) => {
                     <FilterField
                       title="Village"
                       value={village}
+                      totalCount={villageTotalItems}
                       icon={Icons.village}
                       active={village !== "All"}
                       onPress={() => openLocationFilter("village")}
@@ -541,7 +554,10 @@ const ProjectDetailsScreen = ({ route }) => {
                   shouldUseOfflineKpiLayout && styles.kpiContainerOffline,
                 ]}
               >
-                {kpiCards.map((item) => (
+                {kpiCards.map((item) => {
+                  console.log("Rendering KPI card:", item);
+                  
+                  return (
                   <TouchableOpacity
                     key={item.key}
                     style={[
@@ -572,34 +588,68 @@ const ProjectDetailsScreen = ({ route }) => {
                       <View
                         style={[
                           styles.kpiHeaderRow,
-                          shouldUseOfflineKpiLayout && styles.kpiHeaderRowOffline,
+                          shouldUseOfflineKpiLayout &&
+                            styles.kpiHeaderRowOffline,
                         ]}
                       >
                         <View
                           style={[
                             styles.kpiTextBlock,
-                            shouldUseOfflineKpiLayout && styles.kpiTextBlockOffline,
+                            shouldUseOfflineKpiLayout &&
+                              styles.kpiTextBlockOffline,
                           ]}
                         >
                           <Text style={[styles.kpiKey, { color: item.text }]}>
                             {item.key}
                           </Text>
                           {shouldUseOfflineKpiLayout ? (
-                            <Text
-                              style={[
-                                styles.kpiValue,
-                                styles.kpiValueOffline,
-                                { color: item.accent },
-                              ]}
-                            >
-                              {item.value}
-                            </Text>
+                            <View style={styles.kpiOfflineValueRow}>
+                              <Text
+                                style={[
+                                  styles.kpiValue,
+                                  styles.kpiValueOffline,
+                                  styles.kpiValueOfflineFixedWidth,
+                                  { color: item.accent },
+                                ]}
+                              >
+                                {item.value}
+                              </Text>
+                              <TouchableOpacity
+                                style={[
+                                  styles.kpiInlineAction,
+                                  { borderColor: item.soft },
+                                ]}
+                                onPress={() =>
+                                  openStageStatusBoard({
+                                    moduleKey: item.key,
+                                    stageLabel: "All",
+                                  })
+                                }
+                                activeOpacity={0.86}
+                              >
+                                <Icons.work
+                                  height={16}
+                                  width={16}
+                                  color={item.accent}
+                                />
+                                <Text
+                                  style={[
+                                    styles.kpiInlineActionText,
+                                    { color: item.accent },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  Work Status
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           ) : null}
                         </View>
                         <View
                           style={[
                             styles.kpiArrowWrap,
-                            shouldUseOfflineKpiLayout && styles.kpiArrowWrapOffline,
+                            shouldUseOfflineKpiLayout &&
+                              styles.kpiArrowWrapOffline,
                             { backgroundColor: item.chipBg },
                           ]}
                         >
@@ -611,350 +661,394 @@ const ProjectDetailsScreen = ({ route }) => {
                         </View>
                       </View>
                       {!shouldUseOfflineKpiLayout ? (
-                        <Text style={[styles.kpiValue, { color: item.accent }]}>
-                          {item.value}
+                        <Text style={[styles.kpiValue, { color: item?.accent }]}>
+                          {item?.value}
                         </Text>
                       ) : null}
                     </View>
                   </TouchableOpacity>
-                ))}
+                )})}
               </View>
 
               {canViewProjectInsights
                 ? Object.keys(dataSet).map((key) => {
-                const moduleData = dataSet[key];
-                const stages = moduleData?.stages || [];
-                const moduleTheme = getModuleTheme(key);
-                const stageTabs = [
-                  "All",
-                  ...stages.map((stage) => stage.label),
-                ];
-                const sectionHighlights = getSectionHighlights(moduleData);
-                const pagerWidth = chartViewportWidth;
-                const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
-                if (!stages.length) return null;
+                  console.log("Rendering section for module:", key);
+                    const moduleData = dataSet[key];
+                    const stages = moduleData?.stages || [];
+                    const moduleTheme = getModuleTheme(key);
+                    const stageTabs = [
+                      "All",
+                      ...stages.map((stage) => stage.label),
+                    ];
+                    const sectionHighlights = getSectionHighlights(moduleData);
+                    const pagerWidth = chartViewportWidth;
+                    const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
+                    if (!stages.length) return null;
 
-                return (
-                  <View
-                    key={key}
-                    style={[
-                      styles.sectionCard,
-                      {
-                        borderColor: moduleTheme.soft,
-                        backgroundColor: moduleTheme.bg,
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.sectionHeader,
-                        !isOnline && styles.sectionHeaderOffline,
-                        { backgroundColor: colors.white },
-                      ]}
-                      onPress={() => toggleSection(key)}
-                    >
-                      <View style={styles.sectionTitleWrap}>
-                        <View
-                          style={[
-                            styles.sectionAccent,
-                            !isOnline && styles.sectionAccentOffline,
-                            { backgroundColor: moduleTheme.accent },
-                          ]}
-                        />
-                        <View>
-                          <Text
-                            style={[
-                              styles.sectionTitle,
-                              { color: moduleTheme.text },
-                            ]}
-                          >
-                            {key} Status
-                          </Text>
-                        </View>
-                      </View>
+                    return (
                       <View
+                        key={key}
                         style={[
-                          styles.sectionIconWrap,
-                          !isOnline && styles.sectionIconWrapOffline,
-                          { backgroundColor: moduleTheme.chipBg },
+                          styles.sectionCard,
+                          {
+                            borderColor: moduleTheme.soft,
+                            backgroundColor: moduleTheme.bg,
+                          },
                         ]}
                       >
-                        {!isOnline ? (
-                          <Icon
-                            source={expanded === key ? "chevron-up" : "chevron-down"}
-                            size={sectionArrowIconSize}
-                            color={moduleTheme.text}
-                          />
-                        ) : expanded === key ? (
-                          <Icons.up
-                            width={sectionArrowIconSize}
-                            height={sectionArrowIconSize}
-                          />
-                        ) : (
-                          <Icons.down
-                            width={sectionArrowIconSize}
-                            height={sectionArrowIconSize}
-                          />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.highlightGrid}>
-                      {sectionHighlights.map((item) => (
-                        <View
-                          key={item.key}
+                        <TouchableOpacity
                           style={[
-                            styles.highlightCard,
-                            {
-                              borderColor: moduleTheme.soft,
-                              backgroundColor: colors.white,
-                            },
+                            styles.sectionHeader,
+                            !isOnline && styles.sectionHeaderOffline,
+                            { backgroundColor: colors.white },
                           ]}
+                          onPress={() => toggleSection(key)}
                         >
-                          <Text style={styles.highlightLabel}>
-                            {item.label}
-                          </Text>
-                          <View style={styles.highlightValueRow}>
+                          <View style={styles.sectionTitleWrap}>
                             <View
                               style={[
-                                styles.highlightDot,
-                                { backgroundColor: item.color },
+                                styles.sectionAccent,
+                                !isOnline && styles.sectionAccentOffline,
+                                { backgroundColor: moduleTheme.accent },
                               ]}
                             />
-                            <Text
-                              style={[
-                                styles.highlightValue,
-                                { color: moduleTheme.text },
-                              ]}
-                            >
-                              {item.value}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-
-                    {expanded === key && (
-                      <>
-                        <View
-                          style={[
-                            styles.stageTabShell,
-                            { borderColor: moduleTheme.soft },
-                          ]}
-                        >
-                          <View style={styles.stageTabHeader}>
-                            <Text
-                              style={[
-                                styles.stageTabHeading,
-                                { color: moduleTheme.text },
-                              ]}
-                            >
-                              Select Tabs
-                            </Text>
-                            <Text style={styles.stageTabCaption}>
-                              Swipe for details
-                            </Text>
-                          </View>
-                          <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.stageTabContainer}
-                            contentContainerStyle={styles.stageTabContent}
-                          >
-                            {stageTabs.map((item, index) => (
-                              <TouchableOpacity
-                                key={item}
-                                onPress={() => {
-                                  setSelectedStage(item);
-                                  stagePagerRef.current?.scrollTo({
-                                    x: index * pagerWidth,
-                                    animated: true,
-                                  });
-                                }}
+                            <View>
+                              <Text
                                 style={[
-                                  styles.stageTab,
-                                  selectedStage === item &&
-                                    styles.stageTabActive,
-                                  {
-                                    borderColor:
-                                      selectedStage === item
-                                        ? moduleTheme.accent
-                                        : moduleTheme.soft,
-                                    backgroundColor:
-                                      selectedStage === item
-                                        ? moduleTheme.accent
-                                        : colors.white,
-                                  },
+                                  styles.sectionTitle,
+                                  { color: moduleTheme.text },
                                 ]}
                               >
+                                {key} Status
+                              </Text>
+                            </View>
+                          </View>
+                          <View
+                            style={[
+                              styles.sectionIconWrap,
+                              !isOnline && styles.sectionIconWrapOffline,
+                              { backgroundColor: moduleTheme.chipBg },
+                            ]}
+                          >
+                            {!isOnline ? (
+                              <Icon
+                                source={
+                                  expanded === key
+                                    ? "chevron-up"
+                                    : "chevron-down"
+                                }
+                                size={sectionArrowIconSize}
+                                color={moduleTheme.text}
+                              />
+                            ) : expanded === key ? (
+                              <Icons.up
+                                width={sectionArrowIconSize}
+                                height={sectionArrowIconSize}
+                              />
+                            ) : (
+                              <Icons.down
+                                width={sectionArrowIconSize}
+                                height={sectionArrowIconSize}
+                              />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+
+                        <View style={styles.highlightGrid}>
+                          {sectionHighlights.map((item) => (
+                            <View
+                              key={item.key}
+                              style={[
+                                styles.highlightCard,
+                                {
+                                  borderColor: moduleTheme.soft,
+                                  backgroundColor: colors.white,
+                                },
+                              ]}
+                            >
+                              <Text style={styles.highlightLabel}>
+                                {item.label}
+                              </Text>
+                              <View style={styles.highlightValueRow}>
+                                <View
+                                  style={[
+                                    styles.highlightDot,
+                                    { backgroundColor: item.color },
+                                  ]}
+                                />
                                 <Text
                                   style={[
-                                    styles.stageTabText,
-                                    {
-                                      color:
-                                        selectedStage === item
-                                          ? colors.white
-                                          : moduleTheme.text,
-                                    },
-                                    selectedStage === item &&
-                                      styles.stageTabTextActive,
+                                    styles.highlightValue,
+                                    { color: moduleTheme.text },
                                   ]}
-                                  numberOfLines={2}
                                 >
-                                  {formatStageTabLabel(item)}
+                                  {item.value}
                                 </Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
+                              </View>
+                            </View>
+                          ))}
                         </View>
 
-                        <View
-                          style={styles.chartCard}
-                          onLayout={(event) => {
-                            const nextWidth = event.nativeEvent.layout.width;
-                            if (
-                              nextWidth > 0 &&
-                              Math.abs(nextWidth - chartViewportWidth) > 1
-                            ) {
-                              setChartViewportWidth(nextWidth);
-                            }
-                          }}
-                        >
-                          <Animated.View style={chartAnimatedStyle}>
-                            <Animated.ScrollView
-                              ref={stagePagerRef}
-                              horizontal
-                              pagingEnabled
-                              showsHorizontalScrollIndicator={false}
-                              decelerationRate="fast"
-                              scrollEventThrottle={16}
-                              onScroll={Animated.event(
-                                [
-                                  {
-                                    nativeEvent: {
-                                      contentOffset: { x: chartScrollX },
-                                    },
-                                  },
-                                ],
-                                { useNativeDriver: true },
-                              )}
-                              onMomentumScrollEnd={(event) => {
-                                const pageIndex = Math.round(
-                                  event.nativeEvent.contentOffset.x /
-                                    pagerWidth,
-                                );
-                                const currentStage =
-                                  stageTabs[pageIndex] || "All";
-                                if (currentStage !== selectedStage) {
-                                  setSelectedStage(currentStage);
+                        {expanded === key && (
+                          <>
+                            <View
+                              style={[
+                                styles.stageTabShell,
+                                { borderColor: moduleTheme.soft },
+                              ]}
+                            >
+                              <View style={styles.stageTabHeader}>
+                                <View>
+                                  <Text
+                                    style={[
+                                      styles.stageTabHeading,
+                                      { color: moduleTheme.text },
+                                    ]}
+                                  >
+                                    Select Tabs
+                                  </Text>
+                                  <Text style={styles.stageTabCaption}>
+                                    Swipe for details
+                                  </Text>
+                                </View>
+                                <TouchableOpacity
+                                  style={[
+                                    styles.stageBoardButton,
+                                    { borderColor: moduleTheme.soft },
+                                  ]}
+                                  onPress={() =>
+                                    openStageStatusBoard({
+                                      moduleKey: key,
+                                      stageLabel: selectedStage,
+                                    })
+                                  }
+                                  activeOpacity={0.86}
+                                >
+                                  <Icons.work
+                                    height={16}
+                                    width={16}
+                                    // color={item.accent}
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.stageBoardButtonText,
+                                      { color: moduleTheme.accent },
+                                    ]}
+                                  >
+                                    Work Status
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                              <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.stageTabContainer}
+                                contentContainerStyle={styles.stageTabContent}
+                              >
+                                {stageTabs.map((item, index) => (
+                                  <TouchableOpacity
+                                    key={item}
+                                    onPress={() => {
+                                      setSelectedStage(item);
+                                      stagePagerRef.current?.scrollTo({
+                                        x: index * pagerWidth,
+                                        animated: true,
+                                      });
+                                    }}
+                                    style={[
+                                      styles.stageTab,
+                                      selectedStage === item &&
+                                        styles.stageTabActive,
+                                      {
+                                        borderColor:
+                                          selectedStage === item
+                                            ? moduleTheme.accent
+                                            : moduleTheme.soft,
+                                        backgroundColor:
+                                          selectedStage === item
+                                            ? moduleTheme.accent
+                                            : colors.white,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.stageTabText,
+                                        {
+                                          color:
+                                            selectedStage === item
+                                              ? colors.white
+                                              : moduleTheme.text,
+                                        },
+                                        selectedStage === item &&
+                                          styles.stageTabTextActive,
+                                      ]}
+                                      numberOfLines={2}
+                                    >
+                                      {formatStageTabLabel(item)}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </ScrollView>
+                            </View>
+
+                            <View
+                              style={styles.chartCard}
+                              onLayout={(event) => {
+                                const nextWidth =
+                                  event.nativeEvent.layout.width;
+                                if (
+                                  nextWidth > 0 &&
+                                  Math.abs(nextWidth - chartViewportWidth) > 1
+                                ) {
+                                  setChartViewportWidth(nextWidth);
                                 }
                               }}
                             >
-                              {stageTabs.map((stageLabel, index) => {
-                                const summary = getStageSummary(
-                                  stages,
-                                  stageLabel,
-                                );
-                                const { cardStyle, pieStyle, summaryStyle } =
-                                  getSwipeAnimatedStyles(
-                                    index,
-                                    pagerWidth,
-                                    isCompactChart,
-                                  );
+                              <Animated.View style={chartAnimatedStyle}>
+                                <Animated.ScrollView
+                                  ref={stagePagerRef}
+                                  horizontal
+                                  pagingEnabled
+                                  showsHorizontalScrollIndicator={false}
+                                  decelerationRate="fast"
+                                  scrollEventThrottle={16}
+                                  onScroll={Animated.event(
+                                    [
+                                      {
+                                        nativeEvent: {
+                                          contentOffset: { x: chartScrollX },
+                                        },
+                                      },
+                                    ],
+                                    { useNativeDriver: true },
+                                  )}
+                                  onMomentumScrollEnd={(event) => {
+                                    const pageIndex = Math.round(
+                                      event.nativeEvent.contentOffset.x /
+                                        pagerWidth,
+                                    );
+                                    const currentStage =
+                                      stageTabs[pageIndex] || "All";
+                                    if (currentStage !== selectedStage) {
+                                      setSelectedStage(currentStage);
+                                    }
+                                  }}
+                                >
+                                  {stageTabs.map((stageLabel, index) => {
+                                    const summary = getStageSummary(
+                                      stages,
+                                      stageLabel,
+                                    );
+                                    const {
+                                      cardStyle,
+                                      pieStyle,
+                                      summaryStyle,
+                                    } = getSwipeAnimatedStyles(
+                                      index,
+                                      pagerWidth,
+                                      isCompactChart,
+                                    );
 
-                                return (
-                                  <View
-                                    key={stageLabel}
-                                    style={[
-                                      styles.chartSlide,
-                                      { width: pagerWidth },
-                                    ]}
-                                  >
-                                    <Animated.View
-                                      style={[
-                                        styles.chartSummaryCard,
-                                        { borderColor: moduleTheme.soft },
-                                        cardStyle,
-                                      ]}
-                                    >
-                                      <View style={styles.chartSummaryHeader}>
-                                        <Text style={styles.chartSummaryTitle}>
-                                          {formatStageTabLabel(summary.label)}
-                                        </Text>
-                                        <Text
-                                          style={[
-                                            styles.chartSummaryPercent,
-                                            { color: moduleTheme.accent },
-                                          ]}
-                                        >
-                                          {summary.percent}% Complete
-                                        </Text>
-                                      </View>
-
+                                    return (
                                       <View
+                                        key={stageLabel}
                                         style={[
-                                          styles.chartSummaryBody,
-                                          isCompactChart &&
-                                            styles.chartSummaryBodyCompact,
+                                          styles.chartSlide,
+                                          { width: pagerWidth },
                                         ]}
                                       >
-                                        <Animated.View style={pieStyle}>
-                                          {renderPieChart(
-                                            stages,
-                                            stageLabel,
-                                            isCompactChart,
-                                          )}
-                                        </Animated.View>
-
                                         <Animated.View
                                           style={[
-                                            styles.summaryList,
-                                            isCompactChart &&
-                                              styles.summaryListCompact,
-                                            summaryStyle,
+                                            styles.chartSummaryCard,
+                                            { borderColor: moduleTheme.soft },
+                                            cardStyle,
                                           ]}
                                         >
-                                          <SummaryItem
-                                            label="Completed"
-                                            value={formatSummaryValue(
-                                              summary,
-                                              "completed",
-                                            )}
-                                            color={colors.completed}
-                                            compact={isCompactChart}
-                                          />
-                                          <SummaryItem
-                                            label="Pending"
-                                            value={formatSummaryValue(
-                                              summary,
-                                              "pending",
-                                            )}
-                                            color={colors.pending}
-                                            compact={isCompactChart}
-                                          />
-                                          <SummaryItem
-                                            label="Partial"
-                                            value={formatSummaryValue(
-                                              summary,
-                                              "partial",
-                                            )}
-                                            color={colors.partial}
-                                            compact={isCompactChart}
-                                          />
+                                          <View
+                                            style={styles.chartSummaryHeader}
+                                          >
+                                            <Text
+                                              style={styles.chartSummaryTitle}
+                                            >
+                                              {formatStageTabLabel(
+                                                summary.label,
+                                              )}
+                                            </Text>
+                                            <Text
+                                              style={[
+                                                styles.chartSummaryPercent,
+                                                { color: moduleTheme.accent },
+                                              ]}
+                                            >
+                                              {summary.percent}% Complete
+                                            </Text>
+                                          </View>
+
+                                          <View
+                                            style={[
+                                              styles.chartSummaryBody,
+                                              isCompactChart &&
+                                                styles.chartSummaryBodyCompact,
+                                            ]}
+                                          >
+                                            <Animated.View style={pieStyle}>
+                                              {renderPieChart(
+                                                stages,
+                                                stageLabel,
+                                                isCompactChart,
+                                              )}
+                                            </Animated.View>
+
+                                            <Animated.View
+                                              style={[
+                                                styles.summaryList,
+                                                isCompactChart &&
+                                                  styles.summaryListCompact,
+                                                summaryStyle,
+                                              ]}
+                                            >
+                                              <SummaryItem
+                                                label="Completed"
+                                                value={formatSummaryValue(
+                                                  summary,
+                                                  "completed",
+                                                )}
+                                                color={colors.completed}
+                                                compact={isCompactChart}
+                                              />
+                                              <SummaryItem
+                                                label="Pending"
+                                                value={formatSummaryValue(
+                                                  summary,
+                                                  "pending",
+                                                )}
+                                                color={colors.pending}
+                                                compact={isCompactChart}
+                                              />
+                                              <SummaryItem
+                                                label="Partial"
+                                                value={formatSummaryValue(
+                                                  summary,
+                                                  "partial",
+                                                )}
+                                                color={colors.partial}
+                                                compact={isCompactChart}
+                                              />
+                                            </Animated.View>
+                                          </View>
                                         </Animated.View>
                                       </View>
-                                    </Animated.View>
-                                  </View>
-                                );
-                              })}
-                            </Animated.ScrollView>
-                          </Animated.View>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                );
-              })
+                                    );
+                                  })}
+                                </Animated.ScrollView>
+                              </Animated.View>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    );
+                  })
                 : null}
             </>
           )}
@@ -970,6 +1064,7 @@ const ProjectDetailsScreen = ({ route }) => {
               ? "Choose any zone to refine the project overview."
               : "Choose any village to refine the project overview."
           }
+          totalItems={filterTotalItems}
           options={locationFilterOptions}
           isLoading={isFilterOptionsLoading}
           isFetchingMore={isFetchingMoreFilterOptions}

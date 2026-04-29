@@ -24,6 +24,7 @@ const CERTIFICATE_STATUS_KEYS = [
 ];
 const DEFAULT_SEARCH_DEBOUNCE_MS = 350;
 const DEFAULT_PAGE_LIMIT = 5;
+const STATUS_BOARD_BUCKETS = ["Approved", "Requested", "Pending", "Rejected"];
 
 const createEmptyPagination = () => ({
   page: 1,
@@ -98,6 +99,40 @@ const normalizeLocationValue = (value = "") =>
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "")
     .replace(/ZONE0+(\d+)/g, "ZONE$1");
+
+const normalizeStatusBoardValue = (value = "") => {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+
+  if (
+    normalizedValue === "approved" ||
+    normalizedValue === "completed" ||
+    normalizedValue === "updated"
+  ) {
+    return "Approved";
+  }
+
+  if (
+    normalizedValue === "requested" ||
+    normalizedValue === "partial completed" ||
+    normalizedValue === "partially completed" ||
+    normalizedValue === "partial"
+  ) {
+    return "Requested";
+  }
+
+  if (normalizedValue === "commented" || normalizedValue === "rejected") {
+    return "Rejected";
+  }
+
+  return "Pending";
+};
+
+const normalizeStageLabel = (value = "") =>
+  String(value || "")
+    .replace(/&/g, "and")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 const isOmsModule = (module = "") =>
   String(module || "").trim().toUpperCase() === "OMS";
@@ -179,6 +214,9 @@ const useUnitListViewModel = (navigation, route) => {
     zones: onlineZones,
     villages: onlineVillages,
     villageOptions,
+    filterTotalItems,
+    zoneTotalItems,
+    villageTotalItems,
   } = useProjectLocationFilters({
     projectId,
     zoneName: zone,
@@ -201,6 +239,16 @@ const useUnitListViewModel = (navigation, route) => {
   const projectName = toDisplayText(
     route?.params?.projectName || project?.name,
     "IrriTrack"
+  );
+  const statusBoardEnabled = Boolean(route?.params?.statusBoardEnabled);
+  const statusBoardStageLabel = String(
+    route?.params?.statusBoardStageLabel || "All"
+  ).trim();
+  const statusBoardTitle = String(
+    route?.params?.statusBoardTitle || `${module} Status Board`
+  ).trim();
+  const [selectedStatusBucket, setSelectedStatusBucket] = useState(
+    STATUS_BOARD_BUCKETS[0]
   );
   const shouldUseOmsApi = isOmsModule(module) && Boolean(projectId);
   const isOfflineOmsList = shouldUseOmsApi && !isOnline;
@@ -333,8 +381,6 @@ const useUnitListViewModel = (navigation, route) => {
       );
     });
   }, [canUseLocationFilters, data, search, zone, village]);
-
-  const filteredData = shouldUseOmsApi ? remoteUnits : localFilteredData;
 
   const hasActiveFilters =
     !!search.trim() ||
@@ -482,6 +528,84 @@ const useUnitListViewModel = (navigation, route) => {
     });
   };
 
+  const getUnitStageStatus = (unit, stageLabel = statusBoardStageLabel) => {
+    if (stageLabel === "All") {
+      const processStatuses = getCardProcesses(unit)
+        .map((process) => process.value)
+        .filter(Boolean)
+        .map((value) => normalizeStatusBoardValue(value));
+
+      if (!processStatuses.length) {
+        return "Pending";
+      }
+
+      if (processStatuses.every((value) => value === "Approved")) {
+        return "Approved";
+      }
+
+      if (processStatuses.some((value) => value === "Rejected")) {
+        return "Rejected";
+      }
+
+      if (processStatuses.some((value) => value === "Requested")) {
+        return "Requested";
+      }
+
+      return "Pending";
+    }
+
+    const normalizedStageLabel = normalizeStageLabel(stageLabel);
+    const statusLookup = getUnitStatusBySubOption(unit);
+
+    for (const section of processSections) {
+      const normalizedSectionLabel = normalizeStageLabel(getProcessLabel(section));
+
+      if (normalizedSectionLabel === normalizedStageLabel) {
+        const states = (section.subOptions || [])
+          .map((subOption) => statusLookup[subOption.id] || null)
+          .filter(Boolean);
+
+        if (states.length) {
+          return normalizeStatusBoardValue(getProcessValue(states));
+        }
+      }
+
+      for (const subOption of section.subOptions || []) {
+        const normalizedSubOptionLabel = normalizeStageLabel(
+          subOption.apiDescription || subOption.label
+        );
+
+        if (normalizedSubOptionLabel === normalizedStageLabel) {
+          return normalizeStatusBoardValue(statusLookup[subOption.id] || "Pending");
+        }
+      }
+    }
+
+    const apiProcesses = Array.isArray(unit?.processes) ? unit.processes : [];
+
+    for (const process of apiProcesses) {
+      if (
+        normalizeStageLabel(process?.processName || process?.name) ===
+        normalizedStageLabel
+      ) {
+        return normalizeStatusBoardValue(normalizeProcessStatusValue(process));
+      }
+
+      for (const subprocess of process?.subprocesses || []) {
+        if (
+          normalizeStageLabel(subprocess?.subprocessName || subprocess?.name) ===
+          normalizedStageLabel
+        ) {
+          return normalizeStatusBoardValue(
+            normalizeProcessStatusValue(subprocess)
+          );
+        }
+      }
+    }
+
+    return "Pending";
+  };
+
   const getCardProcesses = (unit) =>
     processSections.map((section, index) => {
       const apiProcess = Array.isArray(unit?.processes)
@@ -527,6 +651,19 @@ const useUnitListViewModel = (navigation, route) => {
       };
     });
 
+  const baseFilteredData = shouldUseOmsApi ? remoteUnits : localFilteredData;
+  const filteredData = statusBoardEnabled
+    ? baseFilteredData.filter(
+        (unit) => getUnitStageStatus(unit) === selectedStatusBucket
+      )
+    : baseFilteredData;
+  const statusBoardCounts = STATUS_BOARD_BUCKETS.reduce((acc, bucket) => {
+    acc[bucket] = baseFilteredData.filter(
+      (unit) => getUnitStageStatus(unit) === bucket
+    ).length;
+    return acc;
+  }, {});
+
   const canDownloadCertificate = (unit) =>
     CERTIFICATE_STATUS_KEYS.every((key) =>
       COMPLETED_STATES.includes(unit?.[key] || "Pending")
@@ -550,8 +687,16 @@ const useUnitListViewModel = (navigation, route) => {
     canOpenUnitDetails: roleAccess.canOpenUnitDetails,
     canUseLocationFilters,
     module,
+    statusBoardEnabled,
+    statusBoardTitle,
+    statusBoardStageLabel,
+    selectedStatusBucket,
+    statusBoardCounts,
     zones,
     villages,
+    filterTotalItems,
+    zoneTotalItems,
+    villageTotalItems,
     search,
     zone,
     village,
@@ -569,6 +714,7 @@ const useUnitListViewModel = (navigation, route) => {
     emptySubtitle,
     emptyActionLabel,
     setSearch,
+    setSelectedStatusBucket,
     openFilterSheet,
     closeFilterSheet,
     setLocationFilterSearchQuery,

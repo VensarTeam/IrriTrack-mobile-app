@@ -1319,14 +1319,16 @@ export const submitChecklistOfflineFirst = async ({
   subOption,
   payload,
   ownerUserId = "",
+  offlineOnly = false,
 }) => {
   logSync("Offline-first submit requested", {
     deviceType,
     sectionKey: section?.key,
     subOptionId: subOption?.id,
+    offlineOnly,
     summary: getPayloadSummary(payload),
   });
-  if (await canUseNetwork()) {
+  if (!offlineOnly && (await canUseNetwork())) {
     try {
       const response = await submitOmsChecklistToApi(payload);
 

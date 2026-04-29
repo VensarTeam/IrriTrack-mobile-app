@@ -18,6 +18,8 @@ import SupportIcon from "./support.svg";
 import LocationIcon from "./location.svg";
 import SearchIcon from "./search.svg";
 import UpdateIcon from "./update.svg";
+import WorkIcon from "./list-status.svg";
+import CameraIcon from "./camera.svg";
 
 export {
   PersonIcon,
@@ -39,5 +41,7 @@ export {
   SupportIcon,
   LocationIcon,
   SearchIcon,
-  UpdateIcon
+  UpdateIcon,
+  WorkIcon,
+  CameraIcon
 };

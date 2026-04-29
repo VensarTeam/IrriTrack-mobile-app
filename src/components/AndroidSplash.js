@@ -5,7 +5,8 @@ import Svg, { Circle } from "react-native-svg";
 import colors from "../constants/colors";
 import fonts from "../constants/fonts";
 import { moderateScale, verticalScale } from "../constants/metrics";
-import { APP_NAME, PROJECT_FULL_FORM } from "../constants/appInfo";
+import { PROJECT_FULL_FORM } from "../constants/appInfo";
+import BrandText from "./BrandText";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const RING_SIZE = moderateScale(212);
@@ -153,7 +154,7 @@ const AndroidSplash = ({ onLayout }) => {
           </View>
 
           <View style={styles.copyWrap}>
-            <Text style={styles.title}>{APP_NAME}</Text>
+            <BrandText style={styles.title} />
             <Text style={styles.fullForm}>{PROJECT_FULL_FORM}</Text>
             <Text style={styles.subtitle}>Secure workspace loading</Text>
           </View>

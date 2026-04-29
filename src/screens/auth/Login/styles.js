@@ -39,7 +39,7 @@ export default StyleSheet.create({
 
   systemText: {
     color: colors.navyFresh,
-    fontSize: moderateScale(28),
+    fontSize: moderateScale(32),
     fontFamily: fonts.bold,
     textAlign: "center",
   },
