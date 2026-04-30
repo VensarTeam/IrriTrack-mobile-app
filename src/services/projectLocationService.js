@@ -15,20 +15,43 @@ const compareByName = (left, right) =>
     numeric: true,
   });
 
-const normalizeNames = (items = [], key) =>
-  Array.from(
-    new Set(
-      items
-        .map((item) => {
-          if (typeof item === "string") {
-            return String(item).trim();
-          }
+const normalizeZoneOptions = (items = []) => {
+  const zonesByKey = new Map();
 
-          return String(item?.[key] || "").trim();
-        })
-        .filter(Boolean)
-    )
-  ).sort(compareByName);
+  items.forEach((item) => {
+    if (typeof item === "string") {
+      const name = String(item).trim();
+
+      if (!name || zonesByKey.has(name)) {
+        return;
+      }
+
+      zonesByKey.set(name, {
+        id: name,
+        name,
+        omsQty: null,
+      });
+      return;
+    }
+
+    const id = String(item?.id || item?.name || "").trim();
+    const name = String(item?.name || "").trim();
+
+    if (!id || !name || zonesByKey.has(name)) {
+      return;
+    }
+
+    zonesByKey.set(name, {
+      id,
+      name,
+      omsQty: Number(item?.omsQty ?? item?.omsqty ?? item?.noOfOms ?? 0),
+    });
+  });
+
+  return Array.from(zonesByKey.values()).sort((left, right) =>
+    compareByName(left.name, right.name)
+  );
+};
 
 const normalizeVillageOptions = (items = []) => {
   const villagesById = new Map();
@@ -41,7 +64,12 @@ const normalizeVillageOptions = (items = []) => {
       return;
     }
 
-    villagesById.set(id, { id, name });
+    villagesById.set(id, {
+      id,
+      name,
+      noOfOms: Number(item?.noOfOms ?? item?.omsQty ?? 0),
+      zoneNames: Array.isArray(item?.zoneNames) ? item.zoneNames : [],
+    });
   });
 
   return Array.from(villagesById.values()).sort((left, right) =>
@@ -193,7 +221,7 @@ export const fetchProjectZones = async (
           const normalizedResponse = normalizeFilterResponse(response, {
             page,
             limit,
-            itemNormalizer: (items) => normalizeNames(items, "name"),
+            itemNormalizer: normalizeZoneOptions,
           });
           zoneResponseCache.set(cacheKey, normalizedResponse);
           return normalizedResponse;

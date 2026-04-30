@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { showAppAlert } from "../services/alertService";
+import { fetchOmsImageGallery } from "../services/unitGalleryService";
 
 const DEFAULT_PROJECT = "IrriTrack";
 
@@ -45,10 +46,20 @@ const useUnitGalleryViewModel = (navigation, route) => {
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const projectName = route?.params?.projectName || DEFAULT_PROJECT;
+  const projectId =
+    route?.params?.projectId ||
+    unit?.projectId ||
+    route?.params?.project?.id ||
+    route?.params?.project?.projectId ||
+    "";
+  const deviceName =
+    route?.params?.deviceName || unit?.nodeName || unit?.unitNo || "";
 
   const [photos, setPhotos] = useState(() =>
     normalizeIncomingPhotos(route?.params?.photos)
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -69,6 +80,35 @@ const useUnitGalleryViewModel = (navigation, route) => {
       { key: "sync", label: "Synced", value: photos.length },
     ];
   }, [photos]);
+
+  const refreshGallery = useCallback(async () => {
+    if (!projectId || !deviceName) {
+      setPhotos([]);
+      setErrorMessage("");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetchOmsImageGallery({
+        projectId,
+        deviceType: module,
+        deviceName,
+      });
+console.log("Fetched gallery response:", response);
+      setPhotos(Array.isArray(response?.data) ? response.data : []);
+    } catch (error) {
+      setErrorMessage(error?.message || "Unable to load gallery images.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [deviceName, module, projectId]);
+
+  useEffect(() => {
+    void refreshGallery();
+  }, [refreshGallery]);
 
   const requestPickerPermission = async (source) => {
     if (source === "camera") {
@@ -170,6 +210,9 @@ const useUnitGalleryViewModel = (navigation, route) => {
     locationLine,
     summary,
     photos,
+    isLoading,
+    errorMessage,
+    refreshGallery,
     openAddPhoto,
     viewerVisible,
     viewerIndex,

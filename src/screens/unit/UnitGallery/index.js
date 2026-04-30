@@ -3,6 +3,7 @@ import {
   FlatList,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -22,9 +23,10 @@ const UnitGalleryScreen = ({ navigation, route }) => {
     unitLabel,
     projectName,
     locationLine,
-    summary,
     photos,
-    openAddPhoto,
+    isLoading,
+    errorMessage,
+    refreshGallery,
     viewerVisible,
     viewerIndex,
     setViewerIndex,
@@ -51,6 +53,9 @@ const UnitGalleryScreen = ({ navigation, route }) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refreshGallery} />
+        }
       >
         <LinearGradient
           colors={["#0F3F67", "#166E7D"]}
@@ -109,7 +114,27 @@ const UnitGalleryScreen = ({ navigation, route }) => {
           <View style={styles.emptyWrap}>
             <View style={styles.emptyPreviewBox}>
               <Icons.gallery width={22} height={22} />
-              <Text style={styles.emptyText}>No photos yet</Text>
+              <Text style={styles.emptyText}>
+                {isLoading
+                  ? "Loading photos..."
+                  : errorMessage
+                    ? "Unable to load photos"
+                    : "No photos yet"}
+              </Text>
+              <Text style={styles.emptySubText}>
+                {isLoading
+                  ? "Please wait while we fetch the gallery images."
+                  : errorMessage || "Gallery images will appear here once uploaded."}
+              </Text>
+              {!isLoading && errorMessage ? (
+                <TouchableOpacity
+                  style={styles.addPhotoButton}
+                  onPress={refreshGallery}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.addPhotoButtonText}>Retry</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         )}

@@ -14,20 +14,22 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Icon, IconButton, Searchbar } from "react-native-paper";
-import { TabBar, TabView } from "react-native-tab-view";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import useWorkStatusViewModel from "../../viewmodels/useWorkStatusViewModel";
+import { CustomTabView } from "../../components/WorkStatusTabView"; // ← new import
+
+// ─── remove the TabView / TabBar imports from react-native-tab-view ───────────
+// REMOVED: import { TabBar, TabView } from "react-native-tab-view";
 
 const TAB_THEME = {
-  Requests: {
+  Submitted: {
     solid: colors.primaryOrange,
     soft: "#FFF1E7",
     accent: "#D96D14",
@@ -57,13 +59,16 @@ const TAB_THEME = {
     accent: "#A8472E",
     icon: "message-alert-outline",
   },
+  Info: {
+    solid: "#4280d1",
+    soft: "#ecf7ff",
+    accent: "#2e7ba8",
+    icon: "information-outline",
+  }
 };
 
 const formatHistoryDate = (value) => {
-  if (!value) {
-    return "";
-  }
-
+  if (!value) return "";
   try {
     return new Intl.DateTimeFormat("en-IN", {
       day: "2-digit",
@@ -72,7 +77,7 @@ const formatHistoryDate = (value) => {
       hour: "numeric",
       minute: "2-digit",
     }).format(new Date(value));
-  } catch (error) {
+  } catch {
     return String(value);
   }
 };
@@ -82,7 +87,7 @@ const toTitleCase = (value = "") =>
     .trim()
     .split(/[\s_-]+/)
     .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
 
 const isPlainObject = (value) =>
@@ -92,105 +97,41 @@ const formatValueLabel = (value = "") =>
   String(value || "")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 const formatValueText = (value) => {
-  if (value === null || typeof value === "undefined") {
-    return "";
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    return String(value);
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-
+  if (value === null || typeof value === "undefined") return "";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   return "";
 };
 
 const getCompactValueState = (value) => {
-  const normalized = String(value || "")
-    .trim()
-    .toLowerCase();
-
-  if (
-    normalized === "yes" ||
-    normalized === "true" ||
-    normalized === "completed" ||
-    normalized === "done" ||
-    normalized === "approved" ||
-    normalized === "verified"
-  ) {
-    return {
-      icon: "check-circle",
-      tone: "success",
-    };
-  }
-
-  if (
-    normalized === "no" ||
-    normalized === "false" ||
-    normalized === "rejected" ||
-    normalized === "commented"
-  ) {
-    return {
-      icon: "close-circle",
-      tone: "danger",
-    };
-  }
-
-  return {
-    icon: "circle-medium",
-    tone: "neutral",
-  };
+  const n = String(value || "").trim().toLowerCase();
+  if (["yes", "true", "completed", "done", "approved", "verified"].includes(n))
+    return { icon: "check-circle", tone: "success" };
+  if (["no", "false", "rejected", "commented"].includes(n))
+    return { icon: "close-circle", tone: "danger" };
+  return { icon: "circle-medium", tone: "neutral" };
 };
 
 const getSimpleChecklistState = (checklist) => {
   const rawValue = checklist?.detail?.rawValue;
-
-  if (
-    checklist?.isFile ||
-    Array.isArray(rawValue) ||
-    isPlainObject(rawValue)
-  ) {
-    return null;
-  }
+  if (checklist?.isFile || Array.isArray(rawValue) || isPlainObject(rawValue)) return null;
 
   const valueText = formatValueText(rawValue ?? checklist?.detail?.value);
-  const normalized = String(valueText || "")
-    .trim()
-    .toLowerCase();
+  const n = String(valueText || "").trim().toLowerCase();
 
-  if (
-    normalized === "yes" ||
-    normalized === "true" ||
-    normalized === "completed" ||
-    normalized === "done" ||
-    normalized === "approved" ||
-    normalized === "verified"
-  ) {
-    return {
-      icon: "check-circle",
-      color: colors.completed,
-      backgroundColor: "#ECFBF3",
-      borderColor: "#C7EFD8",
-    };
-  }
-
-  if (normalized === "no" || normalized === "false") {
-    return {
-      icon: "close-circle",
-      color: colors.danger,
-      backgroundColor: "#FFF3F0",
-      borderColor: "#F1C5B8",
-    };
-  }
-
+  if (["yes", "true", "completed", "done", "approved", "verified"].includes(n))
+    return { icon: "check-circle", color: colors.completed, backgroundColor: "#ECFBF3", borderColor: "#C7EFD8" };
+  if (["no", "false"].includes(n))
+    return { icon: "close-circle", color: colors.danger, backgroundColor: "#FFF3F0", borderColor: "#F1C5B8" };
   return null;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ChecklistValueBlock (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 const ChecklistValueBlock = ({ checklist }) => {
   const rawValue = checklist?.detail?.rawValue;
   const valueText = checklist?.detail?.value || "";
@@ -221,15 +162,13 @@ const ChecklistValueBlock = ({ checklist }) => {
     return (
       <View style={styles.valueBlock}>
         <View style={styles.arrayGroup}>
-          {rawValue.map((item, itemIndex) => (
-            <View key={`${checklist.id}-${itemIndex}`} style={styles.arrayCard}>
+          {rawValue.map((item, i) => (
+            <View key={`${checklist.id}-${i}`} style={styles.arrayCard}>
               {isPlainObject(item) ? (
-                Object.entries(item).map(([key, value]) => (
-                  <View key={key} style={styles.arrayRow}>
-                    <Text style={styles.arrayKey}>{formatValueLabel(key)}</Text>
-                    <Text style={styles.arrayValue}>
-                      {formatValueText(value) || "-"}
-                    </Text>
+                Object.entries(item).map(([k, v]) => (
+                  <View key={k} style={styles.arrayRow}>
+                    <Text style={styles.arrayKey}>{formatValueLabel(k)}</Text>
+                    <Text style={styles.arrayValue}>{formatValueText(v) || "-"}</Text>
                   </View>
                 ))
               ) : (
@@ -246,12 +185,10 @@ const ChecklistValueBlock = ({ checklist }) => {
     return (
       <View style={styles.valueBlock}>
         <View style={styles.arrayCard}>
-          {Object.entries(rawValue).map(([key, value]) => (
-            <View key={key} style={styles.arrayRow}>
-              <Text style={styles.arrayKey}>{formatValueLabel(key)}</Text>
-              <Text style={styles.arrayValue}>
-                {formatValueText(value) || "-"}
-              </Text>
+          {Object.entries(rawValue).map(([k, v]) => (
+            <View key={k} style={styles.arrayRow}>
+              <Text style={styles.arrayKey}>{formatValueLabel(k)}</Text>
+              <Text style={styles.arrayValue}>{formatValueText(v) || "-"}</Text>
             </View>
           ))}
         </View>
@@ -259,42 +196,31 @@ const ChecklistValueBlock = ({ checklist }) => {
     );
   }
 
-  if (!valueText) {
-    return null;
-  }
+  if (!valueText) return null;
 
-  const compactState = getCompactValueState(valueText);
-  const compactToneStyle =
-    compactState.tone === "success"
-      ? styles.compactValueToneSuccess
-      : compactState.tone === "danger"
-      ? styles.compactValueToneDanger
-      : styles.compactValueToneNeutral;
-  const compactTextToneStyle =
-    compactState.tone === "success"
-      ? styles.compactValueTextSuccess
-      : compactState.tone === "danger"
-      ? styles.compactValueTextDanger
-      : styles.compactValueTextNeutral;
+  const state = getCompactValueState(valueText);
+  const toneStyle =
+    state.tone === "success" ? styles.compactValueToneSuccess
+      : state.tone === "danger" ? styles.compactValueToneDanger
+        : styles.compactValueToneNeutral;
+  const textStyle =
+    state.tone === "success" ? styles.compactValueTextSuccess
+      : state.tone === "danger" ? styles.compactValueTextDanger
+        : styles.compactValueTextNeutral;
 
   return (
     <View style={styles.valueBlock}>
-      <View style={[styles.compactValueRow, compactToneStyle]}>
+      <View style={[styles.compactValueRow, toneStyle]}>
         <Icon
-          source={compactState.icon}
+          source={state.icon}
           size={16}
           color={
-            compactState.tone === "success"
-              ? colors.completed
-              : compactState.tone === "danger"
-              ? colors.danger
-              : colors.primaryBlue
+            state.tone === "success" ? colors.completed
+              : state.tone === "danger" ? colors.danger
+                : colors.primaryBlue
           }
         />
-        <Text
-          style={[styles.compactValueText, compactTextToneStyle]}
-          numberOfLines={2}
-        >
+        <Text style={[styles.compactValueText, textStyle]} numberOfLines={2}>
           {valueText}
         </Text>
       </View>
@@ -302,6 +228,9 @@ const ChecklistValueBlock = ({ checklist }) => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
 const WorkStatusScreen = ({ route, navigation }) => {
   const {
     stageLabel,
@@ -347,27 +276,24 @@ const WorkStatusScreen = ({ route, navigation }) => {
     getUnitWorkBucket,
     handleBack,
   } = useWorkStatusViewModel(navigation, route);
-  const layout = useWindowDimensions();
+
   const insets = useSafeAreaInsets();
-  const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] =
-    React.useState(false);
+  const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] = React.useState(false);
   const [isRejectSubmitPending, setIsRejectSubmitPending] = React.useState(false);
-  const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] =
-    React.useState(false);
+  const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] = React.useState(false);
+
   const selectedProcess = selectedProgressMatch?.process || null;
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
   const selectedDetailItems = selectedSubprocess?.detailItems || [];
   const sheetBottomPadding = insets.bottom + 24;
   const historySheetBottomPadding = insets.bottom + 20;
-  const canVerifySelected =
-    reviewCapabilities.canVerify && selectedWorkflowStatusKey === "submitted";
-  const canApproveSelected =
-    reviewCapabilities.canApprove && selectedWorkflowStatusKey === "verified";
+
+  const canVerifySelected = reviewCapabilities.canVerify && selectedWorkflowStatusKey === "submitted";
+  const canApproveSelected = reviewCapabilities.canApprove && selectedWorkflowStatusKey === "verified";
   const canRejectSelected =
     reviewCapabilities.canReject &&
-    (selectedWorkflowStatusKey === "submitted" ||
-      selectedWorkflowStatusKey === "verified");
+    (selectedWorkflowStatusKey === "submitted" || selectedWorkflowStatusKey === "verified");
 
   React.useEffect(() => {
     setIsRejectRemarkModalVisible(false);
@@ -375,28 +301,14 @@ const WorkStatusScreen = ({ route, navigation }) => {
   }, [selectedWorkItem?.submissionId, selectedWorkflowStatusKey]);
 
   React.useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
-      setIsRejectKeyboardVisible(true);
-    });
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
-      setIsRejectKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
+    const show = Keyboard.addListener("keyboardDidShow", () => setIsRejectKeyboardVisible(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setIsRejectKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
   }, []);
 
   React.useEffect(() => {
-    if (!isRejectSubmitPending || isWorkflowSubmitting) {
-      return;
-    }
-
-    if (!reviewError) {
-      setIsRejectRemarkModalVisible(false);
-    }
-
+    if (!isRejectSubmitPending || isWorkflowSubmitting) return;
+    if (!reviewError) setIsRejectRemarkModalVisible(false);
     setIsRejectSubmitPending(false);
   }, [isRejectSubmitPending, isWorkflowSubmitting, reviewError]);
 
@@ -406,24 +318,14 @@ const WorkStatusScreen = ({ route, navigation }) => {
   }, [updateReviewRemark]);
 
   const closeRejectRemarkModal = React.useCallback(() => {
-    if (isWorkflowSubmitting) {
-      return;
-    }
-
+    if (isWorkflowSubmitting) return;
     setIsRejectRemarkModalVisible(false);
     updateReviewRemark("");
   }, [isWorkflowSubmitting, updateReviewRemark]);
 
   const handleRejectModalRequestClose = React.useCallback(() => {
-    if (isWorkflowSubmitting) {
-      return;
-    }
-
-    if (isRejectKeyboardVisible) {
-      Keyboard.dismiss();
-      return;
-    }
-
+    if (isWorkflowSubmitting) return;
+    if (isRejectKeyboardVisible) { Keyboard.dismiss(); return; }
     closeRejectRemarkModal();
   }, [closeRejectRemarkModal, isRejectKeyboardVisible, isWorkflowSubmitting]);
 
@@ -432,20 +334,58 @@ const WorkStatusScreen = ({ route, navigation }) => {
     await submitWorkItemAction("reject");
   }, [submitWorkItemAction]);
 
-  const routes = React.useMemo(
-    () =>
-      tabs.map((tab) => ({
-        key: tab,
-        title: tab,
-      })),
-    [tabs]
-  );
-
   const contextChips = [
     stageLabel !== "All" ? stageLabel : "",
     zoneName !== "All" ? zoneName : "",
     villageName !== "All" ? villageName : "",
   ].filter(Boolean);
+
+  // ─── renderScene is passed to CustomTabView ────────────────────────────────
+  const renderScene = React.useCallback(
+    ({ route: sceneRoute }) => {
+      const items = unitsByTab[sceneRoute.key] || [];
+      const isActive = tabs[activeTabIndex] === sceneRoute.key;
+
+      return (
+        <FlatList
+          data={items}
+          keyExtractor={(unit, index) =>
+            String(unit?.id || unit?.submissionId || unit?.omsId || `${sceneRoute.key}-${index}`)
+          }
+          renderItem={renderUnitCard}
+          contentContainerStyle={styles.sceneContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconShell}>
+                <Icon source="layers-search-outline" size={28} color={colors.primaryBlue} />
+              </View>
+              <Text style={styles.emptyTitle}>No items in {sceneRoute.title}</Text>
+              <Text style={styles.emptyText}>This lane is currently clear.</Text>
+            </View>
+          }
+          ListFooterComponent={
+            isActive && items.length > 0 && (canLoadMore || isFetchingMore) ? (
+              <View style={styles.loadMoreWrap}>
+                {isFetchingMore ? (
+                  <ActivityIndicator size="small" color={colors.primaryBlue} />
+                ) : (
+                  <TouchableOpacity style={styles.loadMoreButton} onPress={loadMore} activeOpacity={0.88}>
+                    <Text style={styles.loadMoreButtonText}>Load More</Text>
+                    <Icon source="chevron-down" size={16} color={colors.primaryBlue} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null
+          }
+        />
+      );
+    },
+    [activeTabIndex, canLoadMore, isFetchingMore, isRefreshing, loadMore, refresh, tabs, unitsByTab]
+  );
 
   const renderUnitCard = React.useCallback(
     ({ item }) => {
@@ -453,15 +393,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
 
       return (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => openWorkItem(item)}
-          activeOpacity={0.9}
-        >
+        <TouchableOpacity style={styles.card} onPress={() => openWorkItem(item)} activeOpacity={0.9}>
           <View style={styles.cardTopRow}>
             <View style={styles.cardTextWrap}>
               <Text style={styles.cardEyebrow} numberOfLines={1}>
-                {item?.omsName || item?.omsId || "OMS"}
+               OMS - {item?.omsName || item?.omsId || "OMS"}
               </Text>
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {item?.processName || "Process"}
@@ -476,28 +412,16 @@ const WorkStatusScreen = ({ route, navigation }) => {
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.statusPill,
-                {
-                  backgroundColor: theme.soft,
-                  borderColor: theme.solid,
-                },
-              ]}
-            >
-              <Icon source={theme.icon} size={13} color={theme.accent} />
-              <Text style={[styles.statusPillText, { color: theme.accent }]}>
-                {bucket}
-              </Text>
+            <View style={[styles.statusPill, { backgroundColor: theme.soft, borderColor: theme.solid }]}>
+              <Icon source={theme.icon} size={16} color={theme.accent} />
+              <Text style={[styles.statusPillText, { color: theme.accent }]}>{bucket}</Text>
             </View>
           </View>
 
-          <View style={styles.cardBottomRow}>
+          {/* <View style={styles.cardBottomRow}>
             <View style={styles.cardActionRow}>
               {item?.rejectionRemark ? (
-                <Text style={styles.cardRemarkText} numberOfLines={2}>
-                  {item.rejectionRemark}
-                </Text>
+                <Text style={styles.cardRemarkText} numberOfLines={2}>{item.rejectionRemark}</Text>
               ) : (
                 <Text style={styles.cardActionText}>
                   {canReviewChecklist ? "View submission" : "Open work"}
@@ -507,153 +431,28 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 <Icon source="arrow-top-right" size={14} color={colors.white} />
               </View>
             </View>
-          </View>
+          </View> */}
         </TouchableOpacity>
       );
     },
     [canReviewChecklist, getUnitSubtitle, getUnitWorkBucket, openWorkItem]
   );
 
-  const renderScene = React.useCallback(
-    ({ route: sceneRoute }) => {
-      const items = unitsByTab[sceneRoute.key] || [];
-      const isActive = routes[activeTabIndex]?.key === sceneRoute.key;
-
-      return (
-        <FlatList
-          data={items}
-          keyExtractor={(unit, index) =>
-            String(
-              unit?.id ||
-                unit?.submissionId ||
-                unit?.omsId ||
-                `${sceneRoute.key}-${index}`
-            )
-          }
-          renderItem={renderUnitCard}
-          contentContainerStyle={styles.sceneContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconShell}>
-                <Icon
-                  source="layers-search-outline"
-                  size={28}
-                  color={colors.primaryBlue}
-                />
-              </View>
-              <Text style={styles.emptyTitle}>No items in {sceneRoute.title}</Text>
-              <Text style={styles.emptyText}>This lane is currently clear.</Text>
-            </View>
-          }
-          ListFooterComponent={
-            isActive && items.length > 0 && (canLoadMore || isFetchingMore) ? (
-              <View style={styles.loadMoreWrap}>
-                {isFetchingMore ? (
-                  <ActivityIndicator size="small" color={colors.primaryBlue} />
-                ) : (
-                  <TouchableOpacity
-                    style={styles.loadMoreButton}
-                    onPress={loadMore}
-                    activeOpacity={0.88}
-                  >
-                    <Text style={styles.loadMoreButtonText}>Load More</Text>
-                    <Icon
-                      source="chevron-down"
-                      size={16}
-                      color={colors.primaryBlue}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : null
-          }
-        />
-      );
-    },
-    [
-      activeTabIndex,
-      canLoadMore,
-      isFetchingMore,
-      isRefreshing,
-      loadMore,
-      refresh,
-      renderUnitCard,
-      routes,
-      unitsByTab,
-    ]
-  );
-
-  const renderTabBar = React.useCallback(
-    (props) => (
-      <TabBar
-        {...props}
-        scrollEnabled
-        style={styles.tabBar}
-        contentContainerStyle={styles.tabBarContent}
-        tabStyle={styles.tabStyle}
-        pressColor="transparent"
-        pressOpacity={0.88}
-        indicatorStyle={styles.tabIndicator}
-        indicatorContainerStyle={styles.tabIndicatorContainer}
-        gap={0}
-        renderLabel={({ route: tabRoute, focused }) => {
-          const count = Number(countsByTab?.[tabRoute.title] || 0);
-
-          return (
-            <View style={styles.tabItem}>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  focused && styles.tabLabelActive,
-                ]}
-                numberOfLines={1}
-              >
-                {tabRoute.title}
-              </Text>
-              <View
-                style={[
-                  styles.tabCountBadge,
-                  focused && styles.tabCountBadgeActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tabCountText,
-                    focused && styles.tabCountTextActive,
-                  ]}
-                >
-                  {count}
-                </Text>
-              </View>
-            </View>
-          );
-        }}
-      />
-    ),
-    [countsByTab]
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* ── Reject remark modal ───────────────────────────────────────────── */}
       <Modal
         visible={isRejectRemarkModalVisible}
         transparent
         animationType="fade"
         onRequestClose={handleRejectModalRequestClose}
       >
-        <Pressable
-          style={styles.rejectModalBackdrop}
-          onPress={handleRejectModalRequestClose}
-        >
+        <Pressable style={styles.rejectModalBackdrop} onPress={handleRejectModalRequestClose}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.rejectModalRoot}
           >
-            <Pressable style={styles.rejectModalCard} onPress={() => {}}>
+            <Pressable style={styles.rejectModalCard} onPress={() => { }}>
               <Text style={styles.rejectModalTitle}>Reject Remark</Text>
               <Text style={styles.rejectModalSubtitle}>
                 Add a short remark before sending this subprocess back.
@@ -674,17 +473,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 autoFocus
               />
 
-              {reviewError ? (
-                <Text style={styles.reviewErrorText}>{reviewError}</Text>
-              ) : null}
+              {reviewError ? <Text style={styles.reviewErrorText}>{reviewError}</Text> : null}
 
               <View style={styles.rejectModalActionRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.reviewActionButton,
-                    styles.reviewCancelButton,
-                    isWorkflowSubmitting && styles.reviewActionButtonDisabled,
-                  ]}
+                  style={[styles.reviewActionButton, styles.reviewCancelButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                   activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                   disabled={isWorkflowSubmitting}
                   onPress={closeRejectRemarkModal}
@@ -693,11 +486,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.reviewActionButton,
-                    styles.reviewRejectButton,
-                    isWorkflowSubmitting && styles.reviewActionButtonDisabled,
-                  ]}
+                  style={[styles.reviewActionButton, styles.reviewRejectButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                   activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                   disabled={isWorkflowSubmitting}
                   onPress={submitRejectFromModal}
@@ -714,6 +503,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </Pressable>
       </Modal>
 
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <View style={styles.container}>
         <View style={styles.header}>
           <IconButton icon="arrow-left" onPress={handleBack} size={22} />
@@ -721,8 +511,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.headerCard}>
-          {contextChips.length ? (
+        {contextChips.length ? (
+          <View style={[styles.headerCard, { paddingHorizontal: 15, paddingBottom: 12 }]}>
             <View style={styles.contextRow}>
               {contextChips.map((item) => (
                 <View key={item} style={styles.contextChip}>
@@ -730,8 +520,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 </View>
               ))}
             </View>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
 
         <View style={styles.searchRow}>
           <Searchbar
@@ -756,32 +546,23 @@ const WorkStatusScreen = ({ route, navigation }) => {
               <Icon source="alert-circle-outline" size={28} color={colors.primaryOrange} />
             </View>
             <Text style={styles.stateText}>{error}</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              activeOpacity={0.88}
-              onPress={refresh}
-            >
+            <TouchableOpacity style={styles.retryButton} activeOpacity={0.88} onPress={refresh}>
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TabView
-            navigationState={{
-              index: activeTabIndex,
-              routes,
-            }}
-            renderScene={renderScene}
+          // ── ✅ CustomTabView replaces TabView + renderTabBar entirely ──────
+          <CustomTabView
+            tabs={tabs}
+            activeTabIndex={activeTabIndex}
             onIndexChange={setActiveTabIndex}
-            initialLayout={{ width: layout.width }}
-            renderTabBar={renderTabBar}
-            lazy
-            style={styles.tabView}
-            sceneContainerStyle={styles.sceneContainer}
-            swipeEnabled={false}
+            countsByTab={countsByTab}
+            renderScene={renderScene}
           />
         )}
       </View>
 
+      {/* ── Submission history sheet ──────────────────────────────────────── */}
       <Modal
         visible={Boolean(selectedHistoryWorkItem)}
         transparent
@@ -789,33 +570,21 @@ const WorkStatusScreen = ({ route, navigation }) => {
         onRequestClose={closeSubmissionHistory}
       >
         <View style={styles.sheetOverlay}>
-          <Pressable
-            style={styles.sheetBackdrop}
-            onPress={closeSubmissionHistory}
-          />
-
+          <Pressable style={styles.sheetBackdrop} onPress={closeSubmissionHistory} />
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHandle} />
 
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderCopy}>
                 <Text style={styles.sheetEyebrow}>
-                  {selectedHistoryWorkItem?.omsName ||
-                    selectedHistoryWorkItem?.omsId ||
-                    "OMS"}
+                  {selectedHistoryWorkItem?.omsName || selectedHistoryWorkItem?.omsId || "OMS"}
                 </Text>
                 <Text style={styles.sheetTitle}>Submission History</Text>
                 <Text style={styles.sheetSubtitle}>
                   Track each workflow step for this subprocess submission.
                 </Text>
               </View>
-
-              <IconButton
-                icon="close"
-                size={20}
-                iconColor={colors.textDark}
-                onPress={closeSubmissionHistory}
-              />
+              <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={closeSubmissionHistory} />
             </View>
 
             <View style={styles.historySummaryCard}>
@@ -825,9 +594,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   {toTitleCase(submissionHistory?.currentStatus || "pending")}
                 </Text>
               </View>
-
               <View style={styles.historySummaryDivider} />
-
               <View style={styles.historySummaryBlock}>
                 <Text style={styles.historySummaryLabel}>Comments</Text>
                 <Text style={styles.historySummaryValue}>
@@ -838,67 +605,42 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
             <ScrollView
               style={styles.sheetScroll}
-              contentContainerStyle={[
-                styles.sheetScrollContent,
-                { paddingBottom: historySheetBottomPadding },
-              ]}
+              contentContainerStyle={[styles.sheetScrollContent, { paddingBottom: historySheetBottomPadding }]}
               showsVerticalScrollIndicator={false}
             >
               {isSubmissionHistoryLoading ? (
                 <View style={styles.sheetStateCard}>
                   <ActivityIndicator size="small" color={colors.primaryBlue} />
-                  <Text style={styles.sheetStateText}>
-                    Loading submission history...
-                  </Text>
+                  <Text style={styles.sheetStateText}>Loading submission history...</Text>
                 </View>
               ) : submissionHistoryError ? (
                 <View style={styles.sheetStateCard}>
-                  <Text style={styles.sheetStateText}>
-                    {submissionHistoryError}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.retryButton}
-                    activeOpacity={0.88}
-                    onPress={refreshSubmissionHistory}
-                  >
+                  <Text style={styles.sheetStateText}>{submissionHistoryError}</Text>
+                  <TouchableOpacity style={styles.retryButton} activeOpacity={0.88} onPress={refreshSubmissionHistory}>
                     <Text style={styles.retryButtonText}>Retry</Text>
                   </TouchableOpacity>
                 </View>
               ) : (submissionHistory?.history || []).length ? (
                 <View style={styles.historyTimeline}>
                   {(submissionHistory?.history || []).map((entry, index) => (
-                    <View
-                      key={`${entry.action}-${entry.actionAt}-${index}`}
-                      style={styles.historyItem}
-                    >
+                    <View key={`${entry.action}-${entry.actionAt}-${index}`} style={styles.historyItem}>
                       <View style={styles.historyRail}>
                         <View style={styles.historyDot} />
                         {index !== (submissionHistory?.history || []).length - 1 ? (
                           <View style={styles.historyLine} />
                         ) : null}
                       </View>
-
                       <View style={styles.historyCard}>
                         <View style={styles.historyCardTopRow}>
-                          <Text style={styles.historyActionText}>
-                            {toTitleCase(entry.action)}
-                          </Text>
-                          <Text style={styles.historyDateText}>
-                            {formatHistoryDate(entry.actionAt)}
-                          </Text>
+                          <Text style={styles.historyActionText}>{toTitleCase(entry.action)}</Text>
+                          <Text style={styles.historyDateText}>{formatHistoryDate(entry.actionAt)}</Text>
                         </View>
-
                         <Text style={styles.historyActorText}>
                           {entry.actorName || "Unknown"}
-                          {entry.actorRole
-                            ? ` • ${toTitleCase(entry.actorRole)}`
-                            : ""}
+                          {entry.actorRole ? ` • ${toTitleCase(entry.actorRole)}` : ""}
                         </Text>
-
                         {entry.remark ? (
-                          <Text style={styles.historyRemarkText}>
-                            {entry.remark}
-                          </Text>
+                          <Text style={styles.historyRemarkText}>{entry.remark}</Text>
                         ) : null}
                       </View>
                     </View>
@@ -906,9 +648,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 </View>
               ) : (
                 <View style={styles.sheetStateCard}>
-                  <Text style={styles.sheetStateText}>
-                    No history is available for this submission yet.
-                  </Text>
+                  <Text style={styles.sheetStateText}>No history is available for this submission yet.</Text>
                 </View>
               )}
             </ScrollView>
@@ -916,6 +656,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
+      {/* ── Work item detail sheet ────────────────────────────────────────── */}
       <Modal
         visible={Boolean(selectedWorkItem)}
         transparent
@@ -924,7 +665,6 @@ const WorkStatusScreen = ({ route, navigation }) => {
       >
         <View style={styles.sheetOverlay}>
           <Pressable style={styles.sheetBackdrop} onPress={closeWorkItemSheet} />
-
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHandle} />
 
@@ -934,21 +674,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   {selectedProcess?.name || selectedWorkItem?.processName || "Process"}
                 </Text>
                 <Text style={styles.sheetTitle}>
-                  {selectedSubprocess?.name ||
-                    selectedWorkItem?.subprocessName ||
-                    "Subprocess"}
+                  {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
                 </Text>
                 <Text style={styles.sheetSubtitle}>
                   Check the submitted details and continue workflow from here.
                 </Text>
               </View>
-
-              <IconButton
-                icon="close"
-                size={20}
-                iconColor={colors.textDark}
-                onPress={closeWorkItemSheet}
-              />
+              <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={closeWorkItemSheet} />
             </View>
 
             <View style={styles.sheetStatusRow}>
@@ -957,145 +689,94 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   style={[
                     styles.statusPill,
                     {
-                      backgroundColor:
-                        (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending)
-                          .soft,
-                      borderColor:
-                        (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending)
-                          .solid,
+                      backgroundColor: (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).soft,
+                      borderColor: (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).solid,
                     },
                   ]}
                 >
                   <Icon
-                    source={
-                      (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).icon
-                    }
+                    source={(TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).icon}
                     size={13}
-                    color={
-                      (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending)
-                        .accent
-                    }
+                    color={(TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).accent}
                   />
                   <Text
                     style={[
                       styles.statusPillText,
-                      {
-                        color:
-                          (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending)
-                            .accent,
-                      },
+                      { color: (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).accent },
                     ]}
                   >
-                    {selectedWorkflowStatusKey === "submitted"
-                      ? "Submitted"
-                      : getUnitWorkBucket(selectedWorkItem)}
+                    {selectedWorkflowStatusKey === "submitted" ? "Submitted" : getUnitWorkBucket(selectedWorkItem)}
                   </Text>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.historyButton}
-                  activeOpacity={0.88}
-                  onPress={openSubmissionHistory}
-                >
+                <TouchableOpacity style={styles.historyButton} activeOpacity={0.88} onPress={openSubmissionHistory}>
                   <Icon source="history" size={14} color={colors.primaryBlue} />
                   <Text style={styles.historyButtonText}>History</Text>
                 </TouchableOpacity>
               </View>
 
               <Text style={styles.sheetStatusCount}>
-                {selectedChecklistItems.length} checklist
-                {selectedChecklistItems.length === 1 ? "" : "s"}
+                {selectedChecklistItems.length} checklist{selectedChecklistItems.length === 1 ? "" : "s"}
               </Text>
             </View>
 
             <ScrollView
               style={styles.sheetScroll}
-              contentContainerStyle={[
-                styles.sheetScrollContent,
-                { paddingBottom: sheetBottomPadding },
-              ]}
+              contentContainerStyle={[styles.sheetScrollContent, { paddingBottom: sheetBottomPadding }]}
               showsVerticalScrollIndicator={false}
             >
               {isSelectedProgressLoading ? (
                 <View style={styles.sheetStateCard}>
                   <ActivityIndicator size="small" color={colors.primaryBlue} />
-                  <Text style={styles.sheetStateText}>
-                    Loading submitted subprocess details...
-                  </Text>
+                  <Text style={styles.sheetStateText}>Loading submitted subprocess details...</Text>
                 </View>
               ) : selectedProgressError ? (
                 <View style={styles.sheetStateCard}>
                   <Text style={styles.sheetStateText}>{selectedProgressError}</Text>
-                  <TouchableOpacity
-                    style={styles.retryButton}
-                    activeOpacity={0.88}
-                    onPress={refreshSelectedProgress}
-                  >
+                  <TouchableOpacity style={styles.retryButton} activeOpacity={0.88} onPress={refreshSelectedProgress}>
                     <Text style={styles.retryButtonText}>Retry</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <>
-                  {selectedChecklistItems.map((checklist, index) => (
-                    (() => {
-                      const simpleChecklistState =
-                        getSimpleChecklistState(checklist);
-
-                      return (
-                        <View
-                          key={checklist.id}
-                          style={[
-                            styles.checklistCard,
-                            simpleChecklistState && styles.checklistCardCompact,
-                            index === selectedChecklistItems.length - 1 &&
-                              styles.checklistCardLast,
-                          ]}
-                        >
-                          {simpleChecklistState ? (
-                            <View style={styles.checklistInlineRow}>
-                              <View style={styles.checklistInlineCopy}>
-                                <Text style={styles.checklistTitle}>
-                                  {checklist.name}
-                                </Text>
-                                {!checklist.isRequired ? (
-                                  <Text style={styles.optionalText}>Optional</Text>
-                                ) : null}
-                              </View>
-
-                              <View
-                                style={[
-                                  styles.checklistInlineStatus,
-                                  {
-                                    backgroundColor:
-                                      simpleChecklistState.backgroundColor,
-                                    borderColor: simpleChecklistState.borderColor,
-                                  },
-                                ]}
-                              >
-                                <Icon
-                                  source={simpleChecklistState.icon}
-                                  size={18}
-                                  color={simpleChecklistState.color}
-                                />
-                              </View>
+                  {selectedChecklistItems.map((checklist, index) => {
+                    const simpleState = getSimpleChecklistState(checklist);
+                    return (
+                      <View
+                        key={checklist.id}
+                        style={[
+                          styles.checklistCard,
+                          simpleState && styles.checklistCardCompact,
+                          index === selectedChecklistItems.length - 1 && styles.checklistCardLast,
+                        ]}
+                      >
+                        {simpleState ? (
+                          <View style={styles.checklistInlineRow}>
+                            <View style={styles.checklistInlineCopy}>
+                              <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                              {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
                             </View>
-                          ) : (
-                            <View style={styles.checklistHead}>
-                              <View style={styles.checklistCopy}>
-                                <Text style={styles.checklistTitle}>
-                                  {checklist.name}
-                                </Text>
-                                {!checklist.isRequired ? (
-                                  <Text style={styles.optionalText}>Optional</Text>
-                                ) : null}
-                                <ChecklistValueBlock checklist={checklist} />
-                              </View>
+                            <View
+                              style={[
+                                styles.checklistInlineStatus,
+                                { backgroundColor: simpleState.backgroundColor, borderColor: simpleState.borderColor },
+                              ]}
+                            >
+                              <Icon source={simpleState.icon} size={18} color={simpleState.color} />
                             </View>
-                          )}
-                        </View>
-                      );
-                    })()
-                  ))}
+                          </View>
+                        ) : (
+                          <View style={styles.checklistHead}>
+                            <View style={styles.checklistCopy}>
+                              <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                              {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
+                              <ChecklistValueBlock checklist={checklist} />
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
 
                   {selectedDetailItems.length ? (
                     <View style={styles.reviewDetailsSection}>
@@ -1118,12 +799,12 @@ const WorkStatusScreen = ({ route, navigation }) => {
                         {selectedWorkflowStatusKey === "commented"
                           ? "This subprocess was commented and is waiting for field rectification."
                           : selectedWorkflowStatusKey === "approved"
-                          ? "This subprocess is already approved."
-                          : selectedWorkflowStatusKey === "verified" && !canApproveSelected
-                          ? "This subprocess is already verified."
-                          : selectedWorkflowStatusKey === "verified"
-                          ? "This subprocess is verified and ready for approval."
-                          : "This submitted subprocess is ready for review."}
+                            ? "This subprocess is already approved."
+                            : selectedWorkflowStatusKey === "verified" && !canApproveSelected
+                              ? "This subprocess is already verified."
+                              : selectedWorkflowStatusKey === "verified"
+                                ? "This subprocess is verified and ready for approval."
+                                : "This submitted subprocess is ready for review."}
                       </Text>
 
                       {reviewError && !isRejectRemarkModalVisible ? (
@@ -1134,12 +815,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                         <View style={styles.reviewActionRow}>
                           {canRejectSelected ? (
                             <TouchableOpacity
-                              style={[
-                                styles.reviewActionButton,
-                                styles.reviewRejectButton,
-                                isWorkflowSubmitting &&
-                                  styles.reviewActionButtonDisabled,
-                              ]}
+                              style={[styles.reviewActionButton, styles.reviewRejectButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
                               onPress={openRejectRemarkModal}
@@ -1150,21 +826,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
                           {canVerifySelected ? (
                             <TouchableOpacity
-                              style={[
-                                styles.reviewActionButton,
-                                styles.reviewVerifyButton,
-                                isWorkflowSubmitting &&
-                                  styles.reviewActionButtonDisabled,
-                              ]}
+                              style={[styles.reviewActionButton, styles.reviewVerifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
                               onPress={() => submitWorkItemAction("verify")}
                             >
                               {isWorkflowSubmitting ? (
-                                <ActivityIndicator
-                                  size="small"
-                                  color={colors.primaryBlue}
-                                />
+                                <ActivityIndicator size="small" color={colors.primaryBlue} />
                               ) : (
                                 <Text style={styles.reviewVerifyText}>Verify</Text>
                               )}
@@ -1173,12 +841,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
                           {canApproveSelected ? (
                             <TouchableOpacity
-                              style={[
-                                styles.reviewActionButton,
-                                styles.reviewApproveButton,
-                                isWorkflowSubmitting &&
-                                  styles.reviewActionButtonDisabled,
-                              ]}
+                              style={[styles.reviewActionButton, styles.reviewApproveButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
                               onPress={() => submitWorkItemAction("approve")}
@@ -1194,11 +857,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       ) : (
                         <View style={styles.workflowStateNotice}>
                           <Text style={styles.workflowStateNoticeText}>
-                            {selectedWorkflowStatusKey === "approved"
-                              ? "Approved"
-                              : selectedWorkflowStatusKey === "verified"
-                              ? "Verified"
-                              : "View only"}
+                            {selectedWorkflowStatusKey === "approved" ? "Approved"
+                              : selectedWorkflowStatusKey === "verified" ? "Verified"
+                                : "View only"}
                           </Text>
                         </View>
                       )}

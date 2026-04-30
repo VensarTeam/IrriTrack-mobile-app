@@ -65,6 +65,8 @@ const UnitListScreen = ({ navigation, route }) => {
     filterTotalItems,
     zoneTotalItems,
     villageTotalItems,
+    zoneDisplayCount,
+    villageDisplayCount,
     locationFilterSearchQuery,
     isInitialLoading,
     isRefreshing,
@@ -346,55 +348,83 @@ const UnitListScreen = ({ navigation, route }) => {
     icon: FilterIcon,
   }) => {
     const displayLabel = Number.isFinite(totalCount)
-      ? `${label} (${totalCount})`
+      ? `${label}`
       : label;
 
     return (
-    <TouchableOpacity
-      style={[
-        styles.filterBtn,
-        active && styles.filterBtnActive,
-        disabled && styles.filterBtnDisabled,
-      ]}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <View style={styles.filterLeftSection}>
-        <View
-          style={[
-            styles.filterIconWrap,
-            active && styles.filterIconWrapActive,
-            disabled && styles.filterIconWrapDisabled,
-          ]}
-        >
-          {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+      <TouchableOpacity
+        style={[
+          styles.filterBtn,
+          active && styles.filterBtnActive,
+          disabled && styles.filterBtnDisabled,
+        ]}
+        onPress={onPress}
+        disabled={disabled}
+      >
+        <View style={styles.filterLeftSection}>
+          <View
+            style={[
+              styles.filterIconWrap,
+              active && styles.filterIconWrapActive,
+              disabled && styles.filterIconWrapDisabled,
+            ]}
+          >
+            {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+          </View>
+          
+
+          <View style={styles.filterTextBlock}>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <Text
+              style={styles.filterTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              {title}
+            </Text>
+             <View style={styles.filterArrowWrap}>
+          <Icons.down width={10} height={10} />
+        </View>
+            </View>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <Text
+                style={[styles.filterValue, active && styles.filterValueActive]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                ellipsizeMode="tail"
+              >
+                {displayLabel}
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: active ? colors.primaryBlue : "#666",
+                  marginLeft: 4,
+                  marginRight:10,
+                }}
+              >
+                {totalCount > 0 ? `(${totalCount})` : null}
+              </Text>
+
+            </View>
+          </View>
         </View>
 
-        <View style={styles.filterTextBlock}>
-          <Text
-            style={styles.filterTitle}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}
-          >
-            {title}
-          </Text>
-          <Text
-            style={[styles.filterValue, active && styles.filterValueActive]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-            ellipsizeMode="tail"
-          >
-            {displayLabel}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.filterArrowWrap}>
-        <Icons.down width={10} height={10} />
-      </View>
-    </TouchableOpacity>
+        {/* <View style={styles.filterArrowWrap}>
+          <Icons.down width={10} height={10} />
+        </View> */}
+      </TouchableOpacity>
     );
   };
 
@@ -469,7 +499,7 @@ const UnitListScreen = ({ navigation, route }) => {
             <FilterButton
               title="Zone"
               label={zone}
-              totalCount={zoneTotalItems}
+              totalCount={zoneDisplayCount}
               icon={Icons.zone}
               active={zone !== "All"}
               onPress={() => openFilterSheet("zone")}
@@ -478,7 +508,7 @@ const UnitListScreen = ({ navigation, route }) => {
             <FilterButton
               title="Village"
               label={village}
-              totalCount={villageTotalItems}
+              totalCount={villageDisplayCount}
               icon={Icons.village}
               active={village !== "All"}
               onPress={() => openFilterSheet("village")}
@@ -566,8 +596,8 @@ const UnitListScreen = ({ navigation, route }) => {
         contentContainerStyle={[
           styles.listContent,
           filteredData.length === 0 &&
-            !isInitialLoading &&
-            styles.listEmptyContent,
+          !isInitialLoading &&
+          styles.listEmptyContent,
         ]}
       />
 
@@ -654,7 +684,7 @@ const getStatusColor = (value) => {
   return colors.partial;
 };
 
-const ProcessTile = ({ process, isWide, onPress,isOffline=false }) => {
+const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
   const statusColor = getStatusColor(process.value);
   const statusText = process.progressLabel
     ? process.value
@@ -677,9 +707,9 @@ const ProcessTile = ({ process, isWide, onPress,isOffline=false }) => {
         isOffline
           ? styles.processTileOffline
           : {
-              backgroundColor: `${statusColor}12`,
-              borderColor: `${statusColor}26`,
-            },
+            backgroundColor: `${statusColor}12`,
+            borderColor: `${statusColor}26`,
+          },
       ]}
     >
       {isOffline ? (

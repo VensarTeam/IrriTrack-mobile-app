@@ -211,6 +211,7 @@ const useUnitListViewModel = (navigation, route) => {
     hasMoreFilterOptions,
     prepareFilterOptions,
     loadMoreFilterOptions,
+    zoneOptions,
     zones: onlineZones,
     villages: onlineVillages,
     villageOptions,
@@ -262,6 +263,24 @@ const useUnitListViewModel = (navigation, route) => {
       villageOptions.find((item) => item?.name === village)?.id || ""
     );
   }, [village, villageOptions]);
+
+  const zoneDisplayCount = useMemo(() => {
+    if (zone === "All") {
+      return zoneTotalItems;
+    }
+
+    const matchedZone = zoneOptions.find((item) => item?.name === zone);
+    return Number(matchedZone?.omsQty ?? zoneTotalItems ?? 0);
+  }, [zone, zoneOptions, zoneTotalItems]);
+
+  const villageDisplayCount = useMemo(() => {
+    if (village === "All") {
+      return villageTotalItems;
+    }
+
+    const matchedVillage = villageOptions.find((item) => item?.name === village);
+    return Number(matchedVillage?.noOfOms ?? villageTotalItems ?? 0);
+  }, [village, villageOptions, villageTotalItems]);
 
   useEffect(() => {
     if (!canUseLocationFilters) {
@@ -409,6 +428,8 @@ const useUnitListViewModel = (navigation, route) => {
     navigation.navigate(ROUTES.ROOT.UNIT_GALLERY, {
       module,
       unit,
+      projectId: projectId || unit?.projectId || "",
+      deviceName: unit?.nodeName || unit?.unitNo || "",
       projectName,
     });
   };
@@ -697,6 +718,8 @@ const useUnitListViewModel = (navigation, route) => {
     filterTotalItems,
     zoneTotalItems,
     villageTotalItems,
+    zoneDisplayCount,
+    villageDisplayCount,
     search,
     zone,
     village,

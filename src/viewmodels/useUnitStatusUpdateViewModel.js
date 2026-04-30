@@ -15,6 +15,7 @@ import {
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
 import { submitOmsReviewAction } from "../services/omsReviewService";
+import { submitOmsCommentedResubmission } from "../services/omsResubmitService";
 import {
   getCachedContractorList,
   refreshContractorList,
@@ -64,6 +65,13 @@ const buildRepeatableGroupState = (repeatableGroups = []) =>
     );
     return acc;
   }, {});
+
+const buildFixedRepeatableGroupState = (group = {}) => {
+  const count = group.fixedItemCount || 0;
+  return Array.from({ length: count }, (_, itemIndex) =>
+    createRepeatableGroupItem(group, itemIndex)
+  );
+};
 
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
@@ -507,12 +515,29 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const workItem = route?.params?.workItem || null;
+  const checklistSectionUnit = useMemo(
+    () => ({
+      ...unit,
+      subChakQuantity:
+        unit?.subChakQuantity ??
+        unit?.subCheckQty ??
+        unit?.subChakQty ??
+        workItem?.subCheckQty ??
+        workItem?.subChakQuantity ??
+        workItem?.subChakQty ??
+        null,
+    }),
+    [unit, workItem]
+  );
   const projectId =
     route?.params?.projectId || unit?.projectId || route?.params?.project?.id || "";
   const projectName = route?.params?.projectName || "IrriTrack";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
-  const { sections, masterSource } = useChecklistSections({ module, unit });
+  const { sections, masterSource } = useChecklistSections({
+    module,
+    unit: checklistSectionUnit,
+  });
   const hydratedSubOptionsRef = useRef({});
 
   const section =
@@ -524,7 +549,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const [activeSubOptionId, setActiveSubOptionId] = useState(initialSubOptionId);
   const [formValues, setFormValues] = useState(() =>
-    getInitialFormValues(section, unit)
+    getInitialFormValues(section, checklistSectionUnit)
   );
   const [fieldErrors, setFieldErrors] = useState({});
   const [pickerState, setPickerState] = useState({
@@ -574,10 +599,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       ),
     });
     setActiveSubOptionId(nextSubOptionId);
-    setFormValues(getInitialFormValues(nextSection, unit));
+    setFormValues(getInitialFormValues(nextSection, checklistSectionUnit));
     setFieldErrors({});
     hydratedSubOptionsRef.current = {};
-  }, [masterSource, requestedSubOptionId, sectionKey, sections, unit]);
+  }, [
+    checklistSectionUnit,
+    masterSource,
+    requestedSubOptionId,
+    sectionKey,
+    sections,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -632,7 +663,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const activeValues =
     formValues[activeSubOption.id] ||
-    getInitialFormValues({ subOptions: [activeSubOption] }, unit)[
+    getInitialFormValues({ subOptions: [activeSubOption] }, checklistSectionUnit)[
       activeSubOption.id
     ];
   const activeErrors = fieldErrors[activeSubOption.id] || {};
@@ -877,7 +908,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     const baseValues =
       formValues[subOptionId] ||
-      getInitialFormValues({ subOptions: [activeSubOption] }, unit)[subOptionId];
+      getInitialFormValues(
+        { subOptions: [activeSubOption] },
+        checklistSectionUnit
+      )[subOptionId];
     const nextValues = {
       ...baseValues,
       checks: { ...baseValues.checks },
@@ -981,6 +1015,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
 
       repeatableGroups.forEach((group) => {
+        if (isCommentedForEdit && group.fixedItemCount) {
+          nextValues.repeatableGroups[group.key] = buildFixedRepeatableGroupState(group);
+          return;
+        }
+
         const checklist = getProgressChecklistMatch(
           checklistsById,
           checklistsByName,
@@ -999,10 +1038,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         }
       });
 
-    photoRequirements.forEach((requirement) => {
-      const checklist = getProgressChecklistMatch(
-        checklistsById,
-        checklistsByName,
+      photoRequirements.forEach((requirement) => {
+        const checklist = getProgressChecklistMatch(
+          checklistsById,
+          checklistsByName,
           requirement
         );
         const remoteValue =
@@ -2208,13 +2247,56 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setIsSubmitting(true);
 
     try {
+      if (isCommentedForEdit) {
+        if (!workItem?.submissionId) {
+          throw new Error(
+            "Submission ID is missing for this commented subprocess."
+          );
+        }
+
+        const response = await submitOmsCommentedResubmission({
+          submissionId: workItem.submissionId,
+          payload,
+        });
+
+        await refreshProgress();
+        const activeIndex = section.subOptions.findIndex(
+          (item) => item.id === activeSubOption.id
+        );
+        const hasNext = activeIndex < section.subOptions.length - 1;
+        const submissionStatusLabel = formatSubmissionStatusLabel(
+          response?.statusLabel
+        );
+
+        showAppAlert({
+          type: "success",
+          title: "Resubmitted successfully",
+          message: `${activeSubOptionLabel} resubmitted successfully with ${submissionStatusLabel} status.`,
+          actions: [
+            {
+              label: hasNext ? "Next" : "Done",
+              variant: "primary",
+              onPress: () => {
+                if (hasNext) {
+                  setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
+                } else {
+                  navigation.goBack();
+                }
+              },
+            },
+          ],
+        });
+
+        return;
+      }
+
       const result = await submitChecklistOfflineFirst({
         deviceType: module,
         section,
         subOption: activeSubOption,
         payload,
         ownerUserId,
-        offlineOnly: isCommentedForEdit,
+        offlineOnly: false,
       });
       await loadLocalSnapshots();
       await refreshProgress();
@@ -2259,17 +2341,23 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         ],
       });
     } catch (error) {
-      console.log("[ChecklistDraft]", "Local save failed", {
+      console.log(
+        isCommentedForEdit ? "[ChecklistResubmit]" : "[ChecklistDraft]",
+        isCommentedForEdit ? "Resubmit failed" : "Local save failed",
+        {
         message: error?.message,
         code: error?.code,
         status: error?.status,
-      });
+        }
+      );
       showAppAlert({
         type: "danger",
-        title: "Save failed",
+        title: isCommentedForEdit ? "Resubmit failed" : "Save failed",
         message:
           error?.message ||
-          "Unable to save checklist data on this device. Please try again.",
+          (isCommentedForEdit
+            ? "Unable to resubmit this commented subprocess right now. Please try again."
+            : "Unable to save checklist data on this device. Please try again."),
       });
     } finally {
       setIsSubmitting(false);

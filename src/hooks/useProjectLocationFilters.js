@@ -24,8 +24,34 @@ const createFilterState = () => ({
   isFetchingMore: false,
 });
 
-const mergeUniqueStrings = (currentItems = EMPTY_ARRAY, nextItems = EMPTY_ARRAY) =>
-  Array.from(new Set([...currentItems, ...nextItems]));
+const mergeUniqueZoneOptions = (
+  currentItems = EMPTY_ARRAY,
+  nextItems = EMPTY_ARRAY
+) => {
+  const zonesByName = new Map();
+
+  currentItems.forEach((item) => {
+    const name = String(item?.name || item || "").trim();
+
+    if (!name) {
+      return;
+    }
+
+    zonesByName.set(name, item);
+  });
+
+  nextItems.forEach((item) => {
+    const name = String(item?.name || item || "").trim();
+
+    if (!name) {
+      return;
+    }
+
+    zonesByName.set(name, item);
+  });
+
+  return Array.from(zonesByName.values());
+};
 
 const mergeUniqueVillageOptions = (
   currentItems = EMPTY_ARRAY,
@@ -156,7 +182,10 @@ const useProjectLocationFilters = ({
         setFilterState((currentState) => ({
           items: append
             ? isZoneFilter
-              ? mergeUniqueStrings(currentState.items, response?.items || EMPTY_ARRAY)
+              ? mergeUniqueZoneOptions(
+                  currentState.items,
+                  response?.items || EMPTY_ARRAY
+                )
               : mergeUniqueVillageOptions(
                   currentState.items,
                   response?.items || EMPTY_ARRAY
@@ -277,7 +306,11 @@ const useProjectLocationFilters = ({
     }
   }, [activeFilterType, loadFilterOptions, villageState, zoneState]);
 
-  const zones = useMemo(() => zoneState.items, [zoneState.items]);
+  const zoneOptions = useMemo(() => zoneState.items, [zoneState.items]);
+  const zones = useMemo(
+    () => zoneOptions.map((item) => item?.name).filter(Boolean),
+    [zoneOptions]
+  );
   const villageOptions = useMemo(() => villageState.items, [villageState.items]);
   const villages = useMemo(
     () => villageOptions.map((item) => item.name),
@@ -303,6 +336,7 @@ const useProjectLocationFilters = ({
     hasMoreFilterOptions: Boolean(currentFilterState.meta?.hasNextPage),
     prepareFilterOptions,
     loadMoreFilterOptions,
+    zoneOptions,
     zones,
     villages,
     villageOptions,

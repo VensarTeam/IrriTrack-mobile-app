@@ -4,7 +4,12 @@ import { buildChecklistSectionsFromMaster } from "../services/checklistMasterAda
 import { getCachedChecklistProcessMaster } from "../services/checklistOfflineSync";
 
 const getUnitSubChakQuantity = (unit = {}) => {
-  const match = `${unit?.subChakQuantity ?? ""}`.match(/\d+/);
+  const match = `${
+    unit?.subChakQuantity ??
+    unit?.subCheckQty ??
+    unit?.subChakQty ??
+    ""
+  }`.match(/\d+/);
   const parsedValue = Number.parseInt(match?.[0], 10);
 
   return Number.isFinite(parsedValue) && parsedValue > 0

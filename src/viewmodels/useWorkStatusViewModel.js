@@ -52,11 +52,15 @@ const normalizeStageLabel = (value = "") =>
 
 const getTabsForRole = (canReviewChecklist) =>
   canReviewChecklist
-    ? ["Requests", "Pending", "Verified", "Approved", "Commented"]
-    : ["Requests", "Pending", "Approved", "Commented"];
+    ? ["Submitted", "Pending", "Verified", "Approved", "Commented"]
+    : ["Submitted", "Pending", "Approved", "Commented"];
 
 const getRequestBucket = (item = {}) => {
   const normalizedStatus = String(item?.status || "").trim().toLowerCase();
+
+  if(normalizedStatus === "info"){
+    return "Info";
+  }
 
   if (item?.rejectedAt || item?.rejectionRemark) {
     return "Commented";
@@ -86,7 +90,7 @@ const getRequestBucket = (item = {}) => {
     return "Pending";
   }
 
-  return "Requests";
+  return "Submitted";
 };
 
 const matchesStageFilter = (item = {}, stageLabel = "All") => {
@@ -141,7 +145,7 @@ const createEmptyTabData = (tabs = []) =>
 
 const resolveCountByTab = ({ tab, counts, roleAccess }) => {
   switch (tab) {
-    case "Requests":
+    case "Submitted":
       return Number(counts?.total || 0);
     case "Pending":
       return Number(counts?.submitted || 0);
@@ -192,7 +196,7 @@ const getWorkflowStatusKey = (item = {}, override = "") => {
     return "submitted";
   }
 
-  return "requests";
+  return "submitted";
 };
 
 const useWorkStatusViewModel = (navigation, route) => {
@@ -476,6 +480,8 @@ const useWorkStatusViewModel = (navigation, route) => {
         id: item?.omsId || "",
         unitNo: displayOmsName,
         nodeName: displayOmsName,
+        subChakQuantity: item?.subCheckQty ?? null,
+        subCheckQty: item?.subCheckQty ?? null,
       };
       const processRoute = resolveProcessRoute(item);
 

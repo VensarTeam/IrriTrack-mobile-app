@@ -238,21 +238,28 @@ export default StyleSheet.create({
 
   cardEyebrow: {
     marginBottom: verticalScale(4),
-    fontSize: fontScale(10),
+    fontSize: fontScale(14),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
+    backgroundColor: "#EAF3FF",
+    alignSelf: "flex-start",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(999),
   },
 
   cardTitle: {
     fontSize: fontScale(14),
     color: colors.textDark,
     fontFamily: fonts.bold,
+    marginLeft: moderateScale(9), 
   },
 
   cardSubtitle: {
     marginTop: verticalScale(8),
-    fontSize: fontScale(10),
+    fontSize: fontScale(12),
     color: colors.textSecondary,
+    marginLeft: moderateScale(9),
     fontFamily: fonts.medium,
   },
 
@@ -266,7 +273,7 @@ export default StyleSheet.create({
   },
 
   subprocessHighlightText: {
-    fontSize: fontScale(10),
+    fontSize: fontScale(12),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
   },
@@ -282,7 +289,7 @@ export default StyleSheet.create({
   },
 
   statusPillText: {
-    fontSize: fontScale(9.5),
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
   },
 
@@ -293,19 +300,19 @@ export default StyleSheet.create({
   cardActionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     gap: moderateScale(8),
   },
 
   cardActionText: {
-    fontSize: fontScale(10),
+    fontSize: fontScale(12),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
   },
 
   cardRemarkText: {
     flex: 1,
-    fontSize: fontScale(10),
+    fontSize: fontScale(12),
     color: colors.danger,
     fontFamily: fonts.medium,
     lineHeight: fontScale(14),
