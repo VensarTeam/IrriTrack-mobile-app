@@ -164,12 +164,24 @@ const getWorkflowStatusKey = (item = {}, override = "") => {
   const normalizedOverride = String(override || "").trim().toLowerCase();
 
   if (normalizedOverride) {
-    return normalizedOverride === "rejected" ? "commented" : normalizedOverride;
+    if (normalizedOverride === "rejected") {
+      return "commented";
+    }
+
+    if (normalizedOverride === "info") {
+      return "info";
+    }
+
+    return normalizedOverride;
   }
 
   const normalizedStatus = String(item?.status || "")
     .trim()
     .toLowerCase();
+
+  if (normalizedStatus === "info") {
+    return "info";
+  }
 
   if (
     item?.rejectedAt ||

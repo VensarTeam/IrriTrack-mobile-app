@@ -127,12 +127,10 @@ export default StyleSheet.create({
   filterField: {
     flex: 1,
     minWidth: 0,
-    minHeight: verticalScale(52),
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: verticalScale(56),
     borderRadius: moderateScale(16),
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(7),
+    paddingVertical: verticalScale(9),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.filterPanelBorder,
@@ -149,6 +147,13 @@ export default StyleSheet.create({
 
   filterFieldDisabled: {
     opacity: 0.72,
+  },
+
+  filterFieldContent: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   filterIconWrap: {
@@ -175,7 +180,6 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.filterArrowSurface,
-    marginLeft: moderateScale(8),
   },
 
   filterFieldTextWrap: {
@@ -183,12 +187,11 @@ export default StyleSheet.create({
     marginLeft: moderateScale(9),
   },
 
-  filterFieldTitleRow: {
+  filterFieldHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: moderateScale(6),
-    flexWrap: "wrap",
-    marginBottom: verticalScale(1),
+    justifyContent: "space-between",
+    marginBottom: verticalScale(1.5),
   },
 
   filterFieldTitle: {
@@ -199,27 +202,32 @@ export default StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  filterCountBadge: {
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: verticalScale(1),
-    borderRadius: moderateScale(999),
-    backgroundColor: colors.filterIconActiveSurface,
-    alignSelf: "flex-start",
-  },
-
-  filterCountBadgeText: {
-    fontSize: fontScale(8.5),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
+  filterFieldValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   filterFieldValue: {
     fontSize: fontScale(12),
     color: colors.textDark,
     fontFamily: fonts.bold,
+    flex: 1,
   },
 
   filterFieldValueActive: {
+    color: colors.primaryBlue,
+  },
+
+  filterFieldCount: {
+    fontSize: fontScale(10),
+    color: "#666",
+    marginLeft: moderateScale(4),
+    marginRight: moderateScale(10),
+    fontFamily: fonts.medium,
+  },
+
+  filterFieldCountActive: {
     color: colors.primaryBlue,
   },
 
@@ -672,6 +680,7 @@ export default StyleSheet.create({
 
   highlightValueRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
 

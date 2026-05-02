@@ -46,8 +46,8 @@ const ProjectDetailsScreen = ({ route }) => {
     selectedStage,
     zone,
     village,
-    zoneTotalItems,
-    villageTotalItems,
+    zoneTotalOms,
+    villageTotalOms,
     filterType,
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,
@@ -281,10 +281,6 @@ const ProjectDetailsScreen = ({ route }) => {
     disabled,
     onPress,
   }) => {
-    const displayValue = Number.isFinite(totalCount)
-      ? `${value} (${totalCount})`
-      : value;
-
     return (
       <TouchableOpacity
         style={[
@@ -296,37 +292,61 @@ const ProjectDetailsScreen = ({ route }) => {
         activeOpacity={0.85}
         disabled={disabled}
       >
-        <View
-          style={[
-            styles.filterIconWrap,
-            active && styles.filterIconWrapActive,
-            disabled && styles.filterIconWrapDisabled,
-          ]}
-        >
-          {FilterIcon ? (
-            <FilterIcon width={filterIconSize} height={filterIconSize} />
-          ) : null}
-        </View>
-
-        <View style={styles.filterFieldTextWrap}>
-          <Text style={styles.filterFieldTitle}>{title}</Text>
-          <Text
+        <View style={styles.filterFieldContent}>
+          <View
             style={[
-              styles.filterFieldValue,
-              active && styles.filterFieldValueActive,
+              styles.filterIconWrap,
+              active && styles.filterIconWrapActive,
+              disabled && styles.filterIconWrapDisabled,
             ]}
-            numberOfLines={1}
           >
-            {displayValue}
-          </Text>
-        </View>
+            {FilterIcon ? (
+              <FilterIcon width={filterIconSize} height={filterIconSize} />
+            ) : null}
+          </View>
 
-        <View style={styles.filterArrowWrap}>
-          <Icon
-            source={disabled ? "lock-outline" : "chevron-down"}
-            size={filterArrowSize}
-            color={disabled ? colors.textSecondary : colors.primaryBlue}
-          />
+          <View style={styles.filterFieldTextWrap}>
+            <View style={styles.filterFieldHeaderRow}>
+              <Text style={styles.filterFieldTitle} numberOfLines={1}>
+                {title}
+              </Text>
+
+              <View style={styles.filterArrowWrap}>
+                {disabled ? (
+                  <Icon
+                    source="lock-outline"
+                    size={filterArrowSize}
+                    color={colors.textSecondary}
+                  />
+                ) : (
+                  <Icons.down width={filterArrowSize} height={filterArrowSize} />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.filterFieldValueRow}>
+              <Text
+                style={[
+                  styles.filterFieldValue,
+                  active && styles.filterFieldValueActive,
+                ]}
+                numberOfLines={1}
+              >
+                {value}
+              </Text>
+
+              {totalCount > 0 ? (
+                <Text
+                  style={[
+                    styles.filterFieldCount,
+                    active && styles.filterFieldCountActive,
+                  ]}
+                >
+                  ({totalCount})
+                </Text>
+              ) : null}
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -516,7 +536,7 @@ const ProjectDetailsScreen = ({ route }) => {
                     <FilterField
                       title="Zone"
                       value={zone}
-                      totalCount={zoneTotalItems}
+                      // totalCount={zoneTotalOms}
                       icon={Icons.zone}
                       active={zone !== "All"}
                       onPress={() => openLocationFilter("zone")}
@@ -525,7 +545,7 @@ const ProjectDetailsScreen = ({ route }) => {
                     <FilterField
                       title="Village"
                       value={village}
-                      totalCount={villageTotalItems}
+                      // totalCount={villageTotalOms}
                       icon={Icons.village}
                       active={village !== "All"}
                       onPress={() => openLocationFilter("village")}
@@ -556,181 +576,73 @@ const ProjectDetailsScreen = ({ route }) => {
               >
                 {kpiCards.map((item) => {
                   console.log("Rendering KPI card:", item);
-                  
+
                   return (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[
-                      styles.kpiCard,
-                      shouldUseOfflineKpiLayout && styles.kpiCardOffline,
-                      {
-                        backgroundColor: item.bg,
-                        borderColor: item.soft,
-                      },
-                    ]}
-                    onPress={() => openModuleList(item.key)}
-                    activeOpacity={canOpenModuleList(item.key) ? 0.85 : 1}
-                    disabled={!canOpenModuleList(item.key)}
-                  >
-                    <View
+                    <TouchableOpacity
+                      key={item.key}
                       style={[
-                        styles.kpiAccentBar,
-                        shouldUseOfflineKpiLayout && styles.kpiAccentBarOffline,
-                        { backgroundColor: item.accent },
+                        styles.kpiCard,
+                        shouldUseOfflineKpiLayout && styles.kpiCardOffline,
+                        {
+                          backgroundColor: item.bg,
+                          borderColor: item.soft,
+                        },
                       ]}
-                    />
-                    <View
-                      style={[
-                        styles.kpiContent,
-                        shouldUseOfflineKpiLayout && styles.kpiContentOffline,
-                      ]}
+                      onPress={() => openModuleList(item.key)}
+                      activeOpacity={canOpenModuleList(item.key) ? 0.85 : 1}
+                      disabled={!canOpenModuleList(item.key)}
                     >
                       <View
                         style={[
-                          styles.kpiHeaderRow,
-                          shouldUseOfflineKpiLayout &&
-                            styles.kpiHeaderRowOffline,
+                          styles.kpiAccentBar,
+                          shouldUseOfflineKpiLayout && styles.kpiAccentBarOffline,
+                          { backgroundColor: item.accent },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.kpiContent,
+                          shouldUseOfflineKpiLayout && styles.kpiContentOffline,
                         ]}
                       >
                         <View
                           style={[
-                            styles.kpiTextBlock,
+                            styles.kpiHeaderRow,
                             shouldUseOfflineKpiLayout &&
-                              styles.kpiTextBlockOffline,
+                            styles.kpiHeaderRowOffline,
                           ]}
                         >
-                          <Text style={[styles.kpiKey, { color: item.text }]}>
-                            {item.key}
-                          </Text>
-                          {shouldUseOfflineKpiLayout ? (
-                            <View style={styles.kpiOfflineValueRow}>
-                              <Text
-                                style={[
-                                  styles.kpiValue,
-                                  styles.kpiValueOffline,
-                                  styles.kpiValueOfflineFixedWidth,
-                                  { color: item.accent },
-                                ]}
-                              >
-                                {item.value}
-                              </Text>
-                              <TouchableOpacity
-                                style={[
-                                  styles.kpiInlineAction,
-                                  { borderColor: item.soft },
-                                ]}
-                                onPress={() =>
-                                  openStageStatusBoard({
-                                    moduleKey: item.key,
-                                    stageLabel: "All",
-                                  })
-                                }
-                                activeOpacity={0.86}
-                              >
-                                <Icons.work
-                                  height={16}
-                                  width={16}
-                                  color={item.accent}
-                                />
+                          <View
+                            style={[
+                              styles.kpiTextBlock,
+                              shouldUseOfflineKpiLayout &&
+                              styles.kpiTextBlockOffline,
+                            ]}
+                          >
+                            <Text style={[styles.kpiKey, { color: item.text }]}>
+                              {item.key}
+                            </Text>
+                            {shouldUseOfflineKpiLayout ? (
+                              <View style={styles.kpiOfflineValueRow}>
                                 <Text
                                   style={[
-                                    styles.kpiInlineActionText,
+                                    styles.kpiValue,
+                                    styles.kpiValueOffline,
+                                    styles.kpiValueOfflineFixedWidth,
                                     { color: item.accent },
                                   ]}
-                                  numberOfLines={1}
                                 >
-                                  Work Status
+                                  {item.value}
                                 </Text>
-                              </TouchableOpacity>
-                            </View>
-                          ) : null}
-                        </View>
-                        <View
-                          style={[
-                            styles.kpiArrowWrap,
-                            shouldUseOfflineKpiLayout &&
-                              styles.kpiArrowWrapOffline,
-                            { backgroundColor: item.chipBg },
-                          ]}
-                        >
-                          <Icon
-                            source="chevron-right"
-                            size={kpiArrowIconSize}
-                            color={item.accent}
-                          />
-                        </View>
-                      </View>
-                      {!shouldUseOfflineKpiLayout ? (
-                        <Text style={[styles.kpiValue, { color: item?.accent }]}>
-                          {item?.value}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-                )})}
-              </View>
-
-              {canViewProjectInsights
-                ? Object.keys(dataSet).map((key) => {
-                  console.log("Rendering section for module:", key);
-                    const moduleData = dataSet[key];
-                    const stages = moduleData?.stages || [];
-                    const moduleTheme = getModuleTheme(key);
-                    const stageTabs = [
-                      "All",
-                      ...stages.map((stage) => stage.label),
-                    ];
-                    const sectionHighlights = getSectionHighlights(moduleData);
-                    const pagerWidth = chartViewportWidth;
-                    const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
-                    if (!stages.length) return null;
-
-                    return (
-                      <View
-                        key={key}
-                        style={[
-                          styles.sectionCard,
-                          {
-                            borderColor: moduleTheme.soft,
-                            backgroundColor: moduleTheme.bg,
-                          },
-                        ]}
-                      >
-                        <TouchableOpacity
-                          style={[
-                            styles.sectionHeader,
-                            !isOnline && styles.sectionHeaderOffline,
-                            { backgroundColor: colors.white },
-                          ]}
-                          onPress={() => toggleSection(key)}
-                        >
-                          <View style={styles.sectionTitleWrap}>
-                            <View
-                              style={[
-                                styles.sectionAccent,
-                                !isOnline && styles.sectionAccentOffline,
-                                { backgroundColor: moduleTheme.accent },
-                              ]}
-                            />
-                            <View>
-                              <Text
-                                style={[
-                                  styles.sectionTitle,
-                                  { color: moduleTheme.text },
-                                ]}
-                              >
-                                {key} Status
-                              </Text>
-                            </View>
-                            <TouchableOpacity
+                                <TouchableOpacity
                                   style={[
-                                    styles.stageBoardButton,
-                                    { borderColor: moduleTheme.soft },
+                                    styles.kpiInlineAction,
+                                    { borderColor: item.soft },
                                   ]}
                                   onPress={() =>
                                     openStageStatusBoard({
-                                      moduleKey: key,
-                                      stageLabel: selectedStage,
+                                      moduleKey: item.key,
+                                      stageLabel: "All",
                                     })
                                   }
                                   activeOpacity={0.86}
@@ -738,317 +650,422 @@ const ProjectDetailsScreen = ({ route }) => {
                                   <Icons.work
                                     height={16}
                                     width={16}
-                                    // color={item.accent}
+                                    color={item.accent}
                                   />
                                   <Text
                                     style={[
-                                      styles.stageBoardButtonText,
-                                      { color: moduleTheme.accent },
+                                      styles.kpiInlineActionText,
+                                      { color: item.accent },
                                     ]}
+                                    numberOfLines={1}
                                   >
                                     Work Status
                                   </Text>
                                 </TouchableOpacity>
+                              </View>
+                            ) : null}
                           </View>
                           <View
                             style={[
-                              styles.sectionIconWrap,
-                              !isOnline && styles.sectionIconWrapOffline,
-                              { backgroundColor: moduleTheme.chipBg },
+                              styles.kpiArrowWrap,
+                              shouldUseOfflineKpiLayout &&
+                              styles.kpiArrowWrapOffline,
+                              { backgroundColor: item.chipBg },
                             ]}
                           >
-                            {!isOnline ? (
-                              <Icon
-                                source={
-                                  expanded === key
-                                    ? "chevron-up"
-                                    : "chevron-down"
-                                }
-                                size={sectionArrowIconSize}
-                                color={moduleTheme.text}
-                              />
-                            ) : expanded === key ? (
-                              <Icons.up
-                                width={sectionArrowIconSize}
-                                height={sectionArrowIconSize}
-                              />
-                            ) : (
-                              <Icons.down
-                                width={sectionArrowIconSize}
-                                height={sectionArrowIconSize}
-                              />
-                            )}
+                            <Icon
+                              source="chevron-right"
+                              size={kpiArrowIconSize}
+                              color={item.accent}
+                            />
                           </View>
-                        </TouchableOpacity>
+                        </View>
+                        {!shouldUseOfflineKpiLayout ? (
+                          <Text style={[styles.kpiValue, { color: item?.accent }]}>
+                            {item?.value}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
 
-                        <View style={styles.highlightGrid}>
-                          {sectionHighlights.map((item) => (
-                            <View
-                              key={item.key}
+              {canViewProjectInsights
+                ? Object.keys(dataSet).map((key) => {
+                  console.log("Rendering section for module:", key);
+                  const moduleData = dataSet[key];
+                  const stages = moduleData?.stages || [];
+                  const moduleTheme = getModuleTheme(key);
+                  const stageTabs = [
+                    "All",
+                    ...stages.map((stage) => stage.label),
+                  ];
+                  const sectionHighlights = getSectionHighlights(moduleData);
+                  const pagerWidth = chartViewportWidth;
+                  const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
+                  if (!stages.length) return null;
+
+                  return (
+                    <View
+                      key={key}
+                      style={[
+                        styles.sectionCard,
+                        {
+                          borderColor: moduleTheme.soft,
+                          backgroundColor: moduleTheme.bg,
+                        },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.sectionHeader,
+                          !isOnline && styles.sectionHeaderOffline,
+                          { backgroundColor: colors.white },
+                        ]}
+                        onPress={() => toggleSection(key)}
+                      >
+                        <View style={styles.sectionTitleWrap}>
+                          <View
+                            style={[
+                              styles.sectionAccent,
+                              !isOnline && styles.sectionAccentOffline,
+                              { backgroundColor: moduleTheme.accent },
+                            ]}
+                          />
+                          <View>
+                            <Text
                               style={[
-                                styles.highlightCard,
-                                {
-                                  borderColor: moduleTheme.soft,
-                                  backgroundColor: colors.white,
-                                },
+                                styles.sectionTitle,
+                                { color: moduleTheme.text },
                               ]}
                             >
-                              <Text style={styles.highlightLabel}>
-                                {item.label}
+                              {key} Status
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[
+                              styles.stageBoardButton,
+                              { borderColor: moduleTheme.soft },
+                            ]}
+                            onPress={() =>
+                              openStageStatusBoard({
+                                moduleKey: key,
+                                stageLabel: selectedStage,
+                              })
+                            }
+                            activeOpacity={0.86}
+                          >
+                            <Icons.work
+                              height={16}
+                              width={16}
+                            // color={item.accent}
+                            />
+                            <Text
+                              style={[
+                                styles.stageBoardButtonText,
+                                { color: moduleTheme.accent },
+                              ]}
+                            >
+                              Work Status
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View
+                          style={[
+                            styles.sectionIconWrap,
+                            !isOnline && styles.sectionIconWrapOffline,
+                            { backgroundColor: moduleTheme.chipBg },
+                          ]}
+                        >
+                          {!isOnline ? (
+                            <Icon
+                              source={
+                                expanded === key
+                                  ? "chevron-up"
+                                  : "chevron-down"
+                              }
+                              size={sectionArrowIconSize}
+                              color={moduleTheme.text}
+                            />
+                          ) : expanded === key ? (
+                            <Icons.up
+                              width={sectionArrowIconSize}
+                              height={sectionArrowIconSize}
+                            />
+                          ) : (
+                            <Icons.down
+                              width={sectionArrowIconSize}
+                              height={sectionArrowIconSize}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={styles.highlightGrid}>
+                        {sectionHighlights.map((item) => (
+                          <View
+                            key={item.key}
+                            style={[
+                              styles.highlightCard,
+                              {
+                                borderColor: moduleTheme.soft,
+                                backgroundColor: colors.white,
+                              },
+                            ]}
+                          >
+
+                            <View style={styles.highlightValueRow}>
+                              
+                                <Text style={styles.highlightLabel}>
+                                  {item.label}
+                                </Text>
+                              <Text
+                                style={[
+                                  styles.highlightValue,
+                                  { color: moduleTheme.text },
+                                ]}
+                              >
+                                {item.value}
                               </Text>
-                              <View style={styles.highlightValueRow}>
-                                <View
-                                  style={[
-                                    styles.highlightDot,
-                                    { backgroundColor: item.color },
-                                  ]}
-                                />
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+
+                      {expanded === key && (
+                        <>
+                          <View
+                            style={[
+                              styles.stageTabShell,
+                              { borderColor: moduleTheme.soft },
+                            ]}
+                          >
+                            <View style={styles.stageTabHeader}>
+                              <View>
                                 <Text
                                   style={[
-                                    styles.highlightValue,
+                                    styles.stageTabHeading,
                                     { color: moduleTheme.text },
                                   ]}
                                 >
-                                  {item.value}
+                                  Select Tabs
+                                </Text>
+                                <Text style={styles.stageTabCaption}>
+                                  Swipe for details
                                 </Text>
                               </View>
                             </View>
-                          ))}
-                        </View>
-
-                        {expanded === key && (
-                          <>
-                            <View
-                              style={[
-                                styles.stageTabShell,
-                                { borderColor: moduleTheme.soft },
-                              ]}
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              style={styles.stageTabContainer}
+                              contentContainerStyle={styles.stageTabContent}
                             >
-                              <View style={styles.stageTabHeader}>
-                                <View>
+                              {stageTabs.map((item, index) => (
+                                <TouchableOpacity
+                                  key={item}
+                                  onPress={() => {
+                                    setSelectedStage(item);
+                                    stagePagerRef.current?.scrollTo({
+                                      x: index * pagerWidth,
+                                      animated: true,
+                                    });
+                                  }}
+                                  style={[
+                                    styles.stageTab,
+                                    selectedStage === item &&
+                                    styles.stageTabActive,
+                                    {
+                                      borderColor:
+                                        selectedStage === item
+                                          ? moduleTheme.accent
+                                          : moduleTheme.soft,
+                                      backgroundColor:
+                                        selectedStage === item
+                                          ? moduleTheme.accent
+                                          : colors.white,
+                                    },
+                                  ]}
+                                >
                                   <Text
                                     style={[
-                                      styles.stageTabHeading,
-                                      { color: moduleTheme.text },
-                                    ]}
-                                  >
-                                    Select Tabs
-                                  </Text>
-                                  <Text style={styles.stageTabCaption}>
-                                    Swipe for details
-                                  </Text>
-                                </View>
-                              </View>
-                              <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                style={styles.stageTabContainer}
-                                contentContainerStyle={styles.stageTabContent}
-                              >
-                                {stageTabs.map((item, index) => (
-                                  <TouchableOpacity
-                                    key={item}
-                                    onPress={() => {
-                                      setSelectedStage(item);
-                                      stagePagerRef.current?.scrollTo({
-                                        x: index * pagerWidth,
-                                        animated: true,
-                                      });
-                                    }}
-                                    style={[
-                                      styles.stageTab,
+                                      styles.stageTabText,
+                                      {
+                                        color:
+                                          selectedStage === item
+                                            ? colors.white
+                                            : moduleTheme.text,
+                                      },
                                       selectedStage === item &&
-                                        styles.stageTabActive,
-                                      {
-                                        borderColor:
-                                          selectedStage === item
-                                            ? moduleTheme.accent
-                                            : moduleTheme.soft,
-                                        backgroundColor:
-                                          selectedStage === item
-                                            ? moduleTheme.accent
-                                            : colors.white,
-                                      },
+                                      styles.stageTabTextActive,
                                     ]}
+                                    numberOfLines={2}
                                   >
-                                    <Text
-                                      style={[
-                                        styles.stageTabText,
-                                        {
-                                          color:
-                                            selectedStage === item
-                                              ? colors.white
-                                              : moduleTheme.text,
-                                        },
-                                        selectedStage === item &&
-                                          styles.stageTabTextActive,
-                                      ]}
-                                      numberOfLines={2}
-                                    >
-                                      {formatStageTabLabel(item)}
-                                    </Text>
-                                  </TouchableOpacity>
-                                ))}
-                              </ScrollView>
-                            </View>
+                                    {formatStageTabLabel(item)}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
 
-                            <View
-                              style={styles.chartCard}
-                              onLayout={(event) => {
-                                const nextWidth =
-                                  event.nativeEvent.layout.width;
-                                if (
-                                  nextWidth > 0 &&
-                                  Math.abs(nextWidth - chartViewportWidth) > 1
-                                ) {
-                                  setChartViewportWidth(nextWidth);
-                                }
-                              }}
-                            >
-                              <Animated.View style={chartAnimatedStyle}>
-                                <Animated.ScrollView
-                                  ref={stagePagerRef}
-                                  horizontal
-                                  pagingEnabled
-                                  showsHorizontalScrollIndicator={false}
-                                  decelerationRate="fast"
-                                  scrollEventThrottle={16}
-                                  onScroll={Animated.event(
-                                    [
-                                      {
-                                        nativeEvent: {
-                                          contentOffset: { x: chartScrollX },
-                                        },
+                          <View
+                            style={styles.chartCard}
+                            onLayout={(event) => {
+                              const nextWidth =
+                                event.nativeEvent.layout.width;
+                              if (
+                                nextWidth > 0 &&
+                                Math.abs(nextWidth - chartViewportWidth) > 1
+                              ) {
+                                setChartViewportWidth(nextWidth);
+                              }
+                            }}
+                          >
+                            <Animated.View style={chartAnimatedStyle}>
+                              <Animated.ScrollView
+                                ref={stagePagerRef}
+                                horizontal
+                                pagingEnabled
+                                showsHorizontalScrollIndicator={false}
+                                decelerationRate="fast"
+                                scrollEventThrottle={16}
+                                onScroll={Animated.event(
+                                  [
+                                    {
+                                      nativeEvent: {
+                                        contentOffset: { x: chartScrollX },
                                       },
-                                    ],
-                                    { useNativeDriver: true },
-                                  )}
-                                  onMomentumScrollEnd={(event) => {
-                                    const pageIndex = Math.round(
-                                      event.nativeEvent.contentOffset.x /
-                                        pagerWidth,
-                                    );
-                                    const currentStage =
-                                      stageTabs[pageIndex] || "All";
-                                    if (currentStage !== selectedStage) {
-                                      setSelectedStage(currentStage);
-                                    }
-                                  }}
-                                >
-                                  {stageTabs.map((stageLabel, index) => {
-                                    const summary = getStageSummary(
-                                      stages,
-                                      stageLabel,
-                                    );
-                                    const {
-                                      cardStyle,
-                                      pieStyle,
-                                      summaryStyle,
-                                    } = getSwipeAnimatedStyles(
-                                      index,
-                                      pagerWidth,
-                                      isCompactChart,
-                                    );
+                                    },
+                                  ],
+                                  { useNativeDriver: true },
+                                )}
+                                onMomentumScrollEnd={(event) => {
+                                  const pageIndex = Math.round(
+                                    event.nativeEvent.contentOffset.x /
+                                    pagerWidth,
+                                  );
+                                  const currentStage =
+                                    stageTabs[pageIndex] || "All";
+                                  if (currentStage !== selectedStage) {
+                                    setSelectedStage(currentStage);
+                                  }
+                                }}
+                              >
+                                {stageTabs.map((stageLabel, index) => {
+                                  const summary = getStageSummary(
+                                    stages,
+                                    stageLabel,
+                                  );
+                                  const {
+                                    cardStyle,
+                                    pieStyle,
+                                    summaryStyle,
+                                  } = getSwipeAnimatedStyles(
+                                    index,
+                                    pagerWidth,
+                                    isCompactChart,
+                                  );
 
-                                    return (
-                                      <View
-                                        key={stageLabel}
+                                  return (
+                                    <View
+                                      key={stageLabel}
+                                      style={[
+                                        styles.chartSlide,
+                                        { width: pagerWidth },
+                                      ]}
+                                    >
+                                      <Animated.View
                                         style={[
-                                          styles.chartSlide,
-                                          { width: pagerWidth },
+                                          styles.chartSummaryCard,
+                                          { borderColor: moduleTheme.soft },
+                                          cardStyle,
                                         ]}
                                       >
-                                        <Animated.View
-                                          style={[
-                                            styles.chartSummaryCard,
-                                            { borderColor: moduleTheme.soft },
-                                            cardStyle,
-                                          ]}
+                                        <View
+                                          style={styles.chartSummaryHeader}
                                         >
-                                          <View
-                                            style={styles.chartSummaryHeader}
+                                          <Text
+                                            style={styles.chartSummaryTitle}
                                           >
-                                            <Text
-                                              style={styles.chartSummaryTitle}
-                                            >
-                                              {formatStageTabLabel(
-                                                summary.label,
-                                              )}
-                                            </Text>
-                                            <Text
-                                              style={[
-                                                styles.chartSummaryPercent,
-                                                { color: moduleTheme.accent },
-                                              ]}
-                                            >
-                                              {summary.percent}% Complete
-                                            </Text>
-                                          </View>
-
-                                          <View
+                                            {formatStageTabLabel(
+                                              summary.label,
+                                            )}
+                                          </Text>
+                                          <Text
                                             style={[
-                                              styles.chartSummaryBody,
-                                              isCompactChart &&
-                                                styles.chartSummaryBodyCompact,
+                                              styles.chartSummaryPercent,
+                                              { color: moduleTheme.accent },
                                             ]}
                                           >
-                                            <Animated.View style={pieStyle}>
-                                              {renderPieChart(
-                                                stages,
-                                                stageLabel,
-                                                isCompactChart,
-                                              )}
-                                            </Animated.View>
+                                            {summary.percent}% Complete
+                                          </Text>
+                                        </View>
 
-                                            <Animated.View
-                                              style={[
-                                                styles.summaryList,
-                                                isCompactChart &&
-                                                  styles.summaryListCompact,
-                                                summaryStyle,
-                                              ]}
-                                            >
-                                              <SummaryItem
-                                                label="Completed"
-                                                value={formatSummaryValue(
-                                                  summary,
-                                                  "completed",
-                                                )}
-                                                color={colors.completed}
-                                                compact={isCompactChart}
-                                              />
-                                              <SummaryItem
-                                                label="Pending"
-                                                value={formatSummaryValue(
-                                                  summary,
-                                                  "pending",
-                                                )}
-                                                color={colors.pending}
-                                                compact={isCompactChart}
-                                              />
-                                              <SummaryItem
-                                                label="Partial"
-                                                value={formatSummaryValue(
-                                                  summary,
-                                                  "partial",
-                                                )}
-                                                color={colors.partial}
-                                                compact={isCompactChart}
-                                              />
-                                            </Animated.View>
-                                          </View>
-                                        </Animated.View>
-                                      </View>
-                                    );
-                                  })}
-                                </Animated.ScrollView>
-                              </Animated.View>
-                            </View>
-                          </>
-                        )}
-                      </View>
-                    );
-                  })
+                                        <View
+                                          style={[
+                                            styles.chartSummaryBody,
+                                            isCompactChart &&
+                                            styles.chartSummaryBodyCompact,
+                                          ]}
+                                        >
+                                          <Animated.View style={pieStyle}>
+                                            {renderPieChart(
+                                              stages,
+                                              stageLabel,
+                                              isCompactChart,
+                                            )}
+                                          </Animated.View>
+
+                                          <Animated.View
+                                            style={[
+                                              styles.summaryList,
+                                              isCompactChart &&
+                                              styles.summaryListCompact,
+                                              summaryStyle,
+                                            ]}
+                                          >
+                                            <SummaryItem
+                                              label="Completed"
+                                              value={formatSummaryValue(
+                                                summary,
+                                                "completed",
+                                              )}
+                                              color={colors.completed}
+                                              compact={isCompactChart}
+                                            />
+                                            <SummaryItem
+                                              label="Pending"
+                                              value={formatSummaryValue(
+                                                summary,
+                                                "pending",
+                                              )}
+                                              color={colors.pending}
+                                              compact={isCompactChart}
+                                            />
+                                            <SummaryItem
+                                              label="Partial"
+                                              value={formatSummaryValue(
+                                                summary,
+                                                "partial",
+                                              )}
+                                              color={colors.partial}
+                                              compact={isCompactChart}
+                                            />
+                                          </Animated.View>
+                                        </View>
+                                      </Animated.View>
+                                    </View>
+                                  );
+                                })}
+                              </Animated.ScrollView>
+                            </Animated.View>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  );
+                })
                 : null}
             </>
           )}
@@ -1075,9 +1092,8 @@ const ProjectDetailsScreen = ({ route }) => {
           onEndReached={loadMoreFilterOptions}
           searchQuery={locationFilterSearchQuery}
           onSearchQueryChange={setLocationFilterSearchQuery}
-          searchPlaceholder={`Search ${
-            filterType === "zone" ? "zone" : "village"
-          }`}
+          searchPlaceholder={`Search ${filterType === "zone" ? "zone" : "village"
+            }`}
           emptyMessage={`No ${filterType === "zone" ? "zones" : "villages"} found.`}
         />
       ) : null}

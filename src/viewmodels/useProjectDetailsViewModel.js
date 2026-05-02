@@ -24,6 +24,21 @@ const getProjectHeaderTitle = (projectDetails, fallbackProject, routeProjectName
   fallbackProject?.name ||
   "Project Details";
 
+const normalizeStageLabel = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
+
+const getStageCompletedCount = (stages = [], labels = []) => {
+  const normalizedLabels = labels.map((label) => normalizeStageLabel(label));
+  const matchedStage = stages.find((stage) =>
+    normalizedLabels.includes(normalizeStageLabel(stage?.label))
+  );
+
+  return Number(matchedStage?.completed || 0);
+};
+
 const useProjectDetailsViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const project = route?.params?.project || null;
@@ -58,8 +73,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
     villages,
     villageOptions,
     filterTotalItems,
-    zoneTotalItems,
-    villageTotalItems,
+    zoneTotalOms,
+    villageTotalOms,
   } = useProjectLocationFilters({
     projectId,
     zoneName: zone,
@@ -355,32 +370,58 @@ const useProjectDetailsViewModel = (navigation, route) => {
     return { data, percent: summary.percent };
   };
 
-  const getSectionHighlights = (moduleData = {}) => [
-    {
-      key: "installed",
-      label: "Installed",
-      value: moduleData.installed || 0,
-      color: colors.completed,
-    },
-    {
-      key: "installation-balance",
-      label: "Installation Balance",
-      value: moduleData.installationBalance || 0,
-      color: colors.pending,
-    },
-    {
-      key: "commissioned",
-      label: "Commissioned",
-      value: moduleData.commissioned || 0,
-      color: colors.completed,
-    },
-    {
-      key: "commissioning-balance",
-      label: "Commissioning Balance",
-      value: moduleData.commissioningBalance || 0,
-      color: colors.pending,
-    },
-  ];
+  const getSectionHighlights = (moduleData = {}) => {
+    const stages = Array.isArray(moduleData?.stages) ? moduleData.stages : [];
+
+    return [
+      {
+        key: "installation",
+        label: "Installation",
+        value: getStageCompletedCount(stages, [
+          "Pedestal and Enclosure Installation",
+          "Padestal and Inclosure Inst.",
+        ]),
+        color: colors.completed,
+      },
+      {
+        key: "mechanical",
+        label: "Mechanical",
+        value: getStageCompletedCount(stages, [
+          "Mechanical Accessories Installation",
+          "Mechanical Accessories Inst.",
+        ]),
+        color: colors.pending,
+      },
+      {
+        key: "flushing",
+        label: "Flushing",
+        value: getStageCompletedCount(stages, [
+          "Flushing",
+          "Pipe flushing",
+        ]),
+        color: colors.primaryBlue,
+      },
+      {
+        key: "automation",
+        label: "Automation",
+        value: getStageCompletedCount(stages, [
+          "Automation Installation",
+          "Automation Inst.",
+          "Controller Installation",
+        ]),
+        color: colors.partial,
+      },
+      {
+        key: "commissioning",
+        label: "Commissioning",
+        value: getStageCompletedCount(stages, [
+          "Wet Commissioning",
+          "Wet commissioning",
+        ]),
+        color: colors.completed,
+      },
+    ];
+  };
 
   const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => {
     const apiTotalUnits = dataSet[moduleKey]?.totalUnits || 0;
@@ -467,8 +508,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
     zones,
     villages,
     filterTotalItems,
-    zoneTotalItems,
-    villageTotalItems,
+    zoneTotalOms,
+    villageTotalOms,
     filterType,
     isFilterOptionsLoading,
     isFetchingMoreFilterOptions,

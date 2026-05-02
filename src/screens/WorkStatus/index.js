@@ -796,7 +796,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     <View style={styles.workflowSection}>
                       <Text style={styles.sectionBlockTitle}>Workflow</Text>
                       <Text style={styles.reviewActionSubtitle}>
-                        {selectedWorkflowStatusKey === "commented"
+                        {selectedWorkflowStatusKey === "info"
+                          ? "This subprocess is in info status, so review actions are not available."
+                          : selectedWorkflowStatusKey === "commented"
                           ? "This subprocess was commented and is waiting for field rectification."
                           : selectedWorkflowStatusKey === "approved"
                             ? "This subprocess is already approved."
@@ -857,7 +859,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       ) : (
                         <View style={styles.workflowStateNotice}>
                           <Text style={styles.workflowStateNoticeText}>
-                            {selectedWorkflowStatusKey === "approved" ? "Approved"
+                            {selectedWorkflowStatusKey === "info" ? "Info"
+                              : selectedWorkflowStatusKey === "approved" ? "Approved"
                               : selectedWorkflowStatusKey === "verified" ? "Verified"
                                 : "View only"}
                           </Text>
