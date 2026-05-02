@@ -333,19 +333,19 @@ const getInitialFormValues = (section, unit) => {
 };
 
 const SUBMITTED_STATUS_KEYS = new Set([
+  "submitted",
   "partial",
   "completed",
   "approved",
   "updated",
-  "info",
 ]);
 
 const SERVER_PREFILL_STATUS_KEYS = new Set([
+  "submitted",
   "partial",
   "completed",
   "approved",
   "updated",
-  "info",
 ]);
 
 const RECTIFICATION_PHOTO_REQUIREMENT = {
@@ -666,7 +666,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const activeValues =
     formValues[activeSubOption.id] ||
     getInitialFormValues({ subOptions: [activeSubOption] }, checklistSectionUnit)[
-      activeSubOption.id
+    activeSubOption.id
     ];
   const activeErrors = fieldErrors[activeSubOption.id] || {};
   const unitLabel = unit?.unitNo || `${module}-001`;
@@ -700,9 +700,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   ).map((field) =>
     isContractorSelectField(field) && contractorOptions.length
       ? {
-          ...field,
-          options: contractorOptions,
-        }
+        ...field,
+        options: contractorOptions,
+      }
       : field
   );
   const inputFields = (activeSubOption.inputFields || []).filter((field) =>
@@ -766,12 +766,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           return;
         }
 
-          const snapshot = await getLatestChecklistSubmissionSnapshot({
-            unitId: unit?.id || route?.params?.unitId || "",
-            processId,
-            subprocessId,
-            ownerUserId,
-          });
+        const snapshot = await getLatestChecklistSubmissionSnapshot({
+          unitId: unit?.id || route?.params?.unitId || "",
+          processId,
+          subprocessId,
+          ownerUserId,
+        });
 
         if (snapshot) {
           nextSnapshots[subOption.id] = snapshot;
@@ -824,9 +824,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           : subprocessStatusKey || processStatusKey;
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
-            SUBMITTED_STATUS_KEYS.has(serverStatusKey)
+          SUBMITTED_STATUS_KEYS.has(serverStatusKey)
         );
-        const submittedFromLocal = !isCommented && Boolean(localSnapshot?.payload);
+        const submittedFromLocal = !isCommented && localSnapshot?.status === "synced";
 
         acc[subOption.id] = {
           processStatusKey,
@@ -860,7 +860,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const readOnlyTitle = isRoleReadOnly ? "View Only" : "Already Submitted";
   const readOnlyNotice = isRoleReadOnly
     ? roleAccess.checklistReadOnlyNotice ||
-      "This role can review checklist data but cannot edit it."
+    "This role can review checklist data but cannot edit it."
     : submittedFromServer
       ? "Already submitted from server data."
       : submittedFromLocal
@@ -1003,8 +1003,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         );
         const coordinates = parseCoordinateValue(
           locationChecklist?.detail?.rawValue ??
-            locationChecklist?.detail?.value ??
-            locationChecklist?.rawChecklist?.value
+          locationChecklist?.detail?.value ??
+          locationChecklist?.rawChecklist?.value
         );
 
         if (coordinates) {
@@ -1031,8 +1031,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const items = parseRepeatableGroupItems(
           group,
           checklist?.detail?.rawValue ??
-            checklist?.detail?.value ??
-            checklist?.rawChecklist?.value
+          checklist?.detail?.value ??
+          checklist?.rawChecklist?.value
         );
 
         if (items.length) {
@@ -2075,19 +2075,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           valueType: "file",
           file: media
             ? {
-                file_name: media.name,
-                file_path: media.filePath || media.uri,
-                local_uri: media.uri,
-                source: media.source,
-                mime_type: media.type,
-                size_kb: media.sizeKb,
-                width: media.width,
-                height: media.height,
-                media_type: media.mediaType,
-                taken_at: media.takenAt,
-                latitude: media.latitude,
-                longitude: media.longitude,
-              }
+              file_name: media.name,
+              file_path: media.filePath || media.uri,
+              local_uri: media.uri,
+              source: media.source,
+              mime_type: media.type,
+              size_kb: media.sizeKb,
+              width: media.width,
+              height: media.height,
+              media_type: media.mediaType,
+              taken_at: media.takenAt,
+              latitude: media.latitude,
+              longitude: media.longitude,
+            }
             : null,
         })
       );
@@ -2347,9 +2347,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         isCommentedForEdit ? "[ChecklistResubmit]" : "[ChecklistDraft]",
         isCommentedForEdit ? "Resubmit failed" : "Local save failed",
         {
-        message: error?.message,
-        code: error?.code,
-        status: error?.status,
+          message: error?.message,
+          code: error?.code,
+          status: error?.status,
         }
       );
       showAppAlert({

@@ -68,14 +68,14 @@ const getSubOptionId = (subprocess, index) =>
 const getDropdownOptions = (checklist = {}) => {
   const apiOptions = Array.isArray(checklist.options)
     ? checklist.options
-        .map((option) => {
-          if (option && typeof option === "object") {
-            return String(option.label ?? option.value ?? "").trim();
-          }
+      .map((option) => {
+        if (option && typeof option === "object") {
+          return String(option.label ?? option.value ?? "").trim();
+        }
 
-          return String(option || "").trim();
-        })
-        .filter(Boolean)
+        return String(option || "").trim();
+      })
+      .filter(Boolean)
     : [];
 
   if (apiOptions.length) {
@@ -127,7 +127,7 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
           label: "Outlet ID",
           placeholder: "O1",
           readOnly: true,
-          getDefaultValue: ({ itemIndex }) => `O${itemIndex + 1}`,
+          getDefaultValue: ({ itemIndex }) => `SC${itemIndex + 1}`,
         },
         {
           key: "pipeSize",
