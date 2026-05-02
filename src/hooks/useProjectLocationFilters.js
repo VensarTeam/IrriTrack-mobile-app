@@ -11,6 +11,7 @@ const DEFAULT_META = {
   page: 1,
   limit: FILTER_PAGE_LIMIT,
   totalItems: 0,
+  totalOms: 0,
   totalPages: 0,
   hasNextPage: false,
   hasPreviousPage: false,
@@ -343,8 +344,14 @@ const useProjectLocationFilters = ({
     filterTotalItems: currentFilterState.hasLoaded
       ? Number(currentFilterState.meta?.totalItems || 0)
       : null,
+    zoneTotalOms: zoneState.hasLoaded
+      ? Number(zoneState.meta?.totalOms || 0)
+      : null,
     zoneTotalItems: zoneState.hasLoaded
       ? Number(zoneState.meta?.totalItems || 0)
+      : null,
+    villageTotalOms: villageState.hasLoaded
+      ? Number(villageState.meta?.totalOms || 0)
       : null,
     villageTotalItems: villageState.hasLoaded
       ? Number(villageState.meta?.totalItems || 0)

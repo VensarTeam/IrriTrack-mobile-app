@@ -170,4 +170,8 @@ export default StyleSheet.create({
     fontSize: typography.small,
     fontFamily: fonts.medium,
   },
+   logo1: {
+    width: moderateScale(132),
+    height: moderateScale(46),
+  },
 });

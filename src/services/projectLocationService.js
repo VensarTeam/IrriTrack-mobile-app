@@ -41,10 +41,15 @@ const normalizeZoneOptions = (items = []) => {
       return;
     }
 
+    const totalOms = Number(
+      item?.totalOms ?? item?.omsQty ?? item?.omsqty ?? item?.noOfOms ?? 0
+    );
+
     zonesByKey.set(name, {
       id,
       name,
-      omsQty: Number(item?.omsQty ?? item?.omsqty ?? item?.noOfOms ?? 0),
+      totalOms,
+      omsQty: totalOms,
     });
   });
 
@@ -64,10 +69,13 @@ const normalizeVillageOptions = (items = []) => {
       return;
     }
 
+    const totalOms = Number(item?.totalOms ?? item?.noOfOms ?? item?.omsQty ?? 0);
+
     villagesById.set(id, {
       id,
       name,
-      noOfOms: Number(item?.noOfOms ?? item?.omsQty ?? 0),
+      totalOms,
+      noOfOms: totalOms,
       zoneNames: Array.isArray(item?.zoneNames) ? item.zoneNames : [],
     });
   });

@@ -1011,6 +1011,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   : isReadOnly
                     ? readOnlyTitle === "Already Submitted"
                       ? "Submitted"
+                      : readOnlyTitle === "Already Updated"
+                        ? "Updated"
+                        : readOnlyTitle === "Info Status"
+                          ? "Info"
                       : "Locked"
                     : "Submit"}
             </Button>

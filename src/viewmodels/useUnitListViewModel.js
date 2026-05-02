@@ -216,7 +216,9 @@ const useUnitListViewModel = (navigation, route) => {
     villages: onlineVillages,
     villageOptions,
     filterTotalItems,
+    zoneTotalOms,
     zoneTotalItems,
+    villageTotalOms,
     villageTotalItems,
   } = useProjectLocationFilters({
     projectId,
@@ -266,21 +268,25 @@ const useUnitListViewModel = (navigation, route) => {
 
   const zoneDisplayCount = useMemo(() => {
     if (zone === "All") {
-      return zoneTotalItems;
+      return zoneTotalOms;
     }
 
     const matchedZone = zoneOptions.find((item) => item?.name === zone);
-    return Number(matchedZone?.omsQty ?? zoneTotalItems ?? 0);
-  }, [zone, zoneOptions, zoneTotalItems]);
+    return Number(
+      matchedZone?.totalOms ?? matchedZone?.omsQty ?? zoneTotalOms ?? 0
+    );
+  }, [zone, zoneOptions, zoneTotalOms]);
 
   const villageDisplayCount = useMemo(() => {
     if (village === "All") {
-      return villageTotalItems;
+      return villageTotalOms;
     }
 
     const matchedVillage = villageOptions.find((item) => item?.name === village);
-    return Number(matchedVillage?.noOfOms ?? villageTotalItems ?? 0);
-  }, [village, villageOptions, villageTotalItems]);
+    return Number(
+      matchedVillage?.totalOms ?? matchedVillage?.noOfOms ?? villageTotalOms ?? 0
+    );
+  }, [village, villageOptions, villageTotalOms]);
 
   useEffect(() => {
     if (!canUseLocationFilters) {

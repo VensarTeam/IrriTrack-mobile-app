@@ -337,6 +337,7 @@ const SUBMITTED_STATUS_KEYS = new Set([
   "completed",
   "approved",
   "updated",
+  "info",
 ]);
 
 const SERVER_PREFILL_STATUS_KEYS = new Set([
@@ -344,6 +345,7 @@ const SERVER_PREFILL_STATUS_KEYS = new Set([
   "completed",
   "approved",
   "updated",
+  "info",
 ]);
 
 const RECTIFICATION_PHOTO_REQUIREMENT = {

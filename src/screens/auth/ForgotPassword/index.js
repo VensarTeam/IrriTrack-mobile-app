@@ -254,7 +254,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
-        <BrandText style={styles.systemText} />
+        <Image
+          source={require("../../../assets/images/IrriTrack-Logo.png")}
+          style={styles.logo1}
+          resizeMode="contain"
+        />
+        {/* <BrandText style={styles.systemText} /> */}
       </View>
 
       <View style={styles.sheet}>

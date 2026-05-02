@@ -4,6 +4,7 @@ const STATUS_KEY_BY_CODE = {
   2: "completed",
   3: "commented",
   4: "approved",
+  5: "info",
 };
 
 const STATUS_LABEL_BY_KEY = {
@@ -15,6 +16,7 @@ const STATUS_LABEL_BY_KEY = {
   commented: "Commented",
   approved: "Approved",
   updated: "Updated",
+  info: "Info",
 };
 
 const DETAIL_VALUE_KEYS = [
@@ -122,6 +124,7 @@ export const normalizeUnitProgressStatus = ({
       commented: "commented",
       approved: "approved",
       updated: "updated",
+      info: "info",
     }[normalizedLabel] ||
     STATUS_KEY_BY_CODE[normalizedStatus] ||
     "pending";

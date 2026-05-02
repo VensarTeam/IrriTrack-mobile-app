@@ -33,10 +33,13 @@ export default StyleSheet.create({
   },
 
   logo: {
-    width: moderateScale(142),
-    height: moderateScale(56),
+    width: moderateScale(162),
+    height: moderateScale(76),
   },
-
+  logo1: {
+    width: moderateScale(132),
+    height: moderateScale(46),
+  },
   systemText: {
     color: colors.navyFresh,
     fontSize: moderateScale(32),
