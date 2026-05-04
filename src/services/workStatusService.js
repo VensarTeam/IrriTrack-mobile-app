@@ -1,4 +1,8 @@
 import { apiRequest } from "./apiClient";
+import {
+  getCachedOmsWorkStatus,
+  saveCachedOmsWorkStatus,
+} from "./workStatusOfflineStore";
 
 const WORK_STATUS_API_PATHS = ["/api/v1/oms/request-status", "/oms/request-status"];
 const SUBMISSION_HISTORY_API_PATHS = [
@@ -16,6 +20,11 @@ const createEmptyWorkStatusResponse = () => ({
   },
   items: [],
 });
+
+const shouldFallbackToCachedWorkStatus = (error) =>
+  error?.code === "NETWORK_ERROR" ||
+  error?.status === 0 ||
+  error?.message === "Network Error";
 
 const normalizeWorkStatusResponse = (response) => {
   const payload =
@@ -81,6 +90,7 @@ export const fetchOmsWorkStatus = async ({
   projectId,
   status = "",
   search = "",
+  ownerUserId = "",
 } = {}) => {
   if (!projectId) {
     return createEmptyWorkStatusResponse();
@@ -98,8 +108,33 @@ export const fetchOmsWorkStatus = async ({
     params.search = String(search).trim();
   }
 
-  const response = await fetchWithFallbackPaths({ params });
-  return normalizeWorkStatusResponse(response);
+  try {
+    const response = normalizeWorkStatusResponse(
+      await fetchWithFallbackPaths({ params })
+    );
+
+    if (!String(search || "").trim()) {
+      await saveCachedOmsWorkStatus({
+        ownerUserId,
+        projectId,
+        status,
+        response,
+      });
+    }
+
+    return response;
+  } catch (error) {
+    if (!shouldFallbackToCachedWorkStatus(error)) {
+      throw error;
+    }
+
+    return getCachedOmsWorkStatus({
+      ownerUserId,
+      projectId,
+      status,
+      search,
+    });
+  }
 };
 
 export const fetchOmsSubmissionHistory = async (submissionId = "") => {

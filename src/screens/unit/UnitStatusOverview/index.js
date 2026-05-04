@@ -15,6 +15,7 @@ import {
 import { Icon, IconButton } from "react-native-paper";
 import styles from "./styles";
 import colors from "../../../constants/colors";
+import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
 
 const isPlainObject = (value) =>
@@ -53,15 +54,17 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
           {checklist?.detail?.label || "Attachment"}
         </Text>
         <View style={styles.fileRow}>
-          <Text style={styles.fileName} numberOfLines={2}>
-            {checklist?.metadata?.originalName ||
-              checklist?.metadata?.original_name ||
-              checklist?.name ||
-              "Uploaded file"}
-          </Text>
+          <View style={styles.fileHeader}>
+            <Text style={styles.fileName} numberOfLines={2}>
+              {checklist?.metadata?.originalName ||
+                checklist?.metadata?.original_name ||
+                checklist?.name ||
+                "Uploaded file"}
+            </Text>
+          </View>
           {checklist.fileUrl ? (
             <TouchableOpacity
-              style={styles.viewImageButton}
+              style={styles.inlinePreviewTouch}
               activeOpacity={0.88}
               onPress={() =>
                 onViewImage({
@@ -70,7 +73,11 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
                 })
               }
             >
-              <Text style={styles.viewImageButtonText}>View Image</Text>
+              <Image
+                source={{ uri: checklist.fileUrl }}
+                style={styles.inlinePreviewImage}
+                resizeMode="cover"
+              />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -634,37 +641,21 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      <Modal
+      <ImageViewerModal
         visible={imagePreview.visible}
-        transparent
-        animationType="fade"
+        items={
+          imagePreview.uri
+            ? [
+                {
+                  id: imagePreview.uri,
+                  uri: imagePreview.uri,
+                  title: imagePreview.title || "Submitted Image",
+                },
+              ]
+            : []
+        }
         onRequestClose={closeImagePreview}
-      >
-        <View style={styles.imageOverlay}>
-          <Pressable style={styles.imageBackdrop} onPress={closeImagePreview} />
-          <View style={styles.imageCard}>
-            <View style={styles.imageHeader}>
-              <Text style={styles.imageTitle} numberOfLines={2}>
-                {imagePreview.title || "Submitted Image"}
-              </Text>
-              <IconButton
-                icon="close"
-                size={20}
-                iconColor={colors.textDark}
-                onPress={closeImagePreview}
-              />
-            </View>
-
-            {imagePreview.uri ? (
-              <Image
-                source={{ uri: imagePreview.uri }}
-                style={styles.previewImage}
-                resizeMode="contain"
-              />
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+      />
 
     </SafeAreaView>
   );

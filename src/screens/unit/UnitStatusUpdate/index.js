@@ -16,6 +16,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import styles from "./styles";
 import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
+import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitStatusUpdateViewModel from "../../../viewmodels/useUnitStatusUpdateViewModel";
 
 const OUTLET_MANIFOLD_IMAGES = {
@@ -812,7 +813,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           style={styles.photoPreviewWrap}
                           onPress={() => openPhotoPreview(requirement.id)}
                           activeOpacity={0.9}
-                          disabled={isProcessingPhoto || isReadOnly}
+                          disabled={isProcessingPhoto}
                         >
                           {media.mediaType === "video" ? (
                             <View style={styles.videoPreviewPlaceholder}>
@@ -1068,76 +1069,41 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      <Modal
-        visible={photoPreviewState.visible}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.previewOverlay}>
-          <TouchableOpacity
-            style={styles.previewCloseArea}
-            onPress={closePhotoPreview}
-          />
-          <View style={styles.previewCard}>
-            {photoPreviewState.media?.uri ? (
-              photoPreviewState.media.mediaType === "video" ? (
-                <View style={styles.videoPreviewModalPlaceholder}>
-                  <Text style={styles.videoPreviewModalText}>
-                    Video preview is not available in-app yet.
-                  </Text>
-                </View>
-              ) : (
-                <Image
-                  source={{ uri: photoPreviewState.media.uri }}
-                  style={styles.previewImage}
-                  resizeMode="contain"
-                />
-              )
-            ) : null}
+      <ImageViewerModal
+        visible={
+          photoPreviewState.visible &&
+          photoPreviewState.media?.mediaType !== "video"
+        }
+        items={
+          photoPreviewState.media?.uri
+            ? [
+                {
+                  id: photoPreviewState.media.uri,
+                  uri: photoPreviewState.media.uri,
+                  title: activeSubOptionLabel,
+                  meta: photoPreviewState.media.takenAt || "",
+                },
+              ]
+            : []
+        }
+        onRequestClose={closePhotoPreview}
+      />
 
-            <TouchableOpacity
-              style={styles.previewCloseBtn}
-              onPress={closePhotoPreview}
-            >
-              <Text style={styles.previewCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
+      <ImageViewerModal
         visible={referencePreviewState.visible}
-        transparent
-        animationType="fade"
+        items={
+          referencePreviewState.source
+            ? [
+                {
+                  id: referencePreviewState.title || "reference-image",
+                  source: referencePreviewState.source,
+                  title: referencePreviewState.title || "Reference Image",
+                },
+              ]
+            : []
+        }
         onRequestClose={closeReferencePreview}
-      >
-        <View style={styles.previewOverlay}>
-          <TouchableOpacity
-            style={styles.previewCloseArea}
-            onPress={closeReferencePreview}
-          />
-          <View style={styles.referencePreviewCard}>
-            <Text style={styles.referencePreviewTitle}>
-              {referencePreviewState.title}
-            </Text>
-
-            {referencePreviewState.source ? (
-              <Image
-                source={referencePreviewState.source}
-                style={styles.referencePreviewImage}
-                resizeMode="contain"
-              />
-            ) : null}
-
-            <TouchableOpacity
-              style={styles.previewCloseBtn}
-              onPress={closeReferencePreview}
-            >
-              <Text style={styles.previewCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      />
     </SafeAreaView>
   );
 };

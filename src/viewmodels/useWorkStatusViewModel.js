@@ -50,6 +50,51 @@ const normalizeStageLabel = (value = "") =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const findProgressSubprocessMatch = (
+  progress = { processes: [] },
+  { subprocessId = null, processName = "", subprocessName = "" } = {}
+) => {
+  const normalizedSubprocessId = String(subprocessId || "").trim();
+
+  if (normalizedSubprocessId) {
+    const directMatch = findUnitProgressSubprocess(progress, normalizedSubprocessId);
+
+    if (directMatch) {
+      return directMatch;
+    }
+  }
+
+  const normalizedProcessName = normalizeStageLabel(processName);
+  const normalizedSubprocessName = normalizeStageLabel(subprocessName);
+
+  if (!normalizedSubprocessName) {
+    return null;
+  }
+
+  for (const process of progress.processes || []) {
+    const matchesProcess =
+      !normalizedProcessName ||
+      normalizeStageLabel(process.name) === normalizedProcessName;
+
+    if (!matchesProcess) {
+      continue;
+    }
+
+    const subprocess = (process.subprocesses || []).find(
+      (item) => normalizeStageLabel(item.name) === normalizedSubprocessName
+    );
+
+    if (subprocess) {
+      return {
+        process,
+        subprocess,
+      };
+    }
+  }
+
+  return null;
+};
+
 const getTabsForRole = (canReviewChecklist) =>
   canReviewChecklist
     ? ["Submitted", "Pending", "Verified", "Approved", "Commented"]
@@ -113,26 +158,45 @@ const matchesStageFilter = (item = {}, stageLabel = "All") => {
 };
 
 const createWorkItem = (item = {}) => ({
-  id: item.submissionId || `${item.omsId || "OMS"}-${item.subprocessId || "SUB"}`,
-  submissionId: item.submissionId || "",
-  projectId: item.projectId || "",
-  omsId: item.omsId || "",
-  omsName: item.omsName || item.omsId || "",
-  processId: Number(item.processId) || null,
-  processName: item.processName || "Process",
-  subprocessId: Number(item.subprocessId) || null,
-  subprocessName: item.subprocessName || "Subprocess",
-  subCheckQty: Number(item.subCheckQty) || 0,
-  status: String(item.status || "").trim().toLowerCase(),
-  submittedAt: item.submittedAt || null,
-  verifiedAt: item.verifiedAt || null,
-  approvedAt: item.approvedAt || null,
-  rejectedAt: item.rejectedAt || null,
-  rejectionRemark: item.rejectionRemark || "",
-  submittedByName: item.submittedByName || "",
-  verifiedByName: item.verifiedByName || "",
-  approvedByName: item.approvedByName || "",
-  rejectedByName: item.rejectedByName || "",
+  id:
+    item.submissionId ||
+    item.submission_id ||
+    `${item.unitId || item.unit_id || item.omsUnitId || item.oms_unit_id || item.omsId || item.oms_id || "OMS"}-${item.subprocessId || item.subprocess_id || item.subProcessId || "SUB"}`,
+  submissionId: item.submissionId || item.submission_id || "",
+  projectId: item.projectId || item.project_id || "",
+  unitId:
+    item.unitId ||
+    item.unit_id ||
+    item.omsUnitId ||
+    item.oms_unit_id ||
+    item.omsId ||
+    item.oms_id ||
+    "",
+  omsId: item.omsId || item.oms_id || "",
+  omsName:
+    item.omsName ||
+    item.oms_name ||
+    item.nodeNo ||
+    item.node_no ||
+    item.omsId ||
+    item.oms_id ||
+    "",
+  processId: Number(item.processId || item.process_id || item.processID) || null,
+  processName: item.processName || item.process_name || "Process",
+  subprocessId:
+    Number(item.subprocessId || item.subprocess_id || item.subProcessId) || null,
+  subprocessName: item.subprocessName || item.subprocess_name || "Subprocess",
+  subCheckQty: Number(item.subCheckQty || item.sub_check_qty) || 0,
+  status: String(item.status || item.current_status || "").trim().toLowerCase(),
+  submittedAt: item.submittedAt || item.submitted_at || null,
+  verifiedAt: item.verifiedAt || item.verified_at || null,
+  approvedAt: item.approvedAt || item.approved_at || null,
+  rejectedAt: item.rejectedAt || item.rejected_at || null,
+  rejectionRemark: item.rejectionRemark || item.rejection_remark || "",
+  submittedByName: item.submittedByName || item.submitted_by_name || "",
+  verifiedByName: item.verifiedByName || item.verified_by_name || "",
+  approvedByName: item.approvedByName || item.approved_by_name || "",
+  rejectedByName: item.rejectedByName || item.rejected_by_name || "",
   requestBucket: getRequestBucket(item),
   rawItem: item,
 });
@@ -216,6 +280,7 @@ const useWorkStatusViewModel = (navigation, route) => {
   const module = route?.params?.module || "OMS";
   const project = route?.params?.project || null;
   const projectId = project?.id || project?.projectId || user?.projectId || "";
+  const ownerUserId = String(user?.id || user?.mobile || "").trim();
   const projectName = toDisplayText(
     route?.params?.projectName || project?.name,
     "IrriTrack"
@@ -248,7 +313,9 @@ const useWorkStatusViewModel = (navigation, route) => {
   const [search, setSearch] = useState("");
   const requestSequenceRef = useRef(0);
   const selectedSubmissionId = String(selectedWorkItem?.submissionId || "").trim();
-  const selectedUnitId = String(selectedWorkItem?.omsId || "").trim();
+  const selectedUnitId = String(
+    selectedWorkItem?.unitId || selectedWorkItem?.omsId || ""
+  ).trim();
   const {
     progress: selectedProgress,
     isLoading: isSelectedProgressLoading,
@@ -392,6 +459,7 @@ const useWorkStatusViewModel = (navigation, route) => {
               projectId,
               status: TAB_STATUS_QUERY[tab],
               search,
+              ownerUserId,
             });
 
             return {
@@ -436,7 +504,7 @@ const useWorkStatusViewModel = (navigation, route) => {
         }
       }
     },
-    [projectId, stageLabel, tabs, search]
+    [ownerUserId, projectId, stageLabel, tabs, search]
   );
 
   useEffect(() => {
@@ -470,8 +538,12 @@ const useWorkStatusViewModel = (navigation, route) => {
 
   const selectedProgressMatch = useMemo(
     () =>
-      selectedWorkItem?.subprocessId
-        ? findUnitProgressSubprocess(selectedProgress, selectedWorkItem.subprocessId)
+      selectedWorkItem
+        ? findProgressSubprocessMatch(selectedProgress, {
+            subprocessId: selectedWorkItem.subprocessId,
+            processName: selectedWorkItem.processName,
+            subprocessName: selectedWorkItem.subprocessName,
+          })
         : null,
     [selectedProgress, selectedWorkItem]
   );
@@ -489,7 +561,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     (item) => {
       const displayOmsName = item?.omsName || item?.omsId || "OMS";
       const unit = {
-        id: item?.omsId || "",
+        id: item?.unitId || item?.omsId || "",
         unitNo: displayOmsName,
         nodeName: displayOmsName,
         subChakQuantity: item?.subCheckQty ?? null,

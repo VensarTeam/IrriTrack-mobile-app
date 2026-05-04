@@ -2,6 +2,8 @@ import NetInfo from "@react-native-community/netinfo";
 import RNFS from "react-native-fs";
 import SQLite from "react-native-sqlite-storage";
 import { apiRequest } from "./apiClient";
+import { submitOmsCommentedResubmission } from "./omsResubmitService";
+import { removeCachedOmsWorkStatusSubmission } from "./workStatusOfflineStore";
 
 SQLite.enablePromise(true);
 
@@ -366,6 +368,24 @@ const shouldFallbackToOfflineSubmission = (error) =>
   error?.code === "NETWORK_ERROR" ||
   error?.status === 0 ||
   error?.message === "Network Error";
+
+const isCommentedResubmissionPayload = (payload = {}) =>
+  String(payload?.submission_mode || "")
+    .trim()
+    .toLowerCase() === "commented_resubmit" &&
+  String(payload?.resubmit_submission_id || "").trim();
+
+const removeSyncedCommentedWorkStatusCache = async (payload = {}) => {
+  if (!isCommentedResubmissionPayload(payload)) {
+    return;
+  }
+
+  await removeCachedOmsWorkStatusSubmission({
+    ownerUserId: payload.local_owner_user_id || "",
+    projectId: payload.projectId || payload.unit?.project_id || "",
+    submissionId: payload.resubmit_submission_id || "",
+  });
+};
 
 export const fetchChecklistProcessMaster = async ({
   deviceType = "OMS",
@@ -1175,6 +1195,17 @@ const submitOmsChecklistToApi = async (payload = {}) => {
   });
 };
 
+const submitQueuedChecklistToApi = async (payload = {}) => {
+  if (isCommentedResubmissionPayload(payload)) {
+    return submitOmsCommentedResubmission({
+      submissionId: payload.resubmit_submission_id,
+      payload,
+    });
+  }
+
+  return submitOmsChecklistToApi(payload);
+};
+
 const writeSubmissionDraftJson = async (submission) => {
   const draftJson = buildChecklistSubmitJson(submission);
   const draftPath = getSubmissionDraftPath(submission.id);
@@ -1261,7 +1292,7 @@ const syncQueue = async ({
         lastError: "",
       }));
 
-      const response = await submitOmsChecklistToApi(candidate.payload);
+      const response = await submitQueuedChecklistToApi(candidate.payload);
       const syncedAt = new Date().toISOString();
 
       await updateQueuedSubmission(candidate.id, (item) => ({
@@ -1271,6 +1302,7 @@ const syncQueue = async ({
         lastAttemptAt: syncedAt,
         lastError: "",
       }));
+      await removeSyncedCommentedWorkStatusCache(candidate.payload);
       await deleteSubmissionPhotos(candidate.id);
       await deleteSubmissionDraft(candidate.id);
 
@@ -1320,23 +1352,42 @@ export const submitChecklistOfflineFirst = async ({
   payload,
   ownerUserId = "",
   offlineOnly = false,
+  submissionMode = "submit",
+  resubmitSubmissionId = "",
 }) => {
+  const normalizedSubmissionMode = String(submissionMode || "submit")
+    .trim()
+    .toLowerCase();
+  const normalizedResubmitSubmissionId = String(
+    resubmitSubmissionId || ""
+  ).trim();
+  const requestPayload =
+    normalizedSubmissionMode === "commented_resubmit"
+      ? {
+          ...payload,
+          submission_mode: "commented_resubmit",
+          resubmit_submission_id: normalizedResubmitSubmissionId,
+        }
+      : payload;
+
   logSync("Offline-first submit requested", {
     deviceType,
     sectionKey: section?.key,
     subOptionId: subOption?.id,
     offlineOnly,
-    summary: getPayloadSummary(payload),
+    submissionMode: normalizedSubmissionMode,
+    summary: getPayloadSummary(requestPayload),
   });
   if (!offlineOnly && (await canUseNetwork())) {
     try {
-      const response = await submitOmsChecklistToApi(payload);
+      const response = await submitQueuedChecklistToApi(requestPayload);
 
       logSync("Offline-first submit finished via API", {
         submitApiConnected: true,
         serverSubmissionId: response?.submissionId,
         statusLabel: response?.statusLabel,
       });
+      await removeSyncedCommentedWorkStatusCache(requestPayload);
       return {
         submission: null,
         draftJson: null,
@@ -1369,7 +1420,7 @@ export const submitChecklistOfflineFirst = async ({
     deviceType,
     section,
     subOption,
-    payload,
+    payload: requestPayload,
     ownerUserId,
   });
   const draft = await prepareQueuedSubmissionDraft(submission);

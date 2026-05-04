@@ -652,6 +652,7 @@ export default StyleSheet.create({
 
   checklistCopy: {
     flex: 1,
+    width: "100%",
   },
 
   checklistTitle: {
@@ -674,6 +675,8 @@ export default StyleSheet.create({
 
   valueBlock: {
     marginTop: verticalScale(10),
+    width: "100%",
+    alignSelf: "stretch",
   },
 
   valueLabel: {
@@ -739,12 +742,20 @@ export default StyleSheet.create({
   },
 
   fileRow: {
+    width: "100%",
+    alignSelf: "stretch",
+    alignItems: "stretch",
     borderRadius: moderateScale(12),
     backgroundColor: "#F7FAFD",
     borderWidth: 1,
     borderColor: "#DDE7F1",
+    overflow: "hidden",
+  },
+
+  fileHeader: {
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(10),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(8),
   },
 
   fileName: {
@@ -752,7 +763,18 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.semiBold,
     lineHeight: moderateScale(17),
-    marginBottom: verticalScale(8),
+  },
+
+  inlinePreviewTouch: {
+    width: "100%",
+    alignSelf: "stretch",
+  },
+
+  inlinePreviewImage: {
+    width: "100%",
+    height: verticalScale(180),
+    alignSelf: "stretch",
+    backgroundColor: "#E8F0F7",
   },
 
   viewImageButton: {
@@ -1029,7 +1051,7 @@ export default StyleSheet.create({
 
   checklistCopy: {
     flex: 1,
-    paddingRight: moderateScale(10),
+    width: "100%",
   },
 
   checklistTitle: {

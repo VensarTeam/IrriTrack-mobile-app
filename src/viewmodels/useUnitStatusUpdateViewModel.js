@@ -14,8 +14,8 @@ import {
   submitChecklistOfflineFirst,
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
+import { saveChecklistMediaToDeviceGallery } from "../services/deviceGallery";
 import { submitOmsReviewAction } from "../services/omsReviewService";
-import { submitOmsCommentedResubmission } from "../services/omsResubmitService";
 import {
   getCachedContractorList,
   refreshContractorList,
@@ -178,6 +178,43 @@ const formatSubmissionStatusLabel = (value) =>
     .trim()
     .replace(/\b\w/g, (character) => character.toUpperCase()) || "Completed";
 
+const markPhotosAsSavedToDeviceGallery = (values = {}, savedUris = []) => {
+  if (!savedUris.length || !values?.photos) {
+    return values;
+  }
+
+  const savedUriSet = new Set(
+    savedUris.map((item) => String(item || "").trim()).filter(Boolean)
+  );
+  const nextPhotos = Object.entries(values.photos).reduce(
+    (acc, [photoKey, photoValue]) => {
+      if (!photoValue) {
+        acc[photoKey] = photoValue;
+        return acc;
+      }
+
+      const normalizedUri = String(
+        photoValue.uri || photoValue.filePath || photoValue.local_uri || ""
+      ).trim();
+
+      acc[photoKey] = savedUriSet.has(normalizedUri)
+        ? {
+          ...photoValue,
+          savedToDeviceGallery: true,
+        }
+        : photoValue;
+
+      return acc;
+    },
+    {}
+  );
+
+  return {
+    ...values,
+    photos: nextPhotos,
+  };
+};
+
 const toPositiveIntegerOrNull = (value) => {
   const numericValue = Number(value);
 
@@ -336,8 +373,10 @@ const SUBMITTED_STATUS_KEYS = new Set([
   "submitted",
   "partial",
   "completed",
+  "verified",
   "approved",
   "updated",
+  "info",
 ]);
 
 const SERVER_PREFILL_STATUS_KEYS = new Set([
@@ -346,6 +385,7 @@ const SERVER_PREFILL_STATUS_KEYS = new Set([
   "completed",
   "approved",
   "updated",
+  "info",
 ]);
 
 const RECTIFICATION_PHOTO_REQUIREMENT = {
@@ -364,7 +404,8 @@ const toFormStatusValue = (value = "") => {
   if (
     normalizedValue === "completed" ||
     normalizedValue === "approved" ||
-    normalizedValue === "updated"
+    normalizedValue === "updated" ||
+    normalizedValue === "info"
   ) {
     return "Completed";
   }
@@ -378,6 +419,89 @@ const toFormStatusValue = (value = "") => {
   }
 
   return "Pending";
+};
+
+const getReadOnlyTitleFromStatus = ({
+  isRoleReadOnly = false,
+  serverStatusKey = "",
+  hasSavedLocalCommentedResubmission = false,
+  submittedFromLocal = false,
+} = {}) => {
+  if (isRoleReadOnly) {
+    return "View Only";
+  }
+
+  if (hasSavedLocalCommentedResubmission) {
+    return "Already Updated";
+  }
+
+  if (submittedFromLocal) {
+    return "Already Submitted";
+  }
+
+  const normalizedStatusKey = String(serverStatusKey || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalizedStatusKey === "info") {
+    return "Info Status";
+  }
+
+  if (normalizedStatusKey === "updated") {
+    return "Already Updated";
+  }
+
+  return "Already Submitted";
+};
+
+const getReadOnlyNoticeFromStatus = ({
+  isRoleReadOnly = false,
+  roleReadOnlyNotice = "",
+  submittedFromServer = false,
+  submittedFromLocal = false,
+  hasSavedLocalCommentedResubmission = false,
+  serverStatusKey = "",
+} = {}) => {
+  if (isRoleReadOnly) {
+    return (
+      roleReadOnlyNotice ||
+      "This role can review checklist data but cannot edit it."
+    );
+  }
+
+  if (hasSavedLocalCommentedResubmission) {
+    return "This commented resubmission is already saved on this device and will sync when internet is available.";
+  }
+
+  if (submittedFromLocal) {
+    return "Already submitted and saved on this device.";
+  }
+
+  if (submittedFromServer) {
+    const normalizedStatusKey = String(serverStatusKey || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalizedStatusKey === "info") {
+      return "This checklist is already available as info from server data.";
+    }
+
+    if (normalizedStatusKey === "verified") {
+      return "This checklist is already verified from server data.";
+    }
+
+    if (normalizedStatusKey === "approved") {
+      return "This checklist is already approved from server data.";
+    }
+
+    if (normalizedStatusKey === "updated") {
+      return "This checklist is already updated from server data.";
+    }
+
+    return "Already submitted from server data.";
+  }
+
+  return "";
 };
 
 const parseCoordinateValue = (value) => {
@@ -714,6 +838,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const photoRequirements = (activeSubOption.photoRequirements || []).filter(
     (requirement) => isVisibleByRule(requirement, activeValues, activeSubOption)
   );
+  const allPhotoRequirements = activeSubOption.photoRequirements || [];
 
   const isRemarkRequired = !!(
     showRemarkField &&
@@ -836,7 +961,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           submittedFromServer,
           submittedFromLocal,
           isSubmitted:
-            (!isCommented && submittedFromServer) || submittedFromLocal,
+            (!isCommented && submittedFromServer) ||
+            submittedFromLocal ||
+            (!isCommented && Boolean(localSnapshot?.payload)),
         };
 
         return acc;
@@ -854,18 +981,41 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
   const submittedFromServer = Boolean(activeSubmissionState.submittedFromServer);
   const submittedFromLocal = Boolean(activeSubmissionState.submittedFromLocal);
+  const hasSavedLocalCommentedResubmission = Boolean(
+    isCommentedForEdit &&
+      localSubmissionSnapshot?.payload &&
+      String(localSubmissionSnapshot.payload?.submission_mode || "")
+        .trim()
+        .toLowerCase() === "commented_resubmit"
+  );
+  const hasSavedLocalSubmission = Boolean(
+    !isCommentedForEdit && localSubmissionSnapshot?.payload
+  );
+  const hasLocalDraftSnapshot = Boolean(
+    localSubmissionSnapshot?.payload &&
+      (localSubmissionSnapshot?.status !== "synced" || isCommentedForEdit)
+  );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
   const isReadOnly =
-    isRoleReadOnly || (!isCommentedForEdit && submittedFromServer) || submittedFromLocal;
-  const readOnlyTitle = isRoleReadOnly ? "View Only" : "Already Submitted";
-  const readOnlyNotice = isRoleReadOnly
-    ? roleAccess.checklistReadOnlyNotice ||
-    "This role can review checklist data but cannot edit it."
-    : submittedFromServer
-      ? "Already submitted from server data."
-      : submittedFromLocal
-        ? "Already submitted and saved on this device."
-        : "";
+    isRoleReadOnly ||
+    (!isCommentedForEdit && submittedFromServer) ||
+    submittedFromLocal ||
+    hasSavedLocalSubmission ||
+    hasSavedLocalCommentedResubmission;
+  const readOnlyTitle = getReadOnlyTitleFromStatus({
+    isRoleReadOnly,
+    serverStatusKey: activeServerStatusKey,
+    hasSavedLocalCommentedResubmission,
+    submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
+  });
+  const readOnlyNotice = getReadOnlyNoticeFromStatus({
+    isRoleReadOnly,
+    roleReadOnlyNotice: roleAccess.checklistReadOnlyNotice,
+    submittedFromServer,
+    submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
+    hasSavedLocalCommentedResubmission,
+    serverStatusKey: activeServerStatusKey,
+  });
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const canShowReviewActions = canReviewChecklist && submittedFromServer;
   const displayPhotoRequirements = useMemo(() => {
@@ -895,12 +1045,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     const shouldHydrateFromServer = SERVER_PREFILL_STATUS_KEYS.has(
       activeServerStatusKey
     );
+    const shouldHydrateFromLocal = submittedFromLocal || hasLocalDraftSnapshot;
 
-    if (!subOptionId || (!isReadOnly && !shouldHydrateFromServer)) {
+    if (
+      !subOptionId ||
+      (!isReadOnly && !shouldHydrateFromServer && !shouldHydrateFromLocal)
+    ) {
       return;
     }
 
-    const hydrationSource = submittedFromLocal
+    const hydrationSource = shouldHydrateFromLocal
       ? `local:${localSubmissionSnapshot?.id || ""}:${localSubmissionSnapshot?.updatedAt || ""}`
       : buildProgressHydrationSignature(progressMatch);
 
@@ -920,6 +1074,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       photos: { ...baseValues.photos },
       repeatableGroups: { ...baseValues.repeatableGroups },
     };
+    const hydrationPhotoRequirements = isCommentedForEdit
+      ? [RECTIFICATION_PHOTO_REQUIREMENT]
+      : allPhotoRequirements.filter((requirement) =>
+          isVisibleByRule(requirement, nextValues, activeSubOption)
+        );
 
     if (shouldHydrateFromServer && progressMatch?.subprocess) {
       const subprocess = progressMatch.subprocess;
@@ -1040,7 +1199,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         }
       });
 
-      photoRequirements.forEach((requirement) => {
+      hydrationPhotoRequirements.forEach((requirement) => {
         const checklist = getProgressChecklistMatch(
           checklistsById,
           checklistsByName,
@@ -1090,7 +1249,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
     }
 
-    if (submittedFromLocal && localSubmissionSnapshot?.payload) {
+    if (shouldHydrateFromLocal && localSubmissionSnapshot?.payload) {
       const payload = localSubmissionSnapshot.payload;
       const answersById = new Map(
         (payload.answers || [])
@@ -1155,8 +1314,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       (payload.photos || []).forEach((photo) => {
-        const requirement = photoRequirements.find(
-          (item) => String(item.checklistId) === String(photo.checklistId)
+        const requirement = hydrationPhotoRequirements.find(
+          (item) =>
+            String(item.requirementId || item.id) ===
+              String(photo.requirementId || "") ||
+            (photo.checklistId &&
+              String(item.checklistId) === String(photo.checklistId))
         );
 
         if (requirement) {
@@ -1185,6 +1348,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOption,
     checklistItems,
     formValues,
+    hasLocalDraftSnapshot,
+    hasSavedLocalCommentedResubmission,
+    allPhotoRequirements,
     inputFields,
     isCommentedForEdit,
     localSubmissionSnapshot,
@@ -1251,7 +1417,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       ...prev,
       [subOptionId]: {
         ...(prev[subOptionId] || {}),
-        ...updates,
+        ...(typeof updates === "function"
+          ? updates(prev[subOptionId] || {})
+          : updates),
       },
     }));
   };
@@ -1795,6 +1963,50 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setPhotoPreviewState({ visible: false, media: null });
   };
 
+  const saveSubmittedPhotosToDeviceGallery = useCallback(
+    async (photos = []) => {
+      if (!photos.length) {
+        return {
+          savedCount: 0,
+          skipped: true,
+          denied: false,
+          savedUris: [],
+        };
+      }
+
+      try {
+        const gallerySaveResult = await saveChecklistMediaToDeviceGallery({
+          mediaItems: photos,
+          module,
+        });
+
+        if (gallerySaveResult.savedUris?.length) {
+          updateActiveValues((currentValues) =>
+            markPhotosAsSavedToDeviceGallery(
+              currentValues,
+              gallerySaveResult.savedUris
+            )
+          );
+        }
+
+        return gallerySaveResult;
+      } catch (error) {
+        console.log("[ChecklistGallery]", "Device gallery save failed", {
+          message: error?.message,
+        });
+
+        return {
+          savedCount: 0,
+          skipped: false,
+          denied: false,
+          failed: true,
+          savedUris: [],
+        };
+      }
+    },
+    [module, updateActiveValues]
+  );
+
   const validateForm = () => {
     const nextErrors = {};
     let firstErrorMessage = "";
@@ -2249,49 +2461,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setIsSubmitting(true);
 
     try {
-      if (isCommentedForEdit) {
-        if (!workItem?.submissionId) {
-          throw new Error(
-            "Submission ID is missing for this commented subprocess."
-          );
-        }
-
-        const response = await submitOmsCommentedResubmission({
-          submissionId: workItem.submissionId,
-          payload,
-        });
-
-        await refreshProgress();
-        const activeIndex = section.subOptions.findIndex(
-          (item) => item.id === activeSubOption.id
-        );
-        const hasNext = activeIndex < section.subOptions.length - 1;
-        const submissionStatusLabel = formatSubmissionStatusLabel(
-          response?.statusLabel
-        );
-
-        showAppAlert({
-          type: "success",
-          title: "Resubmitted successfully",
-          message: `${activeSubOptionLabel} resubmitted successfully with ${submissionStatusLabel} status.`,
-          actions: [
-            {
-              label: hasNext ? "Next" : "Done",
-              variant: "primary",
-              onPress: () => {
-                if (hasNext) {
-                  setActiveSubOptionId(section.subOptions[activeIndex + 1].id);
-                } else {
-                  navigation.goBack();
-                }
-              },
-            },
-          ],
-        });
-
-        return;
-      }
-
+      const gallerySaveResult = await saveSubmittedPhotosToDeviceGallery(
+        payload.photos
+      );
       const result = await submitChecklistOfflineFirst({
         deviceType: module,
         section,
@@ -2299,13 +2471,23 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         payload,
         ownerUserId,
         offlineOnly: false,
+        submissionMode: isCommentedForEdit ? "commented_resubmit" : "submit",
+        resubmitSubmissionId: workItem?.submissionId || "",
       });
+      if (result.submission) {
+        setLocalSubmissionSnapshots((currentValue) => ({
+          ...currentValue,
+          [activeSubOption.id]: result.submission,
+        }));
+      }
       await loadLocalSnapshots();
       await refreshProgress();
       console.log("[ChecklistSubmit]", "Submit result", {
         submissionId: result.submission?.id,
         draftJsonPath: result.draftJsonPath,
         synced: result.synced,
+        gallerySavedCount: gallerySaveResult.savedCount,
+        galleryPermissionDenied: gallerySaveResult.denied,
         serverSubmissionId: result.response?.submissionId,
         processId: result.draftJson?.process_id,
         subprocessId: result.draftJson?.subprocess_id,
@@ -2322,9 +2504,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
       showAppAlert({
         type: wasSynced ? "success" : "info",
-        title: wasSynced ? "Submitted successfully" : "Saved locally",
+        title: wasSynced
+          ? isCommentedForEdit
+            ? "Resubmitted successfully"
+            : "Submitted successfully"
+          : "Saved locally",
         message: wasSynced
-          ? `${activeSubOptionLabel} submitted successfully with ${submissionStatusLabel} status.`
+          ? `${activeSubOptionLabel} ${isCommentedForEdit ? "resubmitted" : "submitted"} successfully with ${submissionStatusLabel} status.`
           : isCommentedForEdit
             ? `${activeSubOptionLabel} rectification is saved locally for supervisor follow-up.`
             : `${activeSubOptionLabel} is saved on this device and will sync when internet is available.`,

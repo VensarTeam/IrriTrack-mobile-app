@@ -24,6 +24,7 @@ import styles from "./styles";
 import colors from "../../constants/colors";
 import useWorkStatusViewModel from "../../viewmodels/useWorkStatusViewModel";
 import { CustomTabView } from "../../components/WorkStatusTabView"; // ← new import
+import ImageViewerModal from "../../components/ImageViewerModal";
 
 // ─── remove the TabView / TabBar imports from react-native-tab-view ───────────
 // REMOVED: import { TabBar, TabView } from "react-native-tab-view";
@@ -132,7 +133,7 @@ const getSimpleChecklistState = (checklist) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ChecklistValueBlock (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
-const ChecklistValueBlock = ({ checklist }) => {
+const ChecklistValueBlock = ({ checklist, onViewImage }) => {
   const rawValue = checklist?.detail?.rawValue;
   const valueText = checklist?.detail?.value || "";
 
@@ -147,11 +148,21 @@ const ChecklistValueBlock = ({ checklist }) => {
               "Uploaded file"}
           </Text>
           {checklist.fileUrl ? (
-            <Image
-              source={{ uri: checklist.fileUrl }}
-              style={styles.inlinePreviewImage}
-              resizeMode="cover"
-            />
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() =>
+                onViewImage?.({
+                  uri: checklist.fileUrl,
+                  title: checklist.name || "Submitted Image",
+                })
+              }
+            >
+              <Image
+                source={{ uri: checklist.fileUrl }}
+                style={styles.inlinePreviewImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           ) : null}
         </View>
       </View>
@@ -281,6 +292,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] = React.useState(false);
   const [isRejectSubmitPending, setIsRejectSubmitPending] = React.useState(false);
   const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] = React.useState(false);
+  const [imageViewerState, setImageViewerState] = React.useState({
+    visible: false,
+    items: [],
+    initialIndex: 0,
+  });
 
   const selectedProcess = selectedProgressMatch?.process || null;
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
@@ -333,6 +349,32 @@ const WorkStatusScreen = ({ route, navigation }) => {
     setIsRejectSubmitPending(true);
     await submitWorkItemAction("reject");
   }, [submitWorkItemAction]);
+
+  const openImageViewer = React.useCallback(({ uri = "", title = "", meta = "" } = {}) => {
+    if (!uri) {
+      return;
+    }
+
+    setImageViewerState({
+      visible: true,
+      items: [
+        {
+          id: uri,
+          uri,
+          title,
+          meta,
+        },
+      ],
+      initialIndex: 0,
+    });
+  }, []);
+
+  const closeImageViewer = React.useCallback(() => {
+    setImageViewerState((currentValue) => ({
+      ...currentValue,
+      visible: false,
+    }));
+  }, []);
 
   const contextChips = [
     stageLabel !== "All" ? stageLabel : "",
@@ -751,18 +793,24 @@ const WorkStatusScreen = ({ route, navigation }) => {
                         ]}
                       >
                         {simpleState ? (
-                          <View style={styles.checklistInlineRow}>
-                            <View style={styles.checklistInlineCopy}>
-                              <Text style={styles.checklistTitle}>{checklist.name}</Text>
-                              {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                            </View>
-                            <View
-                              style={[
-                                styles.checklistInlineStatus,
-                                { backgroundColor: simpleState.backgroundColor, borderColor: simpleState.borderColor },
-                              ]}
-                            >
-                              <Icon source={simpleState.icon} size={18} color={simpleState.color} />
+                          <View>
+                            <View style={styles.checklistInlineRow}>
+                              <View style={styles.checklistInlineCopy}>
+                                <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                                {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
+                                <ChecklistValueBlock
+                                  checklist={checklist}
+                                  onViewImage={openImageViewer}
+                                />
+                              </View>
+                              <View
+                                style={[
+                                  styles.checklistInlineStatus,
+                                  { backgroundColor: simpleState.backgroundColor, borderColor: simpleState.borderColor },
+                                ]}
+                              >
+                                <Icon source={simpleState.icon} size={18} color={simpleState.color} />
+                              </View>
                             </View>
                           </View>
                         ) : (
@@ -770,7 +818,10 @@ const WorkStatusScreen = ({ route, navigation }) => {
                             <View style={styles.checklistCopy}>
                               <Text style={styles.checklistTitle}>{checklist.name}</Text>
                               {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                              <ChecklistValueBlock checklist={checklist} />
+                              <ChecklistValueBlock
+                                checklist={checklist}
+                                onViewImage={openImageViewer}
+                              />
                             </View>
                           </View>
                         )}
@@ -874,6 +925,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <ImageViewerModal
+        visible={imageViewerState.visible}
+        items={imageViewerState.items}
+        initialIndex={imageViewerState.initialIndex}
+        onRequestClose={closeImageViewer}
+      />
     </SafeAreaView>
   );
 };

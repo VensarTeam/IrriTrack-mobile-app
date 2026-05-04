@@ -1,20 +1,18 @@
 import React from "react";
 import {
-  FlatList,
   Image,
-  Modal,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconButton } from "react-native-paper";
 import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import { Icons } from "../../../constants/icons";
+import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitGalleryViewModel from "../../../viewmodels/useUnitGalleryViewModel";
 
 const UnitGalleryScreen = ({ navigation, route }) => {
@@ -29,18 +27,10 @@ const UnitGalleryScreen = ({ navigation, route }) => {
     refreshGallery,
     viewerVisible,
     viewerIndex,
-    setViewerIndex,
     openViewer,
     closeViewer,
     handleBack,
   } = useUnitGalleryViewModel(navigation, route);
-
-  const { width } = useWindowDimensions();
-
-  const handleViewerScrollEnd = (event) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-    setViewerIndex(nextIndex);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,48 +130,12 @@ const UnitGalleryScreen = ({ navigation, route }) => {
         )}
       </ScrollView>
 
-      <Modal
+      <ImageViewerModal
         visible={viewerVisible}
-        animationType="fade"
-        transparent={false}
+        items={photos}
+        initialIndex={viewerIndex}
         onRequestClose={closeViewer}
-      >
-        <SafeAreaView style={styles.viewerContainer}>
-          <View style={styles.viewerHeader}>
-            <Text style={styles.viewerCounter}>
-              {photos.length ? `${viewerIndex + 1} / ${photos.length}` : "0 / 0"}
-            </Text>
-            <IconButton icon="close" iconColor="#FFFFFF" onPress={closeViewer} />
-          </View>
-
-          {photos.length ? (
-            <FlatList
-              data={photos}
-              horizontal
-              pagingEnabled
-              initialScrollIndex={viewerIndex}
-              getItemLayout={(_, index) => ({
-                length: width,
-                offset: width * index,
-                index,
-              })}
-              keyExtractor={(item) => item.id}
-              onMomentumScrollEnd={handleViewerScrollEnd}
-              renderItem={({ item }) => (
-                <View style={[styles.viewerSlide, { width }]}> 
-                  <Image
-                    source={{ uri: item.uri }}
-                    style={styles.viewerImage}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.viewerCaption}>{item.meta}</Text>
-                </View>
-              )}
-              showsHorizontalScrollIndicator={false}
-            />
-          ) : null}
-        </SafeAreaView>
-      </Modal>
+      />
     </SafeAreaView>
   );
 };

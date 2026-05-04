@@ -8,7 +8,10 @@
       "projectName": "IrriTrack",
     },
     "ios": {
-      "icon": "./assets/icon.png"
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "Allow IrriTrack to save submitted checklist photos to your phone gallery."
+      }
     },
     "android": {
       "icon": "./assets/icon.png",
@@ -19,6 +22,14 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow IrriTrack to access your photos.",
+          "savePhotosPermission": "Allow IrriTrack to save submitted checklist photos to your phone gallery.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
       [
         "expo-local-authentication",
         {
