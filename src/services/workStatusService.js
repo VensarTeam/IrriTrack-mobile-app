@@ -91,6 +91,8 @@ export const fetchOmsWorkStatus = async ({
   status = "",
   search = "",
   ownerUserId = "",
+  saveToCache = true,
+  fallbackToCache = true,
 } = {}) => {
   if (!projectId) {
     return createEmptyWorkStatusResponse();
@@ -113,7 +115,7 @@ export const fetchOmsWorkStatus = async ({
       await fetchWithFallbackPaths({ params })
     );
 
-    if (!String(search || "").trim()) {
+    if (saveToCache && !String(search || "").trim()) {
       await saveCachedOmsWorkStatus({
         ownerUserId,
         projectId,
@@ -124,7 +126,7 @@ export const fetchOmsWorkStatus = async ({
 
     return response;
   } catch (error) {
-    if (!shouldFallbackToCachedWorkStatus(error)) {
+    if (!fallbackToCache || !shouldFallbackToCachedWorkStatus(error)) {
       throw error;
     }
 

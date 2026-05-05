@@ -55,6 +55,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     readOnlyTitle,
     readOnlyNotice,
     isCommentedForEdit,
+    commentedRemark,
     isRemarkRequired,
     checklistItems,
     photoRequirements,
@@ -592,12 +593,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               </View>
             ) : null}
 
-            {isCommentedForEdit ? (
+            {isCommentedForEdit && commentedRemark ? (
               <View style={styles.readOnlyBanner}>
-                <Text style={styles.readOnlyBannerTitle}>Commented</Text>
+                <Text style={styles.readOnlyBannerTitle}>Comment</Text>
                 <Text style={styles.readOnlyBannerText}>
-                  Rectify this subprocess with fresh details. Previously submitted
-                  values are intentionally hidden for this correction flow.
+                  {commentedRemark}
                 </Text>
               </View>
             ) : null}

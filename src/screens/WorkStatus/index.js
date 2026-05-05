@@ -130,6 +130,57 @@ const getSimpleChecklistState = (checklist) => {
   return null;
 };
 
+const isOutletPipeCountChecklist = (checklist) => {
+  const checklistId = Number(
+    checklist?.rawChecklist?.checklistId || checklist?.rawChecklist?.checklist_id || checklist?.id
+  );
+  const label = String(checklist?.name || "").trim().toLowerCase();
+
+  return checklistId === 9 || label.includes("no. of outlet pipes") || label.includes("no of outlet pipes");
+};
+
+const getOutletPipeCountValue = (checklist, selectedWorkItem) => {
+  const detailRawValue = checklist?.detail?.rawValue;
+  const detailValue = checklist?.detail?.value;
+  const candidates = [
+    detailRawValue,
+    detailValue,
+    checklist?.rawChecklist?.value,
+    checklist?.rawChecklist?.submittedValue,
+    checklist?.rawChecklist?.answer,
+    selectedWorkItem?.subCheckQty,
+    selectedWorkItem?.rawItem?.subCheckQty,
+    selectedWorkItem?.rawItem?.sub_check_qty,
+  ];
+
+  for (const candidate of candidates) {
+    const match = String(candidate ?? "").match(/\d+/);
+    const parsed = Number.parseInt(match?.[0], 10);
+
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const getChecklistDisplayTitle = (checklist, selectedWorkItem) => {
+  const baseTitle = String(checklist?.name || "").trim();
+
+  if (!baseTitle || !isOutletPipeCountChecklist(checklist)) {
+    return baseTitle;
+  }
+
+  if (/\(\s*\d+\s*\)/.test(baseTitle)) {
+    return baseTitle;
+  }
+
+  const outletPipeCount = getOutletPipeCountValue(checklist, selectedWorkItem);
+
+  return outletPipeCount ? `${baseTitle} (${outletPipeCount})` : baseTitle;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ChecklistValueBlock (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,12 +192,12 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
     return (
       <View style={styles.valueBlock}>
         <View style={styles.fileRow}>
-          <Text style={styles.fileName} numberOfLines={2}>
+          {/* <Text style={styles.fileName} numberOfLines={2}>
             {checklist?.metadata?.originalName ||
               checklist?.metadata?.original_name ||
               checklist?.name ||
               "Uploaded file"}
-          </Text>
+          </Text> */}
           {checklist.fileUrl ? (
             <TouchableOpacity
               activeOpacity={0.88}
@@ -292,6 +343,10 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] = React.useState(false);
   const [isRejectSubmitPending, setIsRejectSubmitPending] = React.useState(false);
   const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] = React.useState(false);
+  const [workflowConfirmState, setWorkflowConfirmState] = React.useState({
+    visible: false,
+    action: "",
+  });
   const [imageViewerState, setImageViewerState] = React.useState({
     visible: false,
     items: [],
@@ -314,6 +369,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
   React.useEffect(() => {
     setIsRejectRemarkModalVisible(false);
     setIsRejectSubmitPending(false);
+    setWorkflowConfirmState({ visible: false, action: "" });
   }, [selectedWorkItem?.submissionId, selectedWorkflowStatusKey]);
 
   React.useEffect(() => {
@@ -324,7 +380,10 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     if (!isRejectSubmitPending || isWorkflowSubmitting) return;
-    if (!reviewError) setIsRejectRemarkModalVisible(false);
+    if (!reviewError) {
+      setIsRejectRemarkModalVisible(false);
+      setWorkflowConfirmState({ visible: false, action: "" });
+    }
     setIsRejectSubmitPending(false);
   }, [isRejectSubmitPending, isWorkflowSubmitting, reviewError]);
 
@@ -346,9 +405,61 @@ const WorkStatusScreen = ({ route, navigation }) => {
   }, [closeRejectRemarkModal, isRejectKeyboardVisible, isWorkflowSubmitting]);
 
   const submitRejectFromModal = React.useCallback(async () => {
-    setIsRejectSubmitPending(true);
-    await submitWorkItemAction("reject");
+    setWorkflowConfirmState({
+      visible: true,
+      action: "reject",
+    });
   }, [submitWorkItemAction]);
+
+  const openWorkflowConfirmation = React.useCallback((action) => {
+    setWorkflowConfirmState({
+      visible: true,
+      action,
+    });
+  }, []);
+
+  const closeWorkflowConfirmation = React.useCallback(() => {
+    if (isWorkflowSubmitting) {
+      return;
+    }
+
+    setWorkflowConfirmState({
+      visible: false,
+      action: "",
+    });
+  }, [isWorkflowSubmitting]);
+
+  const confirmWorkflowAction = React.useCallback(async () => {
+    const action = String(workflowConfirmState.action || "").trim().toLowerCase();
+
+    if (!action) {
+      return;
+    }
+
+    if (action === "reject") {
+      setIsRejectSubmitPending(true);
+    }
+
+    await submitWorkItemAction(action);
+
+    if (action !== "reject") {
+      setWorkflowConfirmState({ visible: false, action: "" });
+    }
+  }, [submitWorkItemAction, workflowConfirmState.action]);
+
+  const workflowConfirmationTitle =
+    workflowConfirmState.action === "approve"
+      ? "Approve Submission"
+      : workflowConfirmState.action === "verify"
+        ? "Verify Submission"
+        : "Reject Submission";
+
+  const workflowConfirmationMessage =
+    workflowConfirmState.action === "approve"
+      ? "Are you sure you want to approve this subprocess response?"
+      : workflowConfirmState.action === "verify"
+        ? "Are you sure you want to verify this subprocess response?"
+        : "Are you sure you want to reject this subprocess response with the entered remark?";
 
   const openImageViewer = React.useCallback(({ uri = "", title = "", meta = "" } = {}) => {
     if (!uri) {
@@ -433,13 +544,14 @@ const WorkStatusScreen = ({ route, navigation }) => {
     ({ item }) => {
       const bucket = getUnitWorkBucket(item);
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
+      const unitSubtitle = getUnitSubtitle(item);
 
       return (
         <TouchableOpacity style={styles.card} onPress={() => openWorkItem(item)} activeOpacity={0.9}>
           <View style={styles.cardTopRow}>
             <View style={styles.cardTextWrap}>
               <Text style={styles.cardEyebrow} numberOfLines={1}>
-               OMS - {item?.omsName || item?.omsId || "OMS"}
+               OMS - {item?.omsName || "NODE"}
               </Text>
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {item?.processName || "Process"}
@@ -449,9 +561,19 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   {item?.subprocessName || "Subprocess"}
                 </Text>
               </View>
-              <Text style={styles.cardSubtitle} numberOfLines={1}>
-                {getUnitSubtitle(item)}
-              </Text>
+              {unitSubtitle ? (
+                <Text style={styles.cardSubtitle}>
+                  {unitSubtitle}
+                </Text>
+              ) : null}
+              {item?.rejectionRemark ? (
+                <View style={styles.cardCommentBlock}>
+                  <Text style={styles.cardCommentLabel}>Comment:</Text>
+                  <Text style={styles.cardRemarkText} numberOfLines={2}>
+                    {item.rejectionRemark}
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             <View style={[styles.statusPill, { backgroundColor: theme.soft, borderColor: theme.solid }]}>
@@ -542,6 +664,75 @@ const WorkStatusScreen = ({ route, navigation }) => {
               </View>
             </Pressable>
           </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={workflowConfirmState.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeWorkflowConfirmation}
+      >
+        <Pressable style={styles.rejectModalBackdrop} onPress={closeWorkflowConfirmation}>
+          <View style={styles.rejectModalRoot}>
+            <Pressable style={styles.confirmationModalCard} onPress={() => {}}>
+              <Text style={styles.rejectModalTitle}>{workflowConfirmationTitle}</Text>
+              <Text style={styles.rejectModalSubtitle}>
+                {workflowConfirmationMessage}
+              </Text>
+
+              <View style={styles.rejectModalActionRow}>
+                <TouchableOpacity
+                  style={[styles.reviewActionButton, styles.reviewCancelButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={closeWorkflowConfirmation}
+                >
+                  <Text style={styles.reviewCancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.reviewActionButton,
+                    workflowConfirmState.action === "approve"
+                      ? styles.reviewApproveButton
+                      : workflowConfirmState.action === "verify"
+                        ? styles.reviewVerifyButton
+                        : styles.reviewRejectButton,
+                    isWorkflowSubmitting && styles.reviewActionButtonDisabled,
+                  ]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={confirmWorkflowAction}
+                >
+                  {isWorkflowSubmitting ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={
+                        workflowConfirmState.action === "approve"
+                          ? colors.white
+                          : workflowConfirmState.action === "verify"
+                            ? colors.primaryBlue
+                            : colors.danger
+                      }
+                    />
+                  ) : (
+                    <Text
+                      style={
+                        workflowConfirmState.action === "approve"
+                          ? styles.reviewApproveText
+                          : workflowConfirmState.action === "verify"
+                            ? styles.reviewVerifyText
+                            : styles.reviewRejectText
+                      }
+                    >
+                      Confirm
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </View>
         </Pressable>
       </Modal>
 
@@ -718,9 +909,6 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 <Text style={styles.sheetTitle}>
                   {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
                 </Text>
-                <Text style={styles.sheetSubtitle}>
-                  Check the submitted details and continue workflow from here.
-                </Text>
               </View>
               <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={closeWorkItemSheet} />
             </View>
@@ -752,14 +940,14 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 </View>
 
                 <TouchableOpacity style={styles.historyButton} activeOpacity={0.88} onPress={openSubmissionHistory}>
-                  <Icon source="history" size={14} color={colors.primaryBlue} />
+                  <Icon source="history" size={14} color={colors.white} />
                   <Text style={styles.historyButtonText}>History</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.sheetStatusCount}>
+              {/* <Text style={styles.sheetStatusCount}>
                 {selectedChecklistItems.length} checklist{selectedChecklistItems.length === 1 ? "" : "s"}
-              </Text>
+              </Text> */}
             </View>
 
             <ScrollView
@@ -783,6 +971,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 <>
                   {selectedChecklistItems.map((checklist, index) => {
                     const simpleState = getSimpleChecklistState(checklist);
+                    const checklistTitle = getChecklistDisplayTitle(checklist, selectedWorkItem);
                     return (
                       <View
                         key={checklist.id}
@@ -796,12 +985,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
                           <View>
                             <View style={styles.checklistInlineRow}>
                               <View style={styles.checklistInlineCopy}>
-                                <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                                <Text style={styles.checklistTitle}>{checklistTitle}</Text>
                                 {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                                <ChecklistValueBlock
-                                  checklist={checklist}
-                                  onViewImage={openImageViewer}
-                                />
                               </View>
                               <View
                                 style={[
@@ -816,7 +1001,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                         ) : (
                           <View style={styles.checklistHead}>
                             <View style={styles.checklistCopy}>
-                              <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                              <Text style={styles.checklistTitle}>{checklistTitle}</Text>
                               {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
                               <ChecklistValueBlock
                                 checklist={checklist}
@@ -843,13 +1028,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     </View>
                   ) : null}
 
-                  {canReviewChecklist ? (
+                  {canReviewChecklist && selectedWorkflowStatusKey !== "info" ? (
                     <View style={styles.workflowSection}>
                       <Text style={styles.sectionBlockTitle}>Workflow</Text>
                       <Text style={styles.reviewActionSubtitle}>
-                        {selectedWorkflowStatusKey === "info"
-                          ? "This subprocess is in info status, so review actions are not available."
-                          : selectedWorkflowStatusKey === "commented"
+                        {selectedWorkflowStatusKey === "commented"
                           ? "This subprocess was commented and is waiting for field rectification."
                           : selectedWorkflowStatusKey === "approved"
                             ? "This subprocess is already approved."
@@ -882,7 +1065,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                               style={[styles.reviewActionButton, styles.reviewVerifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
-                              onPress={() => submitWorkItemAction("verify")}
+                              onPress={() => openWorkflowConfirmation("verify")}
                             >
                               {isWorkflowSubmitting ? (
                                 <ActivityIndicator size="small" color={colors.primaryBlue} />
@@ -897,7 +1080,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                               style={[styles.reviewActionButton, styles.reviewApproveButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
-                              onPress={() => submitWorkItemAction("approve")}
+                              onPress={() => openWorkflowConfirmation("approve")}
                             >
                               {isWorkflowSubmitting ? (
                                 <ActivityIndicator size="small" color={colors.white} />
@@ -910,8 +1093,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       ) : (
                         <View style={styles.workflowStateNotice}>
                           <Text style={styles.workflowStateNoticeText}>
-                            {selectedWorkflowStatusKey === "info" ? "Info"
-                              : selectedWorkflowStatusKey === "approved" ? "Approved"
+                            {selectedWorkflowStatusKey === "approved" ? "Approved"
                               : selectedWorkflowStatusKey === "verified" ? "Verified"
                                 : "View only"}
                           </Text>

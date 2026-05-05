@@ -5,22 +5,8 @@ const normalizeUri = (value = "") => String(value || "").trim();
 const toAssetUri = (media = {}) =>
   normalizeUri(media.uri || media.filePath || media.local_uri);
 
-const buildAlbumName = (module = "OMS") =>
-  `${String(module || "OMS").trim().toUpperCase()} Checklist`;
-
-const ensureAlbum = async (albumName) => {
-  const existingAlbum = await MediaLibrary.getAlbumAsync(albumName);
-
-  if (existingAlbum) {
-    return existingAlbum;
-  }
-
-  return null;
-};
-
 export const saveChecklistMediaToDeviceGallery = async ({
   mediaItems = [],
-  module = "OMS",
 } = {}) => {
   const itemsToSave = (mediaItems || []).filter(
     (item) =>
@@ -39,7 +25,7 @@ export const saveChecklistMediaToDeviceGallery = async ({
     };
   }
 
-  const permission = await MediaLibrary.requestPermissionsAsync();
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
 
   if (permission.status !== "granted") {
     return {
@@ -50,19 +36,10 @@ export const saveChecklistMediaToDeviceGallery = async ({
     };
   }
 
-  const albumName = buildAlbumName(module);
-  let album = await ensureAlbum(albumName);
   const savedUris = [];
 
   for (const item of itemsToSave) {
-    const asset = await MediaLibrary.createAssetAsync(toAssetUri(item));
-
-    if (!album) {
-      album = await MediaLibrary.createAlbumAsync(albumName, asset, false);
-    } else {
-      await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-    }
-
+    await MediaLibrary.saveToLibraryAsync(toAssetUri(item));
     savedUris.push(toAssetUri(item));
   }
 

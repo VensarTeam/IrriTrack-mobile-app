@@ -492,7 +492,7 @@ export default StyleSheet.create({
     paddingHorizontal: moderateScale(11),
     paddingVertical: verticalScale(5),
     borderRadius: moderateScale(999),
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: colors.primaryBlue,
     borderWidth: 1,
     flexShrink: 0,
   },
@@ -502,6 +502,7 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
     letterSpacing: 0.2,
     flexShrink: 1,
+    color: colors.white,
   },
 
   /* ================= EXPAND SECTION ================= */
@@ -641,7 +642,7 @@ export default StyleSheet.create({
   highlightCard: {
     width: "48.5%",
     borderWidth: 1,
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(9),
     paddingVertical: verticalScale(6),
     marginBottom: verticalScale(6),
@@ -651,7 +652,7 @@ export default StyleSheet.create({
     width: "48.5%",
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(8),
     paddingHorizontal: moderateScale(9),
     paddingVertical: verticalScale(8),
     marginBottom: verticalScale(6),
@@ -672,8 +673,8 @@ export default StyleSheet.create({
   },
 
   highlightLabel: {
-    fontSize: fontScale(9),
-    color: colors.textSecondary,
+    fontSize: fontScale(11),
+    color: "#330769",
     marginBottom: verticalScale(4),
     fontFamily: fonts.medium,
   },
@@ -692,7 +693,7 @@ export default StyleSheet.create({
   },
 
   highlightValue: {
-    fontSize: fontScale(14),
+    fontSize: fontScale(16),
     fontFamily: fonts.bold,
   },
 
@@ -874,7 +875,7 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(6),
     borderRadius: moderateScale(999),
     borderWidth: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primaryBlue,
     maxWidth: "52%",
     marginLeft: "auto",
     marginRight: moderateScale(4),
@@ -884,6 +885,7 @@ export default StyleSheet.create({
     fontSize: fontScale(11),
     fontFamily: fonts.bold,
     letterSpacing: 0.2,
+    color: colors.white,
   },
 
   stageTabContainer: {

@@ -650,12 +650,12 @@ const ProjectDetailsScreen = ({ route }) => {
                                   <Icons.work
                                     height={16}
                                     width={16}
-                                    color={item.accent}
+                                    color={"#ffffff"}
                                   />
                                   <Text
                                     style={[
                                       styles.kpiInlineActionText,
-                                      { color: item.accent },
+                                      // { color: item.accent },
                                     ]}
                                     numberOfLines={1}
                                   >
@@ -764,7 +764,7 @@ const ProjectDetailsScreen = ({ route }) => {
                             <Text
                               style={[
                                 styles.stageBoardButtonText,
-                                { color: moduleTheme.accent },
+                                // { color: moduleTheme.accent },
                               ]}
                             >
                               Work Status

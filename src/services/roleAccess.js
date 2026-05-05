@@ -24,6 +24,7 @@ export const createRoleAccess = (role) => {
   const isManagedRole = isContributor || isReviewer;
 
   if (!isManagedRole) {
+    console.log(role, "role");
     return {
       role: normalizedRole,
       roleLabel: toRoleLabel(normalizedRole),

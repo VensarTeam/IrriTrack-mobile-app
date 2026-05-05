@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import NetInfo from "@react-native-community/netinfo";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import {
   fetchOmsSubmissionHistory,
   fetchOmsWorkStatus,
 } from "../services/workStatusService";
+import { getCachedOmsWorkStatus } from "../services/workStatusOfflineStore";
 import useChecklistSections from "./useChecklistSections";
 import useUnitProgress from "../hooks/useUnitProgress";
 import { findUnitProgressSubprocess } from "../models/unitProgress";
@@ -207,6 +209,11 @@ const createEmptyTabData = (tabs = []) =>
     return acc;
   }, {});
 
+const createSupervisorOfflineCounts = (commentedItems = []) => ({
+  ...EMPTY_COUNTS,
+  rejected: commentedItems.length,
+});
+
 const resolveCountByTab = ({ tab, counts, roleAccess }) => {
   switch (tab) {
     case "Submitted":
@@ -275,6 +282,95 @@ const getWorkflowStatusKey = (item = {}, override = "") => {
   return "submitted";
 };
 
+const formatWorkStatusDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return String(value);
+  }
+};
+
+const getWorkItemActorSummary = (item = {}) => {
+  const requestBucket = String(item?.requestBucket || "").trim().toLowerCase();
+
+  if (requestBucket === "commented" && item?.rejectedByName) {
+    return {
+      label: `Commented by ${item.rejectedByName}`,
+      date: formatWorkStatusDate(item.rejectedAt),
+    };
+  }
+
+  if (requestBucket === "approved" && item?.approvedByName) {
+    return {
+      label: `Approved by ${item.approvedByName}`,
+      date: formatWorkStatusDate(item.approvedAt),
+    };
+  }
+
+  if (requestBucket === "verified" && item?.verifiedByName) {
+    return {
+      label: `Verified by ${item.verifiedByName}`,
+      date: formatWorkStatusDate(item.verifiedAt),
+    };
+  }
+
+  if (
+    (requestBucket === "pending" ||
+      requestBucket === "submitted" ||
+      requestBucket === "requests" ||
+      requestBucket === "info") &&
+    item?.submittedByName
+  ) {
+    return {
+      label: `Submitted by ${item.submittedByName}`,
+      date: formatWorkStatusDate(item.submittedAt),
+    };
+  }
+
+  if (item?.submittedByName) {
+    return {
+      label: `Submitted by ${item.submittedByName}`,
+      date: formatWorkStatusDate(item.submittedAt),
+    };
+  }
+
+  if (item?.verifiedByName) {
+    return {
+      label: `Verified by ${item.verifiedByName}`,
+      date: formatWorkStatusDate(item.verifiedAt),
+    };
+  }
+
+  if (item?.approvedByName) {
+    return {
+      label: `Approved by ${item.approvedByName}`,
+      date: formatWorkStatusDate(item.approvedAt),
+    };
+  }
+
+  if (item?.rejectedByName) {
+    return {
+      label: `Commented by ${item.rejectedByName}`,
+      date: formatWorkStatusDate(item.rejectedAt),
+    };
+  }
+
+  return {
+    label: "",
+    date: "",
+  };
+};
+
 const useWorkStatusViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
@@ -299,6 +395,8 @@ const useWorkStatusViewModel = (navigation, route) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasResolvedNetworkState, setHasResolvedNetworkState] = useState(false);
   const [selectedWorkItem, setSelectedWorkItem] = useState(null);
   const [pendingHistoryWorkItem, setPendingHistoryWorkItem] = useState(null);
   const [selectedHistoryWorkItem, setSelectedHistoryWorkItem] = useState(null);
@@ -324,10 +422,29 @@ const useWorkStatusViewModel = (navigation, route) => {
   } = useUnitProgress({
     projectId,
     unitId: selectedUnitId,
-    enabled: Boolean(
-      roleAccess.canReviewChecklist && projectId && selectedUnitId && selectedWorkItem
-    ),
+    enabled: Boolean(projectId && selectedUnitId && selectedWorkItem),
   });
+
+  useEffect(() => {
+    const updateOnlineState = (networkState = {}) => {
+      setIsOnline(
+        Boolean(networkState.isConnected) &&
+          networkState.isInternetReachable !== false
+      );
+      setHasResolvedNetworkState(true);
+    };
+
+    const unsubscribe = NetInfo.addEventListener(updateOnlineState);
+    void NetInfo.fetch()
+      .then(updateOnlineState)
+      .catch(() => {
+        setHasResolvedNetworkState(true);
+      });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, []);
 
   useEffect(() => {
     setItemsByTab(createEmptyTabData(tabs));
@@ -432,10 +549,70 @@ const useWorkStatusViewModel = (navigation, route) => {
 
   const loadBoard = useCallback(
     async ({ refresh = false } = {}) => {
+      if (!hasResolvedNetworkState) {
+        return;
+      }
+
       if (!projectId) {
         setItemsByTab(createEmptyTabData(tabs));
         setCounts(EMPTY_COUNTS);
         setError("");
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
+      const isSupervisorOfflineMode =
+        !isOnline &&
+        roleAccess.canEditChecklist &&
+        !roleAccess.canReviewChecklist;
+
+      if (isSupervisorOfflineMode) {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        setError("");
+
+        try {
+          const commentedResponse = await getCachedOmsWorkStatus({
+            ownerUserId,
+            projectId,
+            status: TAB_STATUS_QUERY.Commented,
+            search,
+          });
+
+          const nextItemsByTab = createEmptyTabData(tabs);
+          const commentedItems = (commentedResponse?.items || [])
+            .map((item) => createWorkItem(item))
+            .filter((item) => matchesStageFilter(item, stageLabel));
+
+          nextItemsByTab.Commented = commentedItems;
+          setItemsByTab(nextItemsByTab);
+          setCounts(createSupervisorOfflineCounts(commentedItems));
+        } catch (nextError) {
+          setItemsByTab(createEmptyTabData(tabs));
+          setCounts(EMPTY_COUNTS);
+          setError(
+            nextError?.message ||
+              "Unable to load offline commented work items right now."
+          );
+        } finally {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+
+        return;
+      }
+
+      if (!isOnline) {
+        setItemsByTab(createEmptyTabData(tabs));
+        setCounts(EMPTY_COUNTS);
+        setError(
+          "Network unavailable. Please check your connection and try again."
+        );
         setIsLoading(false);
         setIsRefreshing(false);
         return;
@@ -460,6 +637,11 @@ const useWorkStatusViewModel = (navigation, route) => {
               status: TAB_STATUS_QUERY[tab],
               search,
               ownerUserId,
+              saveToCache:
+                roleAccess.canEditChecklist &&
+                !roleAccess.canReviewChecklist &&
+                tab === "Commented",
+              fallbackToCache: false,
             });
 
             return {
@@ -504,7 +686,17 @@ const useWorkStatusViewModel = (navigation, route) => {
         }
       }
     },
-    [ownerUserId, projectId, stageLabel, tabs, search]
+    [
+      hasResolvedNetworkState,
+      isOnline,
+      ownerUserId,
+      projectId,
+      roleAccess.canEditChecklist,
+      roleAccess.canReviewChecklist,
+      stageLabel,
+      tabs,
+      search,
+    ]
   );
 
   useEffect(() => {
@@ -559,32 +751,47 @@ const useWorkStatusViewModel = (navigation, route) => {
 
   const openWorkItem = useCallback(
     (item) => {
-      const displayOmsName = item?.omsName || item?.omsId || "OMS";
-      const unit = {
-        id: item?.unitId || item?.omsId || "",
-        unitNo: displayOmsName,
-        nodeName: displayOmsName,
-        subChakQuantity: item?.subCheckQty ?? null,
-        subCheckQty: item?.subCheckQty ?? null,
-      };
-      const processRoute = resolveProcessRoute(item);
+      const isCommentedItem =
+        String(item?.requestBucket || "").trim().toLowerCase() === "commented";
+      const canRectifyCommentedItem =
+        isCommentedItem &&
+        roleAccess.canEditChecklist &&
+        !roleAccess.canReviewChecklist;
 
-      if (roleAccess.canReviewChecklist) {
-        setSelectedWorkItem(item);
-        return;
+      if (canRectifyCommentedItem) {
+        const resolvedRoute = resolveProcessRoute(item);
+
+        if (resolvedRoute) {
+          navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
+            module,
+            unit: {
+              id: item?.unitId || "",
+              unitNo: item?.omsName || item?.omsId || "",
+              omsId: item?.omsId || "",
+              projectId: item?.projectId || projectId || "",
+            },
+            unitId: item?.unitId || "",
+            projectId: item?.projectId || projectId || "",
+            projectName,
+            sectionKey: resolvedRoute.sectionKey,
+            subOptionId: resolvedRoute.subOptionId,
+            workItem: item,
+          });
+          return;
+        }
       }
 
-      navigation.navigate(ROUTES.ROOT.UNIT_STATUS_UPDATE, {
-        module,
-        unit,
-        projectId: projectId || item?.projectId || "",
-        projectName,
-        sectionKey: processRoute?.sectionKey,
-        subOptionId: processRoute?.subOptionId,
-        workItem: item,
-      });
+      setSelectedWorkItem(item);
     },
-    [module, navigation, projectId, projectName, resolveProcessRoute, roleAccess.canReviewChecklist]
+    [
+      module,
+      navigation,
+      projectId,
+      projectName,
+      resolveProcessRoute,
+      roleAccess.canEditChecklist,
+      roleAccess.canReviewChecklist,
+    ]
   );
 
   const closeWorkItemSheet = useCallback(() => {
@@ -703,17 +910,10 @@ const useWorkStatusViewModel = (navigation, route) => {
   );
 
   const getUnitSubtitle = useCallback((item) => {
+    const actorSummary = getWorkItemActorSummary(item);
     const parts = [
-      item?.submittedByName
-        ? `By ${item.submittedByName}`
-        : item?.verifiedByName
-        ? `By ${item.verifiedByName}`
-        : item?.approvedByName
-        ? `By ${item.approvedByName}`
-        : item?.rejectedByName
-        ? `By ${item.rejectedByName}`
-        : "",
-      item?.subCheckQty ? `${item.subCheckQty} checks` : "",
+      actorSummary.label,
+      actorSummary.date,
     ].filter(Boolean);
 
     return parts.join(" • ");

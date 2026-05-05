@@ -16,7 +16,6 @@ const SUBMITTED_LOOKUP_STATUSES = [
   "failed",
   "syncing",
   "draft_ready",
-  "synced",
 ];
 const LOG_PREFIX = "[ChecklistLocal]";
 const OMS_SUBMISSION_API_PATH = "/api/v1/oms/submissions";
@@ -812,6 +811,18 @@ const updateQueuedSubmission = async (submissionId, updater) =>
     return saveQueuedSubmission(nextSubmission);
   });
 
+const deleteQueuedSubmission = async (submissionId) =>
+  withQueueLock(async () => {
+    const db = await getDatabase();
+    await db.executeSql(
+      `
+        DELETE FROM checklist_submission_queue
+        WHERE id = ?;
+      `,
+      [submissionId]
+    );
+  });
+
 export const buildChecklistSubmitJson = (submission) => {
   const photos = submission.payload?.photos || [];
 
@@ -1305,6 +1316,7 @@ const syncQueue = async ({
       await removeSyncedCommentedWorkStatusCache(candidate.payload);
       await deleteSubmissionPhotos(candidate.id);
       await deleteSubmissionDraft(candidate.id);
+      await deleteQueuedSubmission(candidate.id);
 
       result.synced += 1;
       result.syncedIds.push(candidate.id);

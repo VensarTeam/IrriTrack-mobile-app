@@ -14,6 +14,12 @@ import {
   submitChecklistOfflineFirst,
 } from "../services/checklistOfflineSync";
 import { compressChecklistImage } from "../services/checklistImageStorage";
+import {
+  buildChecklistImageDraftScopeKey,
+  clearChecklistImageDraft,
+  getChecklistImageDraft,
+  saveChecklistImageDraft,
+} from "../services/checklistImageDraftStore";
 import { saveChecklistMediaToDeviceGallery } from "../services/deviceGallery";
 import { submitOmsReviewAction } from "../services/omsReviewService";
 import {
@@ -298,6 +304,160 @@ const getProgressChecklistMatch = (
   return null;
 };
 
+const hasMeaningfulServerValue = (value) => {
+  if (value === null || typeof value === "undefined") {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasMeaningfulServerValue(item));
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value).some((item) => hasMeaningfulServerValue(item));
+  }
+
+  return false;
+};
+
+const getServerChecklistRawValue = (checklist = null) =>
+  checklist?.detail?.rawValue ??
+  checklist?.detail?.value ??
+  checklist?.rawChecklist?.value;
+
+const checklistHasServerFilledValue = (checklist = null) => {
+  if (!checklist) {
+    return false;
+  }
+
+  const rawValue = getServerChecklistRawValue(checklist);
+  const objectKey = checklist?.rawChecklist?.objectKey;
+  const metadata = checklist?.rawChecklist?.metadata;
+
+  return (
+    hasMeaningfulServerValue(rawValue) ||
+    hasMeaningfulServerValue(objectKey) ||
+    hasMeaningfulServerValue(metadata?.objectKey) ||
+    hasMeaningfulServerValue(metadata?.originalName) ||
+    hasMeaningfulServerValue(metadata?.original_name)
+  );
+};
+
+const subprocessHasServerFilledData = (subprocess = null) =>
+  Boolean(
+    (subprocess?.checklists || []).some((checklist) =>
+      checklistHasServerFilledValue(checklist)
+    ) ||
+      (subprocess?.detailItems || []).some((item) =>
+        hasMeaningfulServerValue(item?.rawValue ?? item?.value)
+      ) ||
+      (subprocess?.rawSubprocess?.resubmitImages || []).length
+  );
+
+const toServerChecklistCheckedValue = (checklist = null, fallbackValue = false) => {
+  if (!checklist) {
+    return fallbackValue;
+  }
+
+  const rawValue = getServerChecklistRawValue(checklist);
+
+  if (typeof rawValue === "boolean") {
+    return rawValue;
+  }
+
+  if (typeof rawValue === "number") {
+    return rawValue !== 0;
+  }
+
+  if (typeof rawValue === "string") {
+    const normalizedValue = normalizeText(rawValue);
+
+    if (
+      normalizedValue === "yes" ||
+      normalizedValue === "true" ||
+      normalizedValue === "completed" ||
+      normalizedValue === "done"
+    ) {
+      return true;
+    }
+
+    if (
+      normalizedValue === "no" ||
+      normalizedValue === "false" ||
+      normalizedValue === "pending" ||
+      normalizedValue === "not done"
+    ) {
+      return false;
+    }
+  }
+
+  return checklistHasServerFilledValue(checklist) || fallbackValue;
+};
+
+const localPayloadHasFilledData = (payload = {}) => {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  if ((payload.photos || []).length) {
+    return true;
+  }
+
+  if ((payload.checklist || []).some((item) => item?.checked || item?.response)) {
+    return true;
+  }
+
+  if (
+    (payload.selectValues || []).some((item) =>
+      hasMeaningfulServerValue(item?.value)
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    (payload.inputValues || []).some((item) =>
+      hasMeaningfulServerValue(item?.value)
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    (payload.repeatableValues || []).some(
+      (group) => Array.isArray(group?.items) && group.items.length > 0
+    )
+  ) {
+    return true;
+  }
+
+  if (hasMeaningfulServerValue(payload.remark)) {
+    return true;
+  }
+
+  if (hasMeaningfulServerValue(payload.updatedLocation || payload.updated_location)) {
+    return true;
+  }
+
+  return (payload.answers || []).some((answer) => {
+    const normalizedDescription = normalizeText(answer?.description || "");
+
+    if (normalizedDescription === "status" || normalizedDescription === "remark") {
+      return false;
+    }
+
+    return hasMeaningfulServerValue(answer?.value);
+  });
+};
+
 const toSentenceCase = (value = "") => {
   const text = String(value || "").trim();
 
@@ -424,15 +584,10 @@ const toFormStatusValue = (value = "") => {
 const getReadOnlyTitleFromStatus = ({
   isRoleReadOnly = false,
   serverStatusKey = "",
-  hasSavedLocalCommentedResubmission = false,
   submittedFromLocal = false,
 } = {}) => {
   if (isRoleReadOnly) {
     return "View Only";
-  }
-
-  if (hasSavedLocalCommentedResubmission) {
-    return "Already Updated";
   }
 
   if (submittedFromLocal) {
@@ -459,7 +614,6 @@ const getReadOnlyNoticeFromStatus = ({
   roleReadOnlyNotice = "",
   submittedFromServer = false,
   submittedFromLocal = false,
-  hasSavedLocalCommentedResubmission = false,
   serverStatusKey = "",
 } = {}) => {
   if (isRoleReadOnly) {
@@ -467,10 +621,6 @@ const getReadOnlyNoticeFromStatus = ({
       roleReadOnlyNotice ||
       "This role can review checklist data but cannot edit it."
     );
-  }
-
-  if (hasSavedLocalCommentedResubmission) {
-    return "This commented resubmission is already saved on this device and will sync when internet is available.";
   }
 
   if (submittedFromLocal) {
@@ -697,6 +847,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contractors, setContractors] = useState([]);
   const [localSubmissionSnapshots, setLocalSubmissionSnapshots] = useState({});
+  const [imageDraftSnapshots, setImageDraftSnapshots] = useState({});
+  const [areImageDraftsLoaded, setAreImageDraftsLoaded] = useState(false);
   const {
     progress,
     refreshProgress,
@@ -913,18 +1065,86 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     unit?.id,
   ]);
 
+  const getImageDraftScopeKey = useCallback(
+    (subOption) => {
+      const processId = toPositiveIntegerOrNull(
+        subOption?.apiProcessId || section.apiProcessId
+      );
+      const subprocessId = toPositiveIntegerOrNull(subOption?.apiSubprocessId);
+
+      if (!processId || !subprocessId) {
+        return "";
+      }
+
+      return buildChecklistImageDraftScopeKey({
+        ownerUserId,
+        module,
+        unitId: unit?.id || route?.params?.unitId || workItem?.unitId || "",
+        omsId: workItem?.omsId || unit?.omsId || unit?.id || "",
+        processId,
+        subprocessId,
+      });
+    },
+    [
+      module,
+      ownerUserId,
+      route?.params?.unitId,
+      section.apiProcessId,
+      unit?.id,
+      unit?.omsId,
+      workItem?.omsId,
+      workItem?.unitId,
+    ]
+  );
+
+  const loadImageDraftSnapshots = useCallback(async () => {
+    if (!section.subOptions.length) {
+      setImageDraftSnapshots({});
+      setAreImageDraftsLoaded(true);
+      return;
+    }
+
+    const nextSnapshots = {};
+
+    await Promise.all(
+      section.subOptions.map(async (subOption) => {
+        const scopeKey = getImageDraftScopeKey(subOption);
+
+        if (!scopeKey) {
+          return;
+        }
+
+        const snapshot = await getChecklistImageDraft({ scopeKey });
+
+        if (snapshot?.photos?.length) {
+          nextSnapshots[subOption.id] = snapshot;
+        }
+      })
+    );
+
+    setImageDraftSnapshots(nextSnapshots);
+    setAreImageDraftsLoaded(true);
+  }, [getImageDraftScopeKey, section.subOptions]);
+
   useEffect(() => {
     void loadLocalSnapshots();
   }, [loadLocalSnapshots]);
 
+  useEffect(() => {
+    setAreImageDraftsLoaded(false);
+    void loadImageDraftSnapshots();
+  }, [loadImageDraftSnapshots]);
+
   useFocusEffect(
     useCallback(() => {
       void loadLocalSnapshots();
+      void loadImageDraftSnapshots();
       void refreshProgress();
-    }, [loadLocalSnapshots, refreshProgress])
+    }, [loadImageDraftSnapshots, loadLocalSnapshots, refreshProgress])
   );
 
   const localSubmissionSnapshot = localSubmissionSnapshots[activeSubOption.id] || null;
+  const imageDraftSnapshot = imageDraftSnapshots[activeSubOption.id] || null;
   const stepSubmissionStateById = useMemo(
     () =>
       section.subOptions.reduce((acc, subOption) => {
@@ -947,9 +1167,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const serverStatusKey = isCommented
           ? "commented"
           : subprocessStatusKey || processStatusKey;
+        const hasServerFilledData = subprocessHasServerFilledData(
+          serverMatch?.subprocess
+        );
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
-          SUBMITTED_STATUS_KEYS.has(serverStatusKey)
+          !isCommented &&
+          hasServerFilledData
         );
         const submittedFromLocal = !isCommented && localSnapshot?.status === "synced";
 
@@ -957,13 +1181,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           processStatusKey,
           subprocessStatusKey,
           serverStatusKey,
+          hasServerFilledData,
           isCommented,
           submittedFromServer,
           submittedFromLocal,
           isSubmitted:
             (!isCommented && submittedFromServer) ||
             submittedFromLocal ||
-            (!isCommented && Boolean(localSnapshot?.payload)),
+            (!isCommented && localPayloadHasFilledData(localSnapshot?.payload)),
         };
 
         return acc;
@@ -978,34 +1203,33 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   );
   const activeSubmissionState = stepSubmissionStateById[activeSubOption.id] || {};
   const activeServerStatusKey = activeSubmissionState.serverStatusKey || "";
+  const activeServerHasFilledData = Boolean(
+    activeSubmissionState.hasServerFilledData
+  );
   const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
   const submittedFromServer = Boolean(activeSubmissionState.submittedFromServer);
   const submittedFromLocal = Boolean(activeSubmissionState.submittedFromLocal);
-  const hasSavedLocalCommentedResubmission = Boolean(
-    isCommentedForEdit &&
-      localSubmissionSnapshot?.payload &&
-      String(localSubmissionSnapshot.payload?.submission_mode || "")
-        .trim()
-        .toLowerCase() === "commented_resubmit"
+  const commentedRemark = String(workItem?.rejectionRemark || "").trim();
+  const localSnapshotHasFilledData = localPayloadHasFilledData(
+    localSubmissionSnapshot?.payload
   );
   const hasSavedLocalSubmission = Boolean(
-    !isCommentedForEdit && localSubmissionSnapshot?.payload
+    !isCommentedForEdit && localSnapshotHasFilledData
   );
   const hasLocalDraftSnapshot = Boolean(
-    localSubmissionSnapshot?.payload &&
-      (localSubmissionSnapshot?.status !== "synced" || isCommentedForEdit)
+    !isCommentedForEdit &&
+      localSnapshotHasFilledData &&
+      localSubmissionSnapshot?.status !== "synced"
   );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
   const isReadOnly =
     isRoleReadOnly ||
     (!isCommentedForEdit && submittedFromServer) ||
     submittedFromLocal ||
-    hasSavedLocalSubmission ||
-    hasSavedLocalCommentedResubmission;
+    hasSavedLocalSubmission;
   const readOnlyTitle = getReadOnlyTitleFromStatus({
     isRoleReadOnly,
     serverStatusKey: activeServerStatusKey,
-    hasSavedLocalCommentedResubmission,
     submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
   });
   const readOnlyNotice = getReadOnlyNoticeFromStatus({
@@ -1013,7 +1237,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     roleReadOnlyNotice: roleAccess.checklistReadOnlyNotice,
     submittedFromServer,
     submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
-    hasSavedLocalCommentedResubmission,
     serverStatusKey: activeServerStatusKey,
   });
   const canReviewChecklist = roleAccess.canReviewChecklist;
@@ -1042,21 +1265,31 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   useEffect(() => {
     const subOptionId = activeSubOption?.id;
-    const shouldHydrateFromServer = SERVER_PREFILL_STATUS_KEYS.has(
-      activeServerStatusKey
+    const shouldHydrateFromServer = Boolean(
+      !isCommentedForEdit && progressMatch?.subprocess && activeServerHasFilledData
     );
-    const shouldHydrateFromLocal = submittedFromLocal || hasLocalDraftSnapshot;
+    const shouldHydrateFromLocal =
+      !isCommentedForEdit && (submittedFromLocal || hasLocalDraftSnapshot);
+    const shouldHydrateFromImageDraft =
+      !shouldHydrateFromLocal &&
+      !shouldHydrateFromServer &&
+      Boolean(imageDraftSnapshot?.photos?.length);
 
     if (
       !subOptionId ||
-      (!isReadOnly && !shouldHydrateFromServer && !shouldHydrateFromLocal)
+      (!isReadOnly &&
+        !shouldHydrateFromServer &&
+        !shouldHydrateFromLocal &&
+        !shouldHydrateFromImageDraft)
     ) {
       return;
     }
 
     const hydrationSource = shouldHydrateFromLocal
       ? `local:${localSubmissionSnapshot?.id || ""}:${localSubmissionSnapshot?.updatedAt || ""}`
-      : buildProgressHydrationSignature(progressMatch);
+      : shouldHydrateFromImageDraft
+        ? `image-draft:${imageDraftSnapshot?.updatedAt || ""}`
+        : buildProgressHydrationSignature(progressMatch);
 
     if (hydratedSubOptionsRef.current[subOptionId] === hydrationSource) {
       return;
@@ -1101,7 +1334,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           item
         );
         nextValues.checks[item.id] = checklist
-          ? checklist.status.key !== "pending"
+          ? toServerChecklistCheckedValue(
+              checklist,
+              nextValues.checks[item.id]
+            )
           : nextValues.checks[item.id];
       });
 
@@ -1341,6 +1577,35 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
     }
 
+    if (shouldHydrateFromImageDraft && imageDraftSnapshot?.photos?.length) {
+      imageDraftSnapshot.photos.forEach((photo) => {
+        const requirement = hydrationPhotoRequirements.find(
+          (item) =>
+            String(item.requirementId || item.id) ===
+              String(photo.requirementId || "") ||
+            (photo.checklistId &&
+              String(item.checklistId) === String(photo.checklistId))
+        );
+
+        if (requirement) {
+          nextValues.photos[requirement.id] = {
+            uri: photo.uri || (photo.filePath ? `file://${photo.filePath}` : ""),
+            filePath: photo.filePath || "",
+            name: photo.name,
+            source: "cached",
+            sizeKb: photo.sizeKb,
+            width: photo.width,
+            height: photo.height,
+            mediaType: photo.mediaType,
+            type: photo.type,
+            takenAt: photo.takenAt || "Cached on device",
+            latitude: photo.latitude,
+            longitude: photo.longitude,
+          };
+        }
+      });
+    }
+
     hydratedSubOptionsRef.current[subOptionId] = hydrationSource;
     updateValuesForSubOption(subOptionId, nextValues);
   }, [
@@ -1348,8 +1613,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOption,
     checklistItems,
     formValues,
+    activeServerHasFilledData,
     hasLocalDraftSnapshot,
-    hasSavedLocalCommentedResubmission,
+    imageDraftSnapshot,
     allPhotoRequirements,
     inputFields,
     isCommentedForEdit,
@@ -1364,6 +1630,96 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     submittedFromServer,
     unit,
     isReadOnly,
+  ]);
+
+  useEffect(() => {
+    const subOptionId = activeSubOption?.id;
+    const scopeKey = getImageDraftScopeKey(activeSubOption);
+
+    if (!subOptionId || !scopeKey || !areImageDraftsLoaded) {
+      return;
+    }
+
+    const currentPhotos = activePhotoRequirements
+      .map((requirement) => {
+        const media = activeValues.photos?.[requirement.id];
+
+        if (!media?.uri || media?.source === "server") {
+          return null;
+        }
+
+        return {
+          requirementId: requirement.id,
+          checklistId: requirement.checklistId || null,
+          label: requirement.label,
+          uri: media.uri,
+          filePath: media.filePath || "",
+          name: media.name || "",
+          sizeKb: media.sizeKb ?? null,
+          width: media.width ?? null,
+          height: media.height ?? null,
+          mediaType: media.mediaType || "image",
+          type: media.type || "image/jpeg",
+          takenAt: media.takenAt || "",
+          latitude: media.latitude ?? null,
+          longitude: media.longitude ?? null,
+          source: "cached",
+        };
+      })
+      .filter(Boolean);
+
+    const existingDraftHydrationSource = `image-draft:${imageDraftSnapshot?.updatedAt || ""}`;
+    const hasPendingDraftRestore =
+      Boolean(imageDraftSnapshot?.photos?.length) &&
+      !currentPhotos.length &&
+      hydratedSubOptionsRef.current[subOptionId] !== existingDraftHydrationSource;
+    const currentPhotosSignature = JSON.stringify(currentPhotos);
+    const cachedPhotosSignature = JSON.stringify(imageDraftSnapshot?.photos || []);
+
+    if (hasPendingDraftRestore) {
+      return;
+    }
+
+    if (
+      currentPhotos.length &&
+      imageDraftSnapshot?.photos?.length &&
+      currentPhotosSignature === cachedPhotosSignature
+    ) {
+      return;
+    }
+
+    void (async () => {
+      if (currentPhotos.length) {
+        const savedDraft = await saveChecklistImageDraft({
+          scopeKey,
+          photos: currentPhotos,
+        });
+
+        setImageDraftSnapshots((currentValue) => ({
+          ...currentValue,
+          [subOptionId]: savedDraft,
+        }));
+        return;
+      }
+
+      await clearChecklistImageDraft({ scopeKey });
+      setImageDraftSnapshots((currentValue) => {
+        if (!currentValue[subOptionId]) {
+          return currentValue;
+        }
+
+        const nextValue = { ...currentValue };
+        delete nextValue[subOptionId];
+        return nextValue;
+      });
+    })();
+  }, [
+    activePhotoRequirements,
+    activeSubOption,
+    activeValues.photos,
+    areImageDraftsLoaded,
+    getImageDraftScopeKey,
+    imageDraftSnapshot,
   ]);
 
   const getChecklistProgress = () => {
@@ -1939,13 +2295,70 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
   };
 
-  const removeSelectedPhoto = (requirementId) => {
+  const removeSelectedPhoto = async (requirementId) => {
     if (isReadOnly) return;
-    updateActiveValues({
+    const nextPhotos = {
       photos: {
         ...activeValues.photos,
         [requirementId]: null,
       },
+    };
+
+    updateActiveValues(nextPhotos);
+
+    const scopeKey = getImageDraftScopeKey(activeSubOption);
+
+    if (!scopeKey) {
+      return;
+    }
+
+    const remainingPhotos = activePhotoRequirements
+      .filter((requirement) => requirement.id !== requirementId)
+      .map((requirement) => {
+        const media = activeValues.photos?.[requirement.id];
+
+        if (!media?.uri || media?.source === "server") {
+          return null;
+        }
+
+        return {
+          requirementId: requirement.id,
+          checklistId: requirement.checklistId || null,
+          label: requirement.label,
+          uri: media.uri,
+          filePath: media.filePath || "",
+          name: media.name || "",
+          sizeKb: media.sizeKb ?? null,
+          width: media.width ?? null,
+          height: media.height ?? null,
+          mediaType: media.mediaType || "image",
+          type: media.type || "image/jpeg",
+          takenAt: media.takenAt || "",
+          latitude: media.latitude ?? null,
+          longitude: media.longitude ?? null,
+          source: "cached",
+        };
+      })
+      .filter(Boolean);
+
+    if (remainingPhotos.length) {
+      const savedDraft = await saveChecklistImageDraft({
+        scopeKey,
+        photos: remainingPhotos,
+      });
+
+      setImageDraftSnapshots((currentValue) => ({
+        ...currentValue,
+        [activeSubOption.id]: savedDraft,
+      }));
+      return;
+    }
+
+    await clearChecklistImageDraft({ scopeKey });
+    setImageDraftSnapshots((currentValue) => {
+      const nextValue = { ...currentValue };
+      delete nextValue[activeSubOption.id];
+      return nextValue;
     });
   };
 
@@ -2480,7 +2893,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           [activeSubOption.id]: result.submission,
         }));
       }
+      const activeDraftScopeKey = getImageDraftScopeKey(activeSubOption);
+      if (activeDraftScopeKey) {
+        await clearChecklistImageDraft({ scopeKey: activeDraftScopeKey });
+        setImageDraftSnapshots((currentValue) => {
+          const nextValue = { ...currentValue };
+          delete nextValue[activeSubOption.id];
+          return nextValue;
+        });
+      }
       await loadLocalSnapshots();
+      await loadImageDraftSnapshots();
       await refreshProgress();
       console.log("[ChecklistSubmit]", "Submit result", {
         submissionId: result.submission?.id,
@@ -2618,6 +3041,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOptionId,
     stepSubmissionStateById,
     isCommentedForEdit,
+    commentedRemark,
     activeValues,
     activeErrors,
     showStatusField,
@@ -2625,6 +3049,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     isReadOnly,
     readOnlyTitle,
     readOnlyNotice,
+    commentedRemark,
     canReviewChecklist,
     canShowReviewActions,
     reviewActionNotice,

@@ -101,12 +101,12 @@ export default StyleSheet.create({
   },
 
   searchRow: {
-    marginHorizontal: moderateScale(15),
-    marginTop: verticalScale(10),
+    marginHorizontal: moderateScale(12),
+    marginBottom: verticalScale(4),
   },
 
   searchbar: {
-    borderRadius: moderateScale(16),
+    borderRadius: moderateScale(12),
     backgroundColor: colors.white,
     elevation: 0,
     shadowOpacity: 0,
@@ -257,9 +257,11 @@ export default StyleSheet.create({
 
   cardSubtitle: {
     marginTop: verticalScale(8),
-    fontSize: fontScale(12),
-    color: colors.textSecondary,
     marginLeft: moderateScale(9),
+    paddingRight: moderateScale(8),
+    fontSize: fontScale(11.2),
+    lineHeight: fontScale(15),
+    color: colors.textSecondary,
     fontFamily: fonts.medium,
   },
 
@@ -310,13 +312,29 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
-  cardRemarkText: {
-    flex: 1,
-    fontSize: fontScale(12),
-    color: colors.danger,
-    fontFamily: fonts.medium,
-    lineHeight: fontScale(14),
+  cardCommentBlock: {
+    marginTop: verticalScale(8),
+    marginLeft: moderateScale(9),
+    paddingLeft: moderateScale(10),
     paddingRight: moderateScale(8),
+    borderLeftWidth: 2,
+    borderLeftColor: "#E07A5F",
+  },
+
+  cardCommentLabel: {
+    fontSize: fontScale(10.2),
+    color: "#C44728",
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(2),
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  cardRemarkText: {
+    fontSize: fontScale(11.5),
+    color: "#9B3E28",
+    fontFamily: fonts.medium,
+    lineHeight: fontScale(16),
   },
 
   cardActionIcon: {
@@ -501,17 +519,17 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(6),
-    minHeight: verticalScale(32),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(7),
     borderRadius: moderateScale(999),
-    backgroundColor: "#EEF6FF",
+    backgroundColor: "#1a59a2",
     borderWidth: 1,
     borderColor: "#D5E7FB",
   },
 
   historyButtonText: {
-    fontSize: fontScale(10.5),
-    color: colors.primaryBlue,
+    fontSize: fontScale(11),
+    color: colors.white,
     fontFamily: fonts.bold,
   },
 
@@ -825,7 +843,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DDE7F1",
     paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(10),
+    paddingBottom: verticalScale(10),
   },
 
   fileName: {
@@ -931,11 +949,17 @@ export default StyleSheet.create({
 
   reviewActionButton: {
     flex: 1,
-    minHeight: verticalScale(46),
-    borderRadius: moderateScale(14),
+    minHeight: verticalScale(50),
+    borderRadius: moderateScale(16),
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+    paddingHorizontal: moderateScale(12),
+    shadowColor: "#061423",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
 
   reviewActionButtonDisabled: {
@@ -943,8 +967,8 @@ export default StyleSheet.create({
   },
 
   reviewRejectButton: {
-    backgroundColor: "#FFF3F0",
-    borderColor: "#E5B7AA",
+    backgroundColor: "#FFF7F4",
+    borderColor: "#E07A5F",
   },
 
   reviewCancelButton: {
@@ -953,18 +977,18 @@ export default StyleSheet.create({
   },
 
   reviewVerifyButton: {
-    backgroundColor: "#EAF3FF",
-    borderColor: "#B7D3F5",
+    backgroundColor: "#F3F8FF",
+    borderColor: "#4E8FE6",
   },
 
   reviewApproveButton: {
     backgroundColor: colors.primaryBlue,
-    borderColor: colors.primaryBlue,
+    borderColor: "#0D5AA7",
   },
 
   reviewRejectText: {
-    fontSize: fontScale(12),
-    color: colors.danger,
+    fontSize: fontScale(12.5),
+    color: "#C44728",
     fontFamily: fonts.bold,
   },
 
@@ -975,13 +999,13 @@ export default StyleSheet.create({
   },
 
   reviewVerifyText: {
-    fontSize: fontScale(12),
-    color: colors.primaryBlue,
+    fontSize: fontScale(12.5),
+    color: "#135EAF",
     fontFamily: fonts.bold,
   },
 
   reviewApproveText: {
-    fontSize: fontScale(12),
+    fontSize: fontScale(12.5),
     color: colors.white,
     fontFamily: fonts.bold,
   },
@@ -1022,6 +1046,15 @@ export default StyleSheet.create({
     borderColor: colors.cardBorder,
     paddingHorizontal: moderateScale(14),
     paddingVertical: verticalScale(14),
+  },
+
+  confirmationModalCard: {
+    borderRadius: moderateScale(18),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(16),
   },
 
   rejectModalTitle: {
