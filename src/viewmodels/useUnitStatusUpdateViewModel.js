@@ -2111,6 +2111,21 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return true;
   };
 
+  const requestGalleryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      showAppAlert({
+        type: "warning",
+        title: "Permission needed",
+        message: "Please allow gallery access to choose a photo.",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const confirmUpdatedLocation = () => {
     if (isReadOnly) return;
     if (!activeValues.pendingUpdatedLocation) return;
@@ -2283,6 +2298,43 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         await setSelectedPhoto(
           result.assets?.[0],
           "camera",
+          requirement,
+          captureLocationPromise
+        );
+      } finally {
+        setPhotoProcessingState({
+          requirementId: "",
+          message: "",
+        });
+      }
+    }
+  };
+
+  const pickFromGallery = async (requirement) => {
+    if (isReadOnly) return;
+    const hasPermission = await requestGalleryPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: requirement.allowVideo
+        ? ImagePicker.MediaTypeOptions.All
+        : ImagePicker.MediaTypeOptions.Images,
+      quality: 0.6,
+      allowsEditing: false,
+      selectionLimit: 1,
+    });
+
+    if (!result.canceled) {
+      setPhotoProcessingState({
+        requirementId: requirement.id,
+        message: "Preparing image and location...",
+      });
+
+      try {
+        const captureLocationPromise = getPhotoCaptureLocation();
+        await setSelectedPhoto(
+          result.assets?.[0],
+          "gallery",
           requirement,
           captureLocationPromise
         );
@@ -3087,6 +3139,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     confirmUpdatedLocation,
     discardPendingUpdatedLocation,
     pickFromCamera,
+    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     submitReviewAction,

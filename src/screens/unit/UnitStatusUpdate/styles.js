@@ -790,8 +790,19 @@ export default StyleSheet.create({
     backgroundColor: colors.surfaceBlue,
   },
 
+  uploadGalleryButton: {
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.white,
+  },
+
   uploadButtonText: {
     color: colors.primaryBlue,
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+  },
+
+  uploadGalleryButtonText: {
+    color: colors.textDark,
     fontSize: moderateScale(12),
     fontFamily: fonts.bold,
   },

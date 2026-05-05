@@ -357,6 +357,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
   const selectedDetailItems = selectedSubprocess?.detailItems || [];
+  const selectedCommentRemark = String(selectedWorkItem?.rejectionRemark || "").trim();
   const sheetBottomPadding = insets.bottom + 24;
   const historySheetBottomPadding = insets.bottom + 20;
 
@@ -1028,12 +1029,21 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     </View>
                   ) : null}
 
+                  {selectedWorkflowStatusKey === "commented" && selectedCommentRemark ? (
+                    <View style={styles.reviewDetailsSection}>
+                      <Text style={styles.sectionBlockTitle}>Comment</Text>
+                      <Text style={styles.reviewActionSubtitle}>
+                        {selectedCommentRemark}
+                      </Text>
+                    </View>
+                  ) : null}
+
                   {canReviewChecklist && selectedWorkflowStatusKey !== "info" ? (
                     <View style={styles.workflowSection}>
                       <Text style={styles.sectionBlockTitle}>Workflow</Text>
                       <Text style={styles.reviewActionSubtitle}>
                         {selectedWorkflowStatusKey === "commented"
-                          ? "This subprocess was commented and is waiting for field rectification."
+                          ? selectedCommentRemark || "This subprocess was commented and is waiting for field rectification."
                           : selectedWorkflowStatusKey === "approved"
                             ? "This subprocess is already approved."
                             : selectedWorkflowStatusKey === "verified" && !canApproveSelected

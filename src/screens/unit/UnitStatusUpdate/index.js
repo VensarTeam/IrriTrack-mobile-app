@@ -82,6 +82,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     isUpdatingLocation,
     isSubmitting,
     pickFromCamera,
+    pickFromGallery,
     removeSelectedPhoto,
     submitActiveSubOption,
     handleBack,
@@ -791,6 +792,23 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                                 : media
                                   ? "Retake Photo"
                                   : "Open Camera"}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.uploadButton,
+                              styles.uploadGalleryButton,
+                              !canEditPhoto && styles.fieldDisabled,
+                              isProcessingPhoto && styles.uploadButtonDisabled,
+                            ]}
+                            onPress={() => pickFromGallery(requirement)}
+                            activeOpacity={canEditPhoto ? 0.88 : 1}
+                            disabled={!canEditPhoto}
+                          >
+                            <Icons.gallery height={22} width={22} />
+                            <Text style={styles.uploadGalleryButtonText}>
+                              {media ? "Replace from Gallery" : "Open Gallery"}
                             </Text>
                           </TouchableOpacity>
                         </View>
