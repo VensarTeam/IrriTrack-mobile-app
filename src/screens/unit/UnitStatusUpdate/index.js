@@ -77,6 +77,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
+    useDefaultNodeLocation,
     confirmUpdatedLocation,
     discardPendingUpdatedLocation,
     isUpdatingLocation,
@@ -125,12 +126,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
       address: activeValues.updatedAddress || "Not updated",
       location: activeValues.updatedLocation,
       meta: activeValues.updatedAt
-        ? `Updated on ${activeValues.updatedAt}`
+        ? activeValues.updatedLocationSource === "default"
+          ? `Default location selected on ${activeValues.updatedAt}`
+          : `Updated on ${activeValues.updatedAt}`
         : "Current location not captured yet",
       disabled: !activeValues.updatedLocation,
     },
   ].filter((item) => !(item.key === "default" && item.disabled));
   const hasPendingUpdatedLocation = Boolean(activeValues.pendingUpdatedLocation);
+  const hasDefaultLocation = Boolean(activeValues.defaultLocation);
 
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
@@ -924,27 +928,46 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
                 <View style={styles.locationActionsRow}>
                   {activeSubOption.canUpdateLocation ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.locationBtn,
-                        styles.locationBtnPrimary,
-                        isUpdatingLocation && styles.locationBtnDisabled,
-                      ]}
-                      onPress={updateNodeLocation}
-                      disabled={isUpdatingLocation || isReadOnly}
-                      activeOpacity={isReadOnly ? 1 : 0.88}
-                    >
-                      {isUpdatingLocation ? (
-                        <ActivityIndicator size="small" color={colors.white} />
-                      ) : (
+                    <View style={styles.locationPrimaryActions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.locationBtn,
+                          styles.locationBtnPrimary,
+                          isUpdatingLocation && styles.locationBtnDisabled,
+                        ]}
+                        onPress={updateNodeLocation}
+                        disabled={isUpdatingLocation || isReadOnly}
+                        activeOpacity={isReadOnly ? 1 : 0.88}
+                      >
+                        {isUpdatingLocation ? (
+                          <ActivityIndicator size="small" color={colors.white} />
+                        ) : (
+                          <Icons.location height={22} width={22} />
+                        )}
+                        <Text style={styles.locationBtnPrimaryText}>
+                          {isUpdatingLocation
+                            ? "Fetching current location..."
+                            : "Update Location"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.locationBtn,
+                          styles.locationBtnSecondary,
+                          (!hasDefaultLocation || isReadOnly) &&
+                            styles.locationBtnDisabled,
+                        ]}
+                        onPress={useDefaultNodeLocation}
+                        disabled={!hasDefaultLocation || isReadOnly}
+                        activeOpacity={!hasDefaultLocation || isReadOnly ? 1 : 0.88}
+                      >
                         <Icons.location height={22} width={22} />
-                      )}
-                      <Text style={styles.locationBtnPrimaryText}>
-                        {isUpdatingLocation
-                          ? "Fetching current location..."
-                          : "Update Current Location"}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text style={styles.locationBtnSecondaryText}>
+                          Use Default Location
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   ) : null}
 
                   {hasPendingUpdatedLocation ? (

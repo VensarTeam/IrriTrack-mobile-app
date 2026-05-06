@@ -1010,6 +1010,12 @@ locationActionsRow: {
   gap: verticalScale(8),
 },
 
+locationPrimaryActions: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: moderateScale(10),
+},
+
 locationConfirmationCard: {
   borderRadius: moderateScale(16),
   borderWidth: 1,
@@ -1074,21 +1080,21 @@ locationBtnDisabled: {
 },
 
 locationBtnPrimaryText: {
-  fontSize: moderateScale(12.5),
+  fontSize: moderateScale(11.5),
   color: colors.white,
   fontFamily: fonts.bold,
   letterSpacing: 0.4,
 },
 
 locationBtnSecondary: {
-  backgroundColor: "transparent",
+  backgroundColor: colors.primaryGreen,
   borderWidth: 1.5,
-  borderColor: colors.primaryBlue,
+  borderColor: colors.primaryGreen,
 },
 
 locationBtnSecondaryText: {
-  fontSize: moderateScale(12.5),
-  color: colors.primaryBlue,
+  fontSize: moderateScale(11.5),
+  color: colors.white,
   fontFamily: fonts.bold,
   letterSpacing: 0.4,
 },

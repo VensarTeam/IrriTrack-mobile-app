@@ -16,6 +16,7 @@ import DeleteIcon from "./delete.svg";
 import UploadfileIcon from "./upload_file.svg";
 import SupportIcon from "./support.svg";
 import LocationIcon from "./location.svg";
+import LocationDefaultIcon from "./location2.svg";
 import SearchIcon from "./search.svg";
 import UpdateIcon from "./update.svg";
 import WorkIcon from "./list-status.svg";
@@ -43,5 +44,6 @@ export {
   SearchIcon,
   UpdateIcon,
   WorkIcon,
-  CameraIcon
+  CameraIcon,
+  LocationDefaultIcon,
 };

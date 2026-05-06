@@ -966,6 +966,31 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
   if (Array.isArray(payload.answers) && payload.answers.length) {
     return payload.answers
       .filter((item) => item?.checklist_id)
+      .filter((item) => {
+        const explicitValueType = String(item?.valueType || item?.value_type || "")
+          .trim()
+          .toLowerCase();
+        const inputType = String(item?.input_type || item?.inputType || "")
+          .trim()
+          .toLowerCase();
+        const isFileAnswer = explicitValueType === "file" || inputType === "photo";
+        const file = item?.file
+          ? {
+              ...item.file,
+              filePath:
+                item.file.file_path || item.file.filePath || item.file.local_uri,
+              uri:
+                item.file.local_uri || item.file.file_path || item.file.filePath,
+            }
+          : null;
+        const fileUri = String(file?.filePath || file?.uri || "").trim();
+
+        if (!isFileAnswer) {
+          return true;
+        }
+
+        return Boolean(fileUri) || !isChecklistValueEmpty(item?.value);
+      })
       .filter((item) => item?.is_required !== false || !isChecklistValueEmpty(item?.value))
       .map((item) => {
         const file = item?.file

@@ -518,6 +518,7 @@ const getInitialFormValues = (section, unit) => {
       updatedLocation: null,
       updatedAddress: "",
       updatedAt: null,
+      updatedLocationSource: "",
       pendingUpdatedLocation: null,
       pendingUpdatedAddress: "",
       pendingUpdatedAt: null,
@@ -1403,8 +1404,27 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         );
 
         if (coordinates) {
+          const locationValue =
+            locationChecklist?.detail?.rawValue ??
+            locationChecklist?.detail?.value ??
+            locationChecklist?.rawChecklist?.value ??
+            {};
           nextValues.updatedLocation = coordinates;
-          nextValues.updatedAddress = formatCoordinates(coordinates);
+          nextValues.updatedAddress =
+            locationValue?.updated_address ||
+            locationValue?.updatedAddress ||
+            formatCoordinates(coordinates);
+          nextValues.updatedAt =
+            locationValue?.updated_at ||
+            locationValue?.updatedAt ||
+            locationChecklist?.rawChecklist?.updatedAt ||
+            locationChecklist?.rawChecklist?.submittedAt ||
+            nextValues.updatedAt;
+          nextValues.updatedLocationSource = String(
+            locationValue?.updated_location_source ||
+              locationValue?.updatedLocationSource ||
+              ""
+          ).trim();
           nextValues.pendingUpdatedLocation = null;
           nextValues.pendingUpdatedAddress = "";
           nextValues.pendingUpdatedAt = null;
@@ -1534,6 +1554,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             answer?.value?.updated_address ||
             answer?.value?.updatedAddress ||
             formatCoordinates(coordinates);
+          nextValues.updatedAt =
+            answer?.value?.updated_at ||
+            answer?.value?.updatedAt ||
+            nextValues.updatedAt;
+          nextValues.updatedLocationSource = String(
+            answer?.value?.updated_location_source ||
+              answer?.value?.updatedLocationSource ||
+              ""
+          ).trim();
           nextValues.pendingUpdatedLocation = null;
           nextValues.pendingUpdatedAddress = "";
           nextValues.pendingUpdatedAt = null;
@@ -2136,6 +2165,39 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         activeValues.pendingUpdatedAddress ||
         formatCoordinates(activeValues.pendingUpdatedLocation),
       updatedAt: activeValues.pendingUpdatedAt || new Date().toLocaleString(),
+      updatedLocationSource: "current",
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
+    });
+    clearFieldError("form");
+  };
+
+  const useDefaultNodeLocation = () => {
+    if (isReadOnly) return;
+
+    const latitude = Number(activeValues.defaultLocation?.latitude);
+    const longitude = Number(activeValues.defaultLocation?.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      showAppAlert({
+        type: "warning",
+        title: "Default location unavailable",
+        message: "This unit does not have a saved default location yet.",
+      });
+      return;
+    }
+
+    updateActiveValues({
+      updatedLocation: {
+        latitude,
+        longitude,
+      },
+      updatedAddress:
+        activeValues.defaultAddress ||
+        formatCoordinates(activeValues.defaultLocation),
+      updatedAt: new Date().toLocaleString(),
+      updatedLocationSource: "default",
       pendingUpdatedLocation: null,
       pendingUpdatedAddress: "",
       pendingUpdatedAt: null,
@@ -2521,8 +2583,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       activeSubOption.canUpdateLocation &&
       !activeValues.updatedLocation
     ) {
-      nextErrors.form = "Please update current location";
-      setFirstErrorMessage("Please update current location");
+      nextErrors.form = "Please update current location or use default location";
+      setFirstErrorMessage("Please update current location or use default location");
     }
 
     const missingChecklistItems = checklistItems.filter(
@@ -2718,6 +2780,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           updated_location: activeValues.updatedLocation,
           updated_address: activeValues.updatedAddress,
           updated_at: activeValues.updatedAt,
+          updated_location_source: activeValues.updatedLocationSource || null,
         })
       );
     }
@@ -2782,11 +2845,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     activePhotoRequirements.forEach((requirement) => {
       const media = activeValues.photos?.[requirement.id] || null;
-      if (requirement.synthetic) {
+      const mediaPath = media?.filePath || media?.uri || "";
+
+      if (requirement.synthetic || !mediaPath) {
         return;
       }
       answers.push(
-        buildAnswer(requirement, media?.filePath || media?.uri || "", {
+        buildAnswer(requirement, mediaPath, {
           valueType: "file",
           file: media
             ? {
@@ -3197,6 +3262,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
+    useDefaultNodeLocation,
     confirmUpdatedLocation,
     discardPendingUpdatedLocation,
     pickFromCamera,

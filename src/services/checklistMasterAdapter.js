@@ -170,6 +170,10 @@ const getChecklistBase = (checklist = {}) => ({
 });
 
 const getFieldLabel = (checklist = {}) => {
+  if (isOutletPipeCountChecklist(checklist)) {
+    return checklist.description;
+  }
+
   const rawInputUnit = String(checklist.input_unit || "").trim();
   const normalizedInputUnit = rawInputUnit.toLowerCase();
   const hasRealInputUnit =
