@@ -78,6 +78,17 @@ const normalizeContractors = (contractors = []) =>
     .map((contractor) => normalizeContractor(contractor))
     .filter((contractor) => contractor.id && contractor.firmName);
 
+const buildFallbackContractorId = (contractor = {}) => {
+  const firmPart = String(contractor?.firmName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const mobilePart = String(contractor?.mobileNumber || "").trim();
+
+  return `local-${mobilePart || firmPart || Date.now()}`;
+};
+
 const fetchContractorsFromApi = async () => {
   let lastNotFoundError = null;
 
@@ -156,4 +167,60 @@ export const getCachedContractorList = async () => {
     warnContractor("Unable to parse contractor cache", error);
     return [];
   }
+};
+
+export const upsertCachedContractor = async (contractor = {}) => {
+  const db = await getDatabase();
+  const [result] = await db.executeSql(
+    `
+      SELECT contractors_json
+      FROM contractor_master_cache
+      WHERE id = ?
+      LIMIT 1;
+    `,
+    [CONTRACTOR_CACHE_ID]
+  );
+
+  let cachedContractors = [];
+
+  if (result.rows.length) {
+    try {
+      cachedContractors = normalizeContractors(
+        JSON.parse(result.rows.item(0).contractors_json || "[]")
+      );
+    } catch (error) {
+      warnContractor("Unable to parse contractor cache before upsert", error);
+    }
+  }
+
+  const normalizedContractor = normalizeContractor({
+    ...contractor,
+    id: contractor?.id || buildFallbackContractorId(contractor),
+  });
+
+  if (!normalizedContractor.firmName) {
+    return cachedContractors;
+  }
+
+  const nextContractors = [
+    normalizedContractor,
+    ...cachedContractors.filter((item) => item.id !== normalizedContractor.id),
+  ];
+  const refreshedAt = new Date().toISOString();
+
+  await db.executeSql(
+    `
+      INSERT OR REPLACE INTO contractor_master_cache
+        (id, contractors_json, refreshed_at)
+      VALUES (?, ?, ?);
+    `,
+    [CONTRACTOR_CACHE_ID, JSON.stringify(nextContractors), refreshedAt]
+  );
+
+  logContractor("Contractor upserted in SQLite cache", {
+    contractorId: normalizedContractor.id,
+    firmName: normalizedContractor.firmName,
+  });
+
+  return nextContractors;
 };

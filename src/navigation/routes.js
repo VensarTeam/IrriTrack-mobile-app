@@ -2,6 +2,7 @@ export const ROUTES = {
   ROOT: {
     AUTH_STACK: "AuthStack",
     APP_TABS: "AppTabs",
+    ADD_CONTRACTOR: "AddContractor",
     PROJECT_DETAILS: "ProjectDetails",
     WORK_STATUS: "WorkStatus",
     UNIT_LIST_SCREEN: "UnitListScreen",

@@ -210,6 +210,7 @@ export default StyleSheet.create({
   },
 
   card: {
+    position: "relative",
     marginBottom: verticalScale(12),
     paddingHorizontal: moderateScale(15),
     paddingVertical: verticalScale(15),
@@ -225,8 +226,12 @@ export default StyleSheet.create({
   },
 
   cardTopRow: {
+    gap: verticalScale(8),
+  },
+
+  cardHeaderRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: moderateScale(12),
   },
@@ -234,6 +239,14 @@ export default StyleSheet.create({
   cardTextWrap: {
     flex: 1,
     minWidth: 0,
+  },
+
+  cardBodyWrap: {
+    width: "100%",
+  },
+
+  cardStatusWrap: {
+    alignSelf: "flex-start",
   },
 
   cardEyebrow: {
@@ -255,12 +268,64 @@ export default StyleSheet.create({
     marginLeft: moderateScale(9), 
   },
 
-  cardSubtitle: {
-    marginTop: verticalScale(8),
-    marginLeft: moderateScale(9),
-    paddingRight: moderateScale(8),
-    fontSize: fontScale(11.2),
-    lineHeight: fontScale(15),
+  cardMetaGroup: {
+    width: "100%",
+    marginTop: verticalScale(4),
+    gap: verticalScale(5),
+  },
+
+  workflowMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(10),
+    backgroundColor: "#F7FAFD",
+    borderWidth: 1,
+    borderColor: "#E7EEF5",
+  },
+
+  workflowMetaTag: {
+    minWidth: moderateScale(72),
+    paddingHorizontal: moderateScale(7),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  workflowMetaTagText: {
+    fontSize: fontScale(9.6),
+    fontFamily: fonts.bold,
+  },
+
+  workflowMetaContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 0,
+    marginLeft: moderateScale(8),
+  },
+
+  workflowMetaActor: {
+    fontSize: fontScale(11),
+    lineHeight: fontScale(13),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
+  },
+
+  workflowMetaDate: {
+    fontSize: fontScale(9.8),
+    lineHeight: fontScale(12),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  workflowMetaSeparator: {
+    marginHorizontal: moderateScale(6),
+    fontSize: fontScale(10),
+    lineHeight: fontScale(12),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
   },

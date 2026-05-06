@@ -15,21 +15,31 @@ import colors from "../../constants/colors";
 import { APP_VERSION } from "../../constants/appInfo";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
 
+const toTitleCase = (value = "") =>
+  String(value || "")
+    .trim()
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
 const ProfileScreen = ({ navigation }) => {
   const {
     user,
     initials,
     canShowSyncActions,
+    canShowAddContractor,
     isRefreshingProfile,
     isSyncingMasterData,
     isSyncingOmsData,
     handleRefreshProfile,
     handleSyncMasterData,
     handleSyncOmsData,
+    handleOpenAddContractor,
     handleLogout,
   } = useProfileViewModel(navigation);
   const isActiveUser = user.isActive === true;
-  const designation = user.designation || "No designation";
+  const role = toTitleCase(user.role) || "No Role Assigned";
 
   return (
     <View style={styles.screen}>
@@ -93,7 +103,7 @@ const ProfileScreen = ({ navigation }) => {
           style={styles.designationPill}
         >
           <Text style={styles.designationText} numberOfLines={1}>
-            {designation}
+            {role}
           </Text>
         </LinearGradient>
 
@@ -102,10 +112,30 @@ const ProfileScreen = ({ navigation }) => {
           <InfoRow icon="email-outline" label="Email" value={user.email} />
           <InfoRow
             icon="briefcase-outline"
-            label="Designation"
-            value={user.designation}
+            label="Role"
+            value={role}
           />
         </View>
+
+        {canShowAddContractor ? (
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={handleOpenAddContractor}
+            activeOpacity={0.9}
+          >
+            <View style={styles.actionCardIconWrap}>
+              <Icon source="account-plus-outline" size={22} color={colors.navyFreshDark} />
+            </View>
+
+            <View style={styles.actionCardCopy}>
+              <Text style={styles.actionCardTitle}>Add Contractor</Text>
+            </View>
+
+            <View style={styles.actionCardArrowWrap}>
+              <Icon source="chevron-right" size={22} color={colors.primaryBlue} />
+            </View>
+          </TouchableOpacity>
+        ) : null}
 
         {canShowSyncActions ? (
           <View style={styles.syncCard}>

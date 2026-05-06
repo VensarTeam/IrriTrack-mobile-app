@@ -68,6 +68,25 @@ const TAB_THEME = {
   }
 };
 
+const WORKFLOW_ROW_THEME = {
+  submitted: {
+    soft: "#FFF1E7",
+    accent: "#D96D14",
+  },
+  verified: {
+    soft: "#ECF4FF",
+    accent: "#123B63",
+  },
+  approved: {
+    soft: "#EDFCF4",
+    accent: "#108D57",
+  },
+  commented: {
+    soft: "#FFF1EC",
+    accent: "#A8472E",
+  },
+};
+
 const formatHistoryDate = (value) => {
   if (!value) return "";
   try {
@@ -334,7 +353,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     updateReviewRemark,
     submitWorkItemAction,
     refreshSelectedProgress,
-    getUnitSubtitle,
+    getUnitStatusDetails,
     getUnitWorkBucket,
     handleBack,
   } = useWorkStatusViewModel(navigation, route);
@@ -545,27 +564,65 @@ const WorkStatusScreen = ({ route, navigation }) => {
     ({ item }) => {
       const bucket = getUnitWorkBucket(item);
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
-      const unitSubtitle = getUnitSubtitle(item);
+      const statusDetails = getUnitStatusDetails(item);
 
       return (
         <TouchableOpacity style={styles.card} onPress={() => openWorkItem(item)} activeOpacity={0.9}>
           <View style={styles.cardTopRow}>
-            <View style={styles.cardTextWrap}>
-              <Text style={styles.cardEyebrow} numberOfLines={1}>
-               OMS - {item?.omsName || "NODE"}
-              </Text>
-              <Text style={styles.cardTitle} numberOfLines={1}>
-                {item?.processName || "Process"}
-              </Text>
-              <View style={styles.subprocessHighlight}>
-                <Text style={styles.subprocessHighlightText} numberOfLines={1}>
-                  {item?.subprocessName || "Subprocess"}
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardTextWrap}>
+                <Text style={styles.cardEyebrow} numberOfLines={1}>
+                  OMS - {item?.omsName || "NODE"}
                 </Text>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item?.processName || "Process"}
+                </Text>
+                <View style={styles.subprocessHighlight}>
+                  <Text style={styles.subprocessHighlightText} numberOfLines={1}>
+                    {item?.subprocessName || "Subprocess"}
+                  </Text>
+                </View>
               </View>
-              {unitSubtitle ? (
-                <Text style={styles.cardSubtitle}>
-                  {unitSubtitle}
-                </Text>
+
+              <View style={styles.cardStatusWrap}>
+                <View style={[styles.statusPill, { backgroundColor: theme.soft, borderColor: theme.solid }]}>
+                  <Icon source={theme.icon} size={16} color={theme.accent} />
+                  <Text style={[styles.statusPillText, { color: theme.accent }]}>{bucket}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.cardBodyWrap}>
+              {statusDetails.length ? (
+                <View style={styles.cardMetaGroup}>
+                  {statusDetails.map((detail) => {
+                    const rowTheme = WORKFLOW_ROW_THEME[detail.key] || WORKFLOW_ROW_THEME.submitted;
+
+                    return (
+                      <View key={detail.key} style={styles.workflowMetaRow}>
+                        <View style={[styles.workflowMetaTag, { backgroundColor: rowTheme.soft }]}>
+                          <Text style={[styles.workflowMetaTagText, { color: rowTheme.accent }]}>
+                            {detail.stage}
+                          </Text>
+                        </View>
+
+                        <View style={styles.workflowMetaContent}>
+                          <Text style={styles.workflowMetaActor} numberOfLines={1}>
+                            {detail.actorName}
+                          </Text>
+                          {detail.date ? (
+                            <>
+                              <Text style={styles.workflowMetaSeparator}>•</Text>
+                              <Text style={styles.workflowMetaDate} numberOfLines={1}>
+                                {detail.date}
+                              </Text>
+                            </>
+                          ) : null}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
               ) : null}
               {item?.rejectionRemark ? (
                 <View style={styles.cardCommentBlock}>
@@ -575,11 +632,6 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
               ) : null}
-            </View>
-
-            <View style={[styles.statusPill, { backgroundColor: theme.soft, borderColor: theme.solid }]}>
-              <Icon source={theme.icon} size={16} color={theme.accent} />
-              <Text style={[styles.statusPillText, { color: theme.accent }]}>{bucket}</Text>
             </View>
           </View>
 
@@ -600,7 +652,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       );
     },
-    [canReviewChecklist, getUnitSubtitle, getUnitWorkBucket, openWorkItem]
+    [getUnitStatusDetails, getUnitWorkBucket, openWorkItem]
   );
 
   return (

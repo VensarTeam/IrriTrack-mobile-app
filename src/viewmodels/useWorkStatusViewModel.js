@@ -300,76 +300,41 @@ const formatWorkStatusDate = (value) => {
   }
 };
 
-const getWorkItemActorSummary = (item = {}) => {
-  const requestBucket = String(item?.requestBucket || "").trim().toLowerCase();
-
-  if (requestBucket === "commented" && item?.rejectedByName) {
-    return {
-      label: `Commented by ${item.rejectedByName}`,
-      date: formatWorkStatusDate(item.rejectedAt),
-    };
-  }
-
-  if (requestBucket === "approved" && item?.approvedByName) {
-    return {
-      label: `Approved by ${item.approvedByName}`,
-      date: formatWorkStatusDate(item.approvedAt),
-    };
-  }
-
-  if (requestBucket === "verified" && item?.verifiedByName) {
-    return {
-      label: `Verified by ${item.verifiedByName}`,
-      date: formatWorkStatusDate(item.verifiedAt),
-    };
-  }
-
-  if (
-    (requestBucket === "pending" ||
-      requestBucket === "submitted" ||
-      requestBucket === "requests" ||
-      requestBucket === "info") &&
+const getWorkItemStatusDetails = (item = {}) =>
+  [
     item?.submittedByName
-  ) {
-    return {
-      label: `Submitted by ${item.submittedByName}`,
-      date: formatWorkStatusDate(item.submittedAt),
-    };
-  }
-
-  if (item?.submittedByName) {
-    return {
-      label: `Submitted by ${item.submittedByName}`,
-      date: formatWorkStatusDate(item.submittedAt),
-    };
-  }
-
-  if (item?.verifiedByName) {
-    return {
-      label: `Verified by ${item.verifiedByName}`,
-      date: formatWorkStatusDate(item.verifiedAt),
-    };
-  }
-
-  if (item?.approvedByName) {
-    return {
-      label: `Approved by ${item.approvedByName}`,
-      date: formatWorkStatusDate(item.approvedAt),
-    };
-  }
-
-  if (item?.rejectedByName) {
-    return {
-      label: `Commented by ${item.rejectedByName}`,
-      date: formatWorkStatusDate(item.rejectedAt),
-    };
-  }
-
-  return {
-    label: "",
-    date: "",
-  };
-};
+      ? {
+          key: "submitted",
+          stage: "Submitted",
+          actorName: item.submittedByName,
+          date: formatWorkStatusDate(item.submittedAt),
+        }
+      : null,
+    item?.verifiedByName
+      ? {
+          key: "verified",
+          stage: "Verified",
+          actorName: item.verifiedByName,
+          date: formatWorkStatusDate(item.verifiedAt),
+        }
+      : null,
+    item?.approvedByName
+      ? {
+          key: "approved",
+          stage: "Approved",
+          actorName: item.approvedByName,
+          date: formatWorkStatusDate(item.approvedAt),
+        }
+      : null,
+    item?.rejectedByName
+      ? {
+          key: "commented",
+          stage: "Commented",
+          actorName: item.rejectedByName,
+          date: formatWorkStatusDate(item.rejectedAt),
+        }
+      : null,
+  ].filter(Boolean);
 
 const useWorkStatusViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
@@ -909,15 +874,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     ]
   );
 
-  const getUnitSubtitle = useCallback((item) => {
-    const actorSummary = getWorkItemActorSummary(item);
-    const parts = [
-      actorSummary.label,
-      actorSummary.date,
-    ].filter(Boolean);
-
-    return parts.join(" • ");
-  }, []);
+  const getUnitStatusDetails = useCallback((item) => getWorkItemStatusDetails(item), []);
 
   const getUnitWorkBucket = useCallback(
     (item) => item?.requestBucket || "Requests",
@@ -977,7 +934,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     updateReviewRemark,
     submitWorkItemAction,
     refreshSelectedProgress,
-    getUnitSubtitle,
+    getUnitStatusDetails,
     getUnitWorkBucket,
     pagination: null,
     handleBack,

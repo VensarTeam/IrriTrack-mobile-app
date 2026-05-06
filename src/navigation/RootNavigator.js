@@ -5,6 +5,7 @@ import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
 import WorkStatusScreen from "../screens/WorkStatus";
+import AddContractorScreen from "../screens/AddContractor";
 import UnitListScreen from "../screens/unit/UnitListScreen";
 import UnitDetailsScreen from "../screens/unit/UnitDetails";
 import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
@@ -48,6 +49,13 @@ const RootNavigator = () => {
         <Stack.Screen
           name={ROUTES.ROOT.WORK_STATUS}
           component={WorkStatusScreen}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.ADD_CONTRACTOR}
+          component={AddContractorScreen}
           options={{
             animation: "slide_from_right",
           }}

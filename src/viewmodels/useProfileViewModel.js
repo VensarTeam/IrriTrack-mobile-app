@@ -174,16 +174,23 @@ const useProfileViewModel = (navigation) => {
     });
   };
 
+  const handleOpenAddContractor = useCallback(() => {
+    navigation.navigate(ROUTES.ROOT.ADD_CONTRACTOR);
+  }, [navigation]);
+
   return {
     user,
     initials,
     canShowSyncActions: !roleAccess.isReviewer,
+    canShowAddContractor:
+      roleAccess.role === "manager" || roleAccess.role === "admin",
     isRefreshingProfile,
     isSyncingMasterData,
     isSyncingOmsData,
     handleRefreshProfile,
     handleSyncMasterData,
     handleSyncOmsData,
+    handleOpenAddContractor,
     handleLogout,
   };
 };

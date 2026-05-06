@@ -151,6 +151,66 @@ export default StyleSheet.create({
     elevation: 2,
   },
 
+  actionCard: {
+    width: "100%",
+    marginTop: verticalScale(18),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: "#F6FBFF",
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#0C2E4D",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+
+  actionCardIconWrap: {
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EAF4FF",
+    borderWidth: 1,
+    borderColor: "#D7E7F8",
+  },
+
+  actionCardCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: moderateScale(12),
+    marginRight: moderateScale(12),
+  },
+
+  actionCardTitle: {
+    fontSize: moderateScale(15),
+    lineHeight: moderateScale(20),
+    color: colors.navyFreshDark,
+    fontFamily: fonts.bold,
+  },
+
+  actionCardSubtitle: {
+    marginTop: verticalScale(3),
+    fontSize: moderateScale(11.3),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  actionCardArrowWrap: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0F6FD",
+  },
+
   infoRow: {
     minHeight: verticalScale(66),
     flexDirection: "row",
