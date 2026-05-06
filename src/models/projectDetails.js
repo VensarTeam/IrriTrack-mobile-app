@@ -9,6 +9,25 @@ const MODULE_KEY_ALIASES = {
   LORA_GATEWAY: "GW",
 };
 
+const STAGE_LABEL_BY_KEY = {
+  location_finalization: "Location Finalization",
+  inlet_pipe_laying: "Inlet Pipe Laying",
+  outlet_pipe_laying: "Outlet Pipe Laying",
+  pedestal_and_enclosure_installation:
+    "Pedestal and Enclosure Installation",
+  mechanical_accessories_installation:
+    "Mechanical Accessories Installation",
+  mechanical_installation: "Mechanical Installation",
+  controller_installation: "Controller Installation",
+  automation_installation: "Automation Installation",
+  flushing: "Flushing",
+  dry_commissioning: "Dry Commissioning",
+  wet_commissioning: "Wet Commissioning",
+  mechanical_rectification: "Mechanical Rectification",
+  automation_work_rectification: "Automation Work Rectification",
+  theft_damage_and_reinstallation: "Theft Damage and Reinstallation",
+};
+
 const toSafeNumber = (value) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : 0;
@@ -39,9 +58,18 @@ const getMajorComponentNumberByLabels = (components = [], labels = []) => {
 const normalizeModuleKey = (value = "") =>
   MODULE_KEY_ALIASES[String(value || "").trim().toUpperCase()] || null;
 
+const normalizeStageKey = (value = "") =>
+  String(value || "")
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
 const normalizeStage = (stage = {}) => ({
   key: String(stage.key || "").trim(),
-  label: String(stage.label || stage.key || "").trim(),
+  label:
+    STAGE_LABEL_BY_KEY[normalizeStageKey(stage.key)] ||
+    String(stage.label || stage.key || "").trim(),
   completed: toSafeNumber(stage.completed),
   pending: toSafeNumber(stage.pending),
   partial: toSafeNumber(stage.partial),

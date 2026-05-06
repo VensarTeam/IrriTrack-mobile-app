@@ -15,6 +15,15 @@ import {
 import { showAppAlert } from "../services/alertService";
 
 const moduleThemes = colors.projectModules;
+const EXCLUDED_STAGE_KEYS = new Set([
+  "location_finalization",
+  "inlet_pipe_laying",
+  "outlet_pipe_laying",
+  "flushing",
+  "mechanical_rectification",
+  "automation_work_rectification",
+  "theft_damage_and_reinstallation",
+]);
 
 const getProjectHeaderTitle = (projectDetails, fallbackProject, routeProjectName) =>
   routeProjectName ||
@@ -29,6 +38,11 @@ const normalizeStageLabel = (value = "") =>
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ");
+
+const normalizeStageKey = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 const getStageCompletedCount = (stages = [], labels = []) => {
   const normalizedLabels = labels.map((label) => normalizeStageLabel(label));
@@ -307,7 +321,11 @@ const useProjectDetailsViewModel = (navigation, route) => {
 
   useEffect(() => {
     const firstExpandedKey = Object.keys(dataSet || {}).find(
-      (key) => (dataSet?.[key]?.stages || []).length > 0
+      (key) =>
+        (dataSet?.[key]?.stages || []).some((stage) => {
+          const normalizedKey = normalizeStageKey(stage?.key);
+          return normalizedKey && !EXCLUDED_STAGE_KEYS.has(normalizedKey);
+        })
     );
 
     if (!firstExpandedKey) {
@@ -317,11 +335,19 @@ const useProjectDetailsViewModel = (navigation, route) => {
     setExpanded((prev) => prev || firstExpandedKey);
   }, [dataSet]);
 
+  const getVisibleStages = (stages = []) =>
+    (Array.isArray(stages) ? stages : []).filter((stage) => {
+      const normalizedKey = normalizeStageKey(stage?.key);
+      return normalizedKey && !EXCLUDED_STAGE_KEYS.has(normalizedKey);
+    });
+
   const getStageSummary = (stages = [], stageLabel = selectedStage) => {
+    const visibleStages = getVisibleStages(stages);
+
     if (stageLabel === "All") {
-      const completed = stages.reduce((sum, item) => sum + item.completed, 0);
-      const pending = stages.reduce((sum, item) => sum + item.pending, 0);
-      const partial = stages.reduce((sum, item) => sum + item.partial, 0);
+      const completed = visibleStages.reduce((sum, item) => sum + item.completed, 0);
+      const pending = visibleStages.reduce((sum, item) => sum + item.pending, 0);
+      const partial = visibleStages.reduce((sum, item) => sum + item.partial, 0);
       const total = completed + pending + partial;
 
       return {
@@ -334,7 +360,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
       };
     }
 
-    const stage = stages.find((item) => item.label === stageLabel);
+    const stage = visibleStages.find((item) => item.label === stageLabel);
 
     if (!stage) {
       return {
@@ -536,6 +562,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     applyLocationFilter,
     clearLocationFilters,
     getActiveLocationFilterValue,
+    getVisibleStages,
     buildPieChartData,
     getStageSummary,
     getSectionHighlights,

@@ -34,6 +34,11 @@ const CHART_COMPACT_WIDTH = 360;
 const COMPACT_PIE_RADIUS = 50;
 const COMPACT_PIE_INNER_RADIUS = 31;
 const SHIMMER_DURATION = 1300;
+const RING_TRACK_COLORS = {
+  pending: "#FBE8D1",
+  completed: "#DCF7EA",
+  partial: "#F6E6BF",
+};
 
 const ProjectDetailsScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -71,7 +76,7 @@ const ProjectDetailsScreen = ({ route }) => {
     applyLocationFilter,
     clearLocationFilters,
     getActiveLocationFilterValue,
-    buildPieChartData,
+    getVisibleStages,
     getStageSummary,
     getSectionHighlights,
     kpiCards,
@@ -83,6 +88,8 @@ const ProjectDetailsScreen = ({ route }) => {
   } = useProjectDetailsViewModel(navigation, route);
   const { width } = useWindowDimensions();
   const stagePagerRef = React.useRef(null);
+  const stageTabScrollRef = React.useRef(null);
+  const stageTabLayoutsRef = React.useRef({});
   const chartScrollX = React.useRef(new Animated.Value(0)).current;
   const chartSectionPadding = moderateScale(CHART_SECTION_PADDING);
   const pieRadius = moderateScale(PIE_RADIUS);
@@ -98,6 +105,7 @@ const ProjectDetailsScreen = ({ route }) => {
   const [chartViewportWidth, setChartViewportWidth] = React.useState(
     defaultChartViewportWidth,
   );
+  const [stageTabViewportWidth, setStageTabViewportWidth] = React.useState(0);
   const shimmerTranslateX = React.useRef(new Animated.Value(0)).current;
   const shimmerTravelDistance = width + moderateScale(180);
 
@@ -125,6 +133,14 @@ const ProjectDetailsScreen = ({ route }) => {
 
     return () => cancelAnimationFrame(frameId);
   }, [selectedStage]);
+
+  React.useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      centerStageTab(selectedStage);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [centerStageTab, selectedStage]);
 
   React.useEffect(() => {
     shimmerTranslateX.setValue(0);
@@ -226,29 +242,98 @@ const ProjectDetailsScreen = ({ route }) => {
     </>
   );
 
-  const renderPieChart = (stages, stageLabel, compact = false) => {
-    const { data, percent } = buildPieChartData(stages, stageLabel);
+  const renderPieChart = (
+    summary,
+    totalUnits = 0,
+    compact = false,
+    moduleTheme = null,
+  ) => {
+    const total = Math.max(Number(totalUnits) || 0, summary.total, 1);
+    const buildRingData = (value, color, trackColor) => {
+      const safeValue = Math.max(0, Number(value) || 0);
+      const remainder = Math.max(total - safeValue, 0);
+
+      return remainder
+        ? [
+            { value: safeValue, color },
+            { value: remainder, color: trackColor },
+          ]
+        : [{ value: total, color }];
+    };
+
+    const outerRadius = compact ? compactPieRadius : pieRadius;
+    const outerInnerRadius = compact
+      ? Math.max(compactPieRadius - moderateScale(10), 1)
+      : Math.max(pieRadius - moderateScale(12), 1);
+    const middleRadius = compact
+      ? Math.max(compactPieRadius - moderateScale(13), 1)
+      : Math.max(pieRadius - moderateScale(16), 1);
+    const middleInnerRadius = compact
+      ? Math.max(compactPieInnerRadius, 1)
+      : Math.max(pieInnerRadius, 1);
+    const innerRadius = compact
+      ? Math.max(compactPieInnerRadius - moderateScale(8), 1)
+      : Math.max(pieInnerRadius - moderateScale(10), 1);
+    const innerInnerRadius = compact
+      ? Math.max(compactPieInnerRadius - moderateScale(16), 1)
+      : Math.max(pieInnerRadius - moderateScale(20), 1);
 
     return (
       <View style={[styles.pieWrapper, compact && styles.pieWrapperCompact]}>
-        <PieChart
-          donut
-          radius={compact ? compactPieRadius : pieRadius}
-          innerRadius={compact ? compactPieInnerRadius : pieInnerRadius}
-          data={data}
-          isAnimated
-          animationDuration={PIE_ANIMATION_DURATION}
-        />
+        <View style={styles.pieRingLayer}>
+          <PieChart
+            donut
+            radius={outerRadius}
+            innerRadius={outerInnerRadius}
+            data={buildRingData(
+              totalUnits || total,
+              moduleTheme?.accent || colors.primaryBlue,
+              moduleTheme?.soft || RING_TRACK_COLORS.pending,
+            )}
+            isAnimated
+            animationDuration={PIE_ANIMATION_DURATION}
+          />
+        </View>
+
+        <View style={styles.pieRingLayer}>
+          <PieChart
+            donut
+            radius={middleRadius}
+            innerRadius={middleInnerRadius}
+            data={buildRingData(
+              summary.completed,
+              colors.completed,
+              RING_TRACK_COLORS.completed,
+            )}
+            isAnimated
+            animationDuration={PIE_ANIMATION_DURATION}
+          />
+        </View>
+
+        <View style={styles.pieRingLayer}>
+          <PieChart
+            donut
+            radius={innerRadius}
+            innerRadius={innerInnerRadius}
+            data={buildRingData(
+              summary.partial,
+              colors.partial,
+              RING_TRACK_COLORS.partial,
+            )}
+            isAnimated
+            animationDuration={PIE_ANIMATION_DURATION}
+          />
+        </View>
 
         <View style={styles.pieCenter}>
-          <Text style={styles.piePercent}>{percent}%</Text>
-          <Text style={styles.pieLabel}>Completed</Text>
+          <Text style={styles.piePercent}>{summary.completed}</Text>
+          <Text style={styles.pieLabel}>COMPLETED</Text>
         </View>
       </View>
     );
   };
 
-  const SummaryItem = ({ label, value, color, compact }) => (
+  const SummaryItem = ({ label, value, share, color, compact }) => (
     <View
       style={[
         styles.summaryItem,
@@ -263,11 +348,14 @@ const ProjectDetailsScreen = ({ route }) => {
         >
           {label}
         </Text>
-        <Text
-          style={[styles.summaryValue, compact && styles.summaryValueCompact]}
-        >
-          {value}
-        </Text>
+        <View style={styles.summaryValueRow}>
+          <Text
+            style={[styles.summaryValue, compact && styles.summaryValueCompact]}
+          >
+            {value}
+          </Text>
+          {share ? <Text style={styles.summaryShare}>{share}</Text> : null}
+        </View>
       </View>
     </View>
   );
@@ -376,26 +464,36 @@ const ProjectDetailsScreen = ({ route }) => {
     return map[label] || label;
   };
 
-  const formatSummaryValue = (summary, key) => {
-    if (summary.label !== "All") {
-      return summary[key];
-    }
-
-    if (!summary.total) {
-      return "0%";
-    }
-
-    return `${Math.round((summary[key] / summary.total) * 100)}%`;
-  };
+  const formatSummaryValue = (summary, key) => summary[key];
+  const formatSummaryShare = (summary, key) =>
+    summary.total ? `${Math.round((summary[key] / summary.total) * 100)}%` : "0%";
 
   const hasAnyModuleStages = Object.values(dataSet).some(
-    (moduleData) => (moduleData?.stages || []).length > 0,
+    (moduleData) => getVisibleStages(moduleData?.stages || []).length > 0,
   );
   const shouldUseOfflineKpiLayout =
     !canViewProjectInsights || !isOnline || !hasAnyModuleStages;
   const showSkeletonLoader = isProjectDetailsLoading && !hasAnyModuleStages;
   const showInlineLoadingShimmer =
     isProjectDetailsLoading && hasAnyModuleStages;
+
+  const centerStageTab = React.useCallback((label) => {
+    const layout = stageTabLayoutsRef.current[label];
+
+    if (!layout || !stageTabViewportWidth || !stageTabScrollRef.current) {
+      return;
+    }
+
+    const targetX = Math.max(
+      layout.x - (stageTabViewportWidth - layout.width) / 2,
+      0,
+    );
+
+    stageTabScrollRef.current.scrollTo({
+      x: targetX,
+      animated: true,
+    });
+  }, [stageTabViewportWidth]);
 
   const getSwipeAnimatedStyles = (index, pagerWidth, compact = false) => {
     if (!pagerWidth) {
@@ -437,27 +535,9 @@ const ProjectDetailsScreen = ({ route }) => {
         }),
         transform: [
           {
-            translateX: chartScrollX.interpolate({
-              inputRange,
-              outputRange: [
-                moderateScale(compact ? 10 : 26),
-                0,
-                -moderateScale(compact ? 10 : 26),
-              ],
-              extrapolate: "clamp",
-            }),
-          },
-          {
             scale: chartScrollX.interpolate({
               inputRange,
-              outputRange: [0.82, 1, 0.82],
-              extrapolate: "clamp",
-            }),
-          },
-          {
-            rotate: chartScrollX.interpolate({
-              inputRange,
-              outputRange: ["10deg", "0deg", "-10deg"],
+              outputRange: [0.9, 1, 0.9],
               extrapolate: "clamp",
             }),
           },
@@ -466,25 +546,14 @@ const ProjectDetailsScreen = ({ route }) => {
       summaryStyle: {
         opacity: chartScrollX.interpolate({
           inputRange,
-          outputRange: [0.42, 1, 0.42],
+          outputRange: [0.55, 1, 0.55],
           extrapolate: "clamp",
         }),
         transform: [
           {
-            translateX: chartScrollX.interpolate({
+            scale: chartScrollX.interpolate({
               inputRange,
-              outputRange: [
-                moderateScale(compact ? 8 : 20),
-                0,
-                -moderateScale(compact ? 8 : 20),
-              ],
-              extrapolate: "clamp",
-            }),
-          },
-          {
-            translateY: chartScrollX.interpolate({
-              inputRange,
-              outputRange: [verticalScale(10), 0, verticalScale(10)],
+              outputRange: [0.97, 1, 0.97],
               extrapolate: "clamp",
             }),
           },
@@ -695,12 +764,14 @@ const ProjectDetailsScreen = ({ route }) => {
                 ? Object.keys(dataSet).map((key) => {
                   console.log("Rendering section for module:", key);
                   const moduleData = dataSet[key];
-                  const stages = moduleData?.stages || [];
+                  const totalUnits = Number(moduleData?.totalUnits || 0);
+                  const stages = getVisibleStages(moduleData?.stages || []);
                   const moduleTheme = getModuleTheme(key);
-                  const stageTabs = [
-                    "All",
-                    ...stages.map((stage) => stage.label),
-                  ];
+                  const stageTabs = stages.map((stage) => stage.label);
+                  console.log(`Module: ${key}, Stage Tabs:`, stageTabs);
+                  const selectedStageLabel = stageTabs.includes(selectedStage)
+                    ? selectedStage
+                    : stageTabs[0] || "All";
                   const sectionHighlights = getSectionHighlights(moduleData);
                   const pagerWidth = chartViewportWidth;
                   const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
@@ -751,7 +822,7 @@ const ProjectDetailsScreen = ({ route }) => {
                             onPress={() =>
                               openStageStatusBoard({
                                 moduleKey: key,
-                                stageLabel: selectedStage,
+                                stageLabel: selectedStageLabel,
                               })
                             }
                             activeOpacity={0.86}
@@ -852,37 +923,53 @@ const ProjectDetailsScreen = ({ route }) => {
                                   Select Tabs
                                 </Text>
                                 <Text style={styles.stageTabCaption}>
-                                  Swipe for details
+                                  Tap a tab to view details
                                 </Text>
                               </View>
                             </View>
                             <ScrollView
+                              ref={stageTabScrollRef}
                               horizontal
                               showsHorizontalScrollIndicator={false}
                               style={styles.stageTabContainer}
                               contentContainerStyle={styles.stageTabContent}
+                              onLayout={(event) => {
+                                const nextWidth = event.nativeEvent.layout.width;
+                                if (nextWidth > 0 && Math.abs(nextWidth - stageTabViewportWidth) > 1) {
+                                  setStageTabViewportWidth(nextWidth);
+                                }
+                              }}
                             >
-                              {stageTabs.map((item, index) => (
+                              {stageTabs.map((item) => (
                                 <TouchableOpacity
                                   key={item}
                                   onPress={() => {
+                                    const stageIndex = stageTabs.indexOf(item);
                                     setSelectedStage(item);
+                                    centerStageTab(item);
                                     stagePagerRef.current?.scrollTo({
-                                      x: index * pagerWidth,
+                                      x: stageIndex * pagerWidth,
                                       animated: true,
                                     });
                                   }}
+                                  onLayout={(event) => {
+                                    const { x, width: layoutWidth } = event.nativeEvent.layout;
+                                    stageTabLayoutsRef.current[item] = {
+                                      x,
+                                      width: layoutWidth,
+                                    };
+                                  }}
                                   style={[
                                     styles.stageTab,
-                                    selectedStage === item &&
+                                    selectedStageLabel === item &&
                                     styles.stageTabActive,
                                     {
                                       borderColor:
-                                        selectedStage === item
+                                        selectedStageLabel === item
                                           ? moduleTheme.accent
                                           : moduleTheme.soft,
                                       backgroundColor:
-                                        selectedStage === item
+                                        selectedStageLabel === item
                                           ? moduleTheme.accent
                                           : colors.white,
                                     },
@@ -893,11 +980,11 @@ const ProjectDetailsScreen = ({ route }) => {
                                       styles.stageTabText,
                                       {
                                         color:
-                                          selectedStage === item
+                                          selectedStageLabel === item
                                             ? colors.white
                                             : moduleTheme.text,
                                       },
-                                      selectedStage === item &&
+                                      selectedStageLabel === item &&
                                       styles.stageTabTextActive,
                                     ]}
                                     numberOfLines={2}
@@ -942,21 +1029,17 @@ const ProjectDetailsScreen = ({ route }) => {
                                 )}
                                 onMomentumScrollEnd={(event) => {
                                   const pageIndex = Math.round(
-                                    event.nativeEvent.contentOffset.x /
-                                    pagerWidth,
+                                    event.nativeEvent.contentOffset.x / pagerWidth,
                                   );
                                   const currentStage =
-                                    stageTabs[pageIndex] || "All";
+                                    stageTabs[pageIndex] || stageTabs[0] || "All";
                                   if (currentStage !== selectedStage) {
                                     setSelectedStage(currentStage);
                                   }
                                 }}
                               >
                                 {stageTabs.map((stageLabel, index) => {
-                                  const summary = getStageSummary(
-                                    stages,
-                                    stageLabel,
-                                  );
+                                  const summary = getStageSummary(stages, stageLabel);
                                   const {
                                     cardStyle,
                                     pieStyle,
@@ -982,15 +1065,9 @@ const ProjectDetailsScreen = ({ route }) => {
                                           cardStyle,
                                         ]}
                                       >
-                                        <View
-                                          style={styles.chartSummaryHeader}
-                                        >
-                                          <Text
-                                            style={styles.chartSummaryTitle}
-                                          >
-                                            {formatStageTabLabel(
-                                              summary.label,
-                                            )}
+                                        <View style={styles.chartSummaryHeader}>
+                                          <Text style={styles.chartSummaryTitle}>
+                                            {formatStageTabLabel(summary.label)}
                                           </Text>
                                           <Text
                                             style={[
@@ -1011,9 +1088,10 @@ const ProjectDetailsScreen = ({ route }) => {
                                         >
                                           <Animated.View style={pieStyle}>
                                             {renderPieChart(
-                                              stages,
-                                              stageLabel,
+                                              summary,
+                                              totalUnits,
                                               isCompactChart,
+                                              moduleTheme,
                                             )}
                                           </Animated.View>
 
@@ -1025,27 +1103,32 @@ const ProjectDetailsScreen = ({ route }) => {
                                               summaryStyle,
                                             ]}
                                           >
-                                            <SummaryItem
-                                              label="Completed"
-                                              value={formatSummaryValue(
-                                                summary,
-                                                "completed",
-                                              )}
-                                              color={colors.completed}
-                                              compact={isCompactChart}
-                                            />
-                                            <SummaryItem
-                                              label="Pending"
-                                              value={formatSummaryValue(
-                                                summary,
-                                                "pending",
-                                              )}
-                                              color={colors.pending}
-                                              compact={isCompactChart}
-                                            />
+                                          <SummaryItem
+                                            label="Total"
+                                            value={totalUnits}
+                                            color={moduleTheme.accent}
+                                            compact={isCompactChart}
+                                          />
+                                          <SummaryItem
+                                            label="Completed"
+                                            value={formatSummaryValue(
+                                              summary,
+                                              "completed",
+                                            )}
+                                            share={formatSummaryShare(
+                                              summary,
+                                              "completed",
+                                            )}
+                                            color={colors.completed}
+                                            compact={isCompactChart}
+                                          />
                                             <SummaryItem
                                               label="Partial"
                                               value={formatSummaryValue(
+                                                summary,
+                                                "partial",
+                                              )}
+                                              share={formatSummaryShare(
                                                 summary,
                                                 "partial",
                                               )}

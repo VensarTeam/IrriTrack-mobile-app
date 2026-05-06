@@ -61,7 +61,8 @@ export const createRoleAccess = (role) => {
     canRejectChecklist:
       normalizedRole === "engineer" || normalizedRole === "manager",
     prefersSingleReviewAction: false,
-    canViewProjectInsights: isReviewer,
+    // Temporary override: allow supervisor to see full Project Details insights.
+    canViewProjectInsights: true,
     canOpenModuleList: true,
     canOpenUnitDetails: isReviewer,
     canViewUnitStatus: isReviewer,

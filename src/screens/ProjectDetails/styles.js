@@ -576,14 +576,13 @@ export default StyleSheet.create({
   },
 
   sectionHeader: {
-    flex:1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderRadius: moderateScale(14),
     paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(9),
-    backgroundColor:'red'
+    backgroundColor: colors.primaryBlue,
   },
 
   sectionHeaderOffline: {
@@ -738,10 +737,12 @@ export default StyleSheet.create({
   chartSummaryBody: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
   },
 
   chartSummaryBodyCompact: {
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
   },
 
   summaryList: {
@@ -751,9 +752,10 @@ export default StyleSheet.create({
   },
 
   summaryListCompact: {
-    flex: 1,
-    marginLeft: moderateScale(10),
-    marginTop: 0,
+    flex: 0,
+    width: "100%",
+    marginLeft: 0,
+    marginTop: verticalScale(10),
   },
 
   summaryItem: {
@@ -785,6 +787,13 @@ export default StyleSheet.create({
     minWidth: 0,
   },
 
+  summaryValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: moderateScale(8),
+  },
+
   summaryLabel: {
     fontSize: fontScale(10),
     color: colors.textSecondary,
@@ -807,9 +816,18 @@ export default StyleSheet.create({
     fontSize: fontScale(15),
   },
 
+  summaryShare: {
+    fontSize: fontScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.semiBold,
+  },
+
   /* ================= PIE ================= */
 
   pieWrapper: {
+    width: moderateScale(156),
+    height: moderateScale(156),
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     marginVertical: verticalScale(4),
@@ -817,7 +835,14 @@ export default StyleSheet.create({
 
   pieWrapperCompact: {
     width: moderateScale(108),
+    height: moderateScale(108),
     marginVertical: verticalScale(2),
+  },
+
+  pieRingLayer: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   pieCenter: {
@@ -832,8 +857,9 @@ export default StyleSheet.create({
   },
 
   pieLabel: {
-    fontSize: fontScale(11),
-    color: colors.textSecondary,
+    fontSize: fontScale(6.5),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
   },
 
   /* ================= PIE STAGE TABS ================= */
@@ -893,10 +919,13 @@ export default StyleSheet.create({
   },
 
   stageTabContent: {
+    paddingLeft: moderateScale(2),
+    paddingRight: moderateScale(18),
     paddingBottom: verticalScale(2),
   },
 
   stageTab: {
+    minWidth: moderateScale(122),
     paddingVertical: verticalScale(7),
     paddingHorizontal: moderateScale(11),
     borderRadius: moderateScale(8),
@@ -905,7 +934,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     justifyContent: "center",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
 
   stageTabActive: {
@@ -921,7 +950,7 @@ export default StyleSheet.create({
     fontSize: fontScale(11),
     fontFamily: fonts.medium,
     color: colors.textDark,
-    lineHeight: moderateScale(14),
+    textAlign: "center",
   },
 
   stageTabTextActive: {
