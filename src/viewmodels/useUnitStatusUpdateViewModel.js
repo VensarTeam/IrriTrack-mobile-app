@@ -2516,11 +2516,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
     });
 
-    if (showRemarkField && isRemarkRequired && !activeValues.remark.trim()) {
-      nextErrors.remark = "Remark is required";
-      setFirstErrorMessage("Remark is required");
-    }
-
     if (
       activeSubOption.locationChecklist?.required &&
       activeSubOption.canUpdateLocation &&
@@ -2536,14 +2531,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         !activeValues.checks?.[item.id]
     );
 
-    if (missingChecklistItems.length) {
-      nextErrors.form =
-        nextErrors.form ||
-        `Please complete ${missingChecklistItems.length} required checklist item(s)`;
-      setFirstErrorMessage(
-        `Please complete ${missingChecklistItems.length} required checklist item(s)`
-      );
-    }
+    const completedChecklistItems = checklistItems.filter(
+      (item) => !!activeValues.checks?.[item.id]
+    );
+
+    let missingRequirements = [];
 
     if (repeatableGroups.length) {
       const repeatableErrors = {};
@@ -2599,11 +2591,46 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
 
     if (activePhotoRequirements.length) {
-      const missingRequirements = activePhotoRequirements.filter(
+      missingRequirements = activePhotoRequirements.filter(
         (requirement) =>
           isRequiredByRule(requirement, activeValues, activeSubOption) &&
           !activeValues.photos?.[requirement.id]?.uri
       );
+    }
+
+    const uploadedPhotosCount = activePhotoRequirements.filter(
+      (requirement) => !!activeValues.photos?.[requirement.id]?.uri
+    ).length;
+    const hasChecklistOrPhotoRequirements =
+      checklistItems.length > 0 || activePhotoRequirements.length > 0;
+    const hasChecklistOrPhotoProgress =
+      completedChecklistItems.length > 0 || uploadedPhotosCount > 0;
+    const isPartialChecklistSubmission =
+      hasChecklistOrPhotoRequirements &&
+      hasChecklistOrPhotoProgress &&
+      (missingChecklistItems.length > 0 || missingRequirements.length > 0);
+    const shouldRequireRemarkForPartial =
+      showRemarkField && isPartialChecklistSubmission;
+
+    if (
+      hasChecklistOrPhotoRequirements &&
+      !hasChecklistOrPhotoProgress
+    ) {
+      nextErrors.form =
+        nextErrors.form ||
+        "Select at least one checklist item or upload one photo to submit.";
+      setFirstErrorMessage(
+        "Select at least one checklist item or upload one photo to submit."
+      );
+    } else if (!isPartialChecklistSubmission) {
+      if (missingChecklistItems.length) {
+        nextErrors.form =
+          nextErrors.form ||
+          `Please complete ${missingChecklistItems.length} required checklist item(s)`;
+        setFirstErrorMessage(
+          `Please complete ${missingChecklistItems.length} required checklist item(s)`
+        );
+      }
 
       if (missingRequirements.length) {
         nextErrors.photos = `Please upload ${missingRequirements.length} required file(s)`;
@@ -2615,6 +2642,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           return acc;
         }, {});
       }
+    }
+
+    if (
+      showRemarkField &&
+      (isRemarkRequired || shouldRequireRemarkForPartial) &&
+      !activeValues.remark.trim()
+    ) {
+      nextErrors.remark = isPartialChecklistSubmission
+        ? "Remark is required for partial submission"
+        : "Remark is required";
+      setFirstErrorMessage(nextErrors.remark);
     }
 
     if (activeSubOption.customValidate) {
@@ -2775,6 +2813,25 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const buildSubmissionPayload = () => {
     const submittedAt = new Date().toISOString();
+    const completedChecklistItems = checklistItems.filter(
+      (item) => !!activeValues.checks?.[item.id]
+    );
+    const uploadedPhotosCount = activePhotoRequirements.filter(
+      (requirement) => !!activeValues.photos?.[requirement.id]?.uri
+    ).length;
+    const missingChecklistItems = checklistItems.filter(
+      (item) =>
+        isRequiredByRule(item, activeValues, activeSubOption) &&
+        !activeValues.checks?.[item.id]
+    );
+    const missingPhotoRequirements = activePhotoRequirements.filter(
+      (requirement) =>
+        isRequiredByRule(requirement, activeValues, activeSubOption) &&
+        !activeValues.photos?.[requirement.id]?.uri
+    );
+    const shouldSubmitAsPartial =
+      (completedChecklistItems.length > 0 || uploadedPhotosCount > 0) &&
+      (missingChecklistItems.length > 0 || missingPhotoRequirements.length > 0);
     const photos = activePhotoRequirements
       .map((requirement) => ({
         checklistId: requirement.checklistId || null,
@@ -2816,7 +2873,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       subprocess_description:
         activeSubOption.apiDescription || activeSubOption.label || "",
       subprocess_seq_no: activeSubOption.apiSeqNo ?? null,
-      status: showStatusField ? activeValues.status : "",
+      status: showStatusField
+        ? shouldSubmitAsPartial
+          ? "Partially Completed"
+          : activeValues.status
+        : "",
       remark: showRemarkField ? activeValues.remark : "",
       answers: buildChecklistAnswers(),
       checklist: checklistItems.map((item) => ({

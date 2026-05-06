@@ -4,8 +4,14 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
+    "start:dev": "EXPO_PUBLIC_APP_ENV=development EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com/dev expo start --dev-client",
+    "start:prod": "EXPO_PUBLIC_APP_ENV=production EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com expo start --dev-client",
     "android": "expo run:android",
+    "android:dev": "EXPO_PUBLIC_APP_ENV=development EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com/dev expo run:android --variant developmentDebug",
+    "android:prod": "EXPO_PUBLIC_APP_ENV=production EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com expo run:android --variant productionRelease",
     "ios": "expo run:ios",
+    "ios:dev": "EXPO_PUBLIC_APP_ENV=development EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com/dev expo run:ios",
+    "ios:prod": "EXPO_PUBLIC_APP_ENV=production EXPO_PUBLIC_API_BASE_URL=https://irritrack.vensar.com expo run:ios --configuration Release",
     "web": "expo start --web"
   },
   "dependencies": {

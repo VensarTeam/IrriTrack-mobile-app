@@ -94,6 +94,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.pmtapp"
+    flavorDimensions "environment"
     defaultConfig {
         applicationId "com.pmtapp"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -102,6 +103,24 @@ android {
         versionName "1.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+    }
+    productFlavors {
+        development {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            buildConfigField "String", "APP_ENV", "\"development\""
+            buildConfigField "String", "APP_API_BASE_URL", "\"https://irritrack.vensar.com/dev\""
+            buildConfigField "String", "APP_ASSET_BASE_URL", "\"https://vensar-tools-700305705692-ap-south-1-an.s3.ap-south-1.amazonaws.com\""
+            resValue "string", "app_name", "IrriTrack Dev"
+        }
+        production {
+            dimension "environment"
+            buildConfigField "String", "APP_ENV", "\"production\""
+            buildConfigField "String", "APP_API_BASE_URL", "\"https://irritrack.vensar.com\""
+            buildConfigField "String", "APP_ASSET_BASE_URL", "\"https://vensar-tools-700305705692-ap-south-1-an.s3.ap-south-1.amazonaws.com\""
+            resValue "string", "app_name", "IrriTrack"
+        }
     }
     splits {
         abi {
@@ -151,9 +170,15 @@ android {
         variant.outputs.configureEach { output ->
             def abiName = output.getFilter(OutputFile.ABI)
             def abiSuffix = abiName ? "-${abiName}" : ""
-            outputFileName = "IrriTrack(${variant.versionName})${abiSuffix}.apk"
+            outputFileName = "IrriTrack-${variant.flavorName ?: 'default'}(${variant.versionName})${abiSuffix}.apk"
         }
     }
+}
+
+tasks.register("assembleAllReleaseEnvironments") {
+    group = "build"
+    description = "Builds both development and production release APKs."
+    dependsOn("assembleDevelopmentRelease", "assembleProductionRelease")
 }
 
 // Apply static values from `gradle.properties` to the `android.packagingOptions`
