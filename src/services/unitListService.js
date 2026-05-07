@@ -19,6 +19,8 @@ const buildOmsListParams = ({
   zoneName,
   villageId,
   searchQuery,
+  sortBy,
+  sortOrder,
   page = 1,
   limit = DEFAULT_OMS_PAGE_LIMIT,
 } = {}) => {
@@ -41,6 +43,17 @@ const buildOmsListParams = ({
 
   if (normalizedSearchQuery) {
     params.q = normalizedSearchQuery;
+  }
+
+  const normalizedSortBy = String(sortBy || "").trim().toLowerCase();
+  const normalizedSortOrder = String(sortOrder || "").trim().toLowerCase();
+
+  if (["oms", "date", "contractor"].includes(normalizedSortBy)) {
+    params.sortBy = normalizedSortBy;
+  }
+
+  if (["asc", "desc"].includes(normalizedSortOrder)) {
+    params.sortOrder = normalizedSortOrder;
   }
 
   return params;
@@ -89,6 +102,8 @@ export const fetchOmsList = async ({
   zoneName,
   villageId,
   searchQuery,
+  sortBy,
+  sortOrder,
   page = 1,
   limit = DEFAULT_OMS_PAGE_LIMIT,
   offline = false,
@@ -115,6 +130,8 @@ export const fetchOmsList = async ({
       zoneName,
       villageId,
       searchQuery,
+      sortBy,
+      sortOrder,
       page,
       limit,
     }),

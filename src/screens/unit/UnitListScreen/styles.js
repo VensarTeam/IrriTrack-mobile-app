@@ -90,11 +90,19 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: moderateScale(10),
   },
 
   filterPanelTitleWrap: {
     flex: 1,
     paddingRight: moderateScale(10),
+  },
+
+  filterPanelActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    flexShrink: 0,
   },
 
   compactMeta: {
@@ -132,6 +140,75 @@ export default StyleSheet.create({
     fontSize: moderateScale(10),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
+  },
+
+  sortActionButton: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+  },
+
+  sortActionButtonActive: {
+    backgroundColor: "#EDF6FF",
+    borderColor: colors.primaryBlue,
+  },
+
+  sortActionIconWrap: {
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EDF5FE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sortActionIconWrapActive: {
+    backgroundColor: colors.primaryBlue,
+  },
+
+  sortActionTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: moderateScale(8),
+  },
+
+  sortActionTitle: {
+    fontSize: moderateScale(9.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+
+  sortActionValue: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(10.5),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  sortActionValueActive: {
+    color: colors.primaryBlue,
+  },
+
+  sortChevronWrap: {
+    marginLeft: moderateScale(8),
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF5FC",
+  },
+
+  sortActionRow: {
+    marginTop: verticalScale(8),
   },
 
   filterContainer: {
@@ -713,6 +790,119 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: colors.modalOverlay,
     justifyContent: "center",
+  },
+
+  sortModalCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: moderateScale(22),
+    borderRadius: moderateScale(24),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(12),
+    paddingBottom: moderateScale(18),
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+
+  sortModalHandle: {
+    alignSelf: "center",
+    width: moderateScale(42),
+    height: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#D7E5F2",
+    marginBottom: verticalScale(14),
+  },
+
+  sortModalSubtitle: {
+    fontSize: moderateScale(11.5),
+    lineHeight: moderateScale(17),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    marginBottom: verticalScale(14),
+  },
+
+  sortSection: {
+    marginTop: verticalScale(4),
+  },
+
+  sortSectionTitle: {
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(10),
+  },
+
+  sortChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: moderateScale(8),
+  },
+
+  sortChip: {
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#F7FAFD",
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+  },
+
+  sortChipActive: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+
+  sortChipText: {
+    fontSize: moderateScale(11),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  sortChipTextActive: {
+    color: colors.white,
+  },
+
+  sortModalFooter: {
+    marginTop: verticalScale(18),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+  },
+
+  sortModalResetButton: {
+    flex: 1,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sortModalResetText: {
+    fontSize: moderateScale(12.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  sortModalCloseButton: {
+    flex: 1,
+    minHeight: verticalScale(44),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.primaryBlue,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sortModalCloseText: {
+    fontSize: moderateScale(12.5),
+    color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   modalCard: {

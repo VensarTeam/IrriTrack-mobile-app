@@ -911,6 +911,32 @@ export default StyleSheet.create({
     paddingBottom: verticalScale(10),
   },
 
+  filePreviewTouch: {
+    marginTop: verticalScale(10),
+  },
+
+  filePlaceholder: {
+    marginTop: verticalScale(10),
+    minHeight: verticalScale(120),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: "#D5E2EE",
+    borderStyle: "dashed",
+    backgroundColor: "#F2F7FB",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(12),
+  },
+
+  filePlaceholderText: {
+    marginTop: verticalScale(8),
+    fontSize: fontScale(11),
+    color: colors.textSecondary,
+    fontFamily: fonts.semiBold,
+    textAlign: "center",
+  },
+
   fileName: {
     fontSize: fontScale(11.5),
     color: colors.textDark,
@@ -935,6 +961,60 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.bold,
     marginBottom: verticalScale(10),
+  },
+
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: verticalScale(10),
+  },
+
+  sectionTitleText: {
+    fontSize: fontScale(13),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  sectionCountText: {
+    minWidth: moderateScale(24),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.surfaceBluePale,
+    fontSize: fontScale(10),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+    textAlign: "center",
+  },
+
+  imageGalleryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: moderateScale(10),
+  },
+
+  galleryImageCard: {
+    width: "47%",
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.white,
+    padding: moderateScale(8),
+  },
+
+  galleryImage: {
+    width: "100%",
+    height: verticalScale(110),
+    borderRadius: moderateScale(10),
+    backgroundColor: "#E8EEF5",
+  },
+
+  galleryImageTitle: {
+    marginTop: verticalScale(8),
+    fontSize: fontScale(10.5),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
   },
 
   detailMetaGrid: {

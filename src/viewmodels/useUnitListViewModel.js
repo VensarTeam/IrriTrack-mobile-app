@@ -25,6 +25,8 @@ const CERTIFICATE_STATUS_KEYS = [
 const DEFAULT_SEARCH_DEBOUNCE_MS = 350;
 const DEFAULT_PAGE_LIMIT = 5;
 const STATUS_BOARD_BUCKETS = ["Approved", "Requested", "Pending", "Rejected"];
+const DEFAULT_SORT_BY = "";
+const DEFAULT_SORT_ORDER = "";
 
 const createEmptyPagination = () => ({
   page: 1,
@@ -233,6 +235,8 @@ const useUnitListViewModel = (navigation, route) => {
   const requestSequenceRef = useRef(0);
   const isFetchingMoreRef = useRef(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
+  const [sortOrder, setSortOrder] = useState(DEFAULT_SORT_ORDER);
   const [remoteUnits, setRemoteUnits] = useState([]);
   const [pagination, setPagination] = useState(createEmptyPagination());
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -331,6 +335,8 @@ const useUnitListViewModel = (navigation, route) => {
         zoneName: zone,
         villageId: selectedVillageId,
         searchQuery: debouncedSearch,
+        sortBy,
+        sortOrder,
         page,
         limit: pagination.limit || DEFAULT_PAGE_LIMIT,
         offline: shouldUseOmsApi && !isOnline,
@@ -387,6 +393,8 @@ const useUnitListViewModel = (navigation, route) => {
     isOnline,
     projectId,
     selectedVillageId,
+    sortBy,
+    sortOrder,
     shouldUseOmsApi,
     zone,
   ]);
@@ -410,6 +418,8 @@ const useUnitListViewModel = (navigation, route) => {
   const hasActiveFilters =
     !!search.trim() ||
     (canUseLocationFilters && (zone !== "All" || village !== "All"));
+  const hasActiveSort =
+    sortBy !== DEFAULT_SORT_BY || sortOrder !== DEFAULT_SORT_ORDER;
   const locationSummary =
     !canUseLocationFilters
       ? "Filters available online only"
@@ -470,6 +480,8 @@ const useUnitListViewModel = (navigation, route) => {
     setZone("All");
     setVillage("All");
     setLocationFilterSearchQuery("");
+    setSortBy(DEFAULT_SORT_BY);
+    setSortOrder(DEFAULT_SORT_ORDER);
   };
 
   const refreshUnits = async () => {
@@ -750,12 +762,17 @@ const useUnitListViewModel = (navigation, route) => {
     loadMoreFilterOptions,
     filteredData,
     hasActiveFilters,
+    hasActiveSort,
     locationSummary,
+    sortBy,
+    sortOrder,
     openMap,
     openGallery,
     getActiveFilterValue,
     applyFilter,
     clearFilters,
+    setSortBy,
+    setSortOrder,
     refreshUnits,
     loadNextPage,
     handleEmptyAction,

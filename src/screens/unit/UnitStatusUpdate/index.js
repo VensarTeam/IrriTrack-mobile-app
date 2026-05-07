@@ -29,6 +29,36 @@ const OUTLET_MANIFOLD_IMAGES = {
   8: require("../../../assets/images/8 outlet Manifold.png"),
 };
 
+const normalizeCoordinate = (value) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Number(numericValue.toFixed(6));
+};
+
+const areLocationsEqual = (first = null, second = null) => {
+  const firstLatitude = normalizeCoordinate(first?.latitude);
+  const firstLongitude = normalizeCoordinate(first?.longitude);
+  const secondLatitude = normalizeCoordinate(second?.latitude);
+  const secondLongitude = normalizeCoordinate(second?.longitude);
+
+  if (
+    firstLatitude === null ||
+    firstLongitude === null ||
+    secondLatitude === null ||
+    secondLongitude === null
+  ) {
+    return false;
+  }
+
+  return (
+    firstLatitude === secondLatitude && firstLongitude === secondLongitude
+  );
+};
+
 const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   const [referencePreviewState, setReferencePreviewState] = React.useState({
     visible: false,
@@ -77,7 +107,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
-    useDefaultNodeLocation,
     confirmUpdatedLocation,
     discardPendingUpdatedLocation,
     isUpdatingLocation,
@@ -97,6 +126,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   } = useUnitStatusUpdateViewModel(navigation, route);
 
   const checklistProgress = getChecklistProgress();
+  const hasDistinctUpdatedLocation = Boolean(
+    activeValues.updatedLocation &&
+      !areLocationsEqual(
+        activeValues.updatedLocation,
+        activeValues.defaultLocation
+      )
+  );
   const compactMetaItems = [
     {
       key: "steps",
@@ -126,15 +162,16 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
       address: activeValues.updatedAddress || "Not updated",
       location: activeValues.updatedLocation,
       meta: activeValues.updatedAt
-        ? activeValues.updatedLocationSource === "default"
-          ? `Default location selected on ${activeValues.updatedAt}`
-          : `Updated on ${activeValues.updatedAt}`
+        ? `Updated on ${activeValues.updatedAt}`
         : "Current location not captured yet",
-      disabled: !activeValues.updatedLocation,
+      disabled: !hasDistinctUpdatedLocation,
     },
-  ].filter((item) => !(item.key === "default" && item.disabled));
+  ].filter(
+    (item) =>
+      !(item.key === "default" && item.disabled) &&
+      !(item.key === "updated" && item.disabled)
+  );
   const hasPendingUpdatedLocation = Boolean(activeValues.pendingUpdatedLocation);
-  const hasDefaultLocation = Boolean(activeValues.defaultLocation);
 
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
@@ -948,23 +985,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           {isUpdatingLocation
                             ? "Fetching current location..."
                             : "Update Location"}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.locationBtn,
-                          styles.locationBtnSecondary,
-                          (!hasDefaultLocation || isReadOnly) &&
-                            styles.locationBtnDisabled,
-                        ]}
-                        onPress={useDefaultNodeLocation}
-                        disabled={!hasDefaultLocation || isReadOnly}
-                        activeOpacity={!hasDefaultLocation || isReadOnly ? 1 : 0.88}
-                      >
-                        <Icons.location height={22} width={22} />
-                        <Text style={styles.locationBtnSecondaryText}>
-                          Use Default Location
                         </Text>
                       </TouchableOpacity>
                     </View>

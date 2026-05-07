@@ -87,6 +87,10 @@ const WORKFLOW_ROW_THEME = {
   },
 };
 
+const FILE_STORAGE_BASE_URL =
+  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+const IMAGE_CHECKLIST_PATTERN = /\b(photo|image|images|pic|picture)\b/i;
+
 const formatHistoryDate = (value) => {
   if (!value) return "";
   try {
@@ -125,6 +129,47 @@ const formatValueText = (value) => {
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return "";
 };
+
+const resolveAssetUrl = (value = "") => {
+  const normalizedValue = String(value || "").trim();
+
+  if (!normalizedValue) return "";
+
+  if (
+    normalizedValue.startsWith("http://") ||
+    normalizedValue.startsWith("https://")
+  ) {
+    return normalizedValue;
+  }
+
+  return `${FILE_STORAGE_BASE_URL}${normalizedValue.replace(/^\/+/, "")}`;
+};
+
+const isImageChecklist = (checklist = {}) =>
+  Boolean(checklist?.isFile) ||
+  IMAGE_CHECKLIST_PATTERN.test(String(checklist?.name || ""));
+
+const normalizeResubmitImages = (images = []) =>
+  (Array.isArray(images) ? images : [])
+    .map((image, index) => {
+      const uri = resolveAssetUrl(
+        image?.imageUrl ||
+          image?.image_url ||
+          image?.objectKey ||
+          image?.object_key ||
+          ""
+      );
+
+      if (!uri) return null;
+
+      return {
+        id: String(image?.imageId || image?.id || uri || `resubmit-${index}`),
+        uri,
+        title: `Resubmitted Image ${index + 1}`,
+        meta: image?.uploadedAt || image?.uploaded_at || "",
+      };
+    })
+    .filter(Boolean);
 
 const getCompactValueState = (value) => {
   const n = String(value || "").trim().toLowerCase();
@@ -206,34 +251,49 @@ const getChecklistDisplayTitle = (checklist, selectedWorkItem) => {
 const ChecklistValueBlock = ({ checklist, onViewImage }) => {
   const rawValue = checklist?.detail?.rawValue;
   const valueText = checklist?.detail?.value || "";
+  const shouldRenderAsImage = isImageChecklist(checklist);
+  const previewUrl =
+    checklist?.fileUrl ||
+    resolveAssetUrl(
+      checklist?.rawChecklist?.objectKey ||
+        checklist?.rawChecklist?.object_key ||
+        checklist?.rawChecklist?.imageUrl ||
+        checklist?.rawChecklist?.image_url ||
+        checklist?.rawChecklist?.value ||
+        ""
+    );
 
-  if (checklist?.isFile) {
+  if (shouldRenderAsImage) {
     return (
       <View style={styles.valueBlock}>
         <View style={styles.fileRow}>
-          {/* <Text style={styles.fileName} numberOfLines={2}>
-            {checklist?.metadata?.originalName ||
-              checklist?.metadata?.original_name ||
-              checklist?.name ||
-              "Uploaded file"}
-          </Text> */}
-          {checklist.fileUrl ? (
+          {previewUrl ? (
             <TouchableOpacity
+              style={styles.filePreviewTouch}
               activeOpacity={0.88}
               onPress={() =>
                 onViewImage?.({
-                  uri: checklist.fileUrl,
+                  uri: previewUrl,
                   title: checklist.name || "Submitted Image",
                 })
               }
             >
               <Image
-                source={{ uri: checklist.fileUrl }}
+                source={{ uri: previewUrl }}
                 style={styles.inlinePreviewImage}
                 resizeMode="cover"
               />
             </TouchableOpacity>
-          ) : null}
+          ) : (
+            <View style={styles.filePlaceholder}>
+              <Icon
+                source="image-off-outline"
+                size={22}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.filePlaceholderText}>No image uploaded</Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -376,6 +436,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
   const selectedDetailItems = selectedSubprocess?.detailItems || [];
+  const selectedResubmitImages = React.useMemo(
+    () =>
+      normalizeResubmitImages(
+        selectedSubprocess?.rawSubprocess?.resubmitImages || []
+      ),
+    [selectedSubprocess]
+  );
   const selectedCommentRemark = String(selectedWorkItem?.rejectionRemark || "").trim();
   const sheetBottomPadding = insets.bottom + 24;
   const historySheetBottomPadding = insets.bottom + 20;
@@ -481,24 +548,53 @@ const WorkStatusScreen = ({ route, navigation }) => {
         ? "Are you sure you want to verify this subprocess response?"
         : "Are you sure you want to reject this subprocess response with the entered remark?";
 
-  const openImageViewer = React.useCallback(({ uri = "", title = "", meta = "" } = {}) => {
-    if (!uri) {
-      return;
-    }
+  const openImageViewer = React.useCallback(
+    ({ uri = "", title = "", meta = "", items = [], initialIndex = 0 } = {}) => {
+      const nextItems =
+        Array.isArray(items) && items.length
+          ? items.filter((item) => item?.uri || item?.source)
+          : uri
+            ? [
+                {
+                  id: uri,
+                  uri,
+                  title,
+                  meta,
+                },
+              ]
+            : [];
 
-    setImageViewerState({
-      visible: true,
-      items: [
-        {
-          id: uri,
-          uri,
-          title,
-          meta,
-        },
-      ],
-      initialIndex: 0,
-    });
-  }, []);
+      if (!nextItems.length) {
+        return;
+      }
+
+      const boundedIndex = Math.min(
+        Math.max(0, Number(initialIndex) || 0),
+        Math.max(0, nextItems.length - 1)
+      );
+
+      setImageViewerState({
+        visible: true,
+        items: nextItems,
+        initialIndex: boundedIndex,
+      });
+    },
+    []
+  );
+
+  const openResubmitImage = React.useCallback(
+    (initialIndex = 0) => {
+      if (!selectedResubmitImages.length) {
+        return;
+      }
+
+      openImageViewer({
+        items: selectedResubmitImages,
+        initialIndex,
+      });
+    },
+    [openImageViewer, selectedResubmitImages]
+  );
 
   const closeImageViewer = React.useCallback(() => {
     setImageViewerState((currentValue) => ({
@@ -1066,6 +1162,36 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       </View>
                     );
                   })}
+
+                  {selectedResubmitImages.length ? (
+                    <View style={styles.reviewDetailsSection}>
+                      <View style={styles.sectionTitleRow}>
+                        <Text style={styles.sectionTitleText}>Resubmitted Images</Text>
+                        <Text style={styles.sectionCountText}>
+                          {selectedResubmitImages.length}
+                        </Text>
+                      </View>
+                      <View style={styles.imageGalleryGrid}>
+                        {selectedResubmitImages.map((image, index) => (
+                          <TouchableOpacity
+                            key={image.id}
+                            style={styles.galleryImageCard}
+                            activeOpacity={0.88}
+                            onPress={() => openResubmitImage(index)}
+                          >
+                            <Image
+                              source={{ uri: image.uri }}
+                              style={styles.galleryImage}
+                              resizeMode="cover"
+                            />
+                            <Text style={styles.galleryImageTitle} numberOfLines={1}>
+                              {image.title}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
 
                   {selectedDetailItems.length ? (
                     <View style={styles.reviewDetailsSection}>

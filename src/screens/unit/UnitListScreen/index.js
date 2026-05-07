@@ -22,6 +22,15 @@ import useUnitListViewModel from "../../../viewmodels/useUnitListViewModel";
 
 const SHIMMER_DURATION = 1150;
 const { width } = Dimensions.get("window");
+const SORT_BY_OPTIONS = [
+  { key: "oms", label: "OMS Name" },
+  { key: "date", label: "By Date" },
+  { key: "contractor", label: "By Contractor" },
+];
+const SORT_ORDER_OPTIONS = [
+  { key: "asc", label: "Ascending" },
+  { key: "desc", label: "Descending" },
+];
 
 const formatUnitNo = (value = "", module = "") => {
   const normalizedUnitNo = String(value || "").trim();
@@ -41,6 +50,9 @@ const formatUnitNo = (value = "", module = "") => {
 
 const UnitListScreen = ({ navigation, route }) => {
   const [showStatusInfo, setShowStatusInfo] = React.useState(false);
+  const [showSortSheet, setShowSortSheet] = React.useState(false);
+  const [draftSortBy, setDraftSortBy] = React.useState("");
+  const [draftSortOrder, setDraftSortOrder] = React.useState("");
   const shimmerTranslateX = React.useRef(new Animated.Value(0)).current;
   const shimmerTravelDistance = width + 180;
   const onEndReachedCalledDuringMomentumRef = React.useRef(false);
@@ -84,8 +96,13 @@ const UnitListScreen = ({ navigation, route }) => {
     loadMoreFilterOptions,
     filteredData,
     hasActiveFilters,
+    hasActiveSort,
     locationSummary,
+    sortBy,
+    sortOrder,
     clearFilters,
+    setSortBy,
+    setSortOrder,
     openMap,
     openGallery,
     getActiveFilterValue,
@@ -100,6 +117,36 @@ const UnitListScreen = ({ navigation, route }) => {
     downloadCertificate,
     handleBack,
   } = useUnitListViewModel(navigation, route);
+
+  const canShowSortControl = shouldUseOmsApi && !isOfflineOmsList;
+  const sortByLabel =
+    SORT_BY_OPTIONS.find((item) => item.key === sortBy)?.label || "";
+  const sortOrderLabel =
+    SORT_ORDER_OPTIONS.find((item) => item.key === sortOrder)?.label || "";
+  const sortSummaryLabel = sortByLabel && sortOrderLabel
+    ? `${sortByLabel} • ${sortOrderLabel}`
+    : sortByLabel || sortOrderLabel || "Select one";
+
+  const openSortSheet = React.useCallback(() => {
+    setDraftSortBy(sortBy || "");
+    setDraftSortOrder(sortOrder || "");
+    setShowSortSheet(true);
+  }, [sortBy, sortOrder]);
+
+  const closeSortSheet = React.useCallback(() => {
+    setShowSortSheet(false);
+  }, []);
+
+  const resetDraftSort = React.useCallback(() => {
+    setDraftSortBy("");
+    setDraftSortOrder("");
+  }, []);
+
+  const applyDraftSort = React.useCallback(() => {
+    setSortBy(draftSortBy);
+    setSortOrder(draftSortOrder);
+    setShowSortSheet(false);
+  }, [draftSortBy, draftSortOrder, setSortBy, setSortOrder]);
 
   React.useEffect(() => {
     shimmerTranslateX.setValue(0);
@@ -437,6 +484,51 @@ const UnitListScreen = ({ navigation, route }) => {
     </View>
   );
 
+  const SortActionButton = () => (
+    <TouchableOpacity
+      style={[
+        styles.sortActionButton,
+        hasActiveSort && styles.sortActionButtonActive,
+      ]}
+      onPress={openSortSheet}
+      activeOpacity={0.88}
+    >
+      <View
+        style={[
+          styles.sortActionIconWrap,
+          hasActiveSort && styles.sortActionIconWrapActive,
+        ]}
+      >
+        <Icon
+          source={
+            !hasActiveSort
+              ? "sort"
+              : sortOrder === "desc"
+                ? "sort-descending"
+                : "sort-ascending"
+          }
+          size={16}
+          color={hasActiveSort ? colors.white : colors.primaryBlue}
+        />
+      </View>
+      <View style={styles.sortActionTextBlock}>
+        <Text style={styles.sortActionTitle}>Sort By</Text>
+        <Text
+          style={[
+            styles.sortActionValue,
+            hasActiveSort && styles.sortActionValueActive,
+          ]}
+          numberOfLines={1}
+        >
+          {sortSummaryLabel}
+        </Text>
+      </View>
+      <View style={styles.sortChevronWrap}>
+        <Icons.down width={10} height={10} />
+      </View>
+    </TouchableOpacity>
+  );
+
   const filterLabel = filterType === "zone" ? "Zone" : "Village";
   const filterOptions =
     filterType === "zone" ? ["All", ...zones] : ["All", ...villages];
@@ -478,42 +570,52 @@ const UnitListScreen = ({ navigation, route }) => {
         />
       </View>
 
-      {canUseLocationFilters ? (
+      {canUseLocationFilters || canShowSortControl ? (
         <View style={styles.filterPanel}>
           <View style={styles.filterPanelHeader}>
             <View style={styles.filterPanelTitleWrap}>
               <CompactMeta label="Showing" value={locationSummary} />
             </View>
 
-            {hasActiveFilters ? (
-              <TouchableOpacity
-                style={styles.filterResetButton}
-                onPress={clearFilters}
-              >
-                <Text style={styles.filterResetText}>Reset</Text>
-              </TouchableOpacity>
-            ) : null}
+            <View style={styles.filterPanelActions}>
+              {(hasActiveFilters || hasActiveSort) ? (
+                <TouchableOpacity
+                  style={styles.filterResetButton}
+                  onPress={clearFilters}
+                >
+                  <Text style={styles.filterResetText}>Reset</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
 
-          <View style={styles.filterContainer}>
-            <FilterButton
-              title="Zone"
-              label={zone}
-              totalCount={zoneDisplayCount}
-              icon={Icons.zone}
-              active={zone !== "All"}
-              onPress={() => openFilterSheet("zone")}
-            />
+          {canUseLocationFilters ? (
+            <View style={styles.filterContainer}>
+              <FilterButton
+                title="Zone"
+                label={zone}
+                totalCount={zoneDisplayCount}
+                icon={Icons.zone}
+                active={zone !== "All"}
+                onPress={() => openFilterSheet("zone")}
+              />
 
-            <FilterButton
-              title="Village"
-              label={village}
-              totalCount={villageDisplayCount}
-              icon={Icons.village}
-              active={village !== "All"}
-              onPress={() => openFilterSheet("village")}
-            />
-          </View>
+              <FilterButton
+                title="Village"
+                label={village}
+                totalCount={villageDisplayCount}
+                icon={Icons.village}
+                active={village !== "All"}
+                onPress={() => openFilterSheet("village")}
+              />
+            </View>
+          ) : null}
+
+          {canShowSortControl ? (
+            <View style={styles.sortActionRow}>
+              <SortActionButton />
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -625,6 +727,101 @@ const UnitListScreen = ({ navigation, route }) => {
           emptyMessage={`No ${filterLabel.toLowerCase()} found.`}
         />
       ) : null}
+
+      <Modal
+        visible={showSortSheet}
+        transparent
+        animationType="fade"
+        onRequestClose={closeSortSheet}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sortModalCard}>
+            <View style={styles.sortModalHandle} />
+            <Text style={styles.modalTitle}>Sort OMS List</Text>
+            <Text style={styles.sortModalSubtitle}>
+              Choose how online OMS units should be ordered.
+            </Text>
+
+            <View style={styles.sortSection}>
+              <Text style={styles.sortSectionTitle}>Sort By</Text>
+              <View style={styles.sortChipRow}>
+                {SORT_BY_OPTIONS.map((option) => {
+                  const isActive = draftSortBy === option.key;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.sortChip,
+                        isActive && styles.sortChipActive,
+                      ]}
+                      onPress={() => setDraftSortBy(option.key)}
+                      activeOpacity={0.88}
+                    >
+                      <Text
+                        style={[
+                          styles.sortChipText,
+                          isActive && styles.sortChipTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.sortSection}>
+              <Text style={styles.sortSectionTitle}>Order</Text>
+              <View style={styles.sortChipRow}>
+                {SORT_ORDER_OPTIONS.map((option) => {
+                  const isActive = draftSortOrder === option.key;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.sortChip,
+                        isActive && styles.sortChipActive,
+                      ]}
+                      onPress={() => setDraftSortOrder(option.key)}
+                      activeOpacity={0.88}
+                    >
+                      <Text
+                        style={[
+                          styles.sortChipText,
+                          isActive && styles.sortChipTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.sortModalFooter}>
+              <TouchableOpacity
+                style={styles.sortModalResetButton}
+                onPress={resetDraftSort}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.sortModalResetText}>Reset</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sortModalCloseButton}
+                onPress={applyDraftSort}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.sortModalCloseText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showStatusInfo}

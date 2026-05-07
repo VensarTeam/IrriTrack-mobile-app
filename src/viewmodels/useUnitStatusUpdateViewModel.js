@@ -82,6 +82,36 @@ const buildFixedRepeatableGroupState = (group = {}) => {
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
 
+const normalizeCoordinate = (value) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Number(numericValue.toFixed(6));
+};
+
+const areLocationsEqual = (first = null, second = null) => {
+  const firstLatitude = normalizeCoordinate(first?.latitude);
+  const firstLongitude = normalizeCoordinate(first?.longitude);
+  const secondLatitude = normalizeCoordinate(second?.latitude);
+  const secondLongitude = normalizeCoordinate(second?.longitude);
+
+  if (
+    firstLatitude === null ||
+    firstLongitude === null ||
+    secondLatitude === null ||
+    secondLongitude === null
+  ) {
+    return false;
+  }
+
+  return (
+    firstLatitude === secondLatitude && firstLongitude === secondLongitude
+  );
+};
+
 const getUnitBaseLocation = (unit = {}) => {
   const latitude = Number(unit?.latitude);
   const longitude = Number(unit?.longitude);
@@ -507,6 +537,8 @@ const getInitialFormValues = (section, unit) => {
   const baseLocation = getUnitBaseLocation(unit);
 
   return section.subOptions.reduce((acc, sub) => {
+    const defaultAddress = buildUnitAddressSummary(unit, baseLocation);
+
     acc[sub.id] = {
       status: sub.showStatusField === false ? "" : "Pending",
       remark: "",
@@ -514,11 +546,11 @@ const getInitialFormValues = (section, unit) => {
       photos: buildPhotoState(sub.photoRequirements),
       repeatableGroups: buildRepeatableGroupState(sub.repeatableGroups),
       defaultLocation: baseLocation,
-      defaultAddress: buildUnitAddressSummary(unit, baseLocation),
-      updatedLocation: null,
-      updatedAddress: "",
+      defaultAddress,
+      updatedLocation: baseLocation,
+      updatedAddress: defaultAddress,
       updatedAt: null,
-      updatedLocationSource: "",
+      updatedLocationSource: baseLocation ? "default" : "",
       pendingUpdatedLocation: null,
       pendingUpdatedAddress: "",
       pendingUpdatedAt: null,
@@ -538,6 +570,13 @@ const SUBMITTED_STATUS_KEYS = new Set([
   "approved",
   "updated",
   "info",
+]);
+
+const INFO_RESUBMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const INFO_RESUBMIT_SUBOPTION_IDS = new Set([
+  "inletPipeLaying",
+  "outletPipeLaying",
+  "pipeFlushing",
 ]);
 
 const SERVER_PREFILL_STATUS_KEYS = new Set([
@@ -616,6 +655,8 @@ const getReadOnlyNoticeFromStatus = ({
   submittedFromServer = false,
   submittedFromLocal = false,
   serverStatusKey = "",
+  isInfoResubmitEligible = false,
+  isInfoResubmitWindowOpen = false,
 } = {}) => {
   if (isRoleReadOnly) {
     return (
@@ -634,6 +675,14 @@ const getReadOnlyNoticeFromStatus = ({
       .toLowerCase();
 
     if (normalizedStatusKey === "info") {
+      if (isInfoResubmitWindowOpen) {
+        return "This info subprocess can be resubmitted within 24 hours of server submission.";
+      }
+
+      if (isInfoResubmitEligible) {
+        return "The 24-hour resubmit window for this info subprocess has expired.";
+      }
+
       return "This checklist is already available as info from server data.";
     }
 
@@ -673,6 +722,12 @@ const parseCoordinateValue = (value) => {
     if (updatedLocation) {
       return parseCoordinateValue(updatedLocation);
     }
+
+    const defaultLocation = value.default_location || value.defaultLocation;
+
+    if (defaultLocation) {
+      return parseCoordinateValue(defaultLocation);
+    }
   }
 
   const match = String(value)
@@ -687,6 +742,64 @@ const parseCoordinateValue = (value) => {
     latitude: Number(match[1]),
     longitude: Number(match[2]),
   };
+};
+
+const parseServerTimestamp = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
+const getSubprocessServerSubmissionTime = (subprocess = null) => {
+  if (!subprocess) {
+    return null;
+  }
+
+  const rawSubprocess = subprocess.rawSubprocess || {};
+  const timestampCandidates = [
+    rawSubprocess.updatedAt,
+    rawSubprocess.updated_at,
+    rawSubprocess.createdAt,
+    rawSubprocess.created_at,
+  ];
+
+  for (const candidate of timestampCandidates) {
+    const parsedDate = parseServerTimestamp(candidate);
+
+    if (parsedDate) {
+      return parsedDate;
+    }
+  }
+
+  for (const checklist of subprocess.checklists || []) {
+    const rawChecklist = checklist.rawChecklist || {};
+    const checklistTimestampCandidates = [
+      rawChecklist.updatedAt,
+      rawChecklist.updated_at,
+      rawChecklist.createdAt,
+      rawChecklist.created_at,
+      rawChecklist.submittedAt,
+      rawChecklist.submitted_at,
+    ];
+
+    for (const candidate of checklistTimestampCandidates) {
+      const parsedDate = parseServerTimestamp(candidate);
+
+      if (parsedDate) {
+        return parsedDate;
+      }
+    }
+  }
+
+  return null;
 };
 
 const parseRepeatableGroupItems = (group, rawValue) => {
@@ -844,6 +957,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     requirementId: "",
     message: "",
   });
+  const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now());
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contractors, setContractors] = useState([]);
@@ -923,6 +1037,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentTimeMs(Date.now());
+    }, 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -1171,6 +1295,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const hasServerFilledData = subprocessHasServerFilledData(
           serverMatch?.subprocess
         );
+        const serverSubmissionAt = getSubprocessServerSubmissionTime(
+          serverMatch?.subprocess
+        );
+        const isInfoResubmitEligible = Boolean(
+          serverStatusKey === "info" &&
+            INFO_RESUBMIT_SUBOPTION_IDS.has(subOption.id)
+        );
+        const isInfoResubmitWindowOpen = Boolean(
+          isInfoResubmitEligible &&
+            serverSubmissionAt &&
+            currentTimeMs - serverSubmissionAt.getTime() <= INFO_RESUBMIT_WINDOW_MS
+        );
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
           !isCommented &&
@@ -1183,6 +1319,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           subprocessStatusKey,
           serverStatusKey,
           hasServerFilledData,
+          serverSubmissionAt: serverSubmissionAt
+            ? serverSubmissionAt.toISOString()
+            : "",
+          isInfoResubmitEligible,
+          isInfoResubmitWindowOpen,
           isCommented,
           submittedFromServer,
           submittedFromLocal,
@@ -1196,6 +1337,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }, {}),
     [
       isCommentedWorkItem,
+      currentTimeMs,
       localSubmissionSnapshots,
       progressMatchesBySubOptionId,
       section.subOptions,
@@ -1206,6 +1348,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const activeServerStatusKey = activeSubmissionState.serverStatusKey || "";
   const activeServerHasFilledData = Boolean(
     activeSubmissionState.hasServerFilledData
+  );
+  const isInfoResubmitEligible = Boolean(
+    activeSubmissionState.isInfoResubmitEligible
+  );
+  const isInfoResubmitWindowOpen = Boolean(
+    activeSubmissionState.isInfoResubmitWindowOpen
   );
   const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
   const submittedFromServer = Boolean(activeSubmissionState.submittedFromServer);
@@ -1223,11 +1371,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       localSubmissionSnapshot?.status !== "synced"
   );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
+  const canEditPrefilledLocationFinalization = Boolean(
+    activeSubOption?.id === "locationFinalization" &&
+      activeSubOption?.canUpdateLocation &&
+      !isCommentedForEdit
+  );
   const isReadOnly =
     isRoleReadOnly ||
-    (!isCommentedForEdit && submittedFromServer) ||
-    submittedFromLocal ||
-    hasSavedLocalSubmission;
+    (!isCommentedForEdit &&
+      submittedFromServer &&
+      !isInfoResubmitWindowOpen &&
+      !canEditPrefilledLocationFinalization) ||
+    (submittedFromLocal && !isInfoResubmitWindowOpen) ||
+    (hasSavedLocalSubmission && !isInfoResubmitWindowOpen);
   const readOnlyTitle = getReadOnlyTitleFromStatus({
     isRoleReadOnly,
     serverStatusKey: activeServerStatusKey,
@@ -1239,6 +1395,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     submittedFromServer,
     submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
     serverStatusKey: activeServerStatusKey,
+    isInfoResubmitEligible,
+    isInfoResubmitWindowOpen,
   });
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const canShowReviewActions = canReviewChecklist && submittedFromServer;
@@ -2085,31 +2243,29 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         longitude: Number(position.coords.longitude.toFixed(6)),
       };
 
-      const currentSubOptionId = activeSubOption.id;
       const capturedAt = new Date().toLocaleString();
-
-      console.log("[ChecklistLocation]", "Current location captured", {
-        subOptionId: currentSubOptionId,
-        updatedLocation: nextLocation,
-      });
-      updateValuesForSubOption(currentSubOptionId, {
-        pendingUpdatedLocation: nextLocation,
-        pendingUpdatedAt: capturedAt,
-        pendingUpdatedAddress: "Resolving address...",
-      });
-
-      void getReadableAddress(
+      const resolvedAddress = await getReadableAddress(
         nextLocation.latitude,
         nextLocation.longitude
-      ).then((address) => {
-        console.log("[ChecklistLocation]", "Updated address resolved", {
-          subOptionId: currentSubOptionId,
-          hasAddress: !!address,
-        });
-        updateValuesForSubOption(currentSubOptionId, {
-          pendingUpdatedAddress:
-            address || "Address unavailable (offline/network issue)",
-        });
+      );
+      const matchesDefaultLocation = areLocationsEqual(
+        nextLocation,
+        activeValues.defaultLocation
+      );
+      const nextAddress = matchesDefaultLocation
+        ? activeValues.defaultAddress || formatCoordinates(nextLocation)
+        : resolvedAddress || "Address unavailable (offline/network issue)";
+
+      console.log("[ChecklistLocation]", "Current location captured", {
+        subOptionId: activeSubOption.id,
+        updatedLocation: nextLocation,
+        matchesDefaultLocation,
+      });
+
+      updateActiveValues({
+        pendingUpdatedLocation: nextLocation,
+        pendingUpdatedAddress: nextAddress,
+        pendingUpdatedAt: capturedAt,
       });
     } catch (error) {
       console.log("[ChecklistLocation]", "Current location failed", {
@@ -2123,6 +2279,41 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     } finally {
       setIsUpdatingLocation(false);
     }
+  };
+
+  const confirmUpdatedLocation = () => {
+    if (isReadOnly) return;
+    if (!activeValues.pendingUpdatedLocation) return;
+
+    const matchesDefaultLocation = areLocationsEqual(
+      activeValues.pendingUpdatedLocation,
+      activeValues.defaultLocation
+    );
+
+    updateActiveValues({
+      updatedLocation: activeValues.pendingUpdatedLocation,
+      updatedAddress:
+        activeValues.pendingUpdatedAddress ||
+        (matchesDefaultLocation
+          ? activeValues.defaultAddress
+          : formatCoordinates(activeValues.pendingUpdatedLocation)),
+      updatedAt: activeValues.pendingUpdatedAt || new Date().toLocaleString(),
+      updatedLocationSource: matchesDefaultLocation ? "default" : "current",
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
+    });
+    clearFieldError("form");
+  };
+
+  const discardPendingUpdatedLocation = () => {
+    if (isReadOnly) return;
+
+    updateActiveValues({
+      pendingUpdatedLocation: null,
+      pendingUpdatedAddress: "",
+      pendingUpdatedAt: null,
+    });
   };
 
   const requestPhotoPermission = async () => {
@@ -2153,66 +2344,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
 
     return true;
-  };
-
-  const confirmUpdatedLocation = () => {
-    if (isReadOnly) return;
-    if (!activeValues.pendingUpdatedLocation) return;
-
-    updateActiveValues({
-      updatedLocation: activeValues.pendingUpdatedLocation,
-      updatedAddress:
-        activeValues.pendingUpdatedAddress ||
-        formatCoordinates(activeValues.pendingUpdatedLocation),
-      updatedAt: activeValues.pendingUpdatedAt || new Date().toLocaleString(),
-      updatedLocationSource: "current",
-      pendingUpdatedLocation: null,
-      pendingUpdatedAddress: "",
-      pendingUpdatedAt: null,
-    });
-    clearFieldError("form");
-  };
-
-  const useDefaultNodeLocation = () => {
-    if (isReadOnly) return;
-
-    const latitude = Number(activeValues.defaultLocation?.latitude);
-    const longitude = Number(activeValues.defaultLocation?.longitude);
-
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      showAppAlert({
-        type: "warning",
-        title: "Default location unavailable",
-        message: "This unit does not have a saved default location yet.",
-      });
-      return;
-    }
-
-    updateActiveValues({
-      updatedLocation: {
-        latitude,
-        longitude,
-      },
-      updatedAddress:
-        activeValues.defaultAddress ||
-        formatCoordinates(activeValues.defaultLocation),
-      updatedAt: new Date().toLocaleString(),
-      updatedLocationSource: "default",
-      pendingUpdatedLocation: null,
-      pendingUpdatedAddress: "",
-      pendingUpdatedAt: null,
-    });
-    clearFieldError("form");
-  };
-
-  const discardPendingUpdatedLocation = () => {
-    if (isReadOnly) return;
-
-    updateActiveValues({
-      pendingUpdatedLocation: null,
-      pendingUpdatedAddress: "",
-      pendingUpdatedAt: null,
-    });
   };
 
   const getPhotoCaptureLocation = async () => {
@@ -2581,10 +2712,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     if (
       activeSubOption.locationChecklist?.required &&
       activeSubOption.canUpdateLocation &&
-      !activeValues.updatedLocation
+      !activeValues.updatedLocation &&
+      !activeValues.defaultLocation
     ) {
-      nextErrors.form = "Please update current location or use default location";
-      setFirstErrorMessage("Please update current location or use default location");
+      nextErrors.form = "Please update location";
+      setFirstErrorMessage("Please update location");
     }
 
     const missingChecklistItems = checklistItems.filter(
@@ -3262,7 +3394,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
-    useDefaultNodeLocation,
     confirmUpdatedLocation,
     discardPendingUpdatedLocation,
     pickFromCamera,
