@@ -98,6 +98,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     getPickerSelectedValue,
     selectPickerValue,
     closePicker,
+    getRepeatableSelectOptions,
     updateInputValue,
     updateRemarkValue,
     updateRepeatableGroupItem,
@@ -133,20 +134,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         activeValues.defaultLocation
       )
   );
-  const compactMetaItems = [
-    {
-      key: "steps",
-      label: `${section.subOptions.length} Step${
-        section.subOptions.length === 1 ? "" : "s"
-      }`,
-    },
-    {
-      key: "checks",
-      label: `${checklistProgress.total} Check${
-        checklistProgress.total === 1 ? "" : "s"
-      }`,
-    },
-  ];
   const locationCards = [
     {
       key: "default",
@@ -314,10 +301,14 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         {items.map((item, itemIndex) => {
           const itemErrors = groupErrors.items?.[itemIndex] || {};
           const itemTitle = group.itemTitleField
-            ? item[group.itemTitleField] || itemIndex + 1
+            ? item[group.itemTitleField] ||
+              (group.itemTitleFallbackPrefix
+                ? `${group.itemTitleFallbackPrefix}${itemIndex + 1}`
+                : itemIndex + 1)
             : itemIndex + 1;
           const displayFields = (group.itemFields || []).filter(
-            (groupField) => groupField.key !== group.itemTitleField
+            (groupField) =>
+              groupField.key !== group.itemTitleField && groupField.hidden !== true
           );
 
           return (
@@ -334,11 +325,24 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     </Text>
                   )}
 
+                  <View
+                    style={[
+                      styles.repeatableFieldRow,
+                      displayFields.length === 1 && styles.repeatableFieldRowSingle,
+                    ]}
+                  >
                   {displayFields.map((groupField) => {
+                    const isOutletNaPipeSizeField =
+                      groupField.key === "pipeSize" &&
+                      String(item?.subChakName || "").trim().toUpperCase() === "NA";
+
                     if (groupField.type === "select") {
                       return (
                         <View
-                          style={styles.repeatableInlineField}
+                          style={[
+                            styles.repeatableInlineField,
+                            styles.repeatableInlineFieldRowItem,
+                          ]}
                           key={`${group.key}_${itemIndex}_${groupField.key}`}
                         >
                           <Text style={styles.repeatableInlineLabel}>
@@ -346,16 +350,24 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           </Text>
                           <TouchableOpacity
                             style={[
-                            styles.repeatableInlineSelect,
-                            itemErrors[groupField.key] && styles.selectFieldError,
-                            isReadOnly && styles.fieldDisabled,
-                          ]}
+                              styles.repeatableInlineSelect,
+                              itemErrors[groupField.key] && styles.selectFieldError,
+                              (isReadOnly || isOutletNaPipeSizeField) &&
+                                styles.fieldDisabled,
+                            ]}
                             onPress={() => {
+                              if (isOutletNaPipeSizeField) {
+                                return;
+                              }
                               Keyboard.dismiss();
                               openSelectModal({
                                 field: groupField.key,
                                 title: groupField.label,
-                                options: groupField.options,
+                                options: getRepeatableSelectOptions(
+                                  group,
+                                  itemIndex,
+                                  groupField
+                                ),
                                 target: {
                                   type: "repeatable",
                                   groupKey: group.key,
@@ -365,7 +377,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                               });
                             }}
                             activeOpacity={isReadOnly ? 1 : 0.86}
-                            disabled={isReadOnly}
+                            disabled={isReadOnly || isOutletNaPipeSizeField}
                           >
                             <Text
                               style={[
@@ -375,6 +387,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                               numberOfLines={1}
                             >
                               {item[groupField.key] ||
+                                (isOutletNaPipeSizeField ? "NA" : "") ||
                                 groupField.placeholder ||
                                 "Select option"}
                             </Text>
@@ -391,7 +404,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
                     return (
                       <View
-                        style={styles.repeatableInlineField}
+                        style={[
+                          styles.repeatableInlineField,
+                          styles.repeatableInlineFieldRowItem,
+                        ]}
                         key={`${group.key}_${itemIndex}_${groupField.key}`}
                       >
                         <Text style={styles.repeatableInlineLabel}>
@@ -426,6 +442,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       </View>
                     );
                   })}
+                  </View>
                 </View>
 
                 {items.length > (group.minItems || 0) ? (
@@ -516,13 +533,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
           <View style={styles.stepHeaderRow}>
             <Text style={styles.stepTitle}>Update Steps</Text>
-            <View style={styles.stepMetaRow}>
-              {compactMetaItems.map((item) => (
-                <View key={item.key} style={styles.stepMetaChip}>
-                  <Text style={styles.stepMetaChipText}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
           </View>
 
           <ScrollView
@@ -1096,25 +1106,53 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             <ScrollView>
               {pickerState.options.map((item) => {
-                const selected = getPickerSelectedValue() === item;
+                const optionValue =
+                  typeof item === "string"
+                    ? item
+                    : String(item?.value ?? item?.label ?? "").trim();
+                const optionLabel =
+                  typeof item === "string"
+                    ? item
+                    : String(item?.label ?? item?.value ?? "").trim();
+                const optionDisabled =
+                  typeof item === "object" && Boolean(item?.disabled);
+                const selected = getPickerSelectedValue() === optionValue;
 
                 return (
                   <TouchableOpacity
-                    key={item}
+                    key={optionValue}
                     style={[
                       styles.modalOption,
+                      optionDisabled && styles.modalOptionDisabled,
                       selected && styles.modalOptionActive,
                     ]}
-                    onPress={() => selectPickerValue(item)}
+                    onPress={() =>
+                      optionDisabled ? null : selectPickerValue(optionValue)
+                    }
+                    disabled={optionDisabled}
                   >
-                    <Text
-                      style={[
-                        styles.modalOptionText,
-                        selected && styles.modalOptionTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
+                    <View style={styles.modalOptionContent}>
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          optionDisabled && styles.modalOptionTextDisabled,
+                          selected && styles.modalOptionTextActive,
+                        ]}
+                      >
+                        {optionLabel}
+                      </Text>
+                      <View
+                        style={[
+                          styles.modalOptionIndicator,
+                          optionDisabled && styles.modalOptionIndicatorDisabled,
+                          selected && styles.modalOptionIndicatorActive,
+                        ]}
+                      >
+                        {selected ? (
+                          <Text style={styles.modalOptionIndicatorText}>✓</Text>
+                        ) : null}
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 );
               })}

@@ -217,13 +217,6 @@ const UnitDetailsScreen = ({ navigation, route }) => {
                         <Text style={styles.processTitle}>{process.name}</Text>
                         <StatusPill status={process.status} />
                       </View>
-
-                      <Text style={styles.processMeta}>
-                        {process.subprocessCount} subprocess
-                        {process.subprocessCount === 1 ? "" : "es"} •{" "}
-                        {process.checklistCount} checklist
-                        {process.checklistCount === 1 ? "" : "s"}
-                      </Text>
                     </View>
 
                     <View style={styles.processChevronWrap}>
@@ -264,10 +257,6 @@ const UnitDetailsScreen = ({ navigation, route }) => {
                             <View style={styles.subprocessCopy}>
                               <Text style={styles.subprocessLabel}>
                                 {subprocess.name}
-                              </Text>
-                              <Text style={styles.subprocessHint}>
-                                {subprocess.checklistCount} checklist
-                                {subprocess.checklistCount === 1 ? "" : "s"}
                               </Text>
                             </View>
                           </View>

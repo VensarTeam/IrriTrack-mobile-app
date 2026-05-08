@@ -643,11 +643,37 @@ export default StyleSheet.create({
     marginBottom: 0,
   },
 
+  checklistCardCompact: {
+    paddingVertical: verticalScale(10),
+  },
+
   checklistHead: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: moderateScale(10),
+  },
+
+  checklistInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+  },
+
+  checklistInlineCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  checklistInlineStatus: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
 
   checklistCopy: {
@@ -677,6 +703,53 @@ export default StyleSheet.create({
     marginTop: verticalScale(10),
     width: "100%",
     alignSelf: "stretch",
+  },
+
+  compactValueRow: {
+    minHeight: verticalScale(38),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
+  },
+
+  compactValueToneSuccess: {
+    backgroundColor: "#ECFBF3",
+    borderWidth: 1,
+    borderColor: "#C7EFD8",
+  },
+
+  compactValueToneDanger: {
+    backgroundColor: "#FFF3F0",
+    borderWidth: 1,
+    borderColor: "#F1C5B8",
+  },
+
+  compactValueToneNeutral: {
+    backgroundColor: "#EEF6FF",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+  },
+
+  compactValueText: {
+    flex: 1,
+    fontSize: moderateScale(11.5),
+    fontFamily: fonts.semiBold,
+    lineHeight: moderateScale(16),
+  },
+
+  compactValueTextSuccess: {
+    color: colors.completed,
+  },
+
+  compactValueTextDanger: {
+    color: colors.danger,
+  },
+
+  compactValueTextNeutral: {
+    color: colors.textDark,
   },
 
   valueLabel: {
@@ -742,47 +815,46 @@ export default StyleSheet.create({
   },
 
   fileRow: {
-    width: "100%",
-    alignSelf: "stretch",
-    alignItems: "stretch",
     borderRadius: moderateScale(12),
     backgroundColor: "#F7FAFD",
     borderWidth: 1,
     borderColor: "#DDE7F1",
-    overflow: "hidden",
-  },
-
-  fileHeader: {
     paddingHorizontal: moderateScale(10),
-    paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(8),
+    paddingBottom: verticalScale(10),
   },
 
-  fileName: {
-    fontSize: moderateScale(11.5),
-    color: colors.textDark,
+  filePreviewTouch: {
+    marginTop: verticalScale(10),
+  },
+
+  filePlaceholder: {
+    marginTop: verticalScale(10),
+    minHeight: verticalScale(120),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: "#D5E2EE",
+    borderStyle: "dashed",
+    backgroundColor: "#F2F7FB",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(12),
+  },
+
+  filePlaceholderText: {
+    marginTop: verticalScale(8),
+    fontSize: moderateScale(11),
+    color: colors.textSecondary,
     fontFamily: fonts.semiBold,
-    lineHeight: moderateScale(17),
-  },
-
-  inlinePreviewTouch: {
-    width: "100%",
-    alignSelf: "stretch",
+    textAlign: "center",
   },
 
   inlinePreviewImage: {
     width: "100%",
-    height: verticalScale(180),
-    alignSelf: "stretch",
-    backgroundColor: "#E8F0F7",
-  },
-
-  viewImageButton: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.primaryBlue,
-    borderRadius: moderateScale(10),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(7),
+    height: verticalScale(150),
+    borderRadius: moderateScale(12),
+    marginTop: verticalScale(10),
+    backgroundColor: "#E8EEF5",
   },
 
   viewImageButtonText: {

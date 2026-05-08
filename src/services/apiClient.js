@@ -417,7 +417,7 @@ apiClient.interceptors.request.use(async (config) => {
     }
   }
 
-  //logApiRequest(requestConfig);
+  logApiRequest(requestConfig);
   return requestConfig;
 });
 

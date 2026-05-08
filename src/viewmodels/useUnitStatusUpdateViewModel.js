@@ -54,6 +54,14 @@ const buildInputFieldState = (inputFields = []) =>
     return acc;
   }, {});
 
+const normalizePickerOptionValue = (option) => {
+  if (typeof option === "string") {
+    return option;
+  }
+
+  return String(option?.value ?? option?.label ?? "").trim();
+};
+
 const createRepeatableGroupItem = (group = {}, itemIndex = 0) =>
   (group.itemFields || []).reduce((acc, field) => {
     acc[field.key] =
@@ -2056,7 +2064,21 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     if (isReadOnly) return;
     const currentItems = activeValues.repeatableGroups?.[groupKey] || [];
     const nextItems = currentItems.map((item, index) =>
-      index === itemIndex ? { ...item, [fieldKey]: value } : item
+      index === itemIndex
+        ? (() => {
+            const nextItem = { ...item, [fieldKey]: value };
+
+            if (fieldKey === "subChakName") {
+              if (String(value || "").trim().toUpperCase() === "NA") {
+                nextItem.pipeSize = "NA";
+              } else if (String(nextItem.pipeSize || "").trim().toUpperCase() === "NA") {
+                nextItem.pipeSize = "";
+              }
+            }
+
+            return nextItem;
+          })()
+        : item
     );
 
     updateActiveValues({
@@ -2067,7 +2089,55 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     });
 
     clearRepeatableGroupFieldError(groupKey, itemIndex, fieldKey);
+
+    if (fieldKey === "subChakName") {
+      clearRepeatableGroupFieldError(groupKey, itemIndex, "pipeSize");
+    }
   };
+
+  const getRepeatableSelectOptions = useCallback(
+    (group, itemIndex, field) => {
+      const baseOptions = Array.isArray(field?.options) ? field.options : [];
+      const uniqueFieldKeys = Array.isArray(group?.uniqueSelectionFieldKeys)
+        ? group.uniqueSelectionFieldKeys
+        : [];
+
+      if (!uniqueFieldKeys.includes(field?.key)) {
+        return baseOptions;
+      }
+
+      const allowedDuplicateValues = new Set(
+        (group?.allowDuplicateValues || [])
+          .map((value) => String(value || "").trim())
+          .filter(Boolean)
+      );
+      const items = activeValues.repeatableGroups?.[group.key] || [];
+      const selectedValuesByOtherItems = new Set(
+        items
+          .map((item, index) =>
+            index === itemIndex ? "" : String(item?.[field.key] || "").trim()
+          )
+          .filter(
+            (value) => value && !allowedDuplicateValues.has(String(value))
+          )
+      );
+
+      return baseOptions.map((option) => {
+        const value = normalizePickerOptionValue(option);
+        const label =
+          typeof option === "string"
+            ? option
+            : String(option?.label ?? option?.value ?? "").trim();
+
+        return {
+          value,
+          label,
+          disabled: selectedValuesByOtherItems.has(value),
+        };
+      });
+    },
+    [activeValues.repeatableGroups]
+  );
 
   const addRepeatableGroupItem = (group) => {
     if (isReadOnly) return;
@@ -2755,7 +2825,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
           (group.itemFields || []).forEach((field) => {
             const isRequired = field.required !== false;
-            if (isRequired && !`${item[field.key] ?? ""}`.trim()) {
+            const isOutletNaPipeSizeField =
+              field.key === "pipeSize" &&
+              String(item?.subChakName || "").trim().toUpperCase() === "NA";
+
+            if (
+              isRequired &&
+              !isOutletNaPipeSizeField &&
+              !`${item[field.key] ?? ""}`.trim()
+            ) {
               const message = getFieldValidationMessage({
                 field,
                 type: field.type === "select" ? "select" : "input",
@@ -3384,6 +3462,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     getPickerSelectedValue,
     selectPickerValue,
     closePicker,
+    getRepeatableSelectOptions,
     updateInputValue,
     updateRemarkValue,
     updateReviewRemark,

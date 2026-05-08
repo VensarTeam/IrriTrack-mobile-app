@@ -509,7 +509,7 @@ export default StyleSheet.create({
 
   repeatableCompactRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
 
   repeatableValueBadge: {
@@ -533,36 +533,57 @@ export default StyleSheet.create({
     flex: 1,
   },
 
+  repeatableFieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: moderateScale(8),
+  },
+
+  repeatableFieldRowSingle: {
+    gap: 0,
+  },
+
   repeatableInlineField: {
     flex: 1,
   },
 
+  repeatableInlineFieldRowItem: {
+    minWidth: 0,
+  },
+
   repeatableInlineLabel: {
-    fontSize: moderateScale(10),
+    fontSize: moderateScale(9.5),
     color: colors.textSecondary,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.bold,
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
     marginBottom: verticalScale(4),
   },
 
   repeatableInlineSelect: {
-    minHeight: verticalScale(38),
+    minHeight: verticalScale(40),
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: moderateScale(8),
-    backgroundColor: colors.inputBg,
+    borderColor: "#D8E5F3",
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F8FBFF",
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
 
   repeatableInlineInput: {
-    minHeight: verticalScale(38),
+    minHeight: verticalScale(40),
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: moderateScale(8),
-    backgroundColor: colors.inputBg,
+    borderColor: "#D8E5F3",
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F8FBFF",
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(8),
     fontSize: moderateScale(12),
@@ -573,9 +594,9 @@ export default StyleSheet.create({
   repeatableInlineValue: {
     flex: 1,
     marginRight: moderateScale(8),
-    fontSize: moderateScale(12),
+    fontSize: moderateScale(11.5),
     color: colors.textDark,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.bold,
   },
 
   repeatableStaticText: {
@@ -1219,36 +1240,90 @@ locationBtnSecondaryText: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(16),
-    paddingVertical: verticalScale(14),
-    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(20),
+    paddingVertical: verticalScale(16),
+    paddingHorizontal: moderateScale(14),
     maxHeight: "70%",
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 8,
   },
 
   modalTitle: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(15),
     color: colors.textDark,
     fontFamily: fonts.bold,
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(10),
   },
 
   modalOption: {
     paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(10),
-    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    borderColor: "#E2EAF4",
+    backgroundColor: "#FBFDFF",
+    marginBottom: verticalScale(8),
+  },
+
+  modalOptionDisabled: {
+    opacity: 0.45,
   },
 
   modalOptionActive: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: "#EDF6FF",
+    borderColor: colors.primaryBlue,
+  },
+
+  modalOptionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(10),
   },
 
   modalOptionText: {
-    fontSize: moderateScale(12),
+    flex: 1,
+    fontSize: moderateScale(12.5),
     color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  modalOptionTextDisabled: {
+    color: colors.textSecondary,
   },
 
   modalOptionTextActive: {
     color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  modalOptionIndicator: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+    borderWidth: 1,
+    borderColor: "#D8E5F3",
+    backgroundColor: "#EFF4FA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalOptionIndicatorDisabled: {
+    backgroundColor: "#F4F6F8",
+    borderColor: "#E4E8ED",
+  },
+
+  modalOptionIndicatorActive: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+
+  modalOptionIndicatorText: {
+    fontSize: moderateScale(11),
+    color: colors.white,
     fontFamily: fonts.bold,
   },
 

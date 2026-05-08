@@ -310,9 +310,9 @@ const ProjectDetailsScreen = ({ route }) => {
             radius={outerRadius}
             innerRadius={outerInnerRadius}
             data={buildRingData(
-              totalUnits || total,
-              moduleTheme?.accent || colors.primaryBlue,
-              moduleTheme?.soft || RING_TRACK_COLORS.pending,
+              summary.completed,
+              colors.completed,
+              RING_TRACK_COLORS.completed,
             )}
             isAnimated
             animationDuration={PIE_ANIMATION_DURATION}
@@ -325,9 +325,9 @@ const ProjectDetailsScreen = ({ route }) => {
             radius={middleRadius}
             innerRadius={middleInnerRadius}
             data={buildRingData(
-              summary.completed,
-              colors.completed,
-              RING_TRACK_COLORS.completed,
+              summary.pending,
+              colors.pending,
+              RING_TRACK_COLORS.pending,
             )}
             isAnimated
             animationDuration={PIE_ANIMATION_DURATION}
@@ -1186,9 +1186,16 @@ const ProjectDetailsScreen = ({ route }) => {
                                             ]}
                                           >
                                           <SummaryItem
-                                            label="Total"
-                                            value={totalUnits}
-                                            color={moduleTheme.accent}
+                                            label="Pending"
+                                            value={formatSummaryValue(
+                                              summary,
+                                              "pending",
+                                            )}
+                                            share={formatSummaryShare(
+                                              summary,
+                                              "pending",
+                                            )}
+                                            color={colors.pending}
                                             isTight={isTightChart}
                                             isSmall={isSmallChart}
                                           />

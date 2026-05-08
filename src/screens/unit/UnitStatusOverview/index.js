@@ -43,6 +43,70 @@ const formatValueText = (value) => {
   return "";
 };
 
+const getCompactValueState = (value) => {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+
+  if (
+    ["yes", "true", "completed", "done", "approved", "verified"].includes(
+      normalizedValue
+    )
+  ) {
+    return { icon: "check-circle", tone: "success" };
+  }
+
+  if (["no", "false"].includes(normalizedValue)) {
+    return { icon: "close-circle", tone: "danger" };
+  }
+
+  return { icon: "circle-medium", tone: "neutral" };
+};
+
+const getSimpleChecklistState = (checklist) => {
+  const rawValue = checklist?.detail?.rawValue;
+
+  if (checklist?.isFile || Array.isArray(rawValue) || isPlainObject(rawValue)) {
+    return null;
+  }
+
+  const valueText = formatValueText(rawValue ?? checklist?.detail?.value);
+  const normalizedText = String(valueText || "").trim();
+
+  if (!normalizedText) {
+    return {
+      icon: "minus",
+      color: colors.primaryBlue,
+      backgroundColor: "#EEF6FF",
+      borderColor: "#D5E7FB",
+    };
+  }
+
+  const normalizedValue = String(valueText || "").trim().toLowerCase();
+
+  if (
+    ["yes", "true", "completed", "done", "approved", "verified"].includes(
+      normalizedValue
+    )
+  ) {
+    return {
+      icon: "check-circle",
+      color: colors.completed,
+      backgroundColor: "#ECFBF3",
+      borderColor: "#C7EFD8",
+    };
+  }
+
+  if (["no", "false"].includes(normalizedValue)) {
+    return {
+      icon: "close-circle",
+      color: colors.danger,
+      backgroundColor: "#FFF3F0",
+      borderColor: "#F1C5B8",
+    };
+  }
+
+  return null;
+};
+
 const ChecklistValueBlock = ({ checklist, onViewImage }) => {
   const rawValue = checklist?.detail?.rawValue;
   const valueText = checklist?.detail?.value || "";
@@ -50,21 +114,10 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
   if (checklist?.isFile) {
     return (
       <View style={styles.valueBlock}>
-        <Text style={styles.valueLabel}>
-          {checklist?.detail?.label || "Attachment"}
-        </Text>
         <View style={styles.fileRow}>
-          <View style={styles.fileHeader}>
-            <Text style={styles.fileName} numberOfLines={2}>
-              {checklist?.metadata?.originalName ||
-                checklist?.metadata?.original_name ||
-                checklist?.name ||
-                "Uploaded file"}
-            </Text>
-          </View>
           {checklist.fileUrl ? (
             <TouchableOpacity
-              style={styles.inlinePreviewTouch}
+              style={styles.filePreviewTouch}
               activeOpacity={0.88}
               onPress={() =>
                 onViewImage({
@@ -79,7 +132,16 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
                 resizeMode="cover"
               />
             </TouchableOpacity>
-          ) : null}
+          ) : (
+            <View style={styles.filePlaceholder}>
+              <Icon
+                source="image-off-outline"
+                size={22}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.filePlaceholderText}>No image uploaded</Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -137,13 +199,37 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
     return null;
   }
 
+  const state = getCompactValueState(valueText);
+  const toneStyle =
+    state.tone === "success"
+      ? styles.compactValueToneSuccess
+      : state.tone === "danger"
+        ? styles.compactValueToneDanger
+        : styles.compactValueToneNeutral;
+  const textStyle =
+    state.tone === "success"
+      ? styles.compactValueTextSuccess
+      : state.tone === "danger"
+        ? styles.compactValueTextDanger
+        : styles.compactValueTextNeutral;
+
   return (
     <View style={styles.valueBlock}>
-      <Text style={styles.valueLabel}>
-        {checklist?.detail?.label || "Submitted Value"}
-      </Text>
-      <View style={styles.valueHighlight}>
-        <Text style={styles.valueHighlightText}>{valueText}</Text>
+      <View style={[styles.compactValueRow, toneStyle]}>
+        <Icon
+          source={state.icon}
+          size={16}
+          color={
+            state.tone === "success"
+              ? colors.completed
+              : state.tone === "danger"
+                ? colors.danger
+                : colors.primaryBlue
+          }
+        />
+        <Text style={[styles.compactValueText, textStyle]} numberOfLines={2}>
+          {valueText}
+        </Text>
       </View>
     </View>
   );
@@ -348,25 +434,6 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
           <Text style={styles.heroTitle} numberOfLines={2}>
             {projectName}
           </Text>
-
-          <View style={styles.heroStatsRow}>
-            <View style={styles.heroStatChip}>
-              <Text style={styles.heroStatValue}>{summary.processCount}</Text>
-              <Text style={styles.heroStatLabel}>Processes</Text>
-            </View>
-            <View style={[styles.heroStatChip, styles.heroStatChipGreen]}>
-              <Text style={styles.heroStatValue}>
-                {summary.completedProcessCount}
-              </Text>
-              <Text style={styles.heroStatLabel}>Completed Process</Text>
-            </View>
-            <View style={[styles.heroStatChip, styles.heroStatChipAmber]}>
-              <Text style={styles.heroStatValue}>
-                {summary.pendingProcessCount}
-              </Text>
-              <Text style={styles.heroStatLabel}>Pending Process</Text>
-            </View>
-          </View>
         </View>
 
         {isLoading ? (
@@ -423,13 +490,6 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                         <Text style={styles.processTitle}>{process.name}</Text>
                         <StatusPill status={process.status} />
                       </View>
-
-                      <Text style={styles.processMeta}>
-                        {process.subprocessCount} subprocess
-                        {process.subprocessCount === 1 ? "" : "es"} •{" "}
-                        {process.checklistCount} checklist
-                        {process.checklistCount === 1 ? "" : "s"}
-                      </Text>
                     </View>
 
                     <View style={styles.processChevronWrap}>
@@ -499,10 +559,6 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                                   <Text style={styles.subprocessLabel}>
                                     {subprocess.name}
                                   </Text>
-                                  <Text style={styles.subprocessHint}>
-                                    {subprocess.checklistCount} checklist
-                                    {subprocess.checklistCount === 1 ? "" : "s"}
-                                  </Text>
                                   {subprocessActionHint ? (
                                     <Text style={styles.subprocessActionHint}>
                                       {subprocessActionHint}
@@ -546,11 +602,6 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 <Text style={styles.sheetTitle}>
                   {selectedSubprocess?.name || "Subprocess"}
                 </Text>
-                <Text style={styles.sheetSubtitle}>
-                  {canReviewChecklist
-                    ? "Check subprocess details here."
-                    : "Only filled values are shown below when the API provides them."}
-                </Text>
               </View>
 
               <IconButton
@@ -560,13 +611,8 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                 onPress={closeSubprocessModal}
               />
             </View>
-
             <View style={styles.sheetStatusRow}>
               <StatusPill status={effectiveSelectedSubprocessStatus} />
-              <Text style={styles.sheetStatusCount}>
-                {selectedSubprocess?.checklistCount || 0} checklist
-                {(selectedSubprocess?.checklistCount || 0) === 1 ? "" : "s"}
-              </Text>
             </View>
 
             {selectedSubprocessLocation ? (
@@ -592,35 +638,62 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
               ]}
               showsVerticalScrollIndicator={false}
             >
-              {(selectedSubprocess?.checklists || []).map((checklist, index) => (
-                <View
-                  key={checklist.id}
-                  style={[
-                    styles.checklistCard,
-                    index === (selectedSubprocess?.checklists || []).length - 1 &&
-                      styles.checklistCardLast,
-                  ]}
-                >
-                  <View style={styles.checklistHead}>
-                    <View style={styles.checklistCopy}>
-                      <Text style={styles.checklistTitle}>{checklist.name}</Text>
-                      {!checklist.isRequired ? (
-                        <Text style={styles.optionalText}>Optional</Text>
-                      ) : null}
-                      <ChecklistValueBlock
-                        checklist={checklist}
-                        onViewImage={openImagePreview}
-                      />
-                    </View>
+              {(selectedSubprocess?.checklists || []).map((checklist, index) => {
+                const simpleState = getSimpleChecklistState(checklist);
 
-                    {checklist.isRequired ? (
-                      <View style={styles.checklistMeta}>
-                        <StatusPill status={checklist.status} />
+                return (
+                  <View
+                    key={checklist.id}
+                    style={[
+                      styles.checklistCard,
+                      simpleState && styles.checklistCardCompact,
+                      index === (selectedSubprocess?.checklists || []).length - 1 &&
+                        styles.checklistCardLast,
+                    ]}
+                  >
+                    {simpleState ? (
+                      <View>
+                        <View style={styles.checklistInlineRow}>
+                          <View style={styles.checklistInlineCopy}>
+                            <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                            {!checklist.isRequired ? (
+                              <Text style={styles.optionalText}>Optional</Text>
+                            ) : null}
+                          </View>
+                          <View
+                            style={[
+                              styles.checklistInlineStatus,
+                              {
+                                backgroundColor: simpleState.backgroundColor,
+                                borderColor: simpleState.borderColor,
+                              },
+                            ]}
+                          >
+                            <Icon
+                              source={simpleState.icon}
+                              size={18}
+                              color={simpleState.color}
+                            />
+                          </View>
+                        </View>
                       </View>
-                    ) : null}
+                    ) : (
+                      <View style={styles.checklistHead}>
+                        <View style={styles.checklistCopy}>
+                          <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                          {!checklist.isRequired ? (
+                            <Text style={styles.optionalText}>Optional</Text>
+                          ) : null}
+                          <ChecklistValueBlock
+                            checklist={checklist}
+                            onViewImage={openImagePreview}
+                          />
+                        </View>
+                      </View>
+                    )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
 
               {selectedSubprocessDetails.length ? (
                 <View style={styles.reviewDetailsSection}>

@@ -335,11 +335,22 @@ const SearchableFilterModal = ({
             <View style={styles.handle} />
             <View style={styles.headerRow}>
               <Text style={styles.title}>{title}</Text>
-              {Number.isFinite(totalItems) ? (
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>{totalItems}</Text>
-                </View>
-              ) : null}
+              <View style={styles.headerActions}>
+                {Number.isFinite(totalItems) ? (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>{totalItems}</Text>
+                  </View>
+                ) : null}
+                <TouchableOpacity
+                  style={styles.headerCloseButton}
+                  onPress={handleRequestClose}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Close ${title || "filter"}`}
+                >
+                  <Icon source="close" size={18} color={colors.textDark} />
+                </TouchableOpacity>
+              </View>
             </View>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
@@ -395,17 +406,6 @@ const SearchableFilterModal = ({
                 onEndReachedThreshold={0.25}
               />
             </View>
-
-            <View
-              style={[
-                styles.footer,
-                { paddingBottom: verticalScale(16) + bottomInset },
-              ]}
-            >
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Text style={styles.closeText}>Close</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -457,10 +457,16 @@ const styles = StyleSheet.create({
 
   headerRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: moderateScale(8),
-    flexWrap: "wrap",
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(8),
+    marginLeft: moderateScale(10),
   },
 
   countBadge: {
@@ -479,6 +485,17 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     fontFamily: fonts.bold,
     color: colors.white,
+  },
+
+  headerCloseButton: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    borderWidth: 1,
+    borderColor: "#E1EAF4",
+    backgroundColor: "#F7FAFE",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   subtitle: {
@@ -649,26 +666,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  footer: {
-    paddingTop: verticalScale(8),
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: "#EEF2F6",
-  },
-
-  closeButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(16),
-    backgroundColor: colors.primaryBlue,
-    paddingVertical: verticalScale(12),
-  },
-
-  closeText: {
-    fontSize: moderateScale(13),
-    color: colors.white,
-    fontFamily: fonts.bold,
-  },
 });
 
 export default SearchableFilterModal;
