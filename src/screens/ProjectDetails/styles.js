@@ -740,9 +740,9 @@ export default StyleSheet.create({
     justifyContent: "center",
   },
 
-  chartSummaryBodyCompact: {
-    flexDirection: "column",
-    alignItems: "flex-start",
+  chartSummaryBodySmall: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   summaryList: {
@@ -751,11 +751,14 @@ export default StyleSheet.create({
     marginLeft: moderateScale(12),
   },
 
-  summaryListCompact: {
+  summaryListTight: {
+    marginLeft: moderateScale(8),
+  },
+
+  summaryListSmall: {
     flex: 0,
-    width: "100%",
-    marginLeft: 0,
-    marginTop: verticalScale(10),
+    width: moderateScale(122),
+    marginLeft: moderateScale(6),
   },
 
   summaryItem: {
@@ -769,10 +772,16 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
   },
 
-  summaryItemCompact: {
+  summaryItemTight: {
     marginBottom: verticalScale(6),
     paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(6),
+  },
+
+  summaryItemSmall: {
+    marginBottom: verticalScale(5),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(5),
   },
 
   summaryDot: {
@@ -801,9 +810,13 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
-  summaryLabelCompact: {
+  summaryLabelTight: {
     fontSize: fontScale(9),
     marginBottom: verticalScale(1),
+  },
+
+  summaryLabelSmall: {
+    fontSize: fontScale(8.5),
   },
 
   summaryValue: {
@@ -812,14 +825,26 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
-  summaryValueCompact: {
+  summaryValueTight: {
     fontSize: fontScale(15),
+  },
+
+  summaryValueSmall: {
+    fontSize: fontScale(13),
   },
 
   summaryShare: {
     fontSize: fontScale(10),
     color: colors.textSecondary,
     fontFamily: fonts.semiBold,
+  },
+
+  summaryShareTight: {
+    fontSize: fontScale(9),
+  },
+
+  summaryShareSmall: {
+    fontSize: fontScale(8),
   },
 
   /* ================= PIE ================= */
@@ -833,7 +858,13 @@ export default StyleSheet.create({
     marginVertical: verticalScale(4),
   },
 
-  pieWrapperCompact: {
+  pieWrapperTight: {
+    width: moderateScale(126),
+    height: moderateScale(126),
+    marginVertical: verticalScale(2),
+  },
+
+  pieWrapperSmall: {
     width: moderateScale(108),
     height: moderateScale(108),
     marginVertical: verticalScale(2),
@@ -848,6 +879,16 @@ export default StyleSheet.create({
   pieCenter: {
     position: "absolute",
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(8),
+  },
+
+  pieCenterTight: {
+    maxWidth: "68%",
+  },
+
+  pieCenterSmall: {
+    maxWidth: "72%",
   },
 
   piePercent: {
@@ -856,10 +897,28 @@ export default StyleSheet.create({
     color: colors.textDark,
   },
 
+  piePercentTight: {
+    fontSize: fontScale(15),
+    lineHeight: fontScale(17),
+  },
+
+  piePercentSmall: {
+    fontSize: fontScale(14),
+    lineHeight: fontScale(16),
+  },
+
   pieLabel: {
     fontSize: fontScale(6.5),
     color: colors.textDark,
     fontFamily: fonts.medium,
+  },
+
+  pieLabelTight: {
+    fontSize: fontScale(5.8),
+  },
+
+  pieLabelSmall: {
+    fontSize: fontScale(5.5),
   },
 
   /* ================= PIE STAGE TABS ================= */

@@ -30,9 +30,12 @@ const FILTER_ARROW_SIZE = 15;
 const HEADER_ICON_SIZE = 24;
 const KPI_ARROW_ICON_SIZE = 14;
 const SECTION_ARROW_ICON_SIZE = 14;
-const CHART_COMPACT_WIDTH = 360;
-const COMPACT_PIE_RADIUS = 50;
-const COMPACT_PIE_INNER_RADIUS = 31;
+const CHART_TIGHT_WIDTH = 390;
+const TIGHT_PIE_RADIUS = 58;
+const TIGHT_PIE_INNER_RADIUS = 36;
+const SMALL_PIE_WIDTH = 330;
+const SMALL_PIE_RADIUS = 50;
+const SMALL_PIE_INNER_RADIUS = 31;
 const SHIMMER_DURATION = 1300;
 const RING_TRACK_COLORS = {
   pending: "#FBE8D1",
@@ -85,6 +88,7 @@ const ProjectDetailsScreen = ({ route }) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
+    openSubprocessUnitList,
   } = useProjectDetailsViewModel(navigation, route);
   const { width } = useWindowDimensions();
   const stagePagerRef = React.useRef(null);
@@ -94,8 +98,10 @@ const ProjectDetailsScreen = ({ route }) => {
   const chartSectionPadding = moderateScale(CHART_SECTION_PADDING);
   const pieRadius = moderateScale(PIE_RADIUS);
   const pieInnerRadius = moderateScale(PIE_INNER_RADIUS);
-  const compactPieRadius = moderateScale(COMPACT_PIE_RADIUS);
-  const compactPieInnerRadius = moderateScale(COMPACT_PIE_INNER_RADIUS);
+  const tightPieRadius = moderateScale(TIGHT_PIE_RADIUS);
+  const tightPieInnerRadius = moderateScale(TIGHT_PIE_INNER_RADIUS);
+  const smallPieRadius = moderateScale(SMALL_PIE_RADIUS);
+  const smallPieInnerRadius = moderateScale(SMALL_PIE_INNER_RADIUS);
   const filterIconSize = moderateScale(FILTER_ICON_SIZE);
   const filterArrowSize = moderateScale(FILTER_ARROW_SIZE);
   const headerIconSize = moderateScale(HEADER_ICON_SIZE);
@@ -242,12 +248,13 @@ const ProjectDetailsScreen = ({ route }) => {
     </>
   );
 
-  const renderPieChart = (
+  const renderPieChart = ({
     summary,
     totalUnits = 0,
-    compact = false,
+    isTight = false,
+    isSmall = false,
     moduleTheme = null,
-  ) => {
+  }) => {
     const total = Math.max(Number(totalUnits) || 0, summary.total, 1);
     const buildRingData = (value, color, trackColor) => {
       const safeValue = Math.max(0, Number(value) || 0);
@@ -261,25 +268,42 @@ const ProjectDetailsScreen = ({ route }) => {
         : [{ value: total, color }];
     };
 
-    const outerRadius = compact ? compactPieRadius : pieRadius;
-    const outerInnerRadius = compact
-      ? Math.max(compactPieRadius - moderateScale(10), 1)
+    const activePieRadius = isSmall
+      ? smallPieRadius
+      : isTight
+        ? tightPieRadius
+        : pieRadius;
+    const activePieInnerRadius = isSmall
+      ? smallPieInnerRadius
+      : isTight
+        ? tightPieInnerRadius
+        : pieInnerRadius;
+
+    const outerRadius = activePieRadius;
+    const outerInnerRadius = isTight || isSmall
+      ? Math.max(activePieRadius - moderateScale(10), 1)
       : Math.max(pieRadius - moderateScale(12), 1);
-    const middleRadius = compact
-      ? Math.max(compactPieRadius - moderateScale(13), 1)
+    const middleRadius = isTight || isSmall
+      ? Math.max(activePieRadius - moderateScale(13), 1)
       : Math.max(pieRadius - moderateScale(16), 1);
-    const middleInnerRadius = compact
-      ? Math.max(compactPieInnerRadius, 1)
+    const middleInnerRadius = isTight || isSmall
+      ? Math.max(activePieInnerRadius, 1)
       : Math.max(pieInnerRadius, 1);
-    const innerRadius = compact
-      ? Math.max(compactPieInnerRadius - moderateScale(8), 1)
+    const innerRadius = isTight || isSmall
+      ? Math.max(activePieInnerRadius - moderateScale(8), 1)
       : Math.max(pieInnerRadius - moderateScale(10), 1);
-    const innerInnerRadius = compact
-      ? Math.max(compactPieInnerRadius - moderateScale(16), 1)
+    const innerInnerRadius = isTight || isSmall
+      ? Math.max(activePieInnerRadius - moderateScale(16), 1)
       : Math.max(pieInnerRadius - moderateScale(20), 1);
 
     return (
-      <View style={[styles.pieWrapper, compact && styles.pieWrapperCompact]}>
+      <View
+        style={[
+          styles.pieWrapper,
+          isTight && styles.pieWrapperTight,
+          isSmall && styles.pieWrapperSmall,
+        ]}
+      >
         <View style={styles.pieRingLayer}>
           <PieChart
             donut
@@ -325,36 +349,86 @@ const ProjectDetailsScreen = ({ route }) => {
           />
         </View>
 
-        <View style={styles.pieCenter}>
-          <Text style={styles.piePercent}>{summary.completed}</Text>
-          <Text style={styles.pieLabel}>COMPLETED</Text>
+        <View
+          style={[
+            styles.pieCenter,
+            isTight && styles.pieCenterTight,
+            isSmall && styles.pieCenterSmall,
+          ]}
+        >
+          <Text
+            style={[
+              styles.piePercent,
+              isTight && styles.piePercentTight,
+              isSmall && styles.piePercentSmall,
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
+            {summary.completed}
+          </Text>
+          <Text
+            style={[
+              styles.pieLabel,
+              isTight && styles.pieLabelTight,
+              isSmall && styles.pieLabelSmall,
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            COMPLETED
+          </Text>
         </View>
       </View>
     );
   };
 
-  const SummaryItem = ({ label, value, share, color, compact }) => (
+  const SummaryItem = ({ label, value, share, color, isTight = false, isSmall = false }) => (
     <View
       style={[
         styles.summaryItem,
-        compact && styles.summaryItemCompact,
+        isTight && styles.summaryItemTight,
+        isSmall && styles.summaryItemSmall,
         { borderColor: color },
       ]}
     >
       <View style={[styles.summaryDot, { backgroundColor: color }]} />
       <View style={styles.summaryTextWrap}>
         <Text
-          style={[styles.summaryLabel, compact && styles.summaryLabelCompact]}
+          style={[
+            styles.summaryLabel,
+            isTight && styles.summaryLabelTight,
+            isSmall && styles.summaryLabelSmall,
+          ]}
         >
           {label}
         </Text>
         <View style={styles.summaryValueRow}>
           <Text
-            style={[styles.summaryValue, compact && styles.summaryValueCompact]}
+            style={[
+              styles.summaryValue,
+              isTight && styles.summaryValueTight,
+              isSmall && styles.summaryValueSmall,
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
           >
             {value}
           </Text>
-          {share ? <Text style={styles.summaryShare}>{share}</Text> : null}
+          {share ? (
+            <Text
+              style={[
+                styles.summaryShare,
+                isTight && styles.summaryShareTight,
+                isSmall && styles.summaryShareSmall,
+              ]}
+            >
+              {share}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -774,7 +848,8 @@ const ProjectDetailsScreen = ({ route }) => {
                     : stageTabs[0] || "All";
                   const sectionHighlights = getSectionHighlights(moduleData);
                   const pagerWidth = chartViewportWidth;
-                  const isCompactChart = pagerWidth < CHART_COMPACT_WIDTH;
+                  const isTightChart = pagerWidth < CHART_TIGHT_WIDTH;
+                  const isSmallChart = pagerWidth < SMALL_PIE_WIDTH;
                   if (!stages.length) return null;
 
                   return (
@@ -875,7 +950,7 @@ const ProjectDetailsScreen = ({ route }) => {
 
                       <View style={styles.highlightGrid}>
                         {sectionHighlights.map((item) => (
-                          <View
+                          <TouchableOpacity
                             key={item.key}
                             style={[
                               styles.highlightCard,
@@ -884,13 +959,20 @@ const ProjectDetailsScreen = ({ route }) => {
                                 backgroundColor: colors.white,
                               },
                             ]}
+                            activeOpacity={item.isInteractive ? 0.86 : 1}
+                            disabled={!item.isInteractive}
+                            onPress={() =>
+                              openSubprocessUnitList({
+                                moduleKey: key,
+                                subprocessId: item.subprocessId,
+                                subprocessLabel: item.fullLabel || item.label,
+                              })
+                            }
                           >
-
                             <View style={styles.highlightValueRow}>
-                              
-                                <Text style={styles.highlightLabel}>
-                                  {item.label}
-                                </Text>
+                              <Text style={styles.highlightLabel}>
+                                {item.label}
+                              </Text>
                               <Text
                                 style={[
                                   styles.highlightValue,
@@ -900,7 +982,7 @@ const ProjectDetailsScreen = ({ route }) => {
                                 {item.value}
                               </Text>
                             </View>
-                          </View>
+                          </TouchableOpacity>
                         ))}
                       </View>
 
@@ -1047,7 +1129,7 @@ const ProjectDetailsScreen = ({ route }) => {
                                   } = getSwipeAnimatedStyles(
                                     index,
                                     pagerWidth,
-                                    isCompactChart,
+                                    isTightChart || isSmallChart,
                                   );
 
                                   return (
@@ -1082,24 +1164,24 @@ const ProjectDetailsScreen = ({ route }) => {
                                         <View
                                           style={[
                                             styles.chartSummaryBody,
-                                            isCompactChart &&
-                                            styles.chartSummaryBodyCompact,
+                                            isSmallChart && styles.chartSummaryBodySmall,
                                           ]}
                                         >
                                           <Animated.View style={pieStyle}>
-                                            {renderPieChart(
+                                            {renderPieChart({
                                               summary,
                                               totalUnits,
-                                              isCompactChart,
+                                              isTight: isTightChart,
+                                              isSmall: isSmallChart,
                                               moduleTheme,
-                                            )}
+                                            })}
                                           </Animated.View>
 
                                           <Animated.View
                                             style={[
                                               styles.summaryList,
-                                              isCompactChart &&
-                                              styles.summaryListCompact,
+                                              isTightChart && styles.summaryListTight,
+                                              isSmallChart && styles.summaryListSmall,
                                               summaryStyle,
                                             ]}
                                           >
@@ -1107,7 +1189,8 @@ const ProjectDetailsScreen = ({ route }) => {
                                             label="Total"
                                             value={totalUnits}
                                             color={moduleTheme.accent}
-                                            compact={isCompactChart}
+                                            isTight={isTightChart}
+                                            isSmall={isSmallChart}
                                           />
                                           <SummaryItem
                                             label="Completed"
@@ -1120,7 +1203,8 @@ const ProjectDetailsScreen = ({ route }) => {
                                               "completed",
                                             )}
                                             color={colors.completed}
-                                            compact={isCompactChart}
+                                            isTight={isTightChart}
+                                            isSmall={isSmallChart}
                                           />
                                             <SummaryItem
                                               label="Partial"
@@ -1133,7 +1217,8 @@ const ProjectDetailsScreen = ({ route }) => {
                                                 "partial",
                                               )}
                                               color={colors.partial}
-                                              compact={isCompactChart}
+                                              isTight={isTightChart}
+                                              isSmall={isSmallChart}
                                             />
                                           </Animated.View>
                                         </View>

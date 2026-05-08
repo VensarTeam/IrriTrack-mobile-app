@@ -211,22 +211,26 @@ export default StyleSheet.create({
     marginTop: verticalScale(8),
   },
 
+  filterScroll: {
+    marginTop: verticalScale(6),
+  },
+
   filterContainer: {
     flexDirection: "row",
-    marginTop: verticalScale(6),
-    justifyContent: "space-between",
+    alignItems: "stretch",
     backgroundColor: "transparent",
     borderRadius: moderateScale(20),
+    paddingRight: moderateScale(6),
   },
 
   filterBtn: {
-    flex: 1,
+    width: moderateScale(178),
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: "#E0EAF4",
-    marginHorizontal: moderateScale(4),
+    marginRight: moderateScale(8),
     paddingVertical: verticalScale(10),
     paddingHorizontal: moderateScale(10),
     borderRadius: moderateScale(16),

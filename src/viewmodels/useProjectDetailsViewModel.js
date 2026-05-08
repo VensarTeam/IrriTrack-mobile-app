@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, LayoutAnimation } from "react-native";
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
+import {
+  OMS_SUBPROCESS_FILTER_OPTIONS,
+} from "../constants/omsFilterConfig";
 import { useAuth } from "../context/AuthContext";
 import useProjectLocationFilters from "../hooks/useProjectLocationFilters";
 import {
@@ -52,6 +55,14 @@ const getStageCompletedCount = (stages = [], labels = []) => {
 
   return Number(matchedStage?.completed || 0);
 };
+
+const OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS = [
+  colors.completed,
+  colors.pending,
+  colors.primaryBlue,
+  colors.partial,
+  colors.completed,
+];
 
 const useProjectDetailsViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
@@ -397,56 +408,25 @@ const useProjectDetailsViewModel = (navigation, route) => {
   };
 
   const getSectionHighlights = (moduleData = {}) => {
+    if (String(moduleData?.module || "").trim().toUpperCase() !== "OMS") {
+      return [];
+    }
+
     const stages = Array.isArray(moduleData?.stages) ? moduleData.stages : [];
 
-    return [
-      {
-        key: "installation",
-        label: "Installation",
-        value: getStageCompletedCount(stages, [
-          "Pedestal and Enclosure Installation",
-          "Padestal and Inclosure Inst.",
-        ]),
-        color: colors.completed,
-      },
-      {
-        key: "mechanical",
-        label: "Mechanical",
-        value: getStageCompletedCount(stages, [
-          "Mechanical Accessories Installation",
-          "Mechanical Accessories Inst.",
-        ]),
-        color: colors.pending,
-      },
-      {
-        key: "flushing",
-        label: "Flushing",
-        value: getStageCompletedCount(stages, [
-          "Flushing",
-          "Pipe flushing",
-        ]),
-        color: colors.primaryBlue,
-      },
-      {
-        key: "automation",
-        label: "Automation",
-        value: getStageCompletedCount(stages, [
-          "Automation Installation",
-          "Automation Inst.",
-          "Controller Installation",
-        ]),
-        color: colors.partial,
-      },
-      {
-        key: "commissioning",
-        label: "Commissioning",
-        value: getStageCompletedCount(stages, [
-          "Wet Commissioning",
-          "Wet commissioning",
-        ]),
-        color: colors.completed,
-      },
-    ];
+    return OMS_SUBPROCESS_FILTER_OPTIONS.map((item, index) => ({
+      key: item.key,
+      label: item.shortLabel || item.label,
+      fullLabel: item.label,
+      subprocessId: item.id,
+      value: getStageCompletedCount(stages, item.aliases || [item.label]),
+      color:
+        OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS[index] ||
+        OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS[
+          OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS.length - 1
+        ],
+      isInteractive: true,
+    }));
   };
 
   const kpiCards = ["OMS", "RMS", "GW"].map((moduleKey) => {
@@ -491,6 +471,8 @@ const useProjectDetailsViewModel = (navigation, route) => {
         module: module || "OMS",
         project,
         projectName: route?.params?.projectName || project?.name,
+        zoneName: zone,
+        villageName: village,
       });
     } else {
       showAppAlert({
@@ -518,6 +500,29 @@ const useProjectDetailsViewModel = (navigation, route) => {
       zoneName: zone,
       villageName: village,
       villageId: selectedVillageId,
+    });
+  };
+
+  const openSubprocessUnitList = ({
+    moduleKey = "OMS",
+    subprocessId = null,
+    subprocessLabel = "",
+  } = {}) => {
+    const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
+    const normalizedSubprocessId = Number(subprocessId);
+
+    if (normalizedModuleKey !== "OMS" || !Number.isInteger(normalizedSubprocessId)) {
+      return;
+    }
+
+    navigation.navigate(ROUTES.ROOT.UNIT_LIST_SCREEN, {
+      module: normalizedModuleKey,
+      project,
+      projectName: route?.params?.projectName || project?.name,
+      zoneName: zone,
+      villageName: village,
+      subprocessId: normalizedSubprocessId,
+      subprocessLabel,
     });
   };
 
@@ -572,6 +577,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
+    openSubprocessUnitList,
   };
 };
 

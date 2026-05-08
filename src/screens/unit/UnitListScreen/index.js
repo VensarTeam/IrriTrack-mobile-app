@@ -5,6 +5,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   TextInput,
   Modal,
@@ -79,6 +80,11 @@ const UnitListScreen = ({ navigation, route }) => {
     villageTotalItems,
     zoneDisplayCount,
     villageDisplayCount,
+    subprocessFilterOptions,
+    statusFilterOptions,
+    selectedSubprocessLabel,
+    selectedSubprocessShortLabel,
+    selectedStatusLabel,
     locationFilterSearchQuery,
     isInitialLoading,
     isRefreshing,
@@ -119,6 +125,7 @@ const UnitListScreen = ({ navigation, route }) => {
   } = useUnitListViewModel(navigation, route);
 
   const canShowSortControl = shouldUseOmsApi && !isOfflineOmsList;
+  const canShowWorkflowFilters = shouldUseOmsApi && !isOfflineOmsList;
   const sortByLabel =
     SORT_BY_OPTIONS.find((item) => item.key === sortBy)?.label || "";
   const sortOrderLabel =
@@ -529,9 +536,32 @@ const UnitListScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
-  const filterLabel = filterType === "zone" ? "Zone" : "Village";
+  const filterLabel =
+    filterType === "zone"
+      ? "Zone"
+      : filterType === "village"
+        ? "Village"
+        : filterType === "subprocess"
+          ? "Sub Process"
+          : "Status";
   const filterOptions =
-    filterType === "zone" ? ["All", ...zones] : ["All", ...villages];
+    filterType === "zone"
+      ? ["All", ...zones]
+      : filterType === "village"
+        ? ["All", ...villages]
+        : filterType === "subprocess"
+          ? ["All", ...subprocessFilterOptions.map((item) => item.label)]
+          : ["All", ...statusFilterOptions.map((item) => item.label)];
+  const filterSubtitle =
+    filterType === "zone"
+      ? "Choose any zone to refine the unit results."
+      : filterType === "village"
+        ? "Choose any village to refine the unit results."
+        : filterType === "subprocess"
+          ? "Choose a subprocess to filter the online OMS list."
+          : "Choose a status bucket to filter the online OMS list.";
+  const isLocationFilterType =
+    filterType === "zone" || filterType === "village";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -570,7 +600,7 @@ const UnitListScreen = ({ navigation, route }) => {
         />
       </View>
 
-      {canUseLocationFilters || canShowSortControl ? (
+      {canUseLocationFilters || canShowWorkflowFilters || canShowSortControl ? (
         <View style={styles.filterPanel}>
           <View style={styles.filterPanelHeader}>
             <View style={styles.filterPanelTitleWrap}>
@@ -589,27 +619,54 @@ const UnitListScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {canUseLocationFilters ? (
-            <View style={styles.filterContainer}>
-              <FilterButton
-                title="Zone"
-                label={zone}
-                totalCount={zoneDisplayCount}
-                icon={Icons.zone}
-                active={zone !== "All"}
-                onPress={() => openFilterSheet("zone")}
-              />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContainer}
+            style={styles.filterScroll}
+          >
+            {canUseLocationFilters ? (
+              <>
+                <FilterButton
+                  title="Zone"
+                  label={zone}
+                  totalCount={zoneDisplayCount}
+                  icon={Icons.zone}
+                  active={zone !== "All"}
+                  onPress={() => openFilterSheet("zone")}
+                />
 
-              <FilterButton
-                title="Village"
-                label={village}
-                totalCount={villageDisplayCount}
-                icon={Icons.village}
-                active={village !== "All"}
-                onPress={() => openFilterSheet("village")}
-              />
-            </View>
-          ) : null}
+                <FilterButton
+                  title="Village"
+                  label={village}
+                  totalCount={villageDisplayCount}
+                  icon={Icons.village}
+                  active={village !== "All"}
+                  onPress={() => openFilterSheet("village")}
+                />
+              </>
+            ) : null}
+
+            {canShowWorkflowFilters ? (
+              <>
+                <FilterButton
+                  title="Sub Process"
+                  label={selectedSubprocessShortLabel}
+                  icon={Icons.work}
+                  active={selectedSubprocessLabel !== "All"}
+                  onPress={() => openFilterSheet("subprocess")}
+                />
+
+                <FilterButton
+                  title="Status"
+                  label={selectedStatusLabel}
+                  icon={Icons.tickGreen}
+                  active={selectedStatusLabel !== "All"}
+                  onPress={() => openFilterSheet("status")}
+                />
+              </>
+            ) : null}
+          </ScrollView>
 
           {canShowSortControl ? (
             <View style={styles.sortActionRow}>
@@ -703,24 +760,20 @@ const UnitListScreen = ({ navigation, route }) => {
         ]}
       />
 
-      {canUseLocationFilters ? (
+      {filterType ? (
         <SearchableFilterModal
           visible={!!filterType}
-          title={filterType === "zone" ? "Select Zone" : "Select Village"}
-          subtitle={
-            filterType === "zone"
-              ? "Choose any zone to refine the unit results."
-              : "Choose any village to refine the unit results."
-          }
-          totalItems={filterTotalItems}
+          title={`Select ${filterLabel}`}
+          subtitle={filterSubtitle}
+          totalItems={isLocationFilterType ? filterTotalItems : null}
           options={filterOptions}
-          isLoading={isFilterOptionsLoading}
-          isFetchingMore={isFetchingMoreFilterOptions}
-          hasMoreOptions={hasMoreFilterOptions}
+          isLoading={isLocationFilterType ? isFilterOptionsLoading : false}
+          isFetchingMore={isLocationFilterType ? isFetchingMoreFilterOptions : false}
+          hasMoreOptions={isLocationFilterType ? hasMoreFilterOptions : false}
           selectedValue={getActiveFilterValue()}
           onSelect={applyFilter}
           onClose={closeFilterSheet}
-          onEndReached={loadMoreFilterOptions}
+          onEndReached={isLocationFilterType ? loadMoreFilterOptions : undefined}
           searchQuery={locationFilterSearchQuery}
           onSearchQueryChange={setLocationFilterSearchQuery}
           searchPlaceholder={`Search ${filterLabel.toLowerCase()}`}
@@ -878,6 +931,7 @@ const getStatusColor = (value) => {
   if (value === "Completed" || value === "Approved") return colors.completed;
   if (value === "Pending") return colors.pending;
   if (value === "Commented") return colors.primaryBlue;
+  if (value === "Info") return colors.primaryBlue;
   return colors.partial;
 };
 

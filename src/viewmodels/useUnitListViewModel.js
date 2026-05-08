@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getUnitStatusBySubOption } from "../constants/moduleStatusConfig";
+import {
+  findOmsStatusFilterOptionByValue,
+  findOmsSubprocessFilterOptionById,
+  findOmsSubprocessFilterOptionByLabel,
+  OMS_STATUS_FILTER_OPTIONS,
+  OMS_SUBPROCESS_FILTER_OPTIONS,
+} from "../constants/omsFilterConfig";
 import { useAuth } from "../context/AuthContext";
 import useProjectLocationFilters from "../hooks/useProjectLocationFilters";
 import { ROUTES } from "../navigation/routes";
@@ -25,8 +32,10 @@ const CERTIFICATE_STATUS_KEYS = [
 const DEFAULT_SEARCH_DEBOUNCE_MS = 350;
 const DEFAULT_PAGE_LIMIT = 5;
 const STATUS_BOARD_BUCKETS = ["Approved", "Requested", "Pending", "Rejected"];
-const DEFAULT_SORT_BY = "";
-const DEFAULT_SORT_ORDER = "";
+const DEFAULT_SORT_BY = "oms";
+const DEFAULT_SORT_ORDER = "asc";
+const DEFAULT_SUBPROCESS_FILTER_ID = null;
+const DEFAULT_STATUS_FILTER_VALUE = null;
 
 const createEmptyPagination = () => ({
   page: 1,
@@ -59,6 +68,7 @@ const PROCESS_STATUS_BY_CODE = {
   2: "Completed",
   3: "Commented",
   4: "Approved",
+  5: "Info",
 };
 
 const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
@@ -86,6 +96,10 @@ const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
 
   if (normalizedLabel === "partial" || normalizedLabel === "partially completed") {
     return "Partial Completed";
+  }
+
+  if (normalizedLabel === "info") {
+    return "Info";
   }
 
   return "Pending";
@@ -201,8 +215,8 @@ const useUnitListViewModel = (navigation, route) => {
   const projectId = project?.id || project?.projectId || user?.projectId || "";
   const { sections: processSections } = useChecklistSections({ module });
   const [search, setSearch] = useState("");
-  const [zone, setZone] = useState("All");
-  const [village, setVillage] = useState("All");
+  const [zone, setZone] = useState(route?.params?.zoneName || "All");
+  const [village, setVillage] = useState(route?.params?.villageName || "All");
   const [filterType, setFilterType] = useState(null);
   const [locationFilterSearchQuery, setLocationFilterSearchQuery] = useState("");
   const {
@@ -235,6 +249,18 @@ const useUnitListViewModel = (navigation, route) => {
   const requestSequenceRef = useRef(0);
   const isFetchingMoreRef = useRef(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedSubprocessId, setSelectedSubprocessId] = useState(() => {
+    const routeSubprocessId = route?.params?.subprocessId;
+    const matchedOption = findOmsSubprocessFilterOptionById(routeSubprocessId);
+
+    return matchedOption?.id ?? DEFAULT_SUBPROCESS_FILTER_ID;
+  });
+  const [selectedStatusValue, setSelectedStatusValue] = useState(() => {
+    const routeStatusValue = route?.params?.status;
+    const matchedOption = findOmsStatusFilterOptionByValue(routeStatusValue);
+
+    return matchedOption?.value ?? DEFAULT_STATUS_FILTER_VALUE;
+  });
   const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
   const [sortOrder, setSortOrder] = useState(DEFAULT_SORT_ORDER);
   const [remoteUnits, setRemoteUnits] = useState([]);
@@ -254,6 +280,10 @@ const useUnitListViewModel = (navigation, route) => {
   const statusBoardTitle = String(
     route?.params?.statusBoardTitle || `${module} Status Board`
   ).trim();
+  const hasRouteLocationFilters = Boolean(
+    (route?.params?.zoneName && route?.params?.zoneName !== "All") ||
+      (route?.params?.villageName && route?.params?.villageName !== "All")
+  );
   const [selectedStatusBucket, setSelectedStatusBucket] = useState(
     STATUS_BOARD_BUCKETS[0]
   );
@@ -292,12 +322,102 @@ const useUnitListViewModel = (navigation, route) => {
     );
   }, [village, villageOptions, villageTotalOms]);
 
+  const subprocessFilterOptions = useMemo(() => {
+    if (!shouldUseOmsApi) {
+      return [];
+    }
+
+    const masterOptions = processSections
+      .filter((section) =>
+        ["installation", "commissioning"].includes(String(section?.key || ""))
+      )
+      .flatMap((section) => section?.subOptions || [])
+      .map((subOption) => {
+        const fallbackOption = findOmsSubprocessFilterOptionByLabel(
+          subOption?.apiDescription || subOption?.label
+        );
+        const fallbackId = fallbackOption?.id ?? null;
+        const nextId = Number(subOption?.apiSubprocessId || fallbackId);
+
+        if (!Number.isInteger(nextId) || nextId <= 0) {
+          return null;
+        }
+
+        return {
+          id: nextId,
+          label: subOption?.apiDescription || subOption?.label || "",
+          shortLabel:
+            fallbackOption?.shortLabel ||
+            subOption?.apiDescription ||
+            subOption?.label ||
+            "",
+        };
+      })
+      .filter(Boolean);
+
+    if (masterOptions.length) {
+      const optionsById = new Map();
+
+      masterOptions.forEach((item) => {
+        optionsById.set(Number(item.id), item);
+      });
+
+      OMS_SUBPROCESS_FILTER_OPTIONS.forEach((item) => {
+        if (!optionsById.has(Number(item.id))) {
+          optionsById.set(Number(item.id), {
+            id: item.id,
+            label: item.label,
+            shortLabel: item.shortLabel || item.label,
+          });
+        }
+      });
+
+      return Array.from(optionsById.values()).sort(
+        (left, right) => Number(left.id) - Number(right.id)
+      );
+    }
+
+    return OMS_SUBPROCESS_FILTER_OPTIONS.map((item) => ({
+      id: item.id,
+      label: item.label,
+      shortLabel: item.shortLabel || item.label,
+    }));
+  }, [processSections, shouldUseOmsApi]);
+
+  const statusFilterOptions = useMemo(
+    () =>
+      OMS_STATUS_FILTER_OPTIONS.map((item) => ({
+        value: item.value,
+        label: item.label,
+      })),
+    []
+  );
+
+  const selectedSubprocessOption = useMemo(
+    () =>
+      subprocessFilterOptions.find(
+        (item) => Number(item.id) === Number(selectedSubprocessId)
+      ) ||
+      findOmsSubprocessFilterOptionById(selectedSubprocessId),
+    [selectedSubprocessId, subprocessFilterOptions]
+  );
+
+  const selectedStatusOption = useMemo(
+    () =>
+      selectedStatusValue === null || selectedStatusValue === undefined
+        ? null
+        : statusFilterOptions.find(
+            (item) => Number(item.value) === Number(selectedStatusValue)
+          ) || findOmsStatusFilterOptionByValue(selectedStatusValue),
+    [selectedStatusValue, statusFilterOptions]
+  );
+
   useEffect(() => {
-    if (!canUseLocationFilters) {
+    if (!canUseLocationFilters && !hasRouteLocationFilters) {
       setZone("All");
       setVillage("All");
     }
-  }, [canUseLocationFilters]);
+  }, [canUseLocationFilters, hasRouteLocationFilters]);
 
   useEffect(() => {
     // Debounce search input so we avoid firing an API request on every key press.
@@ -335,6 +455,8 @@ const useUnitListViewModel = (navigation, route) => {
         zoneName: zone,
         villageId: selectedVillageId,
         searchQuery: debouncedSearch,
+        subprocessId: selectedSubprocessId,
+        status: selectedStatusValue,
         sortBy,
         sortOrder,
         page,
@@ -393,6 +515,8 @@ const useUnitListViewModel = (navigation, route) => {
     isOnline,
     projectId,
     selectedVillageId,
+    selectedStatusValue,
+    selectedSubprocessId,
     sortBy,
     sortOrder,
     shouldUseOmsApi,
@@ -417,6 +541,8 @@ const useUnitListViewModel = (navigation, route) => {
 
   const hasActiveFilters =
     !!search.trim() ||
+    selectedSubprocessId !== DEFAULT_SUBPROCESS_FILTER_ID ||
+    selectedStatusValue !== DEFAULT_STATUS_FILTER_VALUE ||
     (canUseLocationFilters && (zone !== "All" || village !== "All"));
   const hasActiveSort =
     sortBy !== DEFAULT_SORT_BY || sortOrder !== DEFAULT_SORT_ORDER;
@@ -453,6 +579,12 @@ const useUnitListViewModel = (navigation, route) => {
   const getActiveFilterValue = () => {
     if (filterType === "zone") return zone;
     if (filterType === "village") return village;
+    if (filterType === "subprocess") {
+      return selectedSubprocessOption?.label || "All";
+    }
+    if (filterType === "status") {
+      return selectedStatusOption?.label || "All";
+    }
     return "";
   };
 
@@ -460,13 +592,37 @@ const useUnitListViewModel = (navigation, route) => {
     if (filterType === "zone") {
       setZone(item);
     }
-    if (filterType === "village") setVillage(item);
+    if (filterType === "village") {
+      setVillage(item);
+    }
+    if (filterType === "subprocess") {
+      const selectedOption =
+        item === "All"
+          ? null
+          : subprocessFilterOptions.find((option) => option.label === item) ||
+            findOmsSubprocessFilterOptionByLabel(item);
+
+      setSelectedSubprocessId(selectedOption?.id ?? DEFAULT_SUBPROCESS_FILTER_ID);
+    }
+    if (filterType === "status") {
+      const selectedOption =
+        item === "All"
+          ? null
+          : statusFilterOptions.find((option) => option.label === item) ||
+            null;
+
+      setSelectedStatusValue(
+        selectedOption?.value ?? DEFAULT_STATUS_FILTER_VALUE
+      );
+    }
     closeFilterSheet();
   };
 
   const openFilterSheet = (nextFilterType) => {
     setLocationFilterSearchQuery("");
-    prepareFilterOptions(nextFilterType);
+    if (nextFilterType === "zone" || nextFilterType === "village") {
+      prepareFilterOptions(nextFilterType);
+    }
     setFilterType(nextFilterType);
   };
 
@@ -480,6 +636,8 @@ const useUnitListViewModel = (navigation, route) => {
     setZone("All");
     setVillage("All");
     setLocationFilterSearchQuery("");
+    setSelectedSubprocessId(DEFAULT_SUBPROCESS_FILTER_ID);
+    setSelectedStatusValue(DEFAULT_STATUS_FILTER_VALUE);
     setSortBy(DEFAULT_SORT_BY);
     setSortOrder(DEFAULT_SORT_ORDER);
   };
@@ -738,6 +896,16 @@ const useUnitListViewModel = (navigation, route) => {
     villageTotalItems,
     zoneDisplayCount,
     villageDisplayCount,
+    subprocessFilterOptions,
+    statusFilterOptions,
+    selectedSubprocessId,
+    selectedStatusValue,
+    selectedSubprocessLabel: selectedSubprocessOption?.label || "All",
+    selectedSubprocessShortLabel:
+      selectedSubprocessOption?.shortLabel ||
+      selectedSubprocessOption?.label ||
+      "All",
+    selectedStatusLabel: selectedStatusOption?.label || "All",
     search,
     zone,
     village,

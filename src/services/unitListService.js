@@ -19,6 +19,8 @@ const buildOmsListParams = ({
   zoneName,
   villageId,
   searchQuery,
+  subprocessId,
+  status,
   sortBy,
   sortOrder,
   page = 1,
@@ -43,6 +45,21 @@ const buildOmsListParams = ({
 
   if (normalizedSearchQuery) {
     params.q = normalizedSearchQuery;
+  }
+
+  const hasSubprocessId =
+    subprocessId !== null && subprocessId !== undefined && subprocessId !== "";
+  const hasStatus =
+    status !== null && status !== undefined && status !== "";
+  const normalizedSubprocessId = hasSubprocessId ? Number(subprocessId) : NaN;
+  const normalizedStatus = hasStatus ? Number(status) : NaN;
+
+  if (hasSubprocessId && Number.isInteger(normalizedSubprocessId) && normalizedSubprocessId > 0) {
+    params.subprocessId = normalizedSubprocessId;
+  }
+
+  if (hasStatus && Number.isInteger(normalizedStatus) && normalizedStatus >= 0 && normalizedStatus <= 5) {
+    params.status = normalizedStatus;
   }
 
   const normalizedSortBy = String(sortBy || "").trim().toLowerCase();
@@ -102,6 +119,8 @@ export const fetchOmsList = async ({
   zoneName,
   villageId,
   searchQuery,
+  subprocessId,
+  status,
   sortBy,
   sortOrder,
   page = 1,
@@ -130,6 +149,8 @@ export const fetchOmsList = async ({
       zoneName,
       villageId,
       searchQuery,
+      subprocessId,
+      status,
       sortBy,
       sortOrder,
       page,
