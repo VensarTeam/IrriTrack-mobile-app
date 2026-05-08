@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, LayoutAnimation } from "react-native";
+import {
+  Animated,
+  Easing,
+  InteractionManager,
+  LayoutAnimation,
+} from "react-native";
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
 import {
@@ -15,6 +20,8 @@ import {
   getCachedOmsBasicUnitsCount,
   syncOmsBasicUnitsForProjectInBackground,
 } from "../services/omsOfflineStore";
+import { refreshChecklistProcessMaster } from "../services/checklistOfflineSync";
+import { refreshContractorList } from "../services/contractorOfflineStore";
 import { showAppAlert } from "../services/alertService";
 
 const moduleThemes = colors.projectModules;
@@ -85,6 +92,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const [cachedOmsUnitsCount, setCachedOmsUnitsCount] = useState(0);
   const chartAnim = useRef(new Animated.Value(0)).current;
   const latestRequestIdRef = useRef(0);
+  const backgroundMasterSyncKeyRef = useRef("");
 
   const {
     isOnline,
@@ -173,6 +181,76 @@ const useProjectDetailsViewModel = (navigation, route) => {
         })
         .catch(() => {});
     });
+  }, [isOnline, projectId]);
+
+  useEffect(() => {
+    if (!projectId || !isOnline) {
+      return;
+    }
+
+    const syncKey = `${projectId}:OMS`;
+
+    if (backgroundMasterSyncKeyRef.current === syncKey) {
+      return;
+    }
+
+    backgroundMasterSyncKeyRef.current = syncKey;
+
+    let isCancelled = false;
+    const interactionTask = InteractionManager.runAfterInteractions(() => {
+      if (isCancelled) {
+        return;
+      }
+
+      void Promise.allSettled([
+        refreshChecklistProcessMaster({ deviceType: "OMS" }),
+        refreshContractorList(),
+      ]).then((results) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const [checklistResult, contractorResult] = results;
+
+        if (checklistResult?.status === "rejected") {
+          console.log("[ProjectDetails]", "Background checklist master sync failed", {
+            message: checklistResult.reason?.message,
+            status: checklistResult.reason?.status,
+            projectId,
+          });
+        }
+
+        if (contractorResult?.status === "rejected") {
+          console.log("[ProjectDetails]", "Background contractor sync failed", {
+            message: contractorResult.reason?.message,
+            status: contractorResult.reason?.status,
+            projectId,
+          });
+        }
+
+        if (
+          checklistResult?.status === "fulfilled" ||
+          contractorResult?.status === "fulfilled"
+        ) {
+          console.log("[ProjectDetails]", "Background master data refreshed", {
+            projectId,
+            checklistProcessCount:
+              checklistResult?.status === "fulfilled"
+                ? checklistResult.value?.length || 0
+                : 0,
+            contractorCount:
+              contractorResult?.status === "fulfilled"
+                ? contractorResult.value?.length || 0
+                : 0,
+          });
+        }
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+      interactionTask.cancel?.();
+    };
   }, [isOnline, projectId]);
 
   useEffect(() => {

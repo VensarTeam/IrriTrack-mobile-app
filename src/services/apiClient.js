@@ -417,13 +417,13 @@ apiClient.interceptors.request.use(async (config) => {
     }
   }
 
-  logApiRequest(requestConfig);
+  //logApiRequest(requestConfig);
   return requestConfig;
 });
 
 apiClient.interceptors.response.use(
   (response) => {
-    logApiResponse(response);
+    //logApiResponse(response);
     return response;
   },
   async (error) => {

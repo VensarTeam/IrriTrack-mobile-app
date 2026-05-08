@@ -133,7 +133,7 @@ const OfflineChecklistSyncGate = () => {
         });
 
         if (!pendingCount) {
-          logGate("Queue sync skipped; no pending checklist submissions");
+          //logGate("Queue sync skipped; no pending checklist submissions");
           return;
         }
 
@@ -173,11 +173,11 @@ const OfflineChecklistSyncGate = () => {
     void NetInfo.fetch().then(runSync);
     const unsubscribe = NetInfo.addEventListener((networkState) => {
       if (canUseNetwork(networkState)) {
-        logGate("Network restored; triggering checklist sync", {
-          isConnected: networkState.isConnected,
-          isInternetReachable: networkState.isInternetReachable,
-          type: networkState.type,
-        });
+        //logGate("Network restored; triggering checklist sync", {
+        //   isConnected: networkState.isConnected,
+        //   isInternetReachable: networkState.isInternetReachable,
+        //   type: networkState.type,
+        // });
         void runSync(networkState);
       }
     });

@@ -49,7 +49,7 @@ const getDatabase = async () => {
 
   if (!schemaPromise) {
     schemaPromise = (async () => {
-      logOms("Initializing OMS cache schema");
+      //logOms("Initializing OMS cache schema");
       await db.executeSql(`
         CREATE TABLE IF NOT EXISTS oms_basic_units_cache (
           id TEXT PRIMARY KEY NOT NULL,

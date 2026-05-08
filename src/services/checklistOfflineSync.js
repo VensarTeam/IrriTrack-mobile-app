@@ -176,7 +176,7 @@ const ensureDirectory = async (path) => {
 };
 
 const ensureStorage = async () => {
-  logSync("Ensuring local storage directories");
+  //logSync("Ensuring local storage directories");
   await ensureDirectory(getRootDir());
   await ensureDirectory(getPhotoRootDir());
   await ensureDirectory(getDraftRootDir());
@@ -252,11 +252,11 @@ const inferMimeType = (photo = {}) => {
 
 const copySubmissionPhotos = async (submissionId, photos = []) => {
   const photoDir = getSubmissionPhotoDir(submissionId);
-  logSync("Preparing local photo storage", {
-    submissionId,
-    photoDir,
-    photoCount: photos.length,
-  });
+  //logSync("Preparing local photo storage", {
+  //  submissionId,
+  //  photoDir,
+  //  photoCount: photos.length,
+  //});
   await ensureDirectory(photoDir);
 
   return Promise.all(
@@ -269,20 +269,20 @@ const copySubmissionPhotos = async (submissionId, photos = []) => {
       const sourcePath = stripFileScheme(photo.filePath || photo.uri);
 
       if (await RNFS.exists(targetPath)) {
-        logSync("Replacing existing local photo file", {
-          submissionId,
-          targetPath,
-        });
+        //logSync("Replacing existing local photo file", {
+        //  submissionId,
+        //  targetPath,
+        //});
         await RNFS.unlink(targetPath);
       }
 
-      logSync("Copying photo into local storage", {
-        submissionId,
-        requirementId: photo.requirementId,
-        sourcePath,
-        targetPath,
-        sizeKb: photo.sizeKb,
-      });
+      //logSync("Copying photo into local storage", {
+      //  submissionId,
+      //  requirementId: photo.requirementId,
+      //  sourcePath,
+      //  targetPath,
+      //  sizeKb: photo.sizeKb,
+      //});
       await RNFS.copyFile(sourcePath, targetPath);
 
       return {
@@ -309,7 +309,7 @@ const deleteSubmissionDraft = async (submissionId) => {
     const draftPath = getSubmissionDraftPath(submissionId);
 
     if (await RNFS.exists(draftPath)) {
-      logSync("Deleting local draft JSON", { submissionId, draftPath });
+      //logSync("Deleting local draft JSON", { submissionId, draftPath });
       await RNFS.unlink(draftPath);
     }
   } catch (error) {
@@ -322,10 +322,10 @@ const deleteSubmissionPhotos = async (submissionId) => {
     const photoDir = getSubmissionPhotoDir(submissionId);
 
     if (await RNFS.exists(photoDir)) {
-      logSync("Deleting local photos", { submissionId, photoDir });
+      //logSync("Deleting local photos", { submissionId, photoDir });
       await RNFS.unlink(photoDir);
     } else {
-      logSync("No local photo directory to delete", { submissionId, photoDir });
+      //logSync("No local photo directory to delete", { submissionId, photoDir });
     }
   } catch (error) {
     warnSync("Unable to remove synced checklist photos", error);
@@ -354,12 +354,12 @@ const canUseNetwork = async () => {
   const state = await NetInfo.fetch();
   const online =
     state.isInternetReachable === true || state.isConnected !== false;
-  logSync("Network state checked", {
-    isConnected: state.isConnected,
-    isInternetReachable: state.isInternetReachable,
-    type: state.type,
-    online,
-  });
+  //logSync("Network state checked", {
+  //  isConnected: state.isConnected,
+  //  isInternetReachable: state.isInternetReachable,
+  //  type: state.type,
+  //  online,
+  //});
   return online;
 };
 
@@ -390,7 +390,7 @@ export const fetchChecklistProcessMaster = async ({
   deviceType = "OMS",
   activeOnly = true,
 } = {}) => {
-  logSync("Fetching process master from API", { deviceType, activeOnly });
+  //logSync("Fetching process master from API", { deviceType, activeOnly });
   const processes = normalizeProcessMaster(
     await apiRequest({
       url: "/api/v1/master/processes",
@@ -424,12 +424,12 @@ export const refreshChecklistProcessMaster = async ({
   const refreshedAt = new Date().toISOString();
   const db = await getDatabase();
 
-  logSync("Saving process master cache to SQLite", {
-    deviceType,
-    activeOnly,
-    processCount: processes.length,
-    refreshedAt,
-  });
+  // logSync("Saving process master cache to SQLite", {
+  //   deviceType,
+  //   activeOnly,
+  //   processCount: processes.length,
+  //   refreshedAt,
+  // });
   await db.executeSql(
     `
       INSERT OR REPLACE INTO checklist_process_master_cache
@@ -1364,19 +1364,19 @@ const syncQueue = async ({
     }
   }
 
-  logSync("Checklist queue sync finished", result);
+  //logSync("Checklist queue sync finished", result);
   return result;
 };
 
 export const syncQueuedChecklistSubmissions = (options = {}) => {
   if (!syncPromise) {
-    logSync("Creating sync promise", options);
+    //logSync("Creating sync promise", options);
     syncPromise = syncQueue(options).finally(() => {
-      logSync("Sync promise settled");
+      //logSync("Sync promise settled");
       syncPromise = null;
     });
   } else {
-    logSync("Reusing active sync promise", options);
+    //logSync("Reusing active sync promise", options);
   }
 
   return syncPromise;
@@ -1407,23 +1407,23 @@ export const submitChecklistOfflineFirst = async ({
         }
       : payload;
 
-  logSync("Offline-first submit requested", {
-    deviceType,
-    sectionKey: section?.key,
-    subOptionId: subOption?.id,
-    offlineOnly,
-    submissionMode: normalizedSubmissionMode,
-    summary: getPayloadSummary(requestPayload),
-  });
+  // logSync("Offline-first submit requested", {
+  //   deviceType,
+  //   sectionKey: section?.key,
+  //   subOptionId: subOption?.id,
+  //   offlineOnly,
+  //   submissionMode: normalizedSubmissionMode,
+  //   summary: getPayloadSummary(requestPayload),
+  // });
   if (!offlineOnly && (await canUseNetwork())) {
     try {
       const response = await submitQueuedChecklistToApi(requestPayload);
 
-      logSync("Offline-first submit finished via API", {
-        submitApiConnected: true,
-        serverSubmissionId: response?.submissionId,
-        statusLabel: response?.statusLabel,
-      });
+      // logSync("Offline-first submit finished via API", {
+      //   submitApiConnected: true,x
+      //   serverSubmissionId: response?.submissionId,
+      //   statusLabel: response?.statusLabel,
+      // });
       await removeSyncedCommentedWorkStatusCache(requestPayload);
       return {
         submission: null,
@@ -1512,9 +1512,9 @@ export const getPendingChecklistSubmissionCount = async ({
       );
 
   const pendingCount = Number(result.rows.item(0)?.pending_count || 0);
-  logSync("Pending checklist submission count", {
-    pendingCount,
-    ownerUserId: targetOwnerUserId,
-  });
+  // logSync("Pending checklist submission count", {
+  //   pendingCount,
+  //   ownerUserId: targetOwnerUserId,
+  // });
   return pendingCount;
 };
