@@ -20,12 +20,12 @@ class MainActivity : ReactActivity() {
     setTheme(R.style.AppTheme);
     supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
     super.onCreate(savedInstanceState)
-    if (BuildConfig.APP_ENV == "production") {
-      window.setFlags(
-        WindowManager.LayoutParams.FLAG_SECURE,
-        WindowManager.LayoutParams.FLAG_SECURE
-      )
-    }
+    //if (BuildConfig.APP_ENV == "production") {
+      //window.setFlags(
+        //WindowManager.LayoutParams.FLAG_SECURE,
+        //WindowManager.LayoutParams.FLAG_SECURE
+      //)
+    //}
   }
 
   /**
