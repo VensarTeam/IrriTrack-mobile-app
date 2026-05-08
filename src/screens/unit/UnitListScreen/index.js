@@ -928,8 +928,16 @@ const UnitListScreen = ({ navigation, route }) => {
 export default UnitListScreen;
 
 const getStatusColor = (value) => {
-  if (value === "Completed" || value === "Approved") return colors.completed;
+  if (
+    value === "Completed" ||
+    value === "Approved" ||
+    value === "Updated" ||
+    value === "Verified"
+  ) {
+    return colors.completed;
+  }
   if (value === "Pending") return colors.pending;
+  if (value === "Submitted") return colors.partial;
   if (value === "Commented") return colors.primaryBlue;
   if (value === "Info") return colors.primaryBlue;
   return colors.partial;

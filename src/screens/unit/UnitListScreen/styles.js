@@ -621,17 +621,18 @@ export default StyleSheet.create({
   processGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    columnGap: moderateScale(6),
   },
 
   processTile: {
-    width: "48.5%",
+    width: "31.5%",
     borderWidth: 1,
     marginBottom: verticalScale(6),
     borderRadius: moderateScale(14),
     minHeight: verticalScale(40),
     paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -658,18 +659,18 @@ export default StyleSheet.create({
   },
 
   processTileWide: {
-    width: "100%",
+    width: "31.5%",
   },
 
   skeletonProcessTileWrap: {
-    width: "48.5%",
+    width: "31.5%",
     marginBottom: verticalScale(6),
   },
 
   skeletonProcessTile: {
     minHeight: verticalScale(40),
     paddingVertical: verticalScale(6),
-    paddingHorizontal: moderateScale(10),
+    paddingHorizontal: moderateScale(8),
     borderRadius: moderateScale(14),
     backgroundColor: "#F5F9FD",
     borderWidth: 1,
@@ -709,7 +710,7 @@ export default StyleSheet.create({
   processTileMain: {
     flex: 1,
     minWidth: 0,
-    marginRight: moderateScale(8),
+    marginRight: moderateScale(4),
   },
 
   processTileMeta: {
@@ -719,10 +720,10 @@ export default StyleSheet.create({
   },
 
   processStatusDot: {
-    width: moderateScale(7),
-    height: moderateScale(7),
-    borderRadius: moderateScale(3.5),
-    marginRight: moderateScale(8),
+    width: moderateScale(6),
+    height: moderateScale(6),
+    borderRadius: moderateScale(3),
+    marginRight: moderateScale(6),
   },
 
   processStatusDotOffline: {
@@ -731,9 +732,9 @@ export default StyleSheet.create({
 
   processLabel: {
     flex: 1,
-    fontSize: moderateScale(11),
-    lineHeight: moderateScale(13),
-    fontFamily: fonts.semiBold,
+    fontSize: moderateScale(8),
+    lineHeight: moderateScale(12),
+    fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
@@ -742,10 +743,10 @@ export default StyleSheet.create({
   },
 
   processValue: {
-    marginTop: verticalScale(4),
-    marginLeft: moderateScale(15),
-    fontSize: moderateScale(10),
-    lineHeight: moderateScale(12),
+    marginTop: verticalScale(3),
+    marginLeft: moderateScale(12),
+    fontSize: moderateScale(9),
+    lineHeight: moderateScale(11),
     fontFamily: fonts.medium,
   },
 
@@ -755,9 +756,9 @@ export default StyleSheet.create({
   },
 
   processArrowWrap: {
-    width: moderateScale(18),
-    height: moderateScale(18),
-    borderRadius: moderateScale(9),
+    width: moderateScale(16),
+    height: moderateScale(16),
+    borderRadius: moderateScale(8),
     alignItems: "center",
     justifyContent: "center",
   },

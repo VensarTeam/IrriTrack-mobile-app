@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getUnitStatusBySubOption } from "../constants/moduleStatusConfig";
 import {
   findOmsStatusFilterOptionByValue,
@@ -36,6 +36,18 @@ const DEFAULT_SORT_BY = "oms";
 const DEFAULT_SORT_ORDER = "asc";
 const DEFAULT_SUBPROCESS_FILTER_ID = null;
 const DEFAULT_STATUS_FILTER_VALUE = null;
+const HIDDEN_OMS_CARD_SECTION_KEYS = new Set(["rectification"]);
+const OMS_CARD_SUBPROCESS_LABELS = {
+  locationFinalization: "Location",
+  inletPipeLaying: "Inlet Pipe",
+  outletPipeLaying: "Outlet Pipe",
+  pedestalEnclosureInstallation: "Pedestal",
+  mechanicalAccessoriesInstallation: "Mechanical",
+  automationInstallation: "Automation",
+  pipeFlushing: "Flushing",
+  dryCommissioning: "Dry Commissioning",
+  wetCommissioning: "Commissioning",
+};
 
 const createEmptyPagination = () => ({
   page: 1,
@@ -84,6 +96,18 @@ const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
 
   if (normalizedLabel === "approved") {
     return "Approved";
+  }
+
+  if (normalizedLabel === "updated") {
+    return "Updated";
+  }
+
+  if (normalizedLabel === "verified") {
+    return "Verified";
+  }
+
+  if (normalizedLabel === "submitted") {
+    return "Submitted";
   }
 
   if (normalizedLabel === "commented") {
@@ -149,6 +173,14 @@ const normalizeStageLabel = (value = "") =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+const getCardSubprocessLabel = (subOption = {}) =>
+  OMS_CARD_SUBPROCESS_LABELS[subOption?.id] ||
+  subOption?.cardLabel ||
+  subOption?.shortLabel ||
+  subOption?.apiDescription ||
+  subOption?.label ||
+  "";
 
 const isOmsModule = (module = "") =>
   String(module || "").trim().toUpperCase() === "OMS";
@@ -248,6 +280,8 @@ const useUnitListViewModel = (navigation, route) => {
   const data = getUnits(module);
   const requestSequenceRef = useRef(0);
   const isFetchingMoreRef = useRef(false);
+  const hasFocusedListOnceRef = useRef(false);
+  const remoteUnitCountRef = useRef(0);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedSubprocessId, setSelectedSubprocessId] = useState(() => {
     const routeSubprocessId = route?.params?.subprocessId;
@@ -430,75 +464,91 @@ const useUnitListViewModel = (navigation, route) => {
     };
   }, [search]);
 
-  const fetchRemoteUnits = async ({
-    page = 1,
-    append = false,
-    refreshing = false,
-  } = {}) => {
-    const requestId = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestId;
+  useEffect(() => {
+    remoteUnitCountRef.current = remoteUnits.length;
+  }, [remoteUnits.length]);
 
-    if (refreshing) {
-      setIsRefreshing(true);
-    } else if (append) {
-      isFetchingMoreRef.current = true;
-      setIsFetchingMore(true);
-    } else if (remoteUnits.length === 0) {
-      setIsInitialLoading(true);
-    }
+  const fetchRemoteUnits = useCallback(
+    async ({ page = 1, append = false, refreshing = false } = {}) => {
+      const requestId = requestSequenceRef.current + 1;
+      requestSequenceRef.current = requestId;
 
-    setUnitsError("");
-
-    try {
-      const response = await fetchOmsUnitsPage({
-        projectId,
-        zoneName: zone,
-        villageId: selectedVillageId,
-        searchQuery: debouncedSearch,
-        subprocessId: selectedSubprocessId,
-        status: selectedStatusValue,
-        sortBy,
-        sortOrder,
-        page,
-        limit: pagination.limit || DEFAULT_PAGE_LIMIT,
-        offline: shouldUseOmsApi && !isOnline,
-      });
-
-      // Ignore stale responses so quick filter/search changes do not flash old data.
-      if (requestSequenceRef.current !== requestId) {
-        return;
+      if (refreshing) {
+        setIsRefreshing(true);
+      } else if (append) {
+        isFetchingMoreRef.current = true;
+        setIsFetchingMore(true);
+      } else if (remoteUnitCountRef.current === 0) {
+        setIsInitialLoading(true);
       }
 
-      setRemoteUnits((currentUnits) =>
-        append
-          ? mergeUnitsById(currentUnits, response.data)
-          : response.data
-      );
-      setPagination(response.meta);
-    } catch (error) {
-      if (requestSequenceRef.current !== requestId) {
-        return;
-      }
+      setUnitsError("");
 
-      if (!append) {
-        setRemoteUnits([]);
-        setPagination(createEmptyPagination());
-      }
+      try {
+        const response = await fetchOmsUnitsPage({
+          projectId,
+          zoneName: zone,
+          villageId: selectedVillageId,
+          searchQuery: debouncedSearch,
+          subprocessId: selectedSubprocessId,
+          status: selectedStatusValue,
+          sortBy,
+          sortOrder,
+          page,
+          limit: pagination.limit || DEFAULT_PAGE_LIMIT,
+          offline: shouldUseOmsApi && !isOnline,
+        });
 
-      setUnitsError(error?.message || "Unable to load OMS units.");
-    } finally {
-      if (requestSequenceRef.current === requestId) {
-        setIsInitialLoading(false);
-        setIsRefreshing(false);
-        setIsFetchingMore(false);
-        isFetchingMoreRef.current = false;
+        // Ignore stale responses so quick filter/search changes do not flash old data.
+        if (requestSequenceRef.current !== requestId) {
+          return;
+        }
+
+        setRemoteUnits((currentUnits) =>
+          append
+            ? mergeUnitsById(currentUnits, response.data)
+            : response.data
+        );
+        setPagination(response.meta);
+      } catch (error) {
+        if (requestSequenceRef.current !== requestId) {
+          return;
+        }
+
+        if (!append) {
+          setRemoteUnits([]);
+          setPagination(createEmptyPagination());
+        }
+
+        setUnitsError(error?.message || "Unable to load OMS units.");
+      } finally {
+        if (requestSequenceRef.current === requestId) {
+          setIsInitialLoading(false);
+          setIsRefreshing(false);
+          setIsFetchingMore(false);
+          isFetchingMoreRef.current = false;
+        }
       }
-    }
-  };
+    },
+    [
+      debouncedSearch,
+      isOnline,
+      pagination.limit,
+      projectId,
+      selectedStatusValue,
+      selectedSubprocessId,
+      selectedVillageId,
+      shouldUseOmsApi,
+      sortBy,
+      sortOrder,
+      zone,
+    ]
+  );
 
   useEffect(() => {
     if (!shouldUseOmsApi) {
       requestSequenceRef.current += 1;
+      hasFocusedListOnceRef.current = false;
       setRemoteUnits([]);
       setPagination(createEmptyPagination());
       setUnitsError("");
@@ -510,18 +560,28 @@ const useUnitListViewModel = (navigation, route) => {
     }
 
     void fetchRemoteUnits({ page: 1 });
-  }, [
-    debouncedSearch,
-    isOnline,
-    projectId,
-    selectedVillageId,
-    selectedStatusValue,
-    selectedSubprocessId,
-    sortBy,
-    sortOrder,
-    shouldUseOmsApi,
-    zone,
-  ]);
+  }, [fetchRemoteUnits, shouldUseOmsApi]);
+
+  useEffect(() => {
+    if (!shouldUseOmsApi) {
+      hasFocusedListOnceRef.current = false;
+      return undefined;
+    }
+
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (!hasFocusedListOnceRef.current) {
+        hasFocusedListOnceRef.current = true;
+        return;
+      }
+
+      void fetchRemoteUnits({
+        page: 1,
+        refreshing: true,
+      });
+    });
+
+    return unsubscribe;
+  }, [fetchRemoteUnits, navigation, shouldUseOmsApi]);
 
   const localFilteredData = useMemo(() => {
     return data.filter((item) => {
@@ -803,50 +863,83 @@ const useUnitListViewModel = (navigation, route) => {
     return "Pending";
   };
 
-  const getCardProcesses = (unit) =>
-    processSections.map((section, index) => {
-      const apiProcess = Array.isArray(unit?.processes)
-        ? unit.processes.find(
-            (item) =>
-              Number(item?.processId) ===
-              Number(section.apiProcessId || index + 1)
-          )
-        : null;
+  const findMatchingApiSubprocess = (unit, section, subOption) => {
+    const apiProcesses = Array.isArray(unit?.processes) ? unit.processes : [];
+    const targetSubprocessId = Number(subOption?.apiSubprocessId);
 
-      if (apiProcess) {
-        return {
-          key: section.key,
-          label: getProcessLabel(section),
-          sectionKey: section.key,
-          subOptionId: section.subOptions[0]?.id,
-          value: normalizeProcessStatusValue(apiProcess),
-          progressLabel: "",
-        };
+    if (Number.isInteger(targetSubprocessId) && targetSubprocessId > 0) {
+      for (const process of apiProcesses) {
+        const matchedSubprocess = (process?.subprocesses || []).find(
+          (item) =>
+            Number(item?.subprocessId || item?.subprocess_id) ===
+            targetSubprocessId
+        );
+
+        if (matchedSubprocess) {
+          return matchedSubprocess;
+        }
+      }
+    }
+
+    const normalizedProcessName = normalizeStageLabel(
+      section?.apiDescription || section?.title || ""
+    );
+    const normalizedSubprocessName = normalizeStageLabel(
+      subOption?.apiDescription || subOption?.label || ""
+    );
+
+    for (const process of apiProcesses) {
+      const processName = normalizeStageLabel(
+        process?.processName || process?.name || process?.description || ""
+      );
+
+      if (normalizedProcessName && processName !== normalizedProcessName) {
+        continue;
       }
 
-      const statusLookup = getUnitStatusBySubOption(unit);
-      const states = (section.subOptions || []).map(
-        (subOption) => statusLookup[subOption.id] || null
+      const matchedSubprocess = (process?.subprocesses || []).find(
+        (item) =>
+          normalizeStageLabel(
+            item?.subprocessName || item?.name || item?.description || ""
+          ) === normalizedSubprocessName
       );
-      const hasTrackedState = states.some(
-        (state) => state && !PENDING_STATES.includes(state)
-      );
-      const completedCount = states.filter((state) =>
-        COMPLETED_STATES.includes(state)
-      ).length;
 
-      return {
-        key: section.key,
-        label: getProcessLabel(section),
-        sectionKey: section.key,
-        subOptionId: section.subOptions[0]?.id,
-        value:
-          isOfflineOmsList && !hasTrackedState
-            ? ""
-            : getProcessValue(states.map((state) => state || "Pending")),
-        progressLabel: "",
-      };
-    });
+      if (matchedSubprocess) {
+        return matchedSubprocess;
+      }
+    }
+
+    return null;
+  };
+
+  const getCardProcesses = (unit) => {
+    const statusLookup = getUnitStatusBySubOption(unit);
+
+    return processSections
+      .filter(
+        (section) => !HIDDEN_OMS_CARD_SECTION_KEYS.has(String(section?.key || ""))
+      )
+      .flatMap((section) =>
+        (section.subOptions || []).map((subOption) => {
+          const apiSubprocess = findMatchingApiSubprocess(
+            unit,
+            section,
+            subOption
+          );
+
+          return {
+            key: `${section.key}_${subOption.id}`,
+            label: getCardSubprocessLabel(subOption),
+            sectionKey: section.key,
+            subOptionId: subOption.id,
+            value: apiSubprocess
+              ? normalizeProcessStatusValue(apiSubprocess)
+              : statusLookup[subOption.id] || "Pending",
+            progressLabel: "",
+          };
+        })
+      );
+  };
 
   const baseFilteredData = shouldUseOmsApi ? remoteUnits : localFilteredData;
   const filteredData = statusBoardEnabled
