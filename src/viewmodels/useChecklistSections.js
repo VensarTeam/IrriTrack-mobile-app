@@ -39,13 +39,21 @@ const formatChecklistLabelWithUnitContext = (item = {}, context = {}) => {
   const subChakQuantity = getUnitSubChakQuantity(context.unit);
   const checklistId = Number(item?.checklistId);
   const normalizedLabel = String(resolvedLabel || "").trim();
+  const normalizedLookupLabel = normalizedLabel.toLowerCase();
 
   if (!normalizedLabel) {
     return resolvedLabel;
   }
 
   if (
-    checklistId === 9 &&
+    (checklistId === 6 ||
+      normalizedLookupLabel.includes("sub-chak as per design") ||
+      normalizedLookupLabel.includes("sub chak as per design") ||
+      normalizedLookupLabel.includes("subchak as per design") ||
+      normalizedLookupLabel.includes("no. of outlet pipes") ||
+      normalizedLookupLabel.includes("no of outlet pipes") ||
+      normalizedLookupLabel.includes("number of outlet pipes") ||
+      normalizedLookupLabel.includes("numbers of outlet pipes")) &&
     Number.isFinite(subChakQuantity) &&
     subChakQuantity > 0 &&
     !/\(\s*\d+\s*\)/.test(normalizedLabel)
@@ -77,16 +85,25 @@ const applyUnitAwareSectionContext = (sections = [], module, unit) => {
       })),
       photoRequirements: (sub.photoRequirements || []).map((requirement) => ({
         ...requirement,
-        label: applyModuleText(requirement.label, module),
+        label: applyModuleText(
+          formatChecklistLabelWithUnitContext(requirement, { module, unit }),
+          module
+        ),
       })),
       selectFields: (sub.selectFields || []).map((field) => ({
         ...field,
-        label: applyModuleText(field.label, module),
+        label: applyModuleText(
+          formatChecklistLabelWithUnitContext(field, { module, unit }),
+          module
+        ),
         placeholder: applyModuleText(field.placeholder, module),
       })),
       inputFields: (sub.inputFields || []).map((field) => ({
         ...field,
-        label: applyModuleText(field.label, module),
+        label: applyModuleText(
+          formatChecklistLabelWithUnitContext(field, { module, unit }),
+          module
+        ),
         placeholder: applyModuleText(field.placeholder, module),
       })),
       repeatableGroups: (sub.repeatableGroups || []).map((group) => {
@@ -152,7 +169,7 @@ const getChecklistCount = (sections = []) =>
 const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
   const unitSubChakQuantity = useMemo(
     () => getUnitSubChakQuantity(unit),
-    [unit?.subChakQuantity]
+    [unit?.subChakQuantity, unit?.subCheckQty, unit?.subChakQty]
   );
   const unitContext = useMemo(
     () => ({ subChakQuantity: unitSubChakQuantity }),

@@ -126,6 +126,8 @@ const UnitListScreen = ({ navigation, route }) => {
 
   const canShowSortControl = shouldUseOmsApi && !isOfflineOmsList;
   const canShowWorkflowFilters = shouldUseOmsApi && !isOfflineOmsList;
+  const canShowStatusBoard = statusBoardEnabled && !isOfflineOmsList;
+  const canShowStatusInfo = !isOfflineOmsList;
   const sortByLabel =
     SORT_BY_OPTIONS.find((item) => item.key === sortBy)?.label || "";
   const sortOrderLabel =
@@ -400,6 +402,7 @@ const UnitListScreen = ({ navigation, route }) => {
     disabled,
     onPress,
     icon: FilterIcon,
+    paperIcon,
   }) => {
     const displayLabel = Number.isFinite(totalCount)
       ? `${label}`
@@ -423,7 +426,21 @@ const UnitListScreen = ({ navigation, route }) => {
               disabled && styles.filterIconWrapDisabled,
             ]}
           >
-            {FilterIcon ? <FilterIcon width={14} height={14} /> : null}
+            {paperIcon ? (
+              <Icon
+                source={paperIcon}
+                size={16}
+                color={
+                  active
+                    ? colors.white
+                    : disabled
+                      ? colors.textSecondary
+                      : colors.primaryBlue
+                }
+              />
+            ) : FilterIcon ? (
+              <FilterIcon width={14} height={14} />
+            ) : null}
           </View>
           
 
@@ -571,17 +588,19 @@ const UnitListScreen = ({ navigation, route }) => {
         </View>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerTitle}>
-            {statusBoardEnabled ? statusBoardTitle : `${module} Units`}
+            {canShowStatusBoard ? statusBoardTitle : `${module} Units`}
           </Text>
         </View>
         <View style={styles.headerActionSlot}>
-          <IconButton
-            icon="information-outline"
-            iconColor={colors.primaryBlue}
-            size={22}
-            style={styles.headerInfoButton}
-            onPress={() => setShowStatusInfo(true)}
-          />
+          {canShowStatusInfo ? (
+            <IconButton
+              icon="information-outline"
+              iconColor={colors.primaryBlue}
+              size={22}
+              style={styles.headerInfoButton}
+              onPress={() => setShowStatusInfo(true)}
+            />
+          ) : null}
         </View>
       </View>
 
@@ -652,7 +671,7 @@ const UnitListScreen = ({ navigation, route }) => {
                 <FilterButton
                   title="Sub Process"
                   label={selectedSubprocessShortLabel}
-                  icon={Icons.work}
+                  paperIcon="timeline-text-outline"
                   active={selectedSubprocessLabel !== "All"}
                   onPress={() => openFilterSheet("subprocess")}
                 />
@@ -660,7 +679,7 @@ const UnitListScreen = ({ navigation, route }) => {
                 <FilterButton
                   title="Status"
                   label={selectedStatusLabel}
-                  icon={Icons.tickGreen}
+                  paperIcon="checkbox-marked-circle-outline"
                   active={selectedStatusLabel !== "All"}
                   onPress={() => openFilterSheet("status")}
                 />
@@ -676,7 +695,7 @@ const UnitListScreen = ({ navigation, route }) => {
         </View>
       ) : null}
 
-      {statusBoardEnabled ? (
+      {canShowStatusBoard ? (
         <View style={styles.statusBoardPanel}>
           <Text style={styles.statusBoardTitle}>
             {statusBoardStageLabel === "All"
@@ -936,6 +955,7 @@ const getStatusColor = (value) => {
   ) {
     return colors.completed;
   }
+  if (value === "To Be Confirm") return colors.toBeConfirm;
   if (value === "Pending") return colors.pending;
   if (value === "Submitted") return colors.partial;
   if (value === "Commented") return colors.primaryBlue;
@@ -950,8 +970,9 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
       ? `${process.value} • ${process.progressLabel}`
       : process.progressLabel
     : process.value;
-  const accessibilityLabel = statusText
-    ? `${process.label}, ${statusText}`
+  const displayStatusText = isOffline ? "" : statusText;
+  const accessibilityLabel = displayStatusText
+    ? `${process.label}, ${displayStatusText}`
     : process.label;
 
   return (
@@ -987,14 +1008,14 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
 
       <View style={styles.processTileMain}>
         <View style={styles.processTileMeta}>
-          <View
-            style={[
-              styles.processStatusDot,
-              isOffline
-                ? styles.processStatusDotOffline
-                : { backgroundColor: statusColor },
-            ]}
-          />
+          {!isOffline ? (
+            <View
+              style={[
+                styles.processStatusDot,
+                { backgroundColor: statusColor },
+              ]}
+            />
+          ) : null}
           <Text
             style={[styles.processLabel, isOffline && styles.processLabelOffline]}
             numberOfLines={2}
@@ -1003,7 +1024,7 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
           </Text>
         </View>
 
-        {statusText ? (
+        {displayStatusText ? (
           <Text
             style={[
               styles.processValue,
@@ -1011,7 +1032,7 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
             ]}
             numberOfLines={1}
           >
-            {statusText}
+            {displayStatusText}
           </Text>
         ) : null}
       </View>

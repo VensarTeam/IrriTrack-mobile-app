@@ -130,6 +130,38 @@ const formatValueText = (value) => {
   return "";
 };
 
+const getOutletRowValue = (item = {}, key = "") =>
+  formatValueText(item?.[key]) || "-";
+
+const isOutletIdentificationItem = (item = {}) =>
+  isPlainObject(item) &&
+  ["valveNo", "subChakName", "pipeSize"].every((key) =>
+    Object.prototype.hasOwnProperty.call(item, key)
+  );
+
+const OutletIdentificationRow = ({ item, index }) => (
+  <View style={styles.outletArrayRow}>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>Valve No.</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "valveNo") || `V${index + 1}`}
+      </Text>
+    </View>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>SC No.</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "subChakName")}
+      </Text>
+    </View>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>Pipe Size</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "pipeSize")}
+      </Text>
+    </View>
+  </View>
+);
+
 const resolveAssetUrl = (value = "") => {
   const normalizedValue = String(value || "").trim();
 
@@ -186,6 +218,31 @@ const getSimpleChecklistState = (checklist) => {
 
   const valueText = formatValueText(rawValue ?? checklist?.detail?.value);
   const n = String(valueText || "").trim().toLowerCase();
+  const statusKey = String(checklist?.status?.key || "").trim().toLowerCase();
+  const statusCode = Number(checklist?.status?.code ?? checklist?.rawChecklist?.status);
+  const isRemarkChecklist = String(checklist?.name || "")
+    .trim()
+    .toLowerCase()
+    .startsWith("remark");
+
+  if (!n) {
+    if (isRemarkChecklist) {
+      return null;
+    }
+
+    if (
+      statusKey === "completed" ||
+      statusKey === "approved" ||
+      statusKey === "updated" ||
+      statusKey === "verified" ||
+      statusCode === 2 ||
+      statusCode === 4
+    ) {
+      return { icon: "check-circle", color: colors.completed, backgroundColor: "#ECFBF3", borderColor: "#C7EFD8" };
+    }
+
+    return null;
+  }
 
   if (["yes", "true", "completed", "done", "approved", "verified"].includes(n))
     return { icon: "check-circle", color: colors.completed, backgroundColor: "#ECFBF3", borderColor: "#C7EFD8" };
@@ -200,21 +257,35 @@ const isOutletPipeCountChecklist = (checklist) => {
   );
   const label = String(checklist?.name || "").trim().toLowerCase();
 
-  return checklistId === 9 || label.includes("no. of outlet pipes") || label.includes("no of outlet pipes");
+  return (
+    checklistId === 6 ||
+    label.includes("sub-chak as per design") ||
+    label.includes("sub chak as per design") ||
+    label.includes("subchak as per design") ||
+    label.includes("no. of outlet pipes") ||
+    label.includes("no of outlet pipes") ||
+    label.includes("number of outlet pipes") ||
+    label.includes("numbers of outlet pipes")
+  );
 };
 
 const getOutletPipeCountValue = (checklist, selectedWorkItem) => {
   const detailRawValue = checklist?.detail?.rawValue;
   const detailValue = checklist?.detail?.value;
   const candidates = [
+    selectedWorkItem?.subCheckQty,
+    selectedWorkItem?.subChakQuantity,
+    selectedWorkItem?.subChakQty,
+    selectedWorkItem?.rawItem?.subCheckQty,
+    selectedWorkItem?.rawItem?.sub_check_qty,
+    selectedWorkItem?.rawItem?.subChakQuantity,
+    selectedWorkItem?.rawItem?.sub_chak_quantity,
+    selectedWorkItem?.rawItem?.subChakQty,
     detailRawValue,
     detailValue,
     checklist?.rawChecklist?.value,
     checklist?.rawChecklist?.submittedValue,
     checklist?.rawChecklist?.answer,
-    selectedWorkItem?.subCheckQty,
-    selectedWorkItem?.rawItem?.subCheckQty,
-    selectedWorkItem?.rawItem?.sub_check_qty,
   ];
 
   for (const candidate of candidates) {
@@ -243,6 +314,14 @@ const getChecklistDisplayTitle = (checklist, selectedWorkItem) => {
   const outletPipeCount = getOutletPipeCountValue(checklist, selectedWorkItem);
 
   return outletPipeCount ? `${baseTitle} (${outletPipeCount})` : baseTitle;
+};
+
+const getChecklistInlineCountValue = (checklist, selectedWorkItem) => {
+  if (!isOutletPipeCountChecklist(checklist)) {
+    return "";
+  }
+
+  return String(getOutletPipeCountValue(checklist, selectedWorkItem) || "");
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -305,7 +384,9 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
         <View style={styles.arrayGroup}>
           {rawValue.map((item, i) => (
             <View key={`${checklist.id}-${i}`} style={styles.arrayCard}>
-              {isPlainObject(item) ? (
+              {isOutletIdentificationItem(item) ? (
+                <OutletIdentificationRow item={item} index={i} />
+              ) : isPlainObject(item) ? (
                 Object.entries(item).map(([k, v]) => (
                   <View key={k} style={styles.arrayRow}>
                     <Text style={styles.arrayKey}>{formatValueLabel(k)}</Text>
@@ -1121,16 +1202,21 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   {selectedChecklistItems.map((checklist, index) => {
                     const simpleState = getSimpleChecklistState(checklist);
                     const checklistTitle = getChecklistDisplayTitle(checklist, selectedWorkItem);
+                    const inlineCountValue = getChecklistInlineCountValue(
+                      checklist,
+                      selectedWorkItem
+                    );
+                    const displaySimpleState = inlineCountValue ? null : simpleState;
                     return (
                       <View
                         key={checklist.id}
                         style={[
                           styles.checklistCard,
-                          simpleState && styles.checklistCardCompact,
+                          displaySimpleState && styles.checklistCardCompact,
                           index === selectedChecklistItems.length - 1 && styles.checklistCardLast,
                         ]}
                       >
-                        {simpleState ? (
+                        {displaySimpleState ? (
                           <View>
                             <View style={styles.checklistInlineRow}>
                               <View style={styles.checklistInlineCopy}>
@@ -1140,22 +1226,37 @@ const WorkStatusScreen = ({ route, navigation }) => {
                               <View
                                 style={[
                                   styles.checklistInlineStatus,
-                                  { backgroundColor: simpleState.backgroundColor, borderColor: simpleState.borderColor },
+                                  { backgroundColor: displaySimpleState.backgroundColor, borderColor: displaySimpleState.borderColor },
                                 ]}
                               >
-                                <Icon source={simpleState.icon} size={18} color={simpleState.color} />
+                                <Icon source={displaySimpleState.icon} size={18} color={displaySimpleState.color} />
                               </View>
                             </View>
                           </View>
                         ) : (
                           <View style={styles.checklistHead}>
                             <View style={styles.checklistCopy}>
-                              <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                              {inlineCountValue ? (
+                                <View style={styles.checklistCountRow}>
+                                  <Text style={styles.checklistCountTitle}>
+                                    {checklistTitle}
+                                  </Text>
+                                  <View style={styles.checklistCountBadge}>
+                                    <Text style={styles.checklistCountBadgeText}>
+                                      {inlineCountValue}
+                                    </Text>
+                                  </View>
+                                </View>
+                              ) : (
+                                <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                              )}
                               {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                              <ChecklistValueBlock
-                                checklist={checklist}
-                                onViewImage={openImageViewer}
-                              />
+                              {inlineCountValue ? null : (
+                                <ChecklistValueBlock
+                                  checklist={checklist}
+                                  onViewImage={openImageViewer}
+                                />
+                              )}
                             </View>
                           </View>
                         )}

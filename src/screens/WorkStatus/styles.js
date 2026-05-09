@@ -790,6 +790,40 @@ export default StyleSheet.create({
     lineHeight: fontScale(18),
   },
 
+  checklistCountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+  },
+
+  checklistCountTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: fontScale(12.5),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: fontScale(18),
+  },
+
+  checklistCountBadge: {
+    minWidth: moderateScale(34),
+    height: verticalScale(30),
+    paddingHorizontal: moderateScale(8),
+    borderRadius: moderateScale(10),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF6FF",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+    flexShrink: 0,
+  },
+
+  checklistCountBadgeText: {
+    fontSize: fontScale(13),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
   optionalText: {
     marginTop: verticalScale(4),
     fontSize: fontScale(10),
@@ -900,6 +934,37 @@ export default StyleSheet.create({
     fontFamily: fonts.semiBold,
     lineHeight: fontScale(16),
     textAlign: "right",
+  },
+
+  outletArrayRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: moderateScale(6),
+  },
+
+  outletArrayCell: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: moderateScale(9),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#E3ECF5",
+    paddingHorizontal: moderateScale(7),
+    paddingVertical: verticalScale(6),
+  },
+
+  outletArrayLabel: {
+    fontSize: fontScale(8.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: "uppercase",
+  },
+
+  outletArrayValue: {
+    marginTop: verticalScale(2),
+    fontSize: fontScale(10.5),
+    color: colors.textDark,
+    fontFamily: fonts.semiBold,
   },
 
   fileRow: {

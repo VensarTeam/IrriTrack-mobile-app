@@ -174,7 +174,7 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
       {
         key: "value",
         label: fieldLabel,
-        placeholder: `Enter ${checklist.description}`,
+        placeholder: `Enter ${getChecklistDescription(checklist)}`,
       },
     ],
   };
@@ -182,7 +182,7 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
 
 const getChecklistBase = (checklist = {}) => ({
   checklistId: checklist.checklist_id,
-  description: checklist.description,
+  description: getChecklistDescription(checklist),
   inputType: checklist.input_type,
   dataType: checklist.data_type,
   inputUnit: checklist.input_unit,
@@ -191,9 +191,19 @@ const getChecklistBase = (checklist = {}) => ({
   apiChecklist: checklist,
 });
 
+const getChecklistDescription = (checklist = {}) => {
+  const description = String(checklist.description || "").trim();
+
+  if (description) {
+    return description;
+  }
+
+  return `Checklist item ${checklist.checklist_id}`;
+};
+
 const getFieldLabel = (checklist = {}) => {
   if (isOutletPipeCountChecklist(checklist)) {
-    return checklist.description;
+    return getChecklistDescription(checklist);
   }
 
   const rawInputUnit = String(checklist.input_unit || "").trim();
@@ -205,8 +215,16 @@ const getFieldLabel = (checklist = {}) => {
     normalizedInputUnit !== "undefined";
 
   return hasRealInputUnit
-    ? `${checklist.description} (${rawInputUnit})`
-    : checklist.description;
+    ? `${getChecklistDescription(checklist)} (${rawInputUnit})`
+    : getChecklistDescription(checklist);
+};
+
+const getInputFieldPlaceholder = (checklist = {}) => {
+  if (isOutletPipeCountChecklist(checklist)) {
+    return "Enter Numbers of Sub-Chak";
+  }
+
+  return `Enter ${getChecklistDescription(checklist)}`;
 };
 
 const isLocationChecklist = (checklist = {}) => {
@@ -219,7 +237,14 @@ const isOutletPipeCountChecklist = (checklist = {}) => {
   const checklistId = Number(checklist?.checklist_id);
   const label = normalizeText(checklist?.description);
 
-  return checklistId === 9 || label.includes("no of outlet pipes");
+  return (
+    checklistId === 6 ||
+    label.includes("sub chak as per design") ||
+    label.includes("subchak as per design") ||
+    label.includes("no of outlet pipes") ||
+    label.includes("number of outlet pipes") ||
+    label.includes("numbers of outlet pipes")
+  );
 };
 
 const addChecklistToSubOption = (subOption, checklist) => {
@@ -227,15 +252,6 @@ const addChecklistToSubOption = (subOption, checklist) => {
   const fieldLabel = getFieldLabel(checklist);
   const inputType = normalizeText(checklist.input_type);
   const fieldKey = `api_${inputType || "field"}_${checklist.checklist_id}`;
-
-  if (isOutletPipeCountChecklist(checklist)) {
-    subOption.checklistItems.push({
-      id: fieldKey,
-      label: fieldLabel,
-      ...base,
-    });
-    return;
-  }
 
   if (inputType === "tick") {
     subOption.checklistItems.push({
@@ -259,7 +275,7 @@ const addChecklistToSubOption = (subOption, checklist) => {
     subOption.selectFields.push({
       key: fieldKey,
       label: fieldLabel,
-      placeholder: `Select ${checklist.description}`,
+      placeholder: `Select ${getChecklistDescription(checklist)}`,
       options: getDropdownOptions(checklist),
       ...base,
     });
@@ -293,7 +309,7 @@ const addChecklistToSubOption = (subOption, checklist) => {
   subOption.inputFields.push({
     key: fieldKey,
     label: fieldLabel,
-    placeholder: `Enter ${checklist.description}`,
+    placeholder: getInputFieldPlaceholder(checklist),
     keyboardType:
       checklist.input_type === "number" || checklist.data_type === "int"
         ? "numeric"

@@ -43,6 +43,38 @@ const formatValueText = (value) => {
   return "";
 };
 
+const getOutletRowValue = (item = {}, key = "") =>
+  formatValueText(item?.[key]) || "-";
+
+const isOutletIdentificationItem = (item = {}) =>
+  isPlainObject(item) &&
+  ["valveNo", "subChakName", "pipeSize"].every((key) =>
+    Object.prototype.hasOwnProperty.call(item, key)
+  );
+
+const OutletIdentificationRow = ({ item, index }) => (
+  <View style={styles.outletArrayRow}>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>Valve No.</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "valveNo") || `V${index + 1}`}
+      </Text>
+    </View>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>SC No.</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "subChakName")}
+      </Text>
+    </View>
+    <View style={styles.outletArrayCell}>
+      <Text style={styles.outletArrayLabel}>Pipe Size</Text>
+      <Text style={styles.outletArrayValue}>
+        {getOutletRowValue(item, "pipeSize")}
+      </Text>
+    </View>
+  </View>
+);
+
 const getCompactValueState = (value) => {
   const normalizedValue = String(value || "").trim().toLowerCase();
 
@@ -70,14 +102,35 @@ const getSimpleChecklistState = (checklist) => {
 
   const valueText = formatValueText(rawValue ?? checklist?.detail?.value);
   const normalizedText = String(valueText || "").trim();
+  const statusKey = String(checklist?.status?.key || "").trim().toLowerCase();
+  const statusCode = Number(checklist?.status?.code ?? checklist?.rawChecklist?.status);
+  const isRemarkChecklist = String(checklist?.name || "")
+    .trim()
+    .toLowerCase()
+    .startsWith("remark");
 
   if (!normalizedText) {
-    return {
-      icon: "minus",
-      color: colors.primaryBlue,
-      backgroundColor: "#EEF6FF",
-      borderColor: "#D5E7FB",
-    };
+    if (isRemarkChecklist) {
+      return null;
+    }
+
+    if (
+      statusKey === "completed" ||
+      statusKey === "approved" ||
+      statusKey === "updated" ||
+      statusKey === "verified" ||
+      statusCode === 2 ||
+      statusCode === 4
+    ) {
+      return {
+        icon: "check-circle",
+        color: colors.completed,
+        backgroundColor: "#ECFBF3",
+        borderColor: "#C7EFD8",
+      };
+    }
+
+    return null;
   }
 
   const normalizedValue = String(valueText || "").trim().toLowerCase();
@@ -105,6 +158,79 @@ const getSimpleChecklistState = (checklist) => {
   }
 
   return null;
+};
+
+const isSubChakCountChecklist = (checklist) => {
+  const checklistId = Number(
+    checklist?.rawChecklist?.checklistId ||
+      checklist?.rawChecklist?.checklist_id ||
+      checklist?.id
+  );
+  const label = String(checklist?.name || "").trim().toLowerCase();
+
+  return (
+    checklistId === 6 ||
+    label.includes("sub-chak as per design") ||
+    label.includes("sub chak as per design") ||
+    label.includes("subchak as per design") ||
+    label.includes("no. of outlet pipes") ||
+    label.includes("no of outlet pipes") ||
+    label.includes("number of outlet pipes") ||
+    label.includes("numbers of outlet pipes")
+  );
+};
+
+const getSubChakCountValue = (checklist, workItem) => {
+  const candidates = [
+    workItem?.subCheckQty,
+    workItem?.subChakQuantity,
+    workItem?.subChakQty,
+    workItem?.rawItem?.subCheckQty,
+    workItem?.rawItem?.sub_check_qty,
+    workItem?.rawItem?.subChakQuantity,
+    workItem?.rawItem?.sub_chak_quantity,
+    workItem?.rawItem?.subChakQty,
+    checklist?.detail?.rawValue,
+    checklist?.detail?.value,
+    checklist?.rawChecklist?.value,
+    checklist?.rawChecklist?.submittedValue,
+    checklist?.rawChecklist?.answer,
+  ];
+
+  for (const candidate of candidates) {
+    const match = String(candidate ?? "").match(/\d+/);
+    const parsed = Number.parseInt(match?.[0], 10);
+
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const getChecklistDisplayTitle = (checklist, workItem) => {
+  const baseTitle = String(checklist?.name || "").trim();
+
+  if (!baseTitle || !isSubChakCountChecklist(checklist)) {
+    return baseTitle;
+  }
+
+  if (/\(\s*\d+\s*\)/.test(baseTitle)) {
+    return baseTitle;
+  }
+
+  const subChakCount = getSubChakCountValue(checklist, workItem);
+
+  return subChakCount ? `${baseTitle} (${subChakCount})` : baseTitle;
+};
+
+const getChecklistInlineCountValue = (checklist, workItem) => {
+  if (!isSubChakCountChecklist(checklist)) {
+    return "";
+  }
+
+  return String(getSubChakCountValue(checklist, workItem) || "");
 };
 
 const ChecklistValueBlock = ({ checklist, onViewImage }) => {
@@ -156,7 +282,9 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
         <View style={styles.arrayGroup}>
           {rawValue.map((item, itemIndex) => (
             <View key={`${checklist.id}-${itemIndex}`} style={styles.arrayCard}>
-              {isPlainObject(item) ? (
+              {isOutletIdentificationItem(item) ? (
+                <OutletIdentificationRow item={item} index={itemIndex} />
+              ) : isPlainObject(item) ? (
                 Object.entries(item).map(([key, value]) => (
                   <View key={key} style={styles.arrayRow}>
                     <Text style={styles.arrayKey}>{formatValueLabel(key)}</Text>
@@ -640,22 +768,31 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
             >
               {(selectedSubprocess?.checklists || []).map((checklist, index) => {
                 const simpleState = getSimpleChecklistState(checklist);
+                const checklistTitle = getChecklistDisplayTitle(
+                  checklist,
+                  workItem
+                );
+                const inlineCountValue = getChecklistInlineCountValue(
+                  checklist,
+                  workItem
+                );
+                const displaySimpleState = inlineCountValue ? null : simpleState;
 
                 return (
                   <View
                     key={checklist.id}
                     style={[
                       styles.checklistCard,
-                      simpleState && styles.checklistCardCompact,
+                      displaySimpleState && styles.checklistCardCompact,
                       index === (selectedSubprocess?.checklists || []).length - 1 &&
                         styles.checklistCardLast,
                     ]}
                   >
-                    {simpleState ? (
+                    {displaySimpleState ? (
                       <View>
                         <View style={styles.checklistInlineRow}>
                           <View style={styles.checklistInlineCopy}>
-                            <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                            <Text style={styles.checklistTitle}>{checklistTitle}</Text>
                             {!checklist.isRequired ? (
                               <Text style={styles.optionalText}>Optional</Text>
                             ) : null}
@@ -664,15 +801,15 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                             style={[
                               styles.checklistInlineStatus,
                               {
-                                backgroundColor: simpleState.backgroundColor,
-                                borderColor: simpleState.borderColor,
+                                backgroundColor: displaySimpleState.backgroundColor,
+                                borderColor: displaySimpleState.borderColor,
                               },
                             ]}
                           >
                             <Icon
-                              source={simpleState.icon}
+                              source={displaySimpleState.icon}
                               size={18}
-                              color={simpleState.color}
+                              color={displaySimpleState.color}
                             />
                           </View>
                         </View>
@@ -680,14 +817,29 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                     ) : (
                       <View style={styles.checklistHead}>
                         <View style={styles.checklistCopy}>
-                          <Text style={styles.checklistTitle}>{checklist.name}</Text>
+                          {inlineCountValue ? (
+                            <View style={styles.checklistCountRow}>
+                              <Text style={styles.checklistCountTitle}>
+                                {checklistTitle}
+                              </Text>
+                              <View style={styles.checklistCountBadge}>
+                                <Text style={styles.checklistCountBadgeText}>
+                                  {inlineCountValue}
+                                </Text>
+                              </View>
+                            </View>
+                          ) : (
+                            <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                          )}
                           {!checklist.isRequired ? (
                             <Text style={styles.optionalText}>Optional</Text>
                           ) : null}
-                          <ChecklistValueBlock
-                            checklist={checklist}
-                            onViewImage={openImagePreview}
-                          />
+                          {inlineCountValue ? null : (
+                            <ChecklistValueBlock
+                              checklist={checklist}
+                              onViewImage={openImagePreview}
+                            />
+                          )}
                         </View>
                       </View>
                     )}

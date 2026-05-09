@@ -10,6 +10,11 @@ const formatTimestamp = (value) => {
   return date.toLocaleString();
 };
 
+const formatDate = (value) => {
+  const date = value ? new Date(value) : new Date();
+  return date.toLocaleDateString();
+};
+
 const isSameDay = (a, b) =>
   a.getDate() === b.getDate() &&
   a.getMonth() === b.getMonth() &&
@@ -34,6 +39,10 @@ const normalizeIncomingPhotos = (incoming = []) =>
             ? item.title
             : `Photo ${index + 1}`,
         createdAt,
+        dateLabel:
+          typeof item === "object" && item?.dateLabel
+            ? item.dateLabel
+            : formatDate(createdAt),
         meta:
           typeof item === "object" && item?.meta
             ? item.meta
@@ -97,7 +106,7 @@ const useUnitGalleryViewModel = (navigation, route) => {
         deviceType: module,
         deviceName,
       });
-console.log("Fetched gallery response:", response);
+
       setPhotos(Array.isArray(response?.data) ? response.data : []);
     } catch (error) {
       setErrorMessage(error?.message || "Unable to load gallery images.");
@@ -163,6 +172,7 @@ console.log("Fetched gallery response:", response);
         uri: asset.uri,
         title: `Photo ${prev.length + 1}`,
         createdAt,
+        dateLabel: formatDate(createdAt),
         meta: formatTimestamp(createdAt),
       },
       ...prev,

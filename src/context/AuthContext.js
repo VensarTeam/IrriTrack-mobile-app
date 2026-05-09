@@ -22,6 +22,7 @@ import {
   createSessionExpiredError,
   getUnsupportedVerificationMessage,
   isUnauthorizedApiError,
+  setApiClientAuthorizationToken,
 } from "../services/apiClient";
 import {
   isSessionAvailable,
@@ -39,9 +40,19 @@ import { authenticateDeviceForAppUnlock } from "../services/deviceAuthentication
 import { createRoleAccess } from "../services/roleAccess";
 
 const AuthContext = createContext(null);
+const apiAuthCallbackRef = {
+  getAccessToken: null,
+  refreshAccessToken: null,
+};
 
 const normalizeSession = (session, referenceTime) =>
   normalizeAuthSession(session, createUser, referenceTime);
+
+configureApiClientAuth({
+  getAccessToken: (...args) => apiAuthCallbackRef.getAccessToken?.(...args),
+  refreshAccessToken: (...args) =>
+    apiAuthCallbackRef.refreshAccessToken?.(...args),
+});
 
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
@@ -58,6 +69,7 @@ export const AuthProvider = ({ children }) => {
 
   const setActiveSession = useCallback((nextSession) => {
     sessionRef.current = nextSession;
+    setApiClientAuthorizationToken(nextSession?.accessToken);
     setSession(nextSession);
   }, []);
 
@@ -306,17 +318,17 @@ export const AuthProvider = ({ children }) => {
     [clearSession, refreshSession]
   );
 
-  useEffect(() => {
-    configureApiClientAuth({
-      getAccessToken: getValidAccessToken,
-      refreshAccessToken: async () =>
-        getValidAccessToken({ forceRefresh: true }),
-    });
+  apiAuthCallbackRef.getAccessToken = getValidAccessToken;
+  apiAuthCallbackRef.refreshAccessToken = () =>
+    getValidAccessToken({ forceRefresh: true });
 
+  useEffect(() => {
     return () => {
-      configureApiClientAuth();
+      apiAuthCallbackRef.getAccessToken = null;
+      apiAuthCallbackRef.refreshAccessToken = null;
+      setApiClientAuthorizationToken(null);
     };
-  }, [getValidAccessToken]);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     const currentSession = sessionRef.current;

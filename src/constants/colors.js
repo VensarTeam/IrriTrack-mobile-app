@@ -70,6 +70,7 @@ const colors = {
   completed: "#1abf75",
   pending: "#ef8f28",
   partial: "#E3B24F",
+  toBeConfirm: "#073984",
 
   // Project modules
   projectModules: {

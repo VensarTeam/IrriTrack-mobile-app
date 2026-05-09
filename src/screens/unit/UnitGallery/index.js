@@ -90,13 +90,16 @@ const UnitGalleryScreen = ({ navigation, route }) => {
                 activeOpacity={0.9}
                 onPress={() => openViewer(index)}
               >
-                <Image source={{ uri: item.uri }} style={styles.photoThumb} />
-                <Text style={styles.photoTitle} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.photoMeta} numberOfLines={1}>
-                  {item.meta}
-                </Text>
+                <Image
+                  source={{ uri: item.uri }}
+                  style={styles.photoThumb}
+                  resizeMode="cover"
+                />
+                {item.dateLabel ? (
+                  <Text style={styles.photoDate} numberOfLines={1}>
+                    {item.dateLabel}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             ))}
           </View>
@@ -110,11 +113,6 @@ const UnitGalleryScreen = ({ navigation, route }) => {
                   : errorMessage
                     ? "Unable to load photos"
                     : "No photos yet"}
-              </Text>
-              <Text style={styles.emptySubText}>
-                {isLoading
-                  ? "Please wait while we fetch the gallery images."
-                  : errorMessage || "Gallery images will appear here once uploaded."}
               </Text>
               {!isLoading && errorMessage ? (
                 <TouchableOpacity

@@ -38,6 +38,20 @@ const toDisplayTimestamp = (value) => {
   return date.toLocaleString();
 };
 
+const toDisplayDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString();
+};
+
 const parseJsonValue = (value) => {
   if (typeof value !== "string") {
     return null;
@@ -199,6 +213,7 @@ const normalizeGalleryImage = (item = {}, index = 0) => {
     uri: imageUri,
     title: getImageTitle(item, index),
     createdAt: createdAt ? new Date(createdAt).getTime() : Date.now() - index * 1000,
+    dateLabel: toDisplayDate(createdAt),
     meta: getImageMeta(item, createdAt),
     raw: item,
   };

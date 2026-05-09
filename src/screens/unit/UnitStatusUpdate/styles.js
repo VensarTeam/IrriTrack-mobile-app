@@ -509,7 +509,7 @@ export default StyleSheet.create({
 
   repeatableCompactRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
   },
 
   repeatableValueBadge: {

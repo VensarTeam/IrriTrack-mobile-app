@@ -37,6 +37,8 @@ const DEFAULT_SORT_ORDER = "asc";
 const DEFAULT_SUBPROCESS_FILTER_ID = null;
 const DEFAULT_STATUS_FILTER_VALUE = null;
 const HIDDEN_OMS_CARD_SECTION_KEYS = new Set(["rectification"]);
+const TO_BE_VERIFY_STATUS_LABEL = "To Be Confirm";
+const TO_BE_VERIFY_SUBPROCESS_IDS = new Set([2, 3]);
 const OMS_CARD_SUBPROCESS_LABELS = {
   locationFinalization: "Location",
   inletPipeLaying: "Inlet Pipe",
@@ -127,6 +129,29 @@ const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
   }
 
   return "Pending";
+};
+
+const getSubprocessId = (subprocess = {}, subOption = {}) =>
+  Number(
+    subprocess?.subprocessId ||
+      subprocess?.subprocess_id ||
+      subOption?.apiSubprocessId
+  );
+
+const getCardStatusValue = ({ apiSubprocess, fallbackValue, subOption }) => {
+  const statusValue = apiSubprocess
+    ? normalizeProcessStatusValue(apiSubprocess)
+    : fallbackValue || "Pending";
+  const subprocessId = getSubprocessId(apiSubprocess, subOption);
+
+  if (
+    statusValue === "Pending" &&
+    TO_BE_VERIFY_SUBPROCESS_IDS.has(subprocessId)
+  ) {
+    return TO_BE_VERIFY_STATUS_LABEL;
+  }
+
+  return statusValue;
 };
 
 const getProcessLabel = (section = {}) =>
@@ -932,9 +957,11 @@ const useUnitListViewModel = (navigation, route) => {
             label: getCardSubprocessLabel(subOption),
             sectionKey: section.key,
             subOptionId: subOption.id,
-            value: apiSubprocess
-              ? normalizeProcessStatusValue(apiSubprocess)
-              : statusLookup[subOption.id] || "Pending",
+            value: getCardStatusValue({
+              apiSubprocess,
+              fallbackValue: statusLookup[subOption.id] || "Pending",
+              subOption,
+            }),
             progressLabel: "",
           };
         })
@@ -942,7 +969,8 @@ const useUnitListViewModel = (navigation, route) => {
   };
 
   const baseFilteredData = shouldUseOmsApi ? remoteUnits : localFilteredData;
-  const filteredData = statusBoardEnabled
+  const shouldApplyStatusBoard = statusBoardEnabled && !isOfflineOmsList;
+  const filteredData = shouldApplyStatusBoard
     ? baseFilteredData.filter(
         (unit) => getUnitStageStatus(unit) === selectedStatusBucket
       )

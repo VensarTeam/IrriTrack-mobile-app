@@ -393,6 +393,15 @@ export const configureApiClientAuth = ({
     typeof refreshAccessToken === "function" ? refreshAccessToken : null;
 };
 
+export const setApiClientAuthorizationToken = (token) => {
+  if (token) {
+    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    return;
+  }
+
+  delete apiClient.defaults.headers.common.Authorization;
+};
+
 const hasAuthorizationHeader = (headers) =>
   Boolean(axios.AxiosHeaders.from(headers || {}).get("Authorization"));
 

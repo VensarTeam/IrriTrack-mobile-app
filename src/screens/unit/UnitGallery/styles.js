@@ -130,38 +130,38 @@ export default StyleSheet.create({
   photoGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: moderateScale(10),
   },
 
   photoCard: {
-    width: "48.5%",
+    width: "48%",
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(14),
-    padding: moderateScale(8),
-    marginBottom: verticalScale(10),
+    borderColor: "#E2ECF6",
+    borderRadius: moderateScale(16),
+    padding: moderateScale(5),
+    marginBottom: verticalScale(2),
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
   },
 
   photoThumb: {
     width: "100%",
-    aspectRatio: 1,
-    borderRadius: moderateScale(10),
+    aspectRatio: 0.86,
+    borderRadius: moderateScale(12),
     backgroundColor: "#E6EEF5",
   },
 
-  photoTitle: {
-    marginTop: verticalScale(8),
-    fontSize: moderateScale(12),
-    color: colors.textDark,
-    fontFamily: fonts.bold,
-  },
-
-  photoMeta: {
-    marginTop: verticalScale(2),
-    fontSize: moderateScale(10),
+  photoDate: {
+    marginTop: verticalScale(6),
+    marginBottom: verticalScale(2),
+    textAlign: "center",
+    fontSize: moderateScale(11),
     color: colors.textSecondary,
-    fontFamily: fonts.regular,
+    fontFamily: fonts.medium,
   },
 
   emptyWrap: {
@@ -176,6 +176,7 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: verticalScale(36),
+    paddingHorizontal: moderateScale(16),
     backgroundColor: colors.white,
   },
 
@@ -184,13 +185,6 @@ export default StyleSheet.create({
     fontSize: moderateScale(14),
     color: colors.textDark,
     fontFamily: fonts.bold,
-  },
-
-  emptySubText: {
-    marginTop: verticalScale(4),
-    fontSize: moderateScale(11),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
   },
 
   viewerContainer: {

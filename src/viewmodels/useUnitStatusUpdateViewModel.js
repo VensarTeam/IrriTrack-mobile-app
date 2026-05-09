@@ -602,7 +602,7 @@ const RECTIFICATION_PHOTO_REQUIREMENT = {
   label: "Rectification Image",
   inputType: "photo",
   dataType: "image",
-  required: false,
+  required: true,
   synthetic: true,
 };
 
