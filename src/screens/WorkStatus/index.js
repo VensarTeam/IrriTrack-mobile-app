@@ -532,7 +532,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const canApproveSelected = reviewCapabilities.canApprove && selectedWorkflowStatusKey === "verified";
   const canRejectSelected =
     reviewCapabilities.canReject &&
-    (selectedWorkflowStatusKey === "submitted" || selectedWorkflowStatusKey === "verified");
+    (selectedWorkflowStatusKey === "submitted" ||
+      (selectedWorkflowStatusKey === "verified" &&
+        reviewCapabilities.canApprove));
 
   React.useEffect(() => {
     setIsRejectRemarkModalVisible(false);
@@ -1185,7 +1187,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
               contentContainerStyle={[styles.sheetScrollContent, { paddingBottom: sheetBottomPadding }]}
               showsVerticalScrollIndicator={false}
             >
-              {isSelectedProgressLoading ? (
+              {isSelectedProgressLoading && !selectedWorkItem ? (
                 <View style={styles.sheetStateCard}>
                   <ActivityIndicator size="small" color={colors.primaryBlue} />
                   <Text style={styles.sheetStateText}>Loading submitted subprocess details...</Text>

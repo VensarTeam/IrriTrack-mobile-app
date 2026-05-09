@@ -60,17 +60,24 @@ const normalizeSubmissionHistoryResponse = (response) => {
   };
 };
 
-const fetchWithFallbackPaths = async ({ params }) => {
+const fetchWithFallbackPaths = async ({ params, forceRefresh = false }) => {
   let lastNotFoundError = null;
+  const headers = {
+    Accept: "*/*",
+  };
+
+  if (forceRefresh) {
+    headers["Cache-Control"] = "no-cache, no-store, max-age=0";
+    headers.Pragma = "no-cache";
+    headers.Expires = "0";
+  }
 
   for (const path of WORK_STATUS_API_PATHS) {
     try {
       return await apiRequest({
         url: path,
         method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
+        headers,
         params,
       });
     } catch (error) {
@@ -93,6 +100,7 @@ export const fetchOmsWorkStatus = async ({
   ownerUserId = "",
   saveToCache = true,
   fallbackToCache = true,
+  forceRefresh = false,
 } = {}) => {
   if (!projectId) {
     return createEmptyWorkStatusResponse();
@@ -110,9 +118,13 @@ export const fetchOmsWorkStatus = async ({
     params.search = String(search).trim();
   }
 
+  if (forceRefresh) {
+    params._ = Date.now();
+  }
+
   try {
     const response = normalizeWorkStatusResponse(
-      await fetchWithFallbackPaths({ params })
+      await fetchWithFallbackPaths({ params, forceRefresh })
     );
 
     if (saveToCache && !String(search || "").trim()) {

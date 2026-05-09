@@ -61,11 +61,19 @@ const TAB_META = {
   },
 };
 
+const TAB_LABELS = {
+  Submitted: "All",
+  Pending: "Latest Submitted",
+};
+
+const getTabLabel = (tab) => TAB_LABELS[tab] || tab;
+
 // ─────────────────────────────────────────────
 // SINGLE TAB PILL
 // ─────────────────────────────────────────────
 const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
   const meta = TAB_META[tab] || TAB_META.Pending;
+  const label = getTabLabel(tab);
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const opacityAnim = React.useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
@@ -152,7 +160,7 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
               },
             ]}
           >
-            {tab}
+            {label}
           </Animated.Text>
 
           {/* Count badge */}
@@ -205,7 +213,7 @@ const tabPillStyles = StyleSheet.create({
     marginRight: moderateScale(8),
     justifyContent: "center",
     alignItems: "center",
-    minWidth: moderateScale(96),
+    minWidth: moderateScale(112),
     position: "relative",
     overflow: "hidden",
   },

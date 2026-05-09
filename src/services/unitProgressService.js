@@ -16,17 +16,27 @@ const unitProgressRequestPromises = new Map();
 const buildUnitProgressCacheKey = ({ projectId, unitId }) =>
   `${projectId || "UNKNOWN"}::${unitId || "UNKNOWN"}`;
 
-const fetchWithFallbackPaths = async ({ paths }) => {
+const fetchWithFallbackPaths = async ({ paths, forceRefresh = false }) => {
   let lastNotFoundError = null;
+  const headers = {
+    Accept: "*/*",
+  };
+  const params = {};
+
+  if (forceRefresh) {
+    headers["Cache-Control"] = "no-cache, no-store, max-age=0";
+    headers.Pragma = "no-cache";
+    headers.Expires = "0";
+    params._ = Date.now();
+  }
 
   for (const path of paths) {
     try {
       return await apiRequest({
         url: path,
         method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
+        headers,
+        params,
       });
     } catch (error) {
       if (error?.status === 404) {
@@ -66,6 +76,7 @@ export const fetchUnitProgress = async ({
       cacheKey,
       fetchWithFallbackPaths({
         paths: UNIT_PROGRESS_API_PATHS(projectId, unitId),
+        forceRefresh,
       })
         .then((response) => {
           const normalizedProgress = createUnitProgress(response);

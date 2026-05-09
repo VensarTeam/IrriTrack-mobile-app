@@ -18,8 +18,6 @@ import colors from "../../../constants/colors";
 import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
 
-const TO_BE_CONFIRM_SUBPROCESS_IDS = new Set([2, 3]);
-
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -425,20 +423,7 @@ const getStatusColors = (statusKey) => {
   };
 };
 
-const getDisplayStatus = (status, subprocessId) => {
-  if (
-    TO_BE_CONFIRM_SUBPROCESS_IDS.has(Number(subprocessId)) &&
-    String(status?.key || "").trim().toLowerCase() === "pending"
-  ) {
-    return {
-      ...(status || {}),
-      key: "toBeConfirm",
-      label: "To Be Confirm",
-    };
-  }
-
-  return status;
-};
+const getDisplayStatus = (status) => status;
 
 const StatusPill = ({ status, subprocessId }) => {
   const displayStatus = getDisplayStatus(status, subprocessId);

@@ -317,16 +317,10 @@ const useUnitStatusOverviewViewModel = (navigation, route) => {
         type: "success",
         title:
           decision === "approve"
-            ? "Subprocess Approved"
+            ? "Approved successfully"
             : decision === "verify"
-            ? "Subprocess Verified"
-            : "Subprocess Rejected",
-        message:
-          decision === "approve"
-            ? `${subprocess?.name || process.name} was approved for this node.`
-            : decision === "verify"
-            ? `${subprocess?.name || process.name} was verified for this node.`
-            : `${subprocess?.name || process.name} was sent back with your comment.`,
+            ? "Verified successfully"
+            : "Rejected successfully",
       });
     } catch (nextError) {
       showAppAlert({

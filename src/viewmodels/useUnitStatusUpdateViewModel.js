@@ -216,12 +216,6 @@ const inferChecklistValueType = (source = {}, value, extra = {}) => {
   return "string";
 };
 
-const formatSubmissionStatusLabel = (value) =>
-  String(value || "")
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (character) => character.toUpperCase()) || "Completed";
-
 const markPhotosAsSavedToDeviceGallery = (values = {}, savedUris = []) => {
   if (!savedUris.length || !values?.photos) {
     return values;
@@ -585,6 +579,11 @@ const INFO_RESUBMIT_SUBOPTION_IDS = new Set([
   "inletPipeLaying",
   "outletPipeLaying",
   "pipeFlushing",
+]);
+
+const VALIDATION_BYPASS_SUBOPTION_IDS = new Set([
+  "inletPipeLaying",
+  "outletPipeLaying",
 ]);
 
 const SERVER_PREFILL_STATUS_KEYS = new Set([
@@ -1204,6 +1203,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         subOption?.apiProcessId || section.apiProcessId
       );
       const subprocessId = toPositiveIntegerOrNull(subOption?.apiSubprocessId);
+      const draftUnitId =
+        unit?.id ||
+        route?.params?.unitId ||
+        workItem?.unitId ||
+        unit?.omsId ||
+        unit?.unitNo ||
+        unit?.nodeName ||
+        workItem?.omsId ||
+        "";
 
       if (!processId || !subprocessId) {
         return "";
@@ -1212,8 +1220,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       return buildChecklistImageDraftScopeKey({
         ownerUserId,
         module,
-        unitId: unit?.id || route?.params?.unitId || workItem?.unitId || "",
-        omsId: workItem?.omsId || unit?.omsId || unit?.id || "",
+        unitId: draftUnitId,
+        omsId: workItem?.omsId || unit?.omsId || unit?.unitNo || unit?.id || "",
         processId,
         subprocessId,
       });
@@ -1224,7 +1232,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       route?.params?.unitId,
       section.apiProcessId,
       unit?.id,
+      unit?.nodeName,
       unit?.omsId,
+      unit?.unitNo,
       workItem?.omsId,
       workItem?.unitId,
     ]
@@ -1835,6 +1845,29 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       return;
     }
 
+    const canCacheImageDraft =
+      !isReadOnly &&
+      !submittedFromServer &&
+      !submittedFromLocal &&
+      !hasSavedLocalSubmission;
+
+    if (!canCacheImageDraft) {
+      if (imageDraftSnapshot?.photos?.length) {
+        void clearChecklistImageDraft({ scopeKey });
+        setImageDraftSnapshots((currentValue) => {
+          if (!currentValue[subOptionId]) {
+            return currentValue;
+          }
+
+          const nextValue = { ...currentValue };
+          delete nextValue[subOptionId];
+          return nextValue;
+        });
+      }
+
+      return;
+    }
+
     const currentPhotos = activePhotoRequirements
       .map((requirement) => {
         const media = activeValues.photos?.[requirement.id];
@@ -1883,12 +1916,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       return;
     }
 
+    let isCancelled = false;
+
     void (async () => {
       if (currentPhotos.length) {
         const savedDraft = await saveChecklistImageDraft({
           scopeKey,
           photos: currentPhotos,
         });
+
+        if (isCancelled) {
+          await clearChecklistImageDraft({ scopeKey });
+          return;
+        }
 
         setImageDraftSnapshots((currentValue) => ({
           ...currentValue,
@@ -1898,6 +1938,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
 
       await clearChecklistImageDraft({ scopeKey });
+
+      if (isCancelled) {
+        return;
+      }
+
       setImageDraftSnapshots((currentValue) => {
         if (!currentValue[subOptionId]) {
           return currentValue;
@@ -1908,13 +1953,21 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         return nextValue;
       });
     })();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [
     activePhotoRequirements,
     activeSubOption,
     activeValues.photos,
     areImageDraftsLoaded,
     getImageDraftScopeKey,
+    hasSavedLocalSubmission,
     imageDraftSnapshot,
+    isReadOnly,
+    submittedFromLocal,
+    submittedFromServer,
   ]);
 
   const getChecklistProgress = () => {
@@ -2736,6 +2789,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   );
 
   const validateForm = () => {
+    if (VALIDATION_BYPASS_SUBOPTION_IDS.has(activeSubOption.id)) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        [activeSubOption.id]: {},
+      }));
+
+      return {
+        isValid: true,
+        firstErrorMessage: "",
+      };
+    }
+
     const nextErrors = {};
     let firstErrorMessage = "";
 
@@ -2883,8 +2948,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       (missingChecklistItems.length > 0 || missingRequirements.length > 0);
     const shouldRequireRemarkForPartial =
       showRemarkField && isPartialChecklistSubmission;
+    const shouldUseRemarkForMissingRequired =
+      showRemarkField &&
+      Boolean(activeSubOption.remarkValidationMessage) &&
+      (isRemarkRequired ||
+        missingChecklistItems.length > 0 ||
+        missingRequirements.length > 0);
 
     if (
+      !shouldUseRemarkForMissingRequired &&
       hasChecklistOrPhotoRequirements &&
       !hasChecklistOrPhotoProgress
     ) {
@@ -2918,12 +2990,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     if (
       showRemarkField &&
-      (isRemarkRequired || shouldRequireRemarkForPartial) &&
+      (isRemarkRequired ||
+        shouldRequireRemarkForPartial ||
+        shouldUseRemarkForMissingRequired) &&
       !activeValues.remark.trim()
     ) {
-      nextErrors.remark = isPartialChecklistSubmission
-        ? "Remark is required for partial submission"
-        : "Remark is required";
+      nextErrors.remark =
+        activeSubOption.remarkValidationMessage ||
+        (isPartialChecklistSubmission
+          ? "Remark is required for partial submission"
+          : "Remark is required");
       setFirstErrorMessage(nextErrors.remark);
     }
 
@@ -3309,9 +3385,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       );
       const hasNext = activeIndex < section.subOptions.length - 1;
       const wasSynced = Boolean(result.synced);
-      const submissionStatusLabel = formatSubmissionStatusLabel(
-        result.response?.statusLabel
-      );
 
       showAppAlert({
         type: wasSynced ? "success" : "info",
@@ -3320,11 +3393,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             ? "Resubmitted successfully"
             : "Submitted successfully"
           : "Saved locally",
-        message: wasSynced
-          ? `${activeSubOptionLabel} ${isCommentedForEdit ? "resubmitted" : "submitted"} successfully with ${submissionStatusLabel} status.`
-          : isCommentedForEdit
-            ? `${activeSubOptionLabel} rectification is saved locally for supervisor follow-up.`
-            : `${activeSubOptionLabel} is saved on this device and will sync when internet is available.`,
         actions: [
           {
             label: hasNext ? "Next" : "Done",

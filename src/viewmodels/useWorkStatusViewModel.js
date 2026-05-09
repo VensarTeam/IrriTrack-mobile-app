@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NetInfo from "@react-native-community/netinfo";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import {
@@ -105,7 +106,7 @@ const getTabsForRole = (canReviewChecklist) =>
 const getRequestBucket = (item = {}) => {
   const normalizedStatus = String(item?.status || "").trim().toLowerCase();
 
-  if(normalizedStatus === "info"){
+  if (normalizedStatus === "info") {
     return "Info";
   }
 
@@ -133,7 +134,11 @@ const getRequestBucket = (item = {}) => {
     return "Verified";
   }
 
-  if (item?.submittedAt) {
+  if (
+    item?.submittedAt ||
+    normalizedStatus === "submitted" ||
+    normalizedStatus === "completed"
+  ) {
     return "Pending";
   }
 
@@ -336,6 +341,87 @@ const getWorkItemStatusDetails = (item = {}) =>
       : null,
   ].filter(Boolean);
 
+const getWorkflowActionItemPatch = (action = "") => {
+  const normalizedAction = String(action || "").trim().toLowerCase();
+  const now = new Date().toISOString();
+
+  if (normalizedAction === "reject") {
+    return {
+      status: "rejected",
+      requestBucket: "Commented",
+      rejectedAt: now,
+    };
+  }
+
+  if (normalizedAction === "verify") {
+    return {
+      status: "verified",
+      requestBucket: "Verified",
+      verifiedAt: now,
+    };
+  }
+
+  if (normalizedAction === "approve") {
+    return {
+      status: "approved",
+      requestBucket: "Approved",
+      approvedAt: now,
+    };
+  }
+
+  return null;
+};
+
+const applyWorkflowActionToTabItems = ({
+  itemsByTab,
+  tabs,
+  submissionId,
+  action,
+} = {}) => {
+  const normalizedSubmissionId = String(submissionId || "").trim();
+  const patch = getWorkflowActionItemPatch(action);
+
+  if (!normalizedSubmissionId || !patch) {
+    return itemsByTab;
+  }
+
+  const nextItemsByTab = createEmptyTabData(tabs);
+  let updatedItem = null;
+
+  tabs.forEach((tab) => {
+    (itemsByTab[tab] || []).forEach((item) => {
+      if (String(item?.submissionId || "").trim() !== normalizedSubmissionId) {
+        nextItemsByTab[tab].push(item);
+        return;
+      }
+
+      updatedItem = {
+        ...item,
+        ...patch,
+      };
+    });
+  });
+
+  if (!updatedItem) {
+    return itemsByTab;
+  }
+
+  tabs.forEach((tab) => {
+    if (tab === "Submitted" || tab === updatedItem.requestBucket) {
+      const alreadyExists = nextItemsByTab[tab].some(
+        (item) =>
+          String(item?.submissionId || "").trim() === normalizedSubmissionId
+      );
+
+      if (!alreadyExists) {
+        nextItemsByTab[tab].push(updatedItem);
+      }
+    }
+  });
+
+  return nextItemsByTab;
+};
+
 const useWorkStatusViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
@@ -375,6 +461,9 @@ const useWorkStatusViewModel = (navigation, route) => {
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const requestSequenceRef = useRef(0);
+  const hasFocusedOnceRef = useRef(false);
+  const selectedWorkItemRef = useRef(null);
+  const selectedProgressRefreshKeyRef = useRef("");
   const selectedSubmissionId = String(selectedWorkItem?.submissionId || "").trim();
   const selectedUnitId = String(
     selectedWorkItem?.unitId || selectedWorkItem?.omsId || ""
@@ -389,6 +478,26 @@ const useWorkStatusViewModel = (navigation, route) => {
     unitId: selectedUnitId,
     enabled: Boolean(projectId && selectedUnitId && selectedWorkItem),
   });
+
+  useEffect(() => {
+    selectedWorkItemRef.current = selectedWorkItem;
+  }, [selectedWorkItem]);
+
+  useEffect(() => {
+    const refreshKey = [selectedSubmissionId, selectedUnitId].join(":");
+
+    if (!selectedSubmissionId || !selectedUnitId) {
+      selectedProgressRefreshKeyRef.current = "";
+      return;
+    }
+
+    if (selectedProgressRefreshKeyRef.current === refreshKey) {
+      return;
+    }
+
+    selectedProgressRefreshKeyRef.current = refreshKey;
+    void refreshSelectedProgress();
+  }, [refreshSelectedProgress, selectedSubmissionId, selectedUnitId]);
 
   useEffect(() => {
     const updateOnlineState = (networkState = {}) => {
@@ -513,7 +622,7 @@ const useWorkStatusViewModel = (navigation, route) => {
   );
 
   const loadBoard = useCallback(
-    async ({ refresh = false } = {}) => {
+    async ({ refresh = false, silent = false } = {}) => {
       if (!hasResolvedNetworkState) {
         return;
       }
@@ -535,7 +644,7 @@ const useWorkStatusViewModel = (navigation, route) => {
       if (isSupervisorOfflineMode) {
         if (refresh) {
           setIsRefreshing(true);
-        } else {
+        } else if (!silent) {
           setIsLoading(true);
         }
 
@@ -588,7 +697,7 @@ const useWorkStatusViewModel = (navigation, route) => {
 
       if (refresh) {
         setIsRefreshing(true);
-      } else {
+      } else if (!silent) {
         setIsLoading(true);
       }
 
@@ -607,6 +716,7 @@ const useWorkStatusViewModel = (navigation, route) => {
                 !roleAccess.canReviewChecklist &&
                 tab === "Commented",
               fallbackToCache: false,
+              forceRefresh: true,
             });
 
             return {
@@ -632,12 +742,30 @@ const useWorkStatusViewModel = (navigation, route) => {
           }
 
           nextItemsByTab[tab] = (response?.items || [])
-            .map((item) => createWorkItem(item))
-            .filter((item) => matchesStageFilter(item, stageLabel));
+            .map((item) => createWorkItem(item));
         });
 
         setCounts(nextCounts);
         setItemsByTab(nextItemsByTab);
+        setWorkflowStatusOverrides({});
+        setSelectedWorkItem((currentValue) => {
+          const currentSubmissionId = String(
+            currentValue?.submissionId || ""
+          ).trim();
+
+          if (!currentSubmissionId) {
+            return currentValue;
+          }
+
+          const latestItem = tabs
+            .flatMap((tab) => nextItemsByTab[tab] || [])
+            .find(
+              (item) =>
+                String(item?.submissionId || "").trim() === currentSubmissionId
+            );
+
+          return latestItem || currentValue;
+        });
       } catch (nextError) {
         if (requestSequenceRef.current !== requestId) {
           return;
@@ -668,6 +796,21 @@ const useWorkStatusViewModel = (navigation, route) => {
     void loadBoard();
   }, [loadBoard]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFocusedOnceRef.current) {
+        hasFocusedOnceRef.current = true;
+        return undefined;
+      }
+
+      void loadBoard({ silent: true, forceRefresh: true });
+      if (selectedWorkItemRef.current) {
+        void refreshSelectedProgress();
+      }
+      return undefined;
+    }, [loadBoard, refreshSelectedProgress])
+  );
+
   const countsByTab = useMemo(
     () =>
       tabs.reduce((acc, tab) => {
@@ -690,7 +833,7 @@ const useWorkStatusViewModel = (navigation, route) => {
   const activeUnits = unitsByTab[activeTab] || [];
 
   const refresh = useCallback(() => {
-    void loadBoard({ refresh: true });
+    void loadBoard({ refresh: true, forceRefresh: true });
   }, [loadBoard]);
 
   const selectedProgressMatch = useMemo(
@@ -832,7 +975,29 @@ const useWorkStatusViewModel = (navigation, route) => {
           ...currentValue,
           [selectedSubmissionId]: nextStatusKey,
         }));
-        await Promise.all([refreshSelectedProgress(), loadBoard({ refresh: true })]);
+        setItemsByTab((currentValue) =>
+          applyWorkflowActionToTabItems({
+            itemsByTab: currentValue,
+            tabs,
+            submissionId: selectedSubmissionId,
+            action: normalizedAction,
+          })
+        );
+        setSelectedWorkItem((currentValue) => {
+          if (
+            String(currentValue?.submissionId || "").trim() !==
+            selectedSubmissionId
+          ) {
+            return currentValue;
+          }
+
+          const patch = getWorkflowActionItemPatch(normalizedAction);
+          return patch ? { ...currentValue, ...patch } : currentValue;
+        });
+        await Promise.all([
+          refreshSelectedProgress(),
+          loadBoard({ silent: true, forceRefresh: true }),
+        ]);
         setReviewRemark("");
         setReviewError("");
 
@@ -840,16 +1005,10 @@ const useWorkStatusViewModel = (navigation, route) => {
           type: "success",
           title:
             normalizedAction === "verify"
-              ? "Subprocess Verified"
+              ? "Verified successfully"
               : normalizedAction === "approve"
-              ? "Subprocess Approved"
-              : "Subprocess Rejected",
-          message:
-            normalizedAction === "verify"
-              ? `${selectedWorkItem?.subprocessName || "Subprocess"} was verified successfully.`
-              : normalizedAction === "approve"
-              ? `${selectedWorkItem?.subprocessName || "Subprocess"} was approved successfully.`
-              : `${selectedWorkItem?.subprocessName || "Subprocess"} was sent back with your remark.`,
+              ? "Approved successfully"
+              : "Rejected successfully",
         });
       } catch (nextError) {
         const message =
@@ -870,7 +1029,7 @@ const useWorkStatusViewModel = (navigation, route) => {
       refreshSelectedProgress,
       reviewRemark,
       selectedSubmissionId,
-      selectedWorkItem,
+      tabs,
     ]
   );
 

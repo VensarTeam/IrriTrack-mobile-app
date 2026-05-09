@@ -921,7 +921,7 @@ const UnitListScreen = ({ navigation, route }) => {
               />
               <LegendItem
                 color={colors.partial}
-                title="Partial Completed"
+                title="Partial"
                 subtitle="The process is underway but still has remaining steps."
               />
               <LegendItem
@@ -955,7 +955,7 @@ const getStatusColor = (value) => {
   ) {
     return colors.completed;
   }
-  if (value === "To Be Confirm") return colors.toBeConfirm;
+  if (value === "To be Confirm") return colors.toBeConfirm;
   if (value === "Pending") return colors.pending;
   if (value === "Submitted") return colors.partial;
   if (value === "Commented") return colors.primaryBlue;

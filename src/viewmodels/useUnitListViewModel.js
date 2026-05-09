@@ -37,8 +37,7 @@ const DEFAULT_SORT_ORDER = "asc";
 const DEFAULT_SUBPROCESS_FILTER_ID = null;
 const DEFAULT_STATUS_FILTER_VALUE = null;
 const HIDDEN_OMS_CARD_SECTION_KEYS = new Set(["rectification"]);
-const TO_BE_VERIFY_STATUS_LABEL = "To Be Confirm";
-const TO_BE_VERIFY_SUBPROCESS_IDS = new Set([2, 3]);
+const TO_BE_VERIFY_STATUS_LABEL = "To be Confirm";
 const OMS_CARD_SUBPROCESS_LABELS = {
   locationFinalization: "Location",
   inletPipeLaying: "Inlet Pipe",
@@ -70,15 +69,15 @@ const getProcessValue = (states) => {
   }
 
   if (states.some((state) => PARTIAL_STATES.includes(state))) {
-    return "Partial Completed";
+    return "Partial";
   }
 
-  return "Partial Completed";
+  return "Partial";
 };
 
 const PROCESS_STATUS_BY_CODE = {
   0: "Pending",
-  1: "Partial Completed",
+  1: "Partial",
   2: "Completed",
   3: "Commented",
   4: "Approved",
@@ -86,15 +85,16 @@ const PROCESS_STATUS_BY_CODE = {
 };
 
 const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
-  const statusCode = Number(status);
-
-  if (Number.isFinite(statusCode) && PROCESS_STATUS_BY_CODE[statusCode]) {
-    return PROCESS_STATUS_BY_CODE[statusCode];
-  }
-
   const normalizedLabel = String(statusLabel || "")
     .trim()
     .toLowerCase();
+
+  if (
+    normalizedLabel === "to be confirm" ||
+    normalizedLabel === "to be confirmed"
+  ) {
+    return TO_BE_VERIFY_STATUS_LABEL;
+  }
 
   if (normalizedLabel === "approved") {
     return "Approved";
@@ -120,36 +120,31 @@ const normalizeProcessStatusValue = ({ status, statusLabel } = {}) => {
     return "Completed";
   }
 
-  if (normalizedLabel === "partial" || normalizedLabel === "partially completed") {
-    return "Partial Completed";
+  if (
+    normalizedLabel === "partial" ||
+    normalizedLabel === "partial completed" ||
+    normalizedLabel === "partially completed"
+  ) {
+    return "Partial";
   }
 
   if (normalizedLabel === "info") {
     return "Info";
   }
 
+  const statusCode = Number(status);
+
+  if (Number.isFinite(statusCode) && PROCESS_STATUS_BY_CODE[statusCode]) {
+    return PROCESS_STATUS_BY_CODE[statusCode];
+  }
+
   return "Pending";
 };
 
-const getSubprocessId = (subprocess = {}, subOption = {}) =>
-  Number(
-    subprocess?.subprocessId ||
-      subprocess?.subprocess_id ||
-      subOption?.apiSubprocessId
-  );
-
-const getCardStatusValue = ({ apiSubprocess, fallbackValue, subOption }) => {
+const getCardStatusValue = ({ apiSubprocess, fallbackValue }) => {
   const statusValue = apiSubprocess
     ? normalizeProcessStatusValue(apiSubprocess)
     : fallbackValue || "Pending";
-  const subprocessId = getSubprocessId(apiSubprocess, subOption);
-
-  if (
-    statusValue === "Pending" &&
-    TO_BE_VERIFY_SUBPROCESS_IDS.has(subprocessId)
-  ) {
-    return TO_BE_VERIFY_STATUS_LABEL;
-  }
 
   return statusValue;
 };
@@ -960,7 +955,6 @@ const useUnitListViewModel = (navigation, route) => {
             value: getCardStatusValue({
               apiSubprocess,
               fallbackValue: statusLookup[subOption.id] || "Pending",
-              subOption,
             }),
             progressLabel: "",
           };

@@ -10,6 +10,7 @@ export const PIPE_SIZE_OPTIONS = [
 ];
 
 export const OUTLET_IDENTIFICATION_PIPE_SIZE_OPTIONS = [
+  "63 mm",
   "75 mm",
   "90 mm",
   "110 mm",
@@ -147,6 +148,17 @@ const flushingRemarkRequired = ({ values }) =>
   values?.waterClarityStatus === "Turbid" ||
   values?.inletLeakageObserved === "Yes";
 
+const pipeLayingRemarkRequired = ({ values, subOption }) => {
+  const hasMissingInput = (subOption.inputFields || []).some(
+    (field) => !String(values?.[field.key] ?? "").trim()
+  );
+  const hasMissingChecklist = (subOption.checklistItems || []).some(
+    (item) => item.required !== false && !values?.checks?.[item.id]
+  );
+
+  return hasMissingInput || hasMissingChecklist;
+};
+
 export const MODULE_STATUS_SECTIONS = [
   {
     key: "pipeLaying",
@@ -173,14 +185,15 @@ export const MODULE_STATUS_SECTIONS = [
             label: "Inlet Pipe Size (mm)",
             placeholder: "Enter inlet pipe size in mm",
             keyboardType: "numeric",
+            required: false,
           },
         ],
         checklistItems: checklist([
           "Check 110 mm OMS inlet pipe joined with pipeline.",
         ]),
         remarkLabel: "Remark",
-        remarkRequiredWhen: ({ values }) =>
-          values?.status === "Partially Completed",
+        remarkValidationMessage: "Remark is compulsary",
+        remarkRequiredWhen: pipeLayingRemarkRequired,
       },
       {
         id: "outletPipeLaying",
@@ -192,6 +205,7 @@ export const MODULE_STATUS_SECTIONS = [
             label: "Outlet Pipe Size (mm)",
             placeholder: "Enter outlet pipe size in mm",
             keyboardType: "numeric",
+            required: false,
           },
         ],
         checklistItems: checklist([
@@ -199,6 +213,8 @@ export const MODULE_STATUS_SECTIONS = [
           "No. of outlet pipes({subChakQuantity})",
         ]),
         remarkLabel: "Remark",
+        remarkValidationMessage: "Remark is compulsary",
+        remarkRequiredWhen: pipeLayingRemarkRequired,
       },
     ],
   },

@@ -247,6 +247,40 @@ const isOutletPipeCountChecklist = (checklist = {}) => {
   );
 };
 
+const PIPE_LAYING_REMARK_SUBOPTION_IDS = new Set([
+  "inletPipeLaying",
+  "outletPipeLaying",
+]);
+
+const pipeLayingRemarkRequired = ({ values, subOption }) => {
+  const hasMissingInput = (subOption.inputFields || []).some(
+    (field) => !String(values?.[field.key] ?? "").trim()
+  );
+  const hasMissingChecklist = (subOption.checklistItems || []).some(
+    (item) => item.required !== false && !values?.checks?.[item.id]
+  );
+
+  return hasMissingInput || hasMissingChecklist;
+};
+
+const applyPipeLayingRemarkRules = (subOption) => {
+  if (!PIPE_LAYING_REMARK_SUBOPTION_IDS.has(subOption.id)) {
+    return subOption;
+  }
+
+  return {
+    ...subOption,
+    showRemarkField: true,
+    remarkLabel: subOption.remarkLabel || "Remark",
+    remarkValidationMessage: "Remark is compulsary",
+    remarkRequiredWhen: pipeLayingRemarkRequired,
+    inputFields: (subOption.inputFields || []).map((field) => ({
+      ...field,
+      required: false,
+    })),
+  };
+};
+
 const addChecklistToSubOption = (subOption, checklist) => {
   const base = getChecklistBase(checklist);
   const fieldLabel = getFieldLabel(checklist);
@@ -340,7 +374,7 @@ const buildSubOption = (subprocess = {}, index = 0, parentProcess = {}) => {
     addChecklistToSubOption(subOption, checklist);
   });
 
-  return subOption;
+  return applyPipeLayingRemarkRules(subOption);
 };
 
 export const buildChecklistSectionsFromMaster = ({

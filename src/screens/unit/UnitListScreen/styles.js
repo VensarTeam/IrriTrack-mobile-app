@@ -732,7 +732,7 @@ export default StyleSheet.create({
 
   processLabel: {
     flex: 1,
-    fontSize: moderateScale(8),
+    fontSize: moderateScale(10),
     lineHeight: moderateScale(12),
     fontFamily: fonts.bold,
     color: colors.textDark,

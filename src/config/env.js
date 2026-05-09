@@ -2,7 +2,7 @@
 // https://irritrack.vensar.com
 // https://irritrack.vensar.com/dev
 // https://pmt.aizainfotech.online
-export const API_BASE_URL = "https://irritrack.vensar.com/dev";
+export const API_BASE_URL = "https://irritrack.vensar.com";
 
 const DEFAULT_ASSET_BASE_URL =
   "https://vensar-tools-700305705692-ap-south-1-an.s3.ap-south-1.amazonaws.com";

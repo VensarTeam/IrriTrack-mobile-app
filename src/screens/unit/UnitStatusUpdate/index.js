@@ -54,9 +54,7 @@ const areLocationsEqual = (first = null, second = null) => {
     return false;
   }
 
-  return (
-    firstLatitude === secondLatitude && firstLongitude === secondLongitude
-  );
+  return firstLatitude === secondLatitude && firstLongitude === secondLongitude;
 };
 
 const ModuleStatusUpdateScreen = ({ navigation, route }) => {
@@ -129,10 +127,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   const checklistProgress = getChecklistProgress();
   const hasDistinctUpdatedLocation = Boolean(
     activeValues.updatedLocation &&
-      !areLocationsEqual(
-        activeValues.updatedLocation,
-        activeValues.defaultLocation
-      )
+    !areLocationsEqual(
+      activeValues.updatedLocation,
+      activeValues.defaultLocation,
+    ),
   );
   const locationCards = [
     {
@@ -156,9 +154,11 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   ].filter(
     (item) =>
       !(item.key === "default" && item.disabled) &&
-      !(item.key === "updated" && item.disabled)
+      !(item.key === "updated" && item.disabled),
   );
-  const hasPendingUpdatedLocation = Boolean(activeValues.pendingUpdatedLocation);
+  const hasPendingUpdatedLocation = Boolean(
+    activeValues.pendingUpdatedLocation,
+  );
 
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
@@ -177,10 +177,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   };
 
   const scrollFocusedFieldIntoView = React.useCallback((event) => {
-    const target =
-      event?.target ??
-      event?.nativeEvent?.target ??
-      null;
+    const target = event?.target ?? event?.nativeEvent?.target ?? null;
 
     if (!target) {
       return;
@@ -191,13 +188,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
         formScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard?.(
           target,
           80,
-          true
+          true,
         );
       }, 80);
     });
   }, []);
 
-    const renderSelectField = ({
+  const renderSelectField = ({
     elementKey,
     label,
     field,
@@ -283,7 +280,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             onPress={() =>
               openReferencePreview(
                 referenceImage,
-                `${group.title} - ${group.fixedItemCount} Outlet`
+                `${group.title} - ${group.fixedItemCount} Outlet`,
               )
             }
           >
@@ -293,7 +290,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               resizeMode="contain"
             />
             <View style={styles.repeatableReferenceAction}>
-              <Text style={styles.repeatableReferenceActionText}>View Image</Text>
+              <Text style={styles.repeatableReferenceActionText}>
+                View Image
+              </Text>
             </View>
           </TouchableOpacity>
         ) : null}
@@ -308,11 +307,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             : itemIndex + 1;
           const displayFields = (group.itemFields || []).filter(
             (groupField) =>
-              groupField.key !== group.itemTitleField && groupField.hidden !== true
+              groupField.key !== group.itemTitleField &&
+              groupField.hidden !== true,
           );
 
           return (
-            <View style={styles.repeatableItemCard} key={`${group.key}_${itemIndex}`}>
+            <View
+              style={styles.repeatableItemCard}
+              key={`${group.key}_${itemIndex}`}
+            >
               <View style={styles.repeatableCompactRow}>
                 <View style={styles.repeatableValueBadge}>
                   <Text style={styles.repeatableValueText}>{itemTitle}</Text>
@@ -328,15 +331,85 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                   <View
                     style={[
                       styles.repeatableFieldRow,
-                      displayFields.length === 1 && styles.repeatableFieldRowSingle,
+                      displayFields.length === 1 &&
+                        styles.repeatableFieldRowSingle,
                     ]}
                   >
-                  {displayFields.map((groupField) => {
-                    const isOutletNaPipeSizeField =
-                      groupField.key === "pipeSize" &&
-                      String(item?.subChakName || "").trim().toUpperCase() === "NA";
+                    {displayFields.map((groupField) => {
+                      const isOutletNaPipeSizeField =
+                        groupField.key === "pipeSize" &&
+                        String(item?.subChakName || "")
+                          .trim()
+                          .toUpperCase() === "NA";
 
-                    if (groupField.type === "select") {
+                      if (groupField.type === "select") {
+                        return (
+                          <View
+                            style={[
+                              styles.repeatableInlineField,
+                              styles.repeatableInlineFieldRowItem,
+                            ]}
+                            key={`${group.key}_${itemIndex}_${groupField.key}`}
+                          >
+                            <Text style={styles.repeatableInlineLabel}>
+                              {groupField.label}
+                            </Text>
+                            <TouchableOpacity
+                              style={[
+                                styles.repeatableInlineSelect,
+                                itemErrors[groupField.key] &&
+                                  styles.selectFieldError,
+                                (isReadOnly || isOutletNaPipeSizeField) &&
+                                  styles.fieldDisabled,
+                              ]}
+                              onPress={() => {
+                                if (isOutletNaPipeSizeField) {
+                                  return;
+                                }
+                                Keyboard.dismiss();
+                                openSelectModal({
+                                  field: groupField.key,
+                                  title: groupField.label,
+                                  options: getRepeatableSelectOptions(
+                                    group,
+                                    itemIndex,
+                                    groupField,
+                                  ),
+                                  target: {
+                                    type: "repeatable",
+                                    groupKey: group.key,
+                                    itemIndex,
+                                    fieldKey: groupField.key,
+                                  },
+                                });
+                              }}
+                              activeOpacity={isReadOnly ? 1 : 0.86}
+                              disabled={isReadOnly || isOutletNaPipeSizeField}
+                            >
+                              <Text
+                                style={[
+                                  styles.repeatableInlineValue,
+                                  !item[groupField.key] &&
+                                    styles.selectPlaceholder,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {item[groupField.key] ||
+                                  (isOutletNaPipeSizeField ? "NA" : "") ||
+                                  groupField.placeholder ||
+                                  "Select option"}
+                              </Text>
+                              <Icons.down width={12} height={12} />
+                            </TouchableOpacity>
+                            {itemErrors[groupField.key] ? (
+                              <Text style={styles.errorText}>
+                                {itemErrors[groupField.key]}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      }
+
                       return (
                         <View
                           style={[
@@ -348,51 +421,32 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           <Text style={styles.repeatableInlineLabel}>
                             {groupField.label}
                           </Text>
-                          <TouchableOpacity
+                          <TextInput
                             style={[
-                              styles.repeatableInlineSelect,
-                              itemErrors[groupField.key] && styles.selectFieldError,
-                              (isReadOnly || isOutletNaPipeSizeField) &&
-                                styles.fieldDisabled,
+                              styles.repeatableInlineInput,
+                              itemErrors[groupField.key] &&
+                                styles.selectFieldError,
+                              isReadOnly && styles.readOnlyInput,
+                              groupField.readOnly && styles.readOnlyInput,
                             ]}
-                            onPress={() => {
-                              if (isOutletNaPipeSizeField) {
-                                return;
-                              }
-                              Keyboard.dismiss();
-                              openSelectModal({
-                                field: groupField.key,
-                                title: groupField.label,
-                                options: getRepeatableSelectOptions(
-                                  group,
-                                  itemIndex,
-                                  groupField
-                                ),
-                                target: {
-                                  type: "repeatable",
-                                  groupKey: group.key,
-                                  itemIndex,
-                                  fieldKey: groupField.key,
-                                },
-                              });
-                            }}
-                            activeOpacity={isReadOnly ? 1 : 0.86}
-                            disabled={isReadOnly || isOutletNaPipeSizeField}
-                          >
-                            <Text
-                              style={[
-                                styles.repeatableInlineValue,
-                                !item[groupField.key] && styles.selectPlaceholder,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {item[groupField.key] ||
-                                (isOutletNaPipeSizeField ? "NA" : "") ||
-                                groupField.placeholder ||
-                                "Select option"}
-                            </Text>
-                            <Icons.down width={12} height={12} />
-                          </TouchableOpacity>
+                            placeholder={
+                              groupField.placeholder || "Enter value"
+                            }
+                            placeholderTextColor={colors.textSecondary}
+                            keyboardType={groupField.keyboardType || "default"}
+                            editable={
+                              !isReadOnly && groupField.readOnly !== true
+                            }
+                            value={item[groupField.key]}
+                            onChangeText={(text) =>
+                              updateRepeatableGroupItem(
+                                group.key,
+                                itemIndex,
+                                groupField.key,
+                                text,
+                              )
+                            }
+                          />
                           {itemErrors[groupField.key] ? (
                             <Text style={styles.errorText}>
                               {itemErrors[groupField.key]}
@@ -400,48 +454,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           ) : null}
                         </View>
                       );
-                    }
-
-                    return (
-                      <View
-                        style={[
-                          styles.repeatableInlineField,
-                          styles.repeatableInlineFieldRowItem,
-                        ]}
-                        key={`${group.key}_${itemIndex}_${groupField.key}`}
-                      >
-                        <Text style={styles.repeatableInlineLabel}>
-                          {groupField.label}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.repeatableInlineInput,
-                            itemErrors[groupField.key] && styles.selectFieldError,
-                            isReadOnly && styles.readOnlyInput,
-                            groupField.readOnly && styles.readOnlyInput,
-                          ]}
-                          placeholder={groupField.placeholder || "Enter value"}
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType={groupField.keyboardType || "default"}
-                          editable={!isReadOnly && groupField.readOnly !== true}
-                          value={item[groupField.key]}
-                          onChangeText={(text) =>
-                            updateRepeatableGroupItem(
-                              group.key,
-                              itemIndex,
-                              groupField.key,
-                              text
-                            )
-                          }
-                        />
-                        {itemErrors[groupField.key] ? (
-                          <Text style={styles.errorText}>
-                            {itemErrors[groupField.key]}
-                          </Text>
-                        ) : null}
-                      </View>
-                    );
-                  })}
+                    })}
                   </View>
                 </View>
 
@@ -468,16 +481,23 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             style={[
               styles.repeatableAddButton,
               isReadOnly && styles.repeatableAddButtonDisabled,
-              group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonDisabled,
+              group.maxItems &&
+                items.length >= group.maxItems &&
+                styles.repeatableAddButtonDisabled,
             ]}
             activeOpacity={isReadOnly ? 1 : 0.86}
             onPress={() => addRepeatableGroupItem(group)}
-            disabled={isReadOnly || (group.maxItems ? items.length >= group.maxItems : false)}
+            disabled={
+              isReadOnly ||
+              (group.maxItems ? items.length >= group.maxItems : false)
+            }
           >
             <Text
               style={[
                 styles.repeatableAddButtonText,
-                group.maxItems && items.length >= group.maxItems && styles.repeatableAddButtonTextDisabled,
+                group.maxItems &&
+                  items.length >= group.maxItems &&
+                  styles.repeatableAddButtonTextDisabled,
               ]}
             >
               {group.maxItems && items.length >= group.maxItems
@@ -541,7 +561,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             style={styles.stepScroll}
             contentContainerStyle={styles.stepScrollContent}
           >
-            {section.subOptions.map((sub, index) => (
+            {section.subOptions.map((sub, index) =>
               (() => {
                 const submissionState = stepSubmissionStateById[sub.id] || {};
                 const isSubmitted = Boolean(submissionState.isSubmitted);
@@ -561,7 +581,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     <View
                       style={[
                         styles.stepChipNumber,
-                        sub.id === activeSubOptionId && styles.stepChipNumberActive,
+                        sub.id === activeSubOptionId &&
+                          styles.stepChipNumberActive,
                         isSubmitted && styles.stepChipNumberSubmitted,
                       ]}
                     >
@@ -581,7 +602,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                       <Text
                         style={[
                           styles.stepChipText,
-                          sub.id === activeSubOptionId && styles.stepChipTextActive,
+                          sub.id === activeSubOptionId &&
+                            styles.stepChipTextActive,
                           isSubmitted && styles.stepChipTextSubmitted,
                         ]}
                         numberOfLines={2}
@@ -614,43 +636,33 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     <View
                       style={[
                         styles.stepChipDot,
-                        sub.id === activeSubOptionId && styles.stepChipDotActive,
+                        sub.id === activeSubOptionId &&
+                          styles.stepChipDotActive,
                         isSubmitted && styles.stepChipDotSubmitted,
                       ]}
                     />
                   </TouchableOpacity>
                 );
-              })()
-            ))}
+              })(),
+            )}
           </ScrollView>
 
           <View style={styles.formCard}>
             <View style={styles.formHeadingRow}>
               <Text style={styles.formTitle}>{activeSubOptionLabel}</Text>
-              {checklistProgress.total ? (
-                <View style={styles.progressPill}>
-                  <Text style={styles.progressPillText}>
-                    {checklistProgress.completed}/{checklistProgress.total} Done
-                  </Text>
-                </View>
-              ) : null}
             </View>
 
             {isReadOnly ? (
               <View style={styles.readOnlyBanner}>
                 <Text style={styles.readOnlyBannerTitle}>{readOnlyTitle}</Text>
-                <Text style={styles.readOnlyBannerText}>
-                  {readOnlyNotice}
-                </Text>
+                <Text style={styles.readOnlyBannerText}>{readOnlyNotice}</Text>
               </View>
             ) : null}
 
             {isCommentedForEdit && commentedRemark ? (
               <View style={styles.readOnlyBanner}>
                 <Text style={styles.readOnlyBannerTitle}>Comment</Text>
-                <Text style={styles.readOnlyBannerText}>
-                  {commentedRemark}
-                </Text>
+                <Text style={styles.readOnlyBannerText}>{commentedRemark}</Text>
               </View>
             ) : null}
 
@@ -675,7 +687,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                 options: field.options,
                 placeholder: field.placeholder || "Select Option",
                 error: activeErrors[field.key],
-              })
+              }),
             )}
 
             {inputFields.map((field) => renderInputField({ field }))}
@@ -686,11 +698,19 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               <View style={styles.checklistCard}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.checklistTitle}>Checklist</Text>
-                  <View style={styles.sectionCountBadge}>
+                  {/* <View style={styles.sectionCountBadge}>
                     <Text style={styles.sectionCountBadgeText}>
                       {checklistItems.length} item{checklistItems.length === 1 ? "" : "s"}
                     </Text>
-                  </View>
+                  </View> */}
+                  {checklistProgress.total ? (
+                    <View style={styles.progressPill}>
+                      <Text style={styles.progressPillText}>
+                        {checklistProgress.completed}/{checklistProgress.total}{" "}
+                        Done
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
                 <Text style={styles.sectionHelperText}>
                   Tick each point after verifying it on site.
@@ -788,7 +808,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     photoProcessingRequirementId === requirement.id;
                   const isServerPrefilledPhoto = media?.source === "server";
                   const canEditPhoto =
-                    !isReadOnly && !isServerPrefilledPhoto && !isProcessingPhoto;
+                    !isReadOnly &&
+                    !isServerPrefilledPhoto &&
+                    !isProcessingPhoto;
 
                   return (
                     <View
@@ -987,7 +1009,10 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         activeOpacity={isReadOnly ? 1 : 0.88}
                       >
                         {isUpdatingLocation ? (
-                          <ActivityIndicator size="small" color={colors.white} />
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.white}
+                          />
                         ) : (
                           <Icons.location height={22} width={22} />
                         )}
@@ -1087,7 +1112,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         ? "Updated"
                         : readOnlyTitle === "Info Status"
                           ? "Info"
-                      : "Locked"
+                          : "Locked"
                     : "Submit"}
             </Button>
           </View>

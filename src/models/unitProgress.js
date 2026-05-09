@@ -9,6 +9,7 @@ const STATUS_KEY_BY_CODE = {
 
 const STATUS_LABEL_BY_KEY = {
   pending: "Pending",
+  toBeConfirm: "To be Confirm",
   partial: "Partial",
   submitted: "Submitted",
   completed: "Completed",
@@ -115,6 +116,8 @@ export const normalizeUnitProgressStatus = ({
   const key =
     {
       pending: "pending",
+      "to be confirm": "toBeConfirm",
+      "to be confirmed": "toBeConfirm",
       partial: "partial",
       "partially completed": "partial",
       submitted: "submitted",
