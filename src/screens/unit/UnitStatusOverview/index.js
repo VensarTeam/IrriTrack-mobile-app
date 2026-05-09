@@ -18,6 +18,8 @@ import colors from "../../../constants/colors";
 import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitStatusOverviewViewModel from "../../../viewmodels/useUnitStatusOverviewViewModel";
 
+const TO_BE_CONFIRM_SUBPROCESS_IDS = new Set([2, 3]);
+
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -364,6 +366,14 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
 };
 
 const getStatusColors = (statusKey) => {
+  if (statusKey === "toBeConfirm") {
+    return {
+      solid: colors.toBeConfirm,
+      soft: "#EEF6FF",
+      text: colors.toBeConfirm,
+    };
+  }
+
   if (statusKey === "verified") {
     return {
       solid: colors.primaryBlue,
@@ -415,8 +425,24 @@ const getStatusColors = (statusKey) => {
   };
 };
 
-const StatusPill = ({ status }) => {
-  const palette = getStatusColors(status?.key);
+const getDisplayStatus = (status, subprocessId) => {
+  if (
+    TO_BE_CONFIRM_SUBPROCESS_IDS.has(Number(subprocessId)) &&
+    String(status?.key || "").trim().toLowerCase() === "pending"
+  ) {
+    return {
+      ...(status || {}),
+      key: "toBeConfirm",
+      label: "To Be Confirm",
+    };
+  }
+
+  return status;
+};
+
+const StatusPill = ({ status, subprocessId }) => {
+  const displayStatus = getDisplayStatus(status, subprocessId);
+  const palette = getStatusColors(displayStatus?.key);
 
   return (
     <View style={[styles.statusPill, { backgroundColor: palette.soft }]}>
@@ -424,7 +450,7 @@ const StatusPill = ({ status }) => {
         style={[styles.statusPillDot, { backgroundColor: palette.solid }]}
       />
       <Text style={[styles.statusPillText, { color: palette.text }]}>
-        {status?.label || "Pending"}
+        {displayStatus?.label || "Pending"}
       </Text>
     </View>
   );
@@ -513,8 +539,6 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
     selectedWorkflowSubprocessId,
     imagePreview,
     handleBack,
-    toggleProcess,
-    isProcessExpanded,
     openSubprocessModal,
     closeSubprocessModal,
     openSelectedSubprocessDirections,
@@ -535,6 +559,17 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
       (selectedSubprocessMatchesWorkItem ? selectedWorkItemStatusKey : ""),
     selectedSubprocess?.status
   );
+  const subprocessRows = processes.flatMap((process) =>
+    (process.subprocesses || []).map((subprocess, subprocessIndex) => ({
+      process,
+      subprocess,
+      key: `${process.id}-${subprocess.id}`,
+      isLast:
+        subprocessIndex === (process.subprocesses || []).length - 1 &&
+        process === processes[processes.length - 1],
+    }))
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -566,7 +601,7 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
 
         {isLoading ? (
           <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>Loading all process status...</Text>
+            <Text style={styles.stateTitle}>Loading subprocess status...</Text>
             <Text style={styles.stateCopy}>
               We are fetching the latest subprocess and checklist data.
             </Text>
@@ -589,7 +624,7 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
 
         {!isLoading && !error && !processes.length ? (
           <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>No process data available</Text>
+            <Text style={styles.stateTitle}>No subprocess data available</Text>
             <Text style={styles.stateCopy}>
               This node does not have any checklist progress from the API yet.
             </Text>
@@ -597,42 +632,13 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
         ) : null}
 
         {!error
-          ? processes.map((process) => {
-              const expanded = isProcessExpanded(process.id);
-              const selectedProcessMatchesWorkflowItem =
-                selectedWorkflowProcessId !== null &&
-                Number(process.id) === Number(selectedWorkflowProcessId);
-
-              return (
-                <View key={process.id} style={styles.processCard}>
-                  <TouchableOpacity
-                    style={styles.processHead}
-                    activeOpacity={0.88}
-                    onPress={() => toggleProcess(process.id)}
-                  >
-                    <View style={styles.processHeadCopy}>
-                      <View style={styles.sectionBadge}>
-                        <Text style={styles.sectionBadgeText}>PROCESS</Text>
-                      </View>
-                      <View style={styles.processTitleRow}>
-                        <Text style={styles.processTitle}>{process.name}</Text>
-                        <StatusPill status={process.status} />
-                      </View>
-                    </View>
-
-                    <View style={styles.processChevronWrap}>
-                      <Icon
-                        source={expanded ? "chevron-up" : "chevron-down"}
-                        size={20}
-                        color={colors.primaryBlue}
-                      />
-                    </View>
-                  </TouchableOpacity>
-
-                  {expanded ? (
-                    <View style={styles.subprocessList}>
-                      {process.subprocesses.map((subprocess, subprocessIndex) => (
+          ? (
+            <View style={styles.subprocessList}>
+              {subprocessRows.map(({ process, subprocess, key, isLast }) =>
                         (() => {
+                          const selectedProcessMatchesWorkflowItem =
+                            selectedWorkflowProcessId !== null &&
+                            Number(process.id) === Number(selectedWorkflowProcessId);
                           const subprocessMatchesWorkflowItem =
                             selectedProcessMatchesWorkflowItem &&
                             selectedWorkflowSubprocessId !== null &&
@@ -647,27 +653,29 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                                 : ""),
                             subprocess.status
                           );
+                          const displaySubprocessStatus = getDisplayStatus(
+                            effectiveSubprocessStatus,
+                            subprocess.id
+                          );
                           const subprocessActionHint =
                             !subprocessMatchesWorkflowItem
                               ? ""
-                              : effectiveSubprocessStatus?.key === "commented"
+                              : displaySubprocessStatus?.key === "commented"
                               ? "Commented submission"
-                              : effectiveSubprocessStatus?.key === "approved"
+                              : displaySubprocessStatus?.key === "approved"
                               ? "Approved submission"
-                              : effectiveSubprocessStatus?.key === "verified"
+                              : displaySubprocessStatus?.key === "verified"
                               ? "Verified submission"
                               : "Selected review submission";
 
                           return (
                             <TouchableOpacity
-                              key={subprocess.id}
+                              key={key}
                               style={[
                                 styles.subprocessItem,
                                 subprocessMatchesWorkflowItem &&
                                   styles.subprocessItemActive,
-                                subprocessIndex ===
-                                  process.subprocesses.length - 1 &&
-                                  styles.subprocessItemLast,
+                                isLast && styles.subprocessItemLast,
                               ]}
                               activeOpacity={0.86}
                               onPress={() => openSubprocessModal(process, subprocess)}
@@ -678,7 +686,7 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                                     styles.subprocessDot,
                                     {
                                       backgroundColor: getStatusColors(
-                                        effectiveSubprocessStatus?.key
+                                        displaySubprocessStatus?.key
                                       ).solid,
                                     },
                                   ]}
@@ -695,18 +703,17 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
                                 </View>
                               </View>
                               <View style={styles.subprocessMeta}>
-                                <StatusPill status={effectiveSubprocessStatus} />
+                                <StatusPill
+                                  status={effectiveSubprocessStatus}
+                                  subprocessId={subprocess.id}
+                                />
                               </View>
                             </TouchableOpacity>
                           );
                         })()
-                      ))}
-                    </View>
-                  ) : null}
-
-                </View>
-              );
-            })
+              )}
+            </View>
+          )
           : null}
       </ScrollView>
 
@@ -724,10 +731,10 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
 
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderCopy}>
-                <Text style={styles.sheetEyebrow}>
+                <Text style={styles.sheetEyebrow} numberOfLines={1}>
                   {selectedProcess?.name || "Checklist Status"}
                 </Text>
-                <Text style={styles.sheetTitle}>
+                <Text style={styles.sheetTitle} numberOfLines={2}>
                   {selectedSubprocess?.name || "Subprocess"}
                 </Text>
               </View>
@@ -740,7 +747,10 @@ const UnitStatusOverviewScreen = ({ navigation, route }) => {
               />
             </View>
             <View style={styles.sheetStatusRow}>
-              <StatusPill status={effectiveSelectedSubprocessStatus} />
+              <StatusPill
+                status={effectiveSelectedSubprocessStatus}
+                subprocessId={selectedSubprocess?.id}
+              />
             </View>
 
             {selectedSubprocessLocation ? (

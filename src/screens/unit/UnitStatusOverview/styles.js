@@ -266,10 +266,18 @@ export default StyleSheet.create({
   },
 
   subprocessList: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: verticalScale(4),
-    paddingBottom: verticalScale(4),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(4),
+    marginBottom: verticalScale(10),
+    shadowColor: "#123B63",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
 
   subprocessItem: {
@@ -536,11 +544,13 @@ export default StyleSheet.create({
   },
 
   bottomSheet: {
-    maxHeight: "82%",
+    width: "100%",
+    maxHeight: "88%",
+    alignSelf: "stretch",
     backgroundColor: colors.white,
     borderTopLeftRadius: moderateScale(20),
     borderTopRightRadius: moderateScale(20),
-    paddingHorizontal: moderateScale(16),
+    paddingHorizontal: moderateScale(14),
     paddingTop: verticalScale(10),
   },
 
@@ -557,11 +567,13 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: moderateScale(8),
     marginBottom: verticalScale(12),
   },
 
   sheetHeaderCopy: {
     flex: 1,
+    minWidth: 0,
     paddingRight: moderateScale(10),
   },
 
@@ -577,6 +589,7 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.bold,
     lineHeight: moderateScale(22),
+    flexShrink: 1,
   },
 
   sheetSubtitle: {
@@ -590,6 +603,8 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: moderateScale(8),
     marginBottom: verticalScale(12),
   },
 
@@ -682,6 +697,7 @@ export default StyleSheet.create({
   },
 
   checklistTitle: {
+    minWidth: 0,
     fontSize: moderateScale(12.5),
     color: colors.textDark,
     fontFamily: fonts.bold,
@@ -769,6 +785,7 @@ export default StyleSheet.create({
 
   compactValueText: {
     flex: 1,
+    minWidth: 0,
     fontSize: moderateScale(11.5),
     fontFamily: fonts.semiBold,
     lineHeight: moderateScale(16),
@@ -827,12 +844,14 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
+    flexWrap: "wrap",
     gap: moderateScale(10),
     paddingVertical: verticalScale(3),
   },
 
   arrayKey: {
     flex: 1,
+    minWidth: moderateScale(92),
     fontSize: moderateScale(11),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
@@ -841,6 +860,7 @@ export default StyleSheet.create({
 
   arrayValue: {
     flex: 1,
+    minWidth: moderateScale(92),
     fontSize: moderateScale(11.5),
     color: colors.textDark,
     fontFamily: fonts.semiBold,
@@ -850,13 +870,14 @@ export default StyleSheet.create({
 
   outletArrayRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "stretch",
     gap: moderateScale(6),
   },
 
   outletArrayCell: {
     flex: 1,
-    minWidth: 0,
+    minWidth: moderateScale(82),
     borderRadius: moderateScale(9),
     backgroundColor: colors.white,
     borderWidth: 1,

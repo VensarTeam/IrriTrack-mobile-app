@@ -351,10 +351,18 @@ export default StyleSheet.create({
   },
 
   subprocessList: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: verticalScale(4),
-    paddingBottom: verticalScale(4),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(4),
+    marginBottom: verticalScale(10),
+    shadowColor: "#123B63",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
 
   subprocessItem: {
