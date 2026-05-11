@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -70,6 +70,7 @@ const OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS = [
   colors.partial,
   colors.completed,
 ];
+const OMS_COMPLETED_STATUS_FILTER_VALUE = 2;
 
 const useProjectDetailsViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
@@ -88,11 +89,14 @@ const useProjectDetailsViewModel = (navigation, route) => {
   const [locationFilterSearchQuery, setLocationFilterSearchQuery] = useState("");
   const [projectDetails, setProjectDetails] = useState(fallbackProjectDetails);
   const [isProjectDetailsLoading, setIsProjectDetailsLoading] = useState(false);
+  const [isProjectDetailsRefreshing, setIsProjectDetailsRefreshing] =
+    useState(false);
   const [projectDetailsError, setProjectDetailsError] = useState("");
   const [cachedOmsUnitsCount, setCachedOmsUnitsCount] = useState(0);
   const chartAnim = useRef(new Animated.Value(0)).current;
   const latestRequestIdRef = useRef(0);
   const backgroundMasterSyncKeyRef = useRef("");
+  const hasFocusedProjectDetailsOnceRef = useRef(false);
 
   const {
     isOnline,
@@ -260,26 +264,36 @@ const useProjectDetailsViewModel = (navigation, route) => {
     }
   }, [canUseLocationFilters]);
 
-  useEffect(() => {
-    if (!projectId) {
-      setProjectDetails(fallbackProjectDetails);
-      setProjectDetailsError("");
-      setIsProjectDetailsLoading(false);
-      return;
-    }
+  const loadProjectDetails = useCallback(
+    async ({ forceRefresh = false, refreshing = false } = {}) => {
+      if (!projectId) {
+        latestRequestIdRef.current += 1;
+        hasFocusedProjectDetailsOnceRef.current = false;
+        setProjectDetails(fallbackProjectDetails);
+        setProjectDetailsError("");
+        setIsProjectDetailsLoading(false);
+        setIsProjectDetailsRefreshing(false);
+        return;
+      }
 
-    if (!isOnline) {
-      setProjectDetails(fallbackProjectDetails);
-      setProjectDetailsError("");
-      setIsProjectDetailsLoading(false);
-      return;
-    }
+      if (!isOnline) {
+        latestRequestIdRef.current += 1;
+        hasFocusedProjectDetailsOnceRef.current = false;
+        setProjectDetails(fallbackProjectDetails);
+        setProjectDetailsError("");
+        setIsProjectDetailsLoading(false);
+        setIsProjectDetailsRefreshing(false);
+        return;
+      }
 
-    const requestId = latestRequestIdRef.current + 1;
-    latestRequestIdRef.current = requestId;
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
 
-    const loadProjectDetails = async () => {
-      setIsProjectDetailsLoading(true);
+      if (refreshing) {
+        setIsProjectDetailsRefreshing(true);
+      } else {
+        setIsProjectDetailsLoading(true);
+      }
       setProjectDetailsError("");
 
       try {
@@ -287,6 +301,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
           projectId,
           zoneName: zone,
           villageId: selectedVillageId,
+          forceRefresh,
         });
 
         // Ignore stale responses when the user changes filters quickly.
@@ -313,12 +328,46 @@ const useProjectDetailsViewModel = (navigation, route) => {
       } finally {
         if (latestRequestIdRef.current === requestId) {
           setIsProjectDetailsLoading(false);
+          setIsProjectDetailsRefreshing(false);
         }
       }
-    };
+    },
+    [fallbackProjectDetails, isOnline, projectId, selectedVillageId, zone],
+  );
 
+  useEffect(() => {
     void loadProjectDetails();
-  }, [fallbackProjectDetails, isOnline, projectId, selectedVillageId, zone]);
+  }, [loadProjectDetails]);
+
+  useEffect(() => {
+    if (!projectId || !isOnline) {
+      hasFocusedProjectDetailsOnceRef.current = false;
+      return undefined;
+    }
+
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (!hasFocusedProjectDetailsOnceRef.current) {
+        hasFocusedProjectDetailsOnceRef.current = true;
+        return;
+      }
+
+      void loadProjectDetails({ forceRefresh: true, refreshing: true });
+    });
+
+    return unsubscribe;
+  }, [isOnline, loadProjectDetails, navigation, projectId]);
+
+  const refreshProjectDetails = useCallback(() => {
+    if (!projectId || !isOnline) {
+      setProjectDetails(fallbackProjectDetails);
+      setProjectDetailsError("");
+      setIsProjectDetailsLoading(false);
+      setIsProjectDetailsRefreshing(false);
+      return;
+    }
+
+    void loadProjectDetails({ forceRefresh: true, refreshing: true });
+  }, [fallbackProjectDetails, isOnline, loadProjectDetails, projectId]);
 
   const chartAnimatedStyle = {
     opacity: chartAnim,
@@ -585,6 +634,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     moduleKey = "OMS",
     subprocessId = null,
     subprocessLabel = "",
+    status = OMS_COMPLETED_STATUS_FILTER_VALUE,
   } = {}) => {
     const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
     const normalizedSubprocessId = Number(subprocessId);
@@ -601,6 +651,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
       villageName: village,
       subprocessId: normalizedSubprocessId,
       subprocessLabel,
+      status,
     });
   };
 
@@ -629,6 +680,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     locationSummary,
     chartAnimatedStyle,
     isProjectDetailsLoading,
+    isProjectDetailsRefreshing,
     projectDetailsError,
     projectHeaderTitle: getProjectHeaderTitle(
       projectDetails,
@@ -644,6 +696,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     loadMoreFilterOptions,
     applyLocationFilter,
     clearLocationFilters,
+    refreshProjectDetails,
     getActiveLocationFilterValue,
     getVisibleStages,
     buildPieChartData,

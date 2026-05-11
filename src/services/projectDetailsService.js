@@ -11,6 +11,7 @@ const PROJECT_DETAILS_API_PATHS = (projectId) => [
 
 const projectDetailsResponseCache = new Map();
 const projectDetailsRequestPromises = new Map();
+const projectDetailsCacheVersions = new Map();
 
 const buildProjectDetailsCacheKey = ({
   projectId,
@@ -64,6 +65,7 @@ export const fetchProjectDetails = async ({
   projectId,
   zoneName,
   villageId,
+  forceRefresh = false,
 } = {}) => {
   if (!projectId) {
     return createEmptyProjectDetails();
@@ -75,12 +77,22 @@ export const fetchProjectDetails = async ({
     villageId,
   });
 
+  if (forceRefresh) {
+    projectDetailsCacheVersions.set(
+      cacheKey,
+      (projectDetailsCacheVersions.get(cacheKey) || 0) + 1
+    );
+    projectDetailsResponseCache.delete(cacheKey);
+    projectDetailsRequestPromises.delete(cacheKey);
+  }
+
   if (projectDetailsResponseCache.has(cacheKey)) {
     return projectDetailsResponseCache.get(cacheKey);
   }
 
   if (!projectDetailsRequestPromises.has(cacheKey)) {
     const params = buildProjectDetailsParams({ zoneName, villageId });
+    const cacheVersion = projectDetailsCacheVersions.get(cacheKey) || 0;
     console.log("[ProjectDetails]", "Fetching project details", {
       projectId,
       zoneName: zoneName || "All",
@@ -88,21 +100,26 @@ export const fetchProjectDetails = async ({
       params,
     });
 
-    projectDetailsRequestPromises.set(
-      cacheKey,
-      fetchWithFallbackPaths({
-        paths: PROJECT_DETAILS_API_PATHS(projectId),
-        params,
-      })
-        .then((response) => {
-          const normalizedProjectDetails = createProjectDetails(response);
+    const requestPromise = fetchWithFallbackPaths({
+      paths: PROJECT_DETAILS_API_PATHS(projectId),
+      params,
+    })
+      .then((response) => {
+        const normalizedProjectDetails = createProjectDetails(response);
+
+        if ((projectDetailsCacheVersions.get(cacheKey) || 0) === cacheVersion) {
           projectDetailsResponseCache.set(cacheKey, normalizedProjectDetails);
-          return normalizedProjectDetails;
-        })
-        .finally(() => {
+        }
+
+        return normalizedProjectDetails;
+      })
+      .finally(() => {
+        if (projectDetailsRequestPromises.get(cacheKey) === requestPromise) {
           projectDetailsRequestPromises.delete(cacheKey);
-        })
-    );
+        }
+      });
+
+    projectDetailsRequestPromises.set(cacheKey, requestPromise);
   }
 
   return projectDetailsRequestPromises.get(cacheKey);

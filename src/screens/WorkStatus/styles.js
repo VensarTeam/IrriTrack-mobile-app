@@ -35,7 +35,15 @@ export default StyleSheet.create({
   },
 
   headerSpacer: {
-    width: moderateScale(40),
+    width: moderateScale(10),
+  },
+
+  headerInfoButton: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(20),
+    margin: 0,
   },
 
   headerCard: {
@@ -265,7 +273,7 @@ export default StyleSheet.create({
     fontSize: fontScale(14),
     color: colors.textDark,
     fontFamily: fonts.bold,
-    marginLeft: moderateScale(9), 
+    marginLeft: moderateScale(9),
   },
 
   cardMetaGroup: {
@@ -1290,5 +1298,184 @@ export default StyleSheet.create({
     flexDirection: "row",
     gap: moderateScale(10),
     marginTop: verticalScale(12),
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.modalOverlay,
+    justifyContent: "center",
+  },
+
+  modalCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: moderateScale(24),
+    borderRadius: moderateScale(22),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(12),
+    paddingBottom: moderateScale(16),
+    maxHeight: "70%",
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
+    shadowColor: colors.primaryBlue,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+
+  modalHandle: {
+    alignSelf: "center",
+    width: moderateScale(36),
+    height: verticalScale(4),
+    borderRadius: moderateScale(4),
+    backgroundColor: "#D7E5F2",
+    marginBottom: verticalScale(14),
+  },
+
+  infoModalCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: moderateScale(24),
+    borderRadius: moderateScale(20),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: moderateScale(18),
+    paddingBottom: moderateScale(14),
+    borderWidth: 1,
+    borderColor: "#DCE7F3",
+  },
+
+  modalTitle: {
+    fontSize: moderateScale(16),
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(4),
+    color: colors.textDark,
+  },
+
+  modalSubtitle: {
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    marginBottom: verticalScale(12),
+  },
+
+  infoModalSubtitle: {
+    fontSize: moderateScale(12),
+    lineHeight: moderateScale(18),
+    color: colors.textSecondary,
+    marginTop: verticalScale(-4),
+    marginBottom: verticalScale(12),
+  },
+
+  legendList: {
+    marginTop: verticalScale(2),
+  },
+
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEF3F8",
+  },
+
+  legendSwatch: {
+    width: moderateScale(12),
+    height: moderateScale(12),
+    borderRadius: moderateScale(6),
+    marginTop: verticalScale(4),
+    marginRight: moderateScale(10),
+  },
+
+  legendTextWrap: {
+    flex: 1,
+  },
+
+  legendTitle: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+  },
+
+  legendSubtitle: {
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    color: colors.textSecondary,
+    marginTop: verticalScale(2),
+  },
+
+  infoModalCloseButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(12),
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EFF5FB",
+  },
+
+  infoModalCloseText: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
+  },
+
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(14),
+    marginBottom: verticalScale(7),
+    backgroundColor: "#F8FBFF",
+    borderWidth: 1,
+    borderColor: "#E7EFF8",
+  },
+
+  modalItemActive: {
+    backgroundColor: "#EDF6FF",
+    borderColor: colors.primaryBlue,
+  },
+
+  modalText: {
+    fontSize: moderateScale(13),
+    color: colors.textDark,
+    fontFamily: fonts.medium,
+  },
+
+  modalTextActive: {
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  modalCheck: {
+    width: moderateScale(22),
+    height: moderateScale(22),
+    borderRadius: moderateScale(11),
+    borderWidth: 1,
+    borderColor: "#D6E3F0",
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: moderateScale(12),
+  },
+
+  modalCheckActive: {
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.primaryBlue,
+  },
+
+  closeButton: {
+    alignSelf: "center",
+    marginTop: verticalScale(8),
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#EEF5FB",
+  },
+
+  closeText: {
+    textAlign: "center",
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+    fontSize: moderateScale(12),
   },
 });

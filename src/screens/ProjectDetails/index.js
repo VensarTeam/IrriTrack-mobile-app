@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  RefreshControl,
   TouchableOpacity,
   Image,
   Animated,
@@ -67,6 +68,7 @@ const ProjectDetailsScreen = ({ route }) => {
     locationSummary,
     chartAnimatedStyle,
     isProjectDetailsLoading,
+    isProjectDetailsRefreshing,
     projectDetailsError,
     projectHeaderTitle,
     projectHeaderSubtitle,
@@ -78,6 +80,7 @@ const ProjectDetailsScreen = ({ route }) => {
     loadMoreFilterOptions,
     applyLocationFilter,
     clearLocationFilters,
+    refreshProjectDetails,
     getActiveLocationFilterValue,
     getVisibleStages,
     getStageSummary,
@@ -653,7 +656,17 @@ const ProjectDetailsScreen = ({ route }) => {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isProjectDetailsRefreshing}
+              onRefresh={refreshProjectDetails}
+              tintColor={colors.primaryBlue}
+              colors={[colors.primaryBlue]}
+            />
+          }
+        >
           {showSkeletonLoader ? (
             <ProjectDetailsSkeleton />
           ) : (

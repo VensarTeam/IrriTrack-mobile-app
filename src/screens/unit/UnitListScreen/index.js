@@ -809,10 +809,23 @@ const UnitListScreen = ({ navigation, route }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.sortModalCard}>
             <View style={styles.sortModalHandle} />
-            <Text style={styles.modalTitle}>Sort OMS List</Text>
-            <Text style={styles.sortModalSubtitle}>
-              Choose how online OMS units should be ordered.
-            </Text>
+            <View style={styles.sortModalHeader}>
+              <View style={styles.sortModalHeaderText}>
+                <Text style={styles.modalTitle}>Sort OMS List</Text>
+                <Text style={styles.sortModalSubtitle}>
+                  Choose how online OMS units should be ordered.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.sortModalTopCloseButton}
+                onPress={closeSortSheet}
+                activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel="Close sort options"
+              >
+                <Icon source="close" size={18} color={colors.primaryBlue} />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.sortSection}>
               <Text style={styles.sortSectionTitle}>Sort By</Text>
@@ -918,6 +931,11 @@ const UnitListScreen = ({ navigation, route }) => {
                 color={colors.pending}
                 title="Pending"
                 subtitle="The process has not started yet."
+              />
+              <LegendItem
+                color={colors.toBeConfirm}
+                title="To be Confirmed"
+                subtitle="Work requires confirmation before proceeding."
               />
               <LegendItem
                 color={colors.partial}

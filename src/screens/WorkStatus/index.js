@@ -501,6 +501,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
   const insets = useSafeAreaInsets();
   const [isRejectRemarkModalVisible, setIsRejectRemarkModalVisible] = React.useState(false);
+  const [showStatusInfo, setShowStatusInfo] = React.useState(false);
   const [isRejectSubmitPending, setIsRejectSubmitPending] = React.useState(false);
   const [isRejectKeyboardVisible, setIsRejectKeyboardVisible] = React.useState(false);
   const [workflowConfirmState, setWorkflowConfirmState] = React.useState({
@@ -974,9 +975,16 @@ const WorkStatusScreen = ({ route, navigation }) => {
           <IconButton icon="arrow-left" onPress={handleBack} size={22} />
           <Text style={styles.headerTitle}>Work Status</Text>
           <View style={styles.headerSpacer} />
+           <IconButton
+              icon="information-outline"
+              iconColor={colors.primaryBlue}
+              size={22}
+              style={styles.headerInfoButton}
+              onPress={() => setShowStatusInfo(true)}
+            />
         </View>
 
-        {contextChips.length ? (
+        {/* {contextChips.length ? (
           <View style={[styles.headerCard, { paddingHorizontal: 15, paddingBottom: 12 }]}>
             <View style={styles.contextRow}>
               {contextChips.map((item) => (
@@ -986,7 +994,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
               ))}
             </View>
           </View>
-        ) : null}
+        ) : null} */}
 
         <View style={styles.searchRow}>
           <Searchbar
@@ -1399,6 +1407,58 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
+      {/* Status Info Modal */}
+       <Modal
+        visible={showStatusInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusInfo(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.infoModalCard}>
+            <Text style={styles.modalTitle}>Process Indicator Info</Text>
+            <Text style={styles.infoModalSubtitle}>
+              Color meaning used in the status indicators across the app:
+            </Text>
+
+            <View style={styles.legendList}>
+              <LegendItem
+                color={colors.completed}
+                title="Completed / Approved"
+                subtitle="The process is fully finished or approved after review."
+              />
+              <LegendItem
+                color={colors.pending}
+                title="Pending"
+                subtitle="The process has not started yet."
+              />
+              <LegendItem
+                color={colors.toBeConfirm}
+                title="To be Confirmed"
+                subtitle="Work requires confirmation before proceeding."
+              />
+              <LegendItem
+                color={colors.partial}
+                title="Partial"
+                subtitle="The process is underway but still has remaining steps."
+              />
+              <LegendItem
+                color={colors.primaryBlue}
+                title="Commented"
+                subtitle="Work was reviewed with comments or sent back for correction."
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.infoModalCloseButton}
+              onPress={() => setShowStatusInfo(false)}
+            >
+              <Text style={styles.infoModalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <ImageViewerModal
         visible={imageViewerState.visible}
         items={imageViewerState.items}
@@ -1410,3 +1470,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
 };
 
 export default WorkStatusScreen;
+
+const LegendItem = ({ color, title, subtitle }) => (
+  <View style={styles.legendItem}>
+    <View style={[styles.legendSwatch, { backgroundColor: color }]} />
+    <View style={styles.legendTextWrap}>
+      <Text style={styles.legendTitle}>{title}</Text>
+      <Text style={styles.legendSubtitle}>{subtitle}</Text>
+    </View>
+  </View>
+);

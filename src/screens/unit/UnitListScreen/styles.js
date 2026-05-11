@@ -822,12 +822,34 @@ export default StyleSheet.create({
     marginBottom: verticalScale(14),
   },
 
+  sortModalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+    marginBottom: verticalScale(14),
+  },
+
+  sortModalHeaderText: {
+    flex: 1,
+  },
+
+  sortModalTopCloseButton: {
+    width: moderateScale(34),
+    height: moderateScale(34),
+    borderRadius: moderateScale(17),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   sortModalSubtitle: {
     fontSize: moderateScale(11.5),
     lineHeight: moderateScale(17),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
-    marginBottom: verticalScale(14),
   },
 
   sortSection: {
