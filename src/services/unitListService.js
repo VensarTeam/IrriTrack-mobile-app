@@ -37,8 +37,8 @@ const buildOmsListParams = ({
   }
 
   if (villageId && villageId !== "All") {
-    // The OMS list API currently expects the lowercase query key from the backend contract.
-    params.villageid = villageId;
+    // Keep casing aligned with the backend filter contract.
+    params.villageId = villageId;
   }
 
   const normalizedSearchQuery = String(searchQuery || "").trim();

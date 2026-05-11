@@ -415,6 +415,22 @@ const setAuthorizationHeader = (config, token) => {
   };
 };
 
+const setNoCacheHeadersForGet = (config) => {
+  if (String(config?.method || "GET").trim().toUpperCase() !== "GET") {
+    return config;
+  }
+
+  const headers = axios.AxiosHeaders.from(config.headers || {});
+  headers.set("Cache-Control", "no-cache, no-store, max-age=0");
+  headers.set("Pragma", "no-cache");
+  headers.set("Expires", "0");
+
+  return {
+    ...config,
+    headers,
+  };
+};
+
 apiClient.interceptors.request.use(async (config) => {
   let requestConfig = config;
 
@@ -425,6 +441,8 @@ apiClient.interceptors.request.use(async (config) => {
       requestConfig = setAuthorizationHeader(requestConfig, token);
     }
   }
+
+  requestConfig = setNoCacheHeadersForGet(requestConfig);
 
   logApiRequest(requestConfig);
   return requestConfig;
