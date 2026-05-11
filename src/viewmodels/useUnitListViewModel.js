@@ -334,6 +334,7 @@ const useUnitListViewModel = (navigation, route) => {
   const statusBoardTitle = String(
     route?.params?.statusBoardTitle || `${module} Status Board`
   ).trim();
+  const totalOmsCount = Number(pagination?.totalItems || 0);
   const hasRouteLocationFilters = Boolean(
     (route?.params?.zoneName && route?.params?.zoneName !== "All") ||
       (route?.params?.villageName && route?.params?.villageName !== "All")
@@ -343,6 +344,7 @@ const useUnitListViewModel = (navigation, route) => {
   );
   const shouldUseOmsApi = isOmsModule(module) && Boolean(projectId);
   const isOfflineOmsList = shouldUseOmsApi && !isOnline;
+  const isTotalOmsCountLoading = shouldUseOmsApi && isInitialLoading;
 
   const selectedVillageId = useMemo(() => {
     if (village === "All") {
@@ -498,11 +500,19 @@ const useUnitListViewModel = (navigation, route) => {
       } else if (append) {
         isFetchingMoreRef.current = true;
         setIsFetchingMore(true);
-      } else if (remoteUnitCountRef.current === 0) {
+      } else {
         setIsInitialLoading(true);
       }
 
       setUnitsError("");
+
+      if (!append && !refreshing) {
+        setRemoteUnits([]);
+        setPagination((currentPagination) => ({
+          ...createEmptyPagination(),
+          limit: currentPagination?.limit || DEFAULT_PAGE_LIMIT,
+        }));
+      }
 
       try {
         const response = await fetchOmsUnitsPage({
@@ -1009,6 +1019,8 @@ const useUnitListViewModel = (navigation, route) => {
     filterTotalItems,
     zoneTotalItems,
     villageTotalItems,
+    totalOmsCount,
+    isTotalOmsCountLoading,
     zoneDisplayCount,
     villageDisplayCount,
     subprocessFilterOptions,

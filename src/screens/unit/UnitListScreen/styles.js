@@ -143,7 +143,7 @@ export default StyleSheet.create({
   },
 
   sortActionButton: {
-    width: "100%",
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: moderateScale(10),
@@ -209,6 +209,36 @@ export default StyleSheet.create({
 
   sortActionRow: {
     marginTop: verticalScale(8),
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: moderateScale(8),
+  },
+
+  sortOmsCountBox: {
+    minWidth: moderateScale(78),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#F7FAFD",
+    borderWidth: 1,
+    borderColor: "#D8E7F5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sortOmsCountLabel: {
+    fontSize: moderateScale(9),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+
+  sortOmsCountValue: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(14),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   filterScroll: {

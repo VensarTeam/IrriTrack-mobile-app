@@ -78,6 +78,8 @@ const UnitListScreen = ({ navigation, route }) => {
     filterTotalItems,
     zoneTotalItems,
     villageTotalItems,
+    totalOmsCount,
+    isTotalOmsCountLoading,
     zoneDisplayCount,
     villageDisplayCount,
     subprocessFilterOptions,
@@ -553,6 +555,15 @@ const UnitListScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+  const TotalOmsCount = () => (
+    <View style={styles.sortOmsCountBox}>
+      <Text style={styles.sortOmsCountLabel}>Total OMS</Text>
+      <Text style={styles.sortOmsCountValue}>
+        {isTotalOmsCountLoading ? "..." : totalOmsCount}
+      </Text>
+    </View>
+  );
+
   const filterLabel =
     filterType === "zone"
       ? "Zone"
@@ -690,6 +701,7 @@ const UnitListScreen = ({ navigation, route }) => {
           {canShowSortControl ? (
             <View style={styles.sortActionRow}>
               <SortActionButton />
+              <TotalOmsCount />
             </View>
           ) : null}
         </View>
