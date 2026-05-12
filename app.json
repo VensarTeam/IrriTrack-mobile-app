@@ -7,6 +7,10 @@
     "extra": {
       "projectName": "IrriTrack"
     },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#1E3E62"
+    },
     "ios": {
       "icon": "./assets/icon.png",
       "bundleIdentifier": "org.vensar.irritrack",
@@ -26,6 +30,9 @@
       "icon": "./assets/icon.png",
       "package": "com.vensar.irritrack",
       "googleServicesFile": "./android/app/google-services.json",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"

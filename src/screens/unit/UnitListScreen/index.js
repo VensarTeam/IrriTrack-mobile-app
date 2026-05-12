@@ -49,6 +49,9 @@ const formatUnitNo = (value = "", module = "") => {
     : `OMS-${normalizedUnitNo}`;
 };
 
+const shouldUseWideProcessTile = (process, fallbackWide = false) =>
+  fallbackWide || String(process?.label || "").length > 13;
+
 const UnitListScreen = ({ navigation, route }) => {
   const [showStatusInfo, setShowStatusInfo] = React.useState(false);
   const [showSortSheet, setShowSortSheet] = React.useState(false);
@@ -284,8 +287,11 @@ const UnitListScreen = ({ navigation, route }) => {
                   key={process.key}
                   process={process}
                   isWide={
-                    processCards.length % 2 === 1 &&
-                    index === processCards.length - 1
+                    shouldUseWideProcessTile(
+                      process,
+                      processCards.length % 2 === 1 &&
+                        index === processCards.length - 1
+                    )
                   }
                   isOffline={isOfflineOmsList}
                   onPress={() => openProcess(item, process)}
@@ -345,7 +351,11 @@ const UnitListScreen = ({ navigation, route }) => {
               <ProcessTile
                 key={process.key}
                 process={process}
-                isWide={processCards.length % 2 === 1 && index === processCards.length - 1}
+                isWide={shouldUseWideProcessTile(
+                  process,
+                  processCards.length % 2 === 1 &&
+                    index === processCards.length - 1
+                )}
                 onPress={() => openProcess(item, process)}
               />
             ))}
@@ -1048,7 +1058,10 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
           ) : null}
           <Text
             style={[styles.processLabel, isOffline && styles.processLabelOffline]}
-            numberOfLines={2}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            ellipsizeMode="tail"
           >
             {process.label}
           </Text>

@@ -2,10 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { useAuth } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
-import { checkPushNotificationPermission, requestPushNotificationPermission } from "../services/pushNotificationService";
+import {
+  checkPushNotificationPermission,
+  getFcmToken,
+  openPushNotificationSettings,
+  requestPushNotificationPermission,
+} from "../services/pushNotificationService";
 
 const WELCOME_AUTO_CONTINUE_DELAY = 2000;
 const AUTH_FLOW_LOGS_ENABLED = typeof __DEV__ === "undefined" || __DEV__;
+const NOTIFICATION_PROMPT_SKIPPED_KEY = "irritrack.notificationPromptSkipped";
 
 const maskToken = (token) => {
   if (!token) return "";
@@ -48,8 +54,11 @@ const useLoginViewModel = (navigation) => {
   useEffect(() => {
     const checkPrompt = async () => {
       try {
+        const hasSkippedPrompt = await SecureStore.getItemAsync(
+          NOTIFICATION_PROMPT_SKIPPED_KEY
+        );
         const isGranted = await checkPushNotificationPermission();
-        if (!isGranted) {
+        if (!isGranted && hasSkippedPrompt !== "true") {
           setShowNotificationPrompt(true);
         }
       } catch (e) {
@@ -63,9 +72,8 @@ const useLoginViewModel = (navigation) => {
     try {
       const isGranted = await requestPushNotificationPermission();
       if (!isGranted) {
-        import("react-native").then((rn) => rn.Linking.openSettings());
+        await openPushNotificationSettings();
       } else {
-        const { getFcmToken } = await import("../services/pushNotificationService");
         const token = await getFcmToken();
         console.log("FCM token after allow:", token);
       }
@@ -78,6 +86,9 @@ const useLoginViewModel = (navigation) => {
 
   const handleSkipNotifications = async () => {
     try {
+      await SecureStore.setItemAsync(NOTIFICATION_PROMPT_SKIPPED_KEY, "true", {
+        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+      });
       setShowNotificationPrompt(false);
     } catch (e) {
       console.warn("Failed to save skip notification", e);

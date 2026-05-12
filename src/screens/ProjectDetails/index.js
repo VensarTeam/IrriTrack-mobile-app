@@ -91,6 +91,7 @@ const ProjectDetailsScreen = ({ route }) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
+    openPhaseZoneSummary,
     openSubprocessUnitList,
   } = useProjectDetailsViewModel(navigation, route);
   const { width } = useWindowDimensions();
@@ -892,7 +893,7 @@ const ProjectDetailsScreen = ({ route }) => {
                               { backgroundColor: moduleTheme.accent },
                             ]}
                           />
-                          <View>
+                          <View style={styles.sectionTitleTextBlock}>
                             <Text
                               style={[
                                 styles.sectionTitle,
@@ -902,33 +903,43 @@ const ProjectDetailsScreen = ({ route }) => {
                               {key} Status
                             </Text>
                           </View>
-                          <TouchableOpacity
-                            style={[
-                              styles.stageBoardButton,
-                              { borderColor: moduleTheme.soft },
-                            ]}
-                            onPress={() =>
-                              openStageStatusBoard({
-                                moduleKey: key,
-                                stageLabel: selectedStageLabel,
-                              })
-                            }
-                            activeOpacity={0.86}
-                          >
-                            <Icons.work
-                              height={16}
-                              width={16}
-                            // color={item.accent}
-                            />
-                            <Text
+                          <View style={styles.sectionActionRow}>
+                            <TouchableOpacity
                               style={[
-                                styles.stageBoardButtonText,
-                                // { color: moduleTheme.accent },
+                                styles.phaseZoneBoardButton,
+                                { borderColor: moduleTheme.soft },
                               ]}
+                              onPress={() => openPhaseZoneSummary({ moduleKey: key })}
+                              activeOpacity={0.86}
+                              accessibilityRole="button"
+                              accessibilityLabel="Summary"
                             >
-                              Work Status
-                            </Text>
-                          </TouchableOpacity>
+                              <Icon
+                                source="map-marker-radius-outline"
+                                size={16}
+                                color={colors.white}
+                              />
+                              <Text style={styles.phaseZoneBoardLabel}>Summary</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.stageBoardButton,
+                                { borderColor: moduleTheme.soft },
+                              ]}
+                              onPress={() =>
+                                openStageStatusBoard({
+                                  moduleKey: key,
+                                  stageLabel: selectedStageLabel,
+                                })
+                              }
+                              activeOpacity={0.86}
+                            >
+                              <Icons.work height={16} width={16} />
+                              <Text style={styles.stageBoardButtonText}>
+                                Work Status
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                         <View
                           style={[

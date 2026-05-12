@@ -1,53 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { showAppAlert } from "../services/alertService";
+import { useEffect, useState } from "react";
 import {
   getNotificationContent,
   initializePushNotifications,
-  openPushNotificationSettings,
   subscribeToPushNotificationEvents,
 } from "../services/pushNotificationService";
 
-const showForegroundNotificationAlert = (remoteMessage) => {
-  const { title, body } = getNotificationContent(remoteMessage);
-
-  showAppAlert({
-    title,
-    message: body || "You have a new update.",
-    type: "info",
-  });
-};
-
-const showPermissionSettingsAlert = () => {
-  showAppAlert({
-    title: "Enable Notifications",
-    message:
-      "Push notifications are disabled. Enable them in Settings to receive updates.",
-    type: "warning",
-    actions: [
-      {
-        label: "Not Now",
-        variant: "secondary",
-      },
-      {
-        label: "Open Settings",
-        variant: "primary",
-        onPress: () => {
-          openPushNotificationSettings().catch(() => {
-            showAppAlert({
-              title: "Unable to Open Settings",
-              message:
-                "Please open app settings manually and enable notifications.",
-              type: "warning",
-            });
-          });
-        },
-      },
-    ],
-  });
-};
+import { useInAppNotification } from "../context/InAppNotificationProvider";
 
 export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
-  const hasShownPermissionAlertRef = useRef(false);
+  const { showNotification } = useInAppNotification();
   const [state, setState] = useState({
     error: null,
     fcmToken: null,
@@ -72,17 +33,15 @@ export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
           permissionGranted: result.permissionGranted,
         });
 
-        if (!result.permissionGranted) {
-          // if (!hasShownPermissionAlertRef.current) {
-          //   hasShownPermissionAlertRef.current = true;
-          //   showPermissionSettingsAlert();
-          // }
-
-          return;
-        }
-
         unsubscribeEvents = subscribeToPushNotificationEvents({
-          onForegroundMessage: showForegroundNotificationAlert,
+          onForegroundMessage: (remoteMessage) => {
+            const { title, body } = getNotificationContent(remoteMessage);
+            showNotification({
+              title,
+              message: body || "You have a new update.",
+              type: "info",
+            });
+          },
           onNotificationOpen,
           onToken,
         });
@@ -107,7 +66,7 @@ export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
         unsubscribeEvents();
       }
     };
-  }, [onNotificationOpen, onToken]);
+  }, [onNotificationOpen, onToken, showNotification]);
 
   return state;
 };

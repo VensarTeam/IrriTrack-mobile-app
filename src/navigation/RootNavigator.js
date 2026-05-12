@@ -4,6 +4,7 @@ import AuthStack from "./AuthStack";
 import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
+import PhaseZoneSummaryScreen from "../screens/PhaseZoneSummary";
 import WorkStatusScreen from "../screens/WorkStatus";
 import AddContractorScreen from "../screens/AddContractor";
 import UnitListScreen from "../screens/unit/UnitListScreen";
@@ -50,6 +51,13 @@ const RootNavigator = () => {
         <Stack.Screen
           name={ROUTES.ROOT.WORK_STATUS}
           component={WorkStatusScreen}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.PHASE_ZONE_SUMMARY}
+          component={PhaseZoneSummaryScreen}
           options={{
             animation: "slide_from_right",
           }}

@@ -4,6 +4,7 @@ import {
   getInitialNotification,
   getMessaging,
   getToken,
+  hasPermission,
   isDeviceRegisteredForRemoteMessages,
   onMessage,
   onNotificationOpenedApp,
@@ -59,7 +60,7 @@ export const checkPushNotificationPermission = async () => {
   }
 
   if (Platform.OS === "ios") {
-    const status = await getMessaging().hasPermission();
+    const status = await hasPermission(getFirebaseMessaging());
     return isPermissionEnabled(status);
   }
 
@@ -86,9 +87,12 @@ export const getFcmToken = async () => {
   return getToken(getFirebaseMessaging());
 };
 
-export const initializePushNotifications = async ({ onToken, request = false } = {}) => {
-  const permissionGranted = request 
-    ? await requestPushNotificationPermission() 
+export const initializePushNotifications = async ({
+  onToken,
+  request = false,
+} = {}) => {
+  const permissionGranted = request
+    ? await requestPushNotificationPermission()
     : await checkPushNotificationPermission();
 
   if (!permissionGranted) {

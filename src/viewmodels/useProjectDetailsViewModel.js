@@ -630,6 +630,26 @@ const useProjectDetailsViewModel = (navigation, route) => {
     });
   };
 
+  const openPhaseZoneSummary = ({ moduleKey = "OMS" } = {}) => {
+    const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
+    if (normalizedModuleKey !== "OMS") {
+      showAppAlert({
+        title: "Phase zone view is under development",
+        message: `Dedicated ${normalizedModuleKey} phase zone analytics will be available soon.`,
+      });
+      return;
+    }
+
+    navigation.navigate(ROUTES.ROOT.PHASE_ZONE_SUMMARY, {
+      module: normalizedModuleKey,
+      project,
+      projectName: route?.params?.projectName || project?.name,
+      zoneName: zone,
+      villageName: village,
+      villageId: selectedVillageId,
+    });
+  };
+
   const openSubprocessUnitList = ({
     moduleKey = "OMS",
     subprocessId = null,
@@ -708,6 +728,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
+    openPhaseZoneSummary,
     openSubprocessUnitList,
   };
 };

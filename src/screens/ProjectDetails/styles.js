@@ -7,6 +7,7 @@ import {
   scale,
   verticalScale,
 } from "../../constants/metrics";
+import { mod } from "@react-native-firebase/app/dist/module/internal/web/firebaseFirestorePipelines";
 
 export default StyleSheet.create({
   safeArea: {
@@ -593,6 +594,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    minWidth: 0,
   },
 
   sectionAccent: {
@@ -611,6 +613,11 @@ export default StyleSheet.create({
     fontSize: fontScale(16),
     fontFamily: fonts.medium,
     color: colors.textDark,
+  },
+
+  sectionTitleTextBlock: {
+    flexShrink: 1,
+    minWidth: 0,
   },
 
   sectionSubtitle: {
@@ -950,10 +957,40 @@ export default StyleSheet.create({
     fontFamily: fonts.medium,
   },
 
+  sectionActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    flexShrink: 0,
+    marginLeft: "auto",
+    marginLeft:moderateScale(10),
+    gap: moderateScale(6),
+  },
+
+  phaseZoneBoardButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    justifyContent: "center",
+    gap: moderateScale(4),
+    minHeight: verticalScale(34),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(999),
+    borderWidth: 1,
+    backgroundColor: colors.primaryBlue,
+  },
+
+  phaseZoneBoardLabel: {
+    fontSize: fontScale(10),
+    fontFamily: fonts.bold,
+    color: colors.white,
+  },
+
   stageBoardButton: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf:'flex-end',
+    alignSelf: "flex-end",
     gap: moderateScale(4),
     minHeight: verticalScale(34),
     paddingHorizontal: moderateScale(12),
@@ -962,8 +999,6 @@ export default StyleSheet.create({
     borderWidth: 1,
     backgroundColor: colors.primaryBlue,
     maxWidth: "52%",
-    marginLeft: "auto",
-    marginRight: moderateScale(4),
   },
 
   stageBoardButtonText: {

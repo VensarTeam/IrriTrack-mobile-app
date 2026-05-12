@@ -12,6 +12,7 @@ import AppAlertProvider from "./src/context/AppAlertProvider";
 import { AuthProvider } from "./src/context/AuthContext";
 import OfflineChecklistSyncGate from "./src/components/OfflineChecklistSyncGate";
 import PushNotificationBootstrap from "./src/components/PushNotificationBootstrap";
+import { InAppNotificationProvider } from "./src/context/InAppNotificationProvider";
 
 const isAndroid = Platform.OS === "android";
 
@@ -100,11 +101,13 @@ const App = () => {
       />
       <AuthProvider>
         <AppAlertProvider>
-          <PushNotificationBootstrap />
-          <OfflineChecklistSyncGate />
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
+          <InAppNotificationProvider>
+            <PushNotificationBootstrap />
+            <OfflineChecklistSyncGate />
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </InAppNotificationProvider>
         </AppAlertProvider>
       </AuthProvider>
     </PaperProvider>

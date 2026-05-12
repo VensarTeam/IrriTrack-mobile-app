@@ -689,7 +689,7 @@ export default StyleSheet.create({
   },
 
   processTileWide: {
-    width: "31.5%",
+    width: "64.5%",
   },
 
   skeletonProcessTileWrap: {
@@ -740,10 +740,11 @@ export default StyleSheet.create({
   processTileMain: {
     flex: 1,
     minWidth: 0,
-    marginRight: moderateScale(4),
+    marginRight: moderateScale(3),
   },
 
   processTileMeta: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     minWidth: 0,
@@ -762,6 +763,7 @@ export default StyleSheet.create({
 
   processLabel: {
     flex: 1,
+    minWidth: 0,
     fontSize: moderateScale(10),
     lineHeight: moderateScale(12),
     fontFamily: fonts.bold,
