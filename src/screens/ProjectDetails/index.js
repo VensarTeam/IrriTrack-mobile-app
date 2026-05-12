@@ -91,7 +91,7 @@ const ProjectDetailsScreen = ({ route }) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
-    openPhaseZoneSummary,
+    openSummary,
     openSubprocessUnitList,
   } = useProjectDetailsViewModel(navigation, route);
   const { width } = useWindowDimensions();
@@ -909,7 +909,7 @@ const ProjectDetailsScreen = ({ route }) => {
                                 styles.phaseZoneBoardButton,
                                 { borderColor: moduleTheme.soft },
                               ]}
-                              onPress={() => openPhaseZoneSummary({ moduleKey: key })}
+                              onPress={() => openSummary({ moduleKey: key })}
                               activeOpacity={0.86}
                               accessibilityRole="button"
                               accessibilityLabel="Summary"

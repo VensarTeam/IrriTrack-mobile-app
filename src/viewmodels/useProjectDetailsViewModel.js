@@ -630,7 +630,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     });
   };
 
-  const openPhaseZoneSummary = ({ moduleKey = "OMS" } = {}) => {
+  const openSummary = ({ moduleKey = "OMS" } = {}) => {
     const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
     if (normalizedModuleKey !== "OMS") {
       showAppAlert({
@@ -640,7 +640,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
       return;
     }
 
-    navigation.navigate(ROUTES.ROOT.PHASE_ZONE_SUMMARY, {
+    navigation.navigate(ROUTES.ROOT.SUMMARY, {
       module: normalizedModuleKey,
       project,
       projectName: route?.params?.projectName || project?.name,
@@ -728,7 +728,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     handleBack,
     openModuleList,
     openStageStatusBoard,
-    openPhaseZoneSummary,
+    openSummary,
     openSubprocessUnitList,
   };
 };

@@ -4,7 +4,7 @@ export const ROUTES = {
     APP_TABS: "AppTabs",
     ADD_CONTRACTOR: "AddContractor",
     PROJECT_DETAILS: "ProjectDetails",
-    PHASE_ZONE_SUMMARY: "PhaseZoneSummary",
+    SUMMARY: "Summary",
     WORK_STATUS: "WorkStatus",
     UNIT_LIST_SCREEN: "UnitListScreen",
     UNIT_DETAILS: "UnitDetails",
