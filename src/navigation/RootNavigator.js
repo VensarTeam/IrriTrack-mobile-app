@@ -11,6 +11,7 @@ import UnitDetailsScreen from "../screens/unit/UnitDetails";
 import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
 import UnitStatusOverviewScreen from "../screens/unit/UnitStatusOverview";
 import UnitGalleryScreen from "../screens/unit/UnitGallery";
+import PermissionsSettingsScreen from "../screens/PermissionsSettings";
 import { useAuth } from "../context/AuthContext";
 import AppLockScreen from "../components/AppLockScreen";
 import OfflineChecklistSyncGate from "../components/OfflineChecklistSyncGate";
@@ -91,6 +92,13 @@ const RootNavigator = () => {
         <Stack.Screen
           name={ROUTES.ROOT.UNIT_GALLERY}
           component={UnitGalleryScreen}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.PERMISSIONS}
+          component={PermissionsSettingsScreen}
           options={{
             animation: "slide_from_right",
           }}

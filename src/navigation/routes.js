@@ -14,6 +14,7 @@ export const ROUTES = {
     MODULE_DETAILS: "UnitDetails",
     MODULE_STATUS_UPDATE: "UnitStatusUpdate",
     MODULE_STATUS_OVERVIEW: "UnitStatusOverview",
+    PERMISSIONS: "Permissions",
     // Backward aliases
     OMS_DETAILS: "UnitDetails",
     OMS_STATUS_UPDATE: "UnitStatusUpdate",

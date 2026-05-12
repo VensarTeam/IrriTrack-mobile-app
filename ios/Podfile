@@ -3,6 +3,7 @@ require File.join(File.dirname(`node --print "require.resolve('react-native/pack
 
 require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
+$RNFirebaseAsStaticFramework = true
 
 def ccache_enabled?(podfile_properties)
   # Environment variable takes precedence
@@ -16,7 +17,7 @@ ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == '
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
 ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
-platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.5'
 
 prepare_react_native_project!
 
@@ -41,8 +42,14 @@ target 'vensarOsmApp' do
 
   config = use_native_modules!(config_command)
 
-  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
-  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
+  framework_linkage = ENV['USE_FRAMEWORKS'] || podfile_properties['ios.useFrameworks'] || 'static'
+  use_frameworks! :linkage => framework_linkage.to_sym
+  pod 'boost', :podspec => '../node_modules/react-native/third-party-podspecs/boost.podspec'
+  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec'
+  pod 'fast_float', :podspec => '../node_modules/react-native/third-party-podspecs/fast_float.podspec'
+  pod 'fmt', :podspec => '../node_modules/react-native/third-party-podspecs/fmt.podspec'
+  pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
+  pod 'RCT-Folly', :podspec => '../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec'
 
   use_react_native!(
     :path => config[:reactNativePath],

@@ -13,6 +13,7 @@ import {
 import useLoginViewModel from "../../../viewmodels/useLoginViewModel";
 import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
 import WelcomeModal from "../../../components/WelcomeModal";
+import NotificationPromptModal from "../../../components/NotificationPromptModal";
 import BrandText from "../../../components/BrandText";
 
 const LoginScreen = ({ navigation }) => {
@@ -41,6 +42,9 @@ const LoginScreen = ({ navigation }) => {
     handleFaceCaptureError,
     continueAfterFaceVerification,
     handleWelcomeClose,
+    showNotificationPrompt,
+    handleAllowNotifications,
+    handleSkipNotifications,
   } = useLoginViewModel(navigation);
 
   return (
@@ -163,6 +167,12 @@ const LoginScreen = ({ navigation }) => {
         visible={showWelcome}
         userName={welcomeName}
         onClose={handleWelcomeClose}
+      />
+
+      <NotificationPromptModal
+        visible={showNotificationPrompt}
+        onAllow={handleAllowNotifications}
+        onSkip={handleSkipNotifications}
       />
     </LinearGradient>
   );

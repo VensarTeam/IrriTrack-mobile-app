@@ -1,4 +1,4 @@
-package com.pmtapp
+package com.vensar.irritrack
 
 import android.os.Build
 import android.os.Bundle

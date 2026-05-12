@@ -1,4 +1,5 @@
 import Expo
+import FirebaseCore
 import React
 import ReactAppDependencyProvider
 import UIKit
@@ -16,6 +17,12 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+      FirebaseApp.configure()
+    } else {
+      NSLog("Firebase GoogleService-Info.plist not found. Push notifications will be disabled for this build.")
+    }
+
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

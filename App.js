@@ -11,6 +11,7 @@ import AndroidSplash from "./src/components/AndroidSplash";
 import AppAlertProvider from "./src/context/AppAlertProvider";
 import { AuthProvider } from "./src/context/AuthContext";
 import OfflineChecklistSyncGate from "./src/components/OfflineChecklistSyncGate";
+import PushNotificationBootstrap from "./src/components/PushNotificationBootstrap";
 
 const isAndroid = Platform.OS === "android";
 
@@ -99,6 +100,7 @@ const App = () => {
       />
       <AuthProvider>
         <AppAlertProvider>
+          <PushNotificationBootstrap />
           <OfflineChecklistSyncGate />
           <NavigationContainer>
             <RootNavigator />

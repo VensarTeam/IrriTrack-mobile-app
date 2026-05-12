@@ -1,4 +1,4 @@
-package com.pmtapp
+package com.vensar.irritrack
 
 import android.app.Application
 import android.content.res.Configuration

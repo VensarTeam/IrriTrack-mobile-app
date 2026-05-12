@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ROUTES } from "../navigation/routes";
 import { useAuth } from "../context/AuthContext";
+import * as SecureStore from "expo-secure-store";
+import { checkPushNotificationPermission, requestPushNotificationPermission } from "../services/pushNotificationService";
 
 const WELCOME_AUTO_CONTINUE_DELAY = 2000;
 const AUTH_FLOW_LOGS_ENABLED = typeof __DEV__ === "undefined" || __DEV__;
@@ -41,6 +43,46 @@ const useLoginViewModel = (navigation) => {
   const [welcomeName, setWelcomeName] = useState("");
   const [isCredentialsSubmitting, setIsCredentialsSubmitting] = useState(false);
   const [isFaceSubmitting, setIsFaceSubmitting] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+
+  useEffect(() => {
+    const checkPrompt = async () => {
+      try {
+        const isGranted = await checkPushNotificationPermission();
+        if (!isGranted) {
+          setShowNotificationPrompt(true);
+        }
+      } catch (e) {
+        console.warn("Failed to check notification prompt status", e);
+      }
+    };
+    checkPrompt();
+  }, []);
+
+  const handleAllowNotifications = async () => {
+    try {
+      const isGranted = await requestPushNotificationPermission();
+      if (!isGranted) {
+        import("react-native").then((rn) => rn.Linking.openSettings());
+      } else {
+        const { getFcmToken } = await import("../services/pushNotificationService");
+        const token = await getFcmToken();
+        console.log("FCM token after allow:", token);
+      }
+    } catch (e) {
+      console.warn("Failed to request notifications", e);
+    } finally {
+      setShowNotificationPrompt(false);
+    }
+  };
+
+  const handleSkipNotifications = async () => {
+    try {
+      setShowNotificationPrompt(false);
+    } catch (e) {
+      console.warn("Failed to save skip notification", e);
+    }
+  };
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -279,6 +321,9 @@ const useLoginViewModel = (navigation) => {
     handleFaceCaptureError,
     continueAfterFaceVerification,
     handleWelcomeClose,
+    showNotificationPrompt,
+    handleAllowNotifications,
+    handleSkipNotifications,
   };
 };
 

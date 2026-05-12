@@ -2,19 +2,30 @@
   "expo": {
     "name": "IrriTrack",
     "slug": "irritrack",
-    "version": "1.0.1",
+    "version": "1.0",
     "icon": "./assets/icon.png",
     "extra": {
-      "projectName": "IrriTrack",
+      "projectName": "IrriTrack"
     },
     "ios": {
       "icon": "./assets/icon.png",
+      "bundleIdentifier": "org.vensar.irritrack",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "deploymentTarget": "15.5",
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "infoPlist": {
-        "NSPhotoLibraryAddUsageDescription": "Allow IrriTrack to save submitted checklist photos to your phone gallery."
+        "NSPhotoLibraryAddUsageDescription": "Allow IrriTrack to save submitted checklist photos to your phone gallery.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
       "icon": "./assets/icon.png",
+      "package": "com.vensar.irritrack",
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +46,9 @@
         {
           "faceIDPermission": "Allow IrriTrack to use Face ID to unlock your session."
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ]
   }
 }

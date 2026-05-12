@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -14,6 +14,7 @@ import styles from "./styles";
 import colors from "../../constants/colors";
 import { APP_VERSION } from "../../constants/appInfo";
 import useProfileViewModel from "../../viewmodels/useProfileViewModel";
+import { ROUTES } from "../../navigation/routes";
 
 const toTitleCase = (value = "") =>
   String(value || "")
@@ -38,6 +39,11 @@ const ProfileScreen = ({ navigation }) => {
     handleOpenAddContractor,
     handleLogout,
   } = useProfileViewModel(navigation);
+
+  const handleOpenPermissions = useCallback(() => {
+    navigation.navigate(ROUTES.ROOT.PERMISSIONS);
+  }, [navigation]);
+
   const isActiveUser = user.isActive === true;
   const role = toTitleCase(user.role) || "No Role Assigned";
 
@@ -136,6 +142,24 @@ const ProfileScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         ) : null}
+
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={handleOpenPermissions}
+          activeOpacity={0.9}
+        >
+          <View style={styles.actionCardIconWrap}>
+            <Icon source="shield-check-outline" size={22} color={colors.navyFreshDark} />
+          </View>
+
+          <View style={styles.actionCardCopy}>
+            <Text style={styles.actionCardTitle}>App Permissions</Text>
+          </View>
+
+          <View style={styles.actionCardArrowWrap}>
+            <Icon source="chevron-right" size={22} color={colors.primaryBlue} />
+          </View>
+        </TouchableOpacity>
 
         {canShowSyncActions ? (
           <View style={styles.syncCard}>

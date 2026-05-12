@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "605469248325",
+    "project_id": "irritrack-8d4b5",
+    "storage_bucket": "irritrack-8d4b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:605469248325:android:eab16decad1ee5a4d50c2c",
+        "android_client_info": {
+          "package_name": "com.vensar.irritrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCaEaVWgo33QE4LbL2V-MaoJLyw9fj898"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
