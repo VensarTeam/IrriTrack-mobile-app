@@ -1,14 +1,9 @@
+import { API_ENDPOINTS, buildApiEndpointPath } from "../config/env";
 import { apiRequest } from "./apiClient";
 import {
   getCachedOmsWorkStatus,
   saveCachedOmsWorkStatus,
 } from "./workStatusOfflineStore";
-
-const WORK_STATUS_API_PATHS = ["/api/v1/oms/request-status", "/oms/request-status"];
-const SUBMISSION_HISTORY_API_PATHS = [
-  (submissionId) => `/api/v1/oms/submissions/${submissionId}/history`,
-  (submissionId) => `/oms/submissions/${submissionId}/history`,
-];
 
 const createEmptyWorkStatusResponse = () => ({
   counts: {
@@ -60,8 +55,7 @@ const normalizeSubmissionHistoryResponse = (response) => {
   };
 };
 
-const fetchWithFallbackPaths = async ({ params, forceRefresh = false }) => {
-  let lastNotFoundError = null;
+const fetchWorkStatus = async ({ params, forceRefresh = false }) => {
   const headers = {
     Accept: "*/*",
   };
@@ -72,25 +66,12 @@ const fetchWithFallbackPaths = async ({ params, forceRefresh = false }) => {
     headers.Expires = "0";
   }
 
-  for (const path of WORK_STATUS_API_PATHS) {
-    try {
-      return await apiRequest({
-        url: path,
-        method: "GET",
-        headers,
-        params,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch work status.");
+  return apiRequest({
+    url: API_ENDPOINTS.omsRequestStatus,
+    method: "GET",
+    headers,
+    params,
+  });
 };
 
 export const fetchOmsWorkStatus = async ({
@@ -124,7 +105,7 @@ export const fetchOmsWorkStatus = async ({
 
   try {
     const response = normalizeWorkStatusResponse(
-      await fetchWithFallbackPaths({ params, forceRefresh })
+      await fetchWorkStatus({ params, forceRefresh })
     );
 
     if (saveToCache && !String(search || "").trim()) {
@@ -158,28 +139,15 @@ export const fetchOmsSubmissionHistory = async (submissionId = "") => {
     return createEmptySubmissionHistoryResponse();
   }
 
-  let lastNotFoundError = null;
+  const response = await apiRequest({
+    url: buildApiEndpointPath(API_ENDPOINTS.omsSubmissionHistory, {
+      submissionId: normalizedSubmissionId,
+    }),
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+  });
 
-  for (const buildPath of SUBMISSION_HISTORY_API_PATHS) {
-    try {
-      const response = await apiRequest({
-        url: buildPath(normalizedSubmissionId),
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-      });
-
-      return normalizeSubmissionHistoryResponse(response);
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch submission history.");
+  return normalizeSubmissionHistoryResponse(response);
 };

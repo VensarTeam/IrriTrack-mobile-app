@@ -1,4 +1,5 @@
 import { apiRequest } from "./apiClient";
+import { API_ENDPOINTS } from "../config/env";
 
 const buildFaceImagePayload = (faceImage) => {
   const formData = new FormData();
@@ -17,7 +18,7 @@ const buildFaceImagePayload = (faceImage) => {
 
 export const startFaceLogin = ({ mobile, password }) =>
   apiRequest({
-    url: "/api/v1/auth/login",
+    url: API_ENDPOINTS.authLogin,
     method: "POST",
     skipAuth: true,
     data: { mobile, password },
@@ -25,7 +26,7 @@ export const startFaceLogin = ({ mobile, password }) =>
 
 export const verifyFaceLogin = ({ verificationToken, faceImage }) =>
   apiRequest({
-    url: "/api/v1/auth/face/verify",
+    url: API_ENDPOINTS.authFaceVerify,
     method: "POST",
     skipAuth: true,
     headers: {
@@ -38,7 +39,7 @@ export const verifyFaceLogin = ({ verificationToken, faceImage }) =>
 
 export const refreshAccessToken = ({ refreshToken }) =>
   apiRequest({
-    url: "/api/v1/auth/token/refresh",
+    url: API_ENDPOINTS.authTokenRefresh,
     method: "POST",
     skipAuth: true,
     data: { refreshToken },
@@ -46,7 +47,7 @@ export const refreshAccessToken = ({ refreshToken }) =>
 
 export const requestPasswordResetOtp = ({ identifier }) =>
   apiRequest({
-    url: "/api/v1/auth/password/forgot",
+    url: API_ENDPOINTS.authPasswordForgot,
     method: "POST",
     headers: {
       Accept: "*/*",
@@ -56,7 +57,7 @@ export const requestPasswordResetOtp = ({ identifier }) =>
 
 export const resetPassword = ({ identifier, otp, newPassword }) =>
   apiRequest({
-    url: "/api/v1/auth/password/reset",
+    url: API_ENDPOINTS.authPasswordReset,
     method: "POST",
     headers: {
       Accept: "*/*",
@@ -70,13 +71,13 @@ export const resetPassword = ({ identifier, otp, newPassword }) =>
 
 export const getProfile = () =>
   apiRequest({
-    url: "/api/v1/auth/me",
+    url: API_ENDPOINTS.authMe,
     method: "GET",
   });
 
 export const logoutSession = ({ refreshToken }) =>
   apiRequest({
-    url: "/api/v1/auth/logout",
+    url: API_ENDPOINTS.authLogout,
     method: "POST",
     data: { refreshToken },
   });

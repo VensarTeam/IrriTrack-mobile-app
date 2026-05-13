@@ -29,6 +29,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import useUnitProgress from "../hooks/useUnitProgress";
 import useChecklistSections from "./useChecklistSections";
+import { IMAGE_BASE_URL } from "../config/env";
 
 const buildChecklistState = (checklistItems = []) =>
   checklistItems.reduce((acc, item) => {
@@ -175,8 +176,7 @@ const NUMBER_DATA_TYPES = new Set([
   "number",
 ]);
 
-const FILE_STORAGE_BASE_URL =
-  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+const FILE_STORAGE_BASE_URL = IMAGE_BASE_URL;
 
 const inferChecklistValueType = (source = {}, value, extra = {}) => {
   if (extra.valueType) {

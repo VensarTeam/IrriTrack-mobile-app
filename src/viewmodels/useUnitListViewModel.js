@@ -24,7 +24,6 @@ const CERTIFICATE_STATUS_KEYS = [
   "mechanical",
   "controller",
   "flushing",
-  "dry",
   "wet",
   "mechanicalRectification",
   "controllerRectification",
@@ -46,7 +45,6 @@ const OMS_CARD_SUBPROCESS_LABELS = {
   mechanicalAccessoriesInstallation: "Mechanical",
   automationInstallation: "Automation",
   pipeFlushing: "Flushing",
-  dryCommissioning: "Dry Commissioning",
   wetCommissioning: "Commissioning",
 };
 

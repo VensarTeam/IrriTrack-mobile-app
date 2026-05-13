@@ -25,16 +25,16 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: fontScale(16),
+    fontSize: fontScale(18),
     fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
   headerMeta: {
     marginTop: verticalScale(1),
-    fontSize: fontScale(10.5),
+    fontSize: fontScale(10),
     fontFamily: fonts.medium,
-    color: colors.textSecondary,
+    color: colors.primaryBlue,
   },
 
   headerIcon: {
@@ -49,85 +49,68 @@ export default StyleSheet.create({
     marginLeft: moderateScale(10),
   },
 
-  filterPanel: {
-    marginHorizontal: moderateScale(14),
-    marginTop: verticalScale(10),
-    marginBottom: verticalScale(8),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
-    borderRadius: moderateScale(18),
-    backgroundColor: colors.filterPanelSurface,
-    borderWidth: 1,
-    borderColor: colors.filterPanelBorder,
+  floatingFilterSection: {
+    paddingTop: verticalScale(14),
+    paddingBottom: verticalScale(6),
+    backgroundColor: colors.background,
   },
 
-  filterHeaderRow: {
+  floatingFilterHeader: {
+    paddingHorizontal: moderateScale(16),
+    marginBottom: verticalScale(4),
+  },
+
+  floatingTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    marginBottom: verticalScale(2),
   },
 
-  filterTitleBlock: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: moderateScale(10),
-  },
-
-  filterTitle: {
-    fontSize: fontScale(9.5),
+  floatingFilterTitle: {
+    marginLeft: moderateScale(4),
+    fontSize: fontScale(14),
     fontFamily: fonts.bold,
     color: colors.textSecondary,
-    letterSpacing: 0.5,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 
-  filterValue: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(14),
+  floatingFilterValue: {
+    fontSize: fontScale(15),
     fontFamily: fonts.bold,
     color: colors.textDark,
   },
 
-  filterIcon: {
-    width: moderateScale(34),
-    height: moderateScale(34),
-    borderRadius: moderateScale(17),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-
   subprocessList: {
-    paddingTop: verticalScale(10),
-    paddingRight: moderateScale(4),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(6),
+    paddingBottom: verticalScale(8),
     gap: moderateScale(8),
   },
 
   subprocessChip: {
-    maxWidth: moderateScale(160),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: verticalScale(8),
     borderRadius: moderateScale(999),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: "#E2E8F0", // subtle border
   },
 
   subprocessChipActive: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primaryBlue, // Dark elegant mode active
     borderColor: colors.primaryBlue,
   },
 
   subprocessChipText: {
-    fontSize: fontScale(10.5),
-    fontFamily: fonts.bold,
-    color: colors.primaryBlue,
+    fontSize: fontScale(12),
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
   },
 
   subprocessChipTextActive: {
     color: colors.white,
+    fontFamily: fonts.bold,
   },
 
   container: {
@@ -186,17 +169,29 @@ export default StyleSheet.create({
     overflow: "hidden",
   },
 
+  phaseShellExpanded: {
+    borderColor: "#C7DDF8",
+  },
+
   phaseHeader: {
-    minHeight: verticalScale(58),
+    minHeight: verticalScale(56),
     paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
+    paddingVertical: verticalScale(12),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: moderateScale(10),
+    marginBottom: verticalScale(10),
+  },
+
+  phaseHeaderExpanded: {
+    backgroundColor: "#F8FBFE",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
 
   phaseLeft: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     minWidth: 0,
@@ -218,8 +213,6 @@ export default StyleSheet.create({
   },
 
   phaseRight: {
-    flex: 1,
-    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
@@ -245,90 +238,99 @@ export default StyleSheet.create({
     textAlign: "right",
   },
 
-  zoneGrid: {
-    paddingHorizontal: moderateScale(10),
-    paddingBottom: verticalScale(10),
-    gap: verticalScale(8),
-  },
-
-  zoneCard: {
-    padding: moderateScale(10),
+  chevronContainer: {
+    width: moderateScale(32),
+    height: moderateScale(32),
     borderRadius: moderateScale(16),
-    backgroundColor: "#F8FBFE",
-    borderWidth: 1,
-    borderColor: "#E2ECF7",
-  },
-
-  zoneTopRow: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(8),
+    justifyContent: "center",
+    backgroundColor: "#F3F6FA",
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
 
-  zoneBadge: {
-    paddingHorizontal: moderateScale(9),
-    paddingVertical: verticalScale(5),
-    borderRadius: moderateScale(999),
+  chevronContainerExpanded: {
+    backgroundColor: colors.white,
+    borderColor: "#C7DDF8",
   },
 
-  zoneBadgeText: {
-    fontSize: fontScale(11),
-    fontFamily: fonts.bold,
-  },
-
-  zonePercent: {
-    fontSize: fontScale(13),
-    fontFamily: fonts.bold,
-  },
-
-  zoneDataGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: moderateScale(7),
-    marginTop: verticalScale(9),
-  },
-
-  cell: {
-    flexGrow: 1,
-    flexBasis: "22%",
-    minWidth: moderateScale(66),
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(7),
-    borderRadius: moderateScale(12),
+  phaseTableContainer: {
+    marginHorizontal: moderateScale(10),
+    marginBottom: verticalScale(14),
+    borderRadius: moderateScale(14),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#E5EEF8",
+    borderColor: colors.cardBorder,
+    overflow: "hidden",
   },
 
-  cellLabel: {
-    fontSize: fontScale(8.5),
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceBlueSoft,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+
+  tableDataRow: {
+    flexDirection: "row",
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+
+  tableCellZone: {
+    flex: 1,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: moderateScale(6),
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: colors.cardBorder,
+    backgroundColor: "#F8FBFE",
+  },
+
+  tableCell: {
+    flex: 1,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: moderateScale(4),
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: colors.cardBorder,
+  },
+
+  tableCellLast: {
+    borderRightWidth: 0,
+  },
+
+  tableHeaderLabel: {
+    fontSize: fontScale(9.8),
     fontFamily: fonts.bold,
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.3,
+    textAlign: "center",
   },
 
-  cellValue: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(11.5),
+  tableHeaderValue: {
+    marginTop: verticalScale(3),
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
     color: colors.textDark,
+    textAlign: "center",
   },
 
-  progressTrack: {
-    height: verticalScale(5),
-    borderRadius: moderateScale(999),
-    backgroundColor: "#EAF1F8",
-    overflow: "hidden",
+  tableDataLabelZone: {
+    fontSize: fontScale(12.5),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
+    textAlign: "center",
   },
 
-  progressTrackLarge: {
-    height: verticalScale(8),
-  },
-
-  progressFill: {
-    height: "100%",
-    borderRadius: moderateScale(999),
+  tableDataLabel: {
+    fontSize: fontScale(12.5),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+    textAlign: "center",
   },
 });

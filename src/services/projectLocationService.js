@@ -1,7 +1,5 @@
+import { API_ENDPOINTS } from "../config/env";
 import { apiRequestWithMeta } from "./apiClient";
-
-const ZONE_API_PATHS = ["/api/v1/zones", "/zones"];
-const VILLAGE_API_PATHS = ["/api/v1/villages", "/villages"];
 const FILTER_PAGE = 1;
 export const FILTER_PAGE_LIMIT = 20;
 const zoneResponseCache = new Map();
@@ -97,30 +95,15 @@ const createEmptyMeta = ({
   hasPreviousPage: false,
 });
 
-const fetchWithFallbackPaths = async ({ paths, params }) => {
-  let lastNotFoundError = null;
-
-  for (const path of paths) {
-    try {
-      return await apiRequestWithMeta({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-        params,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch project filters.");
+const fetchProjectFilters = async ({ path, params }) => {
+  return apiRequestWithMeta({
+    url: path,
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+    params,
+  });
 };
 
 const buildFilterCacheKey = ({
@@ -213,8 +196,8 @@ export const fetchProjectZones = async (
   if (!zoneRequestPromises.has(cacheKey)) {
     zoneRequestPromises.set(
       cacheKey,
-      fetchWithFallbackPaths({
-        paths: ZONE_API_PATHS,
+      fetchProjectFilters({
+        path: API_ENDPOINTS.zones,
         params: {
           projectId,
           page,
@@ -274,8 +257,8 @@ export const fetchProjectVillageOptions = async (
   if (!villageRequestPromises.has(cacheKey)) {
     villageRequestPromises.set(
       cacheKey,
-      fetchWithFallbackPaths({
-        paths: VILLAGE_API_PATHS,
+      fetchProjectFilters({
+        path: API_ENDPOINTS.villages,
         params: {
           projectId,
           page,

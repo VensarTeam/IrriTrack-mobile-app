@@ -1,5 +1,6 @@
 import SQLite from "react-native-sqlite-storage";
 import { createProject } from "../models/project";
+import { API_ENDPOINTS } from "../config/env";
 import { apiRequest } from "./apiClient";
 
 SQLite.enablePromise(true);
@@ -13,19 +14,19 @@ let schemaPromise = null;
 
 const logProject = (message, details = undefined) => {
   if (typeof details === "undefined") {
-    console.log(LOG_PREFIX, message);
+    //console.log(LOG_PREFIX, message);
     return;
   }
 
-  console.log(LOG_PREFIX, message, details);
+  //console.log(LOG_PREFIX, message, details);
 };
 
 const warnProject = (message, error) => {
-  console.warn(LOG_PREFIX, message, {
-    message: error?.message || String(error),
-    code: error?.code,
-    status: error?.status,
-  });
+  // console.warn(LOG_PREFIX, message, {
+  //   message: error?.message || String(error),
+  //   code: error?.code,
+  //   status: error?.status,
+  // });
 };
 
 const getDatabase = async () => {
@@ -63,7 +64,7 @@ export const fetchProjectList = async () => {
   logProject("Fetching projects from API");
   const projects = normalizeProjects(
     await apiRequest({
-      url: "/api/v1/projects",
+      url: API_ENDPOINTS.projects,
       method: "GET",
       headers: {
         Accept: "*/*",

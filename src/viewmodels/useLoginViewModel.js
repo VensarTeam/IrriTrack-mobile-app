@@ -8,6 +8,7 @@ import {
   openPushNotificationSettings,
   requestPushNotificationPermission,
 } from "../services/pushNotificationService";
+import { registerNotificationToken } from "../services/notificationTokenService";
 
 const WELCOME_AUTO_CONTINUE_DELAY = 2000;
 const AUTH_FLOW_LOGS_ENABLED = typeof __DEV__ === "undefined" || __DEV__;
@@ -283,6 +284,9 @@ const useLoginViewModel = (navigation) => {
         verificationToken,
         faceImage,
       });
+
+      // Register FCM token with the server (fire-and-forget)
+      void registerNotificationToken();
 
       setVerificationToken("");
       setIsVerificationVisible(false);

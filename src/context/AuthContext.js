@@ -363,11 +363,7 @@ export const AuthProvider = ({ children }) => {
     const currentSession = sessionRef.current;
 
     if (currentSession?.refreshToken) {
-      try {
-        await logoutSession({ refreshToken: currentSession.refreshToken });
-      } catch (error) {
-        console.warn("Unable to logout from server", error);
-      }
+      await logoutSession({ refreshToken: currentSession.refreshToken });
     }
 
     await clearSession();

@@ -12,11 +12,11 @@ const canUseNetwork = (state = {}) =>
 
 const logGate = (message, details = undefined) => {
   if (typeof details === "undefined") {
-    console.log("[ChecklistNetwork]", message);
+    //console.log("[ChecklistNetwork]", message);
     return;
   }
 
-  console.log("[ChecklistNetwork]", message, details);
+  //console.log("[ChecklistNetwork]", message, details);
 };
 
 const OfflineChecklistSyncGate = () => {

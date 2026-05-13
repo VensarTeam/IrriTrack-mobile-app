@@ -52,7 +52,9 @@ const PHASES = [
 ];
 
 const formatNumber = (value) => Number(value || 0).toLocaleString("en-IN");
-const formatArea = (value) => `${formatNumber(Math.round(value || 0))} ha`;
+const formatAreaValue = (value) => formatNumber(Math.round(value || 0));
+const formatArea = (value) => `${formatAreaValue(value)} ha`;
+const formatTableHeaderTotal = (value) => `(${value})`;
 
 const getPercent = (value, total) => {
   if (!total) return 0;
@@ -139,22 +141,20 @@ const SummaryScreen = ({ navigation, route }) => {
             {module} | {projectName}
           </Text>
         </View>
-        <View style={styles.headerIcon}>
+        {/* <View style={styles.headerIcon}>
           <Icon source="chart-box-outline" size={20} color={colors.primaryBlue} />
-        </View>
+        </View> */}
       </View>
 
-      <View style={styles.filterPanel}>
-        <View style={styles.filterHeaderRow}>
-          <View style={styles.filterTitleBlock}>
-            <Text style={styles.filterTitle}>Sub Process</Text>
-            <Text style={styles.filterValue} numberOfLines={1}>
-              {selectedSubprocess?.shortLabel || selectedSubprocess?.label || "All"}
-            </Text>
+      <View style={styles.floatingFilterSection}>
+        <View style={styles.floatingFilterHeader}>
+          <View style={styles.floatingTitleRow}>
+            <Icon source="filter-variant" size={18} color={colors.textSecondary} />
+            <Text style={styles.floatingFilterTitle}>Filter</Text>
           </View>
-          <View style={styles.filterIcon}>
-            <Icon source="timeline-text-outline" size={18} color={colors.primaryBlue} />
-          </View>
+          {/* <Text style={styles.floatingFilterValue} numberOfLines={1}>
+            {selectedSubprocess?.shortLabel || selectedSubprocess?.label || "All"}
+          </Text> */}
         </View>
 
         <ScrollView
@@ -172,7 +172,7 @@ const SummaryScreen = ({ navigation, route }) => {
                   active && styles.subprocessChipActive,
                 ]}
                 onPress={() => setSelectedSubprocessId(option.id)}
-                activeOpacity={0.86}
+                activeOpacity={0.8}
               >
                 <Text
                   style={[
@@ -194,11 +194,11 @@ const SummaryScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.totalStrip}>
+        {/* <View style={styles.totalStrip}>
           <SummaryStat label="OMS" value={totals.totalOms} />
           <SummaryStat label="Done" value={totals.completedOms} />
           <SummaryStat label="Area" value={formatArea(totals.completedAreaHa)} wide />
-        </View>
+        </View> */}
 
         {PHASES.map((phase) => {
           const expanded = Boolean(expandedPhaseIds[phase.id]);
@@ -210,9 +210,18 @@ const SummaryScreen = ({ navigation, route }) => {
           const phaseTone = getTone(phasePercent);
 
           return (
-            <View key={phase.id} style={styles.phaseShell}>
+            <View
+              key={phase.id}
+              style={[
+                styles.phaseShell,
+                expanded && styles.phaseShellExpanded,
+              ]}
+            >
               <TouchableOpacity
-                style={styles.phaseHeader}
+                style={[
+                  styles.phaseHeader,
+                  expanded && styles.phaseHeaderExpanded,
+                ]}
                 onPress={() => togglePhase(phase.id)}
                 activeOpacity={0.88}
               >
@@ -224,28 +233,73 @@ const SummaryScreen = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.phaseRight}>
-                  <View style={styles.phaseMetric}>
-                    <Text style={styles.phaseMetricValue}>
-                      {phaseSummary.completedOms}/{phaseSummary.totalOms}
-                    </Text>
-                    <ProgressBar percent={phasePercent} color={phaseTone.color} />
+                  <View style={[styles.chevronContainer, expanded && styles.chevronContainerExpanded]}>
+                    <Icon
+                      source={expanded ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color={expanded ? colors.primaryBlue : colors.textSecondary}
+                    />
                   </View>
-                  <Text style={[styles.phasePercent, { color: phaseTone.color }]}>
-                    {phasePercent}%
-                  </Text>
-                  <Icon
-                    source={expanded ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
                 </View>
               </TouchableOpacity>
 
               {expanded ? (
-                <View style={styles.zoneGrid}>
-                  {phase.zones.map((zone) => (
-                    <ZoneCard key={zone.id} zone={zone} />
-                  ))}
+                <View style={styles.phaseTableContainer}>
+                  <View style={styles.tableHeaderRow}>
+                    <View style={styles.tableCellZone}>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={1}>Zone</Text>
+                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
+                        {formatTableHeaderTotal(phase.zones.length)}
+                      </Text>
+                    </View>
+                    <View style={styles.tableCell}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#3B82F6" }]} numberOfLines={1}>TOT OMS</Text>
+                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
+                        {formatTableHeaderTotal(formatNumber(phaseSummary.totalOms))}
+                      </Text>
+                    </View>
+                    <View style={styles.tableCell}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#F59E0B" }]} numberOfLines={1}>TOT Area(HA)</Text>
+                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
+                        {formatTableHeaderTotal(formatAreaValue(phaseSummary.areaHa))}
+                      </Text>
+                    </View>
+                    <View style={styles.tableCell}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#10B981" }]} numberOfLines={1}>COMPLETED</Text>
+                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
+                        {formatTableHeaderTotal(formatNumber(phaseSummary.completedOms))}
+                      </Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.tableCellLast]}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#8B5CF6" }]} numberOfLines={1}>Cov Area(HA)</Text>
+                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
+                        {formatTableHeaderTotal(formatAreaValue(phaseSummary.completedAreaHa))}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {phase.zones.map((zone) => {
+                    const { completedAreaHa } = getZoneComputedData(zone);
+                    return (
+                      <View key={zone.id} style={styles.tableDataRow}>
+                        <View style={styles.tableCellZone}>
+                          <Text style={styles.tableDataLabelZone} numberOfLines={1}>Z-{zone.id}</Text>
+                        </View>
+                        <View style={styles.tableCell}>
+                          <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.totalOms}</Text>
+                        </View>
+                        <View style={styles.tableCell}>
+                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(zone.areaHa)}</Text>
+                        </View>
+                        <View style={styles.tableCell}>
+                          <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.completedOms}</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellLast]}>
+                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(completedAreaHa)}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
               ) : null}
             </View>
@@ -255,63 +309,5 @@ const SummaryScreen = ({ navigation, route }) => {
     </SafeAreaView>
   );
 };
-
-const SummaryStat = ({ label, value, wide = false }) => (
-  <View style={[styles.summaryStat, wide && styles.summaryStatWide]}>
-    <Text style={styles.summaryStatLabel}>{label}</Text>
-    <Text style={styles.summaryStatValue} numberOfLines={1}>
-      {value}
-    </Text>
-  </View>
-);
-
-const ZoneCard = ({ zone }) => {
-  const { percent, completedAreaHa, tone } = getZoneComputedData(zone);
-
-  return (
-    <View style={styles.zoneCard}>
-      <View style={styles.zoneTopRow}>
-        <View style={[styles.zoneBadge, { backgroundColor: tone.bg }]}>
-          <Text style={[styles.zoneBadgeText, { color: tone.color }]}>
-            Z-{zone.id}
-          </Text>
-        </View>
-        <Text style={[styles.zonePercent, { color: tone.color }]}>{percent}%</Text>
-      </View>
-
-      <ProgressBar percent={percent} color={tone.color} large />
-
-      <View style={styles.zoneDataGrid}>
-        <Cell label="Ha" value={formatArea(zone.areaHa)} />
-        <Cell label="OMS" value={zone.totalOms} />
-        <Cell label="Done" value={zone.completedOms} />
-        <Cell label="Cov" value={formatArea(completedAreaHa)} />
-      </View>
-    </View>
-  );
-};
-
-const Cell = ({ label, value }) => (
-  <View style={styles.cell}>
-    <Text style={styles.cellLabel}>{label}</Text>
-    <Text style={styles.cellValue} numberOfLines={1}>
-      {value}
-    </Text>
-  </View>
-);
-
-const ProgressBar = ({ percent, color, large = false }) => (
-  <View style={[styles.progressTrack, large && styles.progressTrackLarge]}>
-    <View
-      style={[
-        styles.progressFill,
-        {
-          width: `${Math.max(4, percent)}%`,
-          backgroundColor: color,
-        },
-      ]}
-    />
-  </View>
-);
 
 export default SummaryScreen;

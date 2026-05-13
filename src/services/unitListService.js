@@ -1,9 +1,8 @@
+import { API_ENDPOINTS } from "../config/env";
 import { apiRequestWithMeta } from "./apiClient";
 import { getCachedOmsBasicUnitsPage } from "./omsOfflineStore";
 
 export const DEFAULT_OMS_PAGE_LIMIT = 5;
-
-const OMS_LIST_API_PATHS = ["/api/v1/oms", "/oms"];
 
 const createEmptyMeta = ({ page = 1, limit = DEFAULT_OMS_PAGE_LIMIT } = {}) => ({
   page,
@@ -88,30 +87,15 @@ const normalizeOmsListResponse = (
   },
 });
 
-const fetchWithFallbackPaths = async ({ paths, params }) => {
-  let lastNotFoundError = null;
-
-  for (const path of paths) {
-    try {
-      return await apiRequestWithMeta({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-        params,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch OMS units.");
+const fetchOmsListFromApi = async ({ params }) => {
+  return apiRequestWithMeta({
+    url: API_ENDPOINTS.omsList,
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+    params,
+  });
 };
 
 export const fetchOmsList = async ({
@@ -142,8 +126,7 @@ export const fetchOmsList = async ({
     return normalizeOmsListResponse(cachedResponse, { page, limit });
   }
 
-  const response = await fetchWithFallbackPaths({
-    paths: OMS_LIST_API_PATHS,
+  const response = await fetchOmsListFromApi({
     params: buildOmsListParams({
       projectId,
       zoneName,

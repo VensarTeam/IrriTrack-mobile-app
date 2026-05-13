@@ -25,6 +25,7 @@ import colors from "../../constants/colors";
 import useWorkStatusViewModel from "../../viewmodels/useWorkStatusViewModel";
 import { CustomTabView } from "../../components/WorkStatusTabView"; // ← new import
 import ImageViewerModal from "../../components/ImageViewerModal";
+import { IMAGE_BASE_URL } from "../../config/env";
 
 // ─── remove the TabView / TabBar imports from react-native-tab-view ───────────
 // REMOVED: import { TabBar, TabView } from "react-native-tab-view";
@@ -87,8 +88,7 @@ const WORKFLOW_ROW_THEME = {
   },
 };
 
-const FILE_STORAGE_BASE_URL =
-  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+const FILE_STORAGE_BASE_URL = IMAGE_BASE_URL;
 const IMAGE_CHECKLIST_PATTERN = /\b(photo|image|images|pic|picture)\b/i;
 
 const formatHistoryDate = (value) => {

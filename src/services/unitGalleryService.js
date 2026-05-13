@@ -1,9 +1,7 @@
 import { apiRequestWithMeta } from "./apiClient";
+import { API_ENDPOINTS, IMAGE_BASE_URL } from "../config/env";
 
-const FILE_STORAGE_BASE_URL =
-  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
-
-const IMAGE_GALLERY_API_PATHS = ["/api/v1/oms/image-gallery", "/oms/image-gallery"];
+const FILE_STORAGE_BASE_URL = IMAGE_BASE_URL;
 
 export const DEFAULT_OMS_GALLERY_PAGE = 1;
 export const DEFAULT_OMS_GALLERY_LIMIT = 50;
@@ -239,30 +237,15 @@ const normalizeGalleryItems = (response = {}) => {
   return [];
 };
 
-const fetchWithFallbackPaths = async ({ params }) => {
-  let lastNotFoundError = null;
-
-  for (const path of IMAGE_GALLERY_API_PATHS) {
-    try {
-      return await apiRequestWithMeta({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-        params,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch image gallery.");
+const fetchImageGallery = async ({ params }) => {
+  return apiRequestWithMeta({
+    url: API_ENDPOINTS.omsImageGallery,
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+    params,
+  });
 };
 
 const normalizeDeviceName = (deviceName = "", deviceType = "OMS") => {
@@ -297,7 +280,7 @@ export const fetchOmsImageGallery = async ({
     return createEmptyGalleryResponse({ page, limit });
   }
 
-  const response = await fetchWithFallbackPaths({
+  const response = await fetchImageGallery({
     params: {
       projectId: normalizedProjectId,
       deviceType: normalizedDeviceType,

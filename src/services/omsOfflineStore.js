@@ -1,4 +1,5 @@
 import SQLite from "react-native-sqlite-storage";
+import { API_ENDPOINTS } from "../config/env";
 import { apiRequest } from "./apiClient";
 
 SQLite.enablePromise(true);
@@ -6,7 +7,6 @@ SQLite.enablePromise(true);
 const DB_NAME = "pmt_offline_master.db";
 const LOG_PREFIX = "[OmsLocal]";
 const DEFAULT_PAGE_LIMIT = 5;
-const OMS_BASIC_API_PATHS = ["/api/v1/oms/basic", "/oms/basic"];
 
 let databasePromise = null;
 let schemaPromise = null;
@@ -21,19 +21,19 @@ const normalizeSubChakQuantity = (value) => {
 
 const logOms = (message, details = undefined) => {
   if (typeof details === "undefined") {
-    console.log(LOG_PREFIX, message);
+    //console.log(LOG_PREFIX, message);
     return;
   }
 
-  console.log(LOG_PREFIX, message, details);
+  //console.log(LOG_PREFIX, message, details);
 };
 
 const warnOms = (message, error) => {
-  console.warn(LOG_PREFIX, message, {
-    message: error?.message || String(error),
-    code: error?.code,
-    status: error?.status,
-  });
+  // console.warn(LOG_PREFIX, message, {
+  //   message: error?.message || String(error),
+  //   code: error?.code,
+  //   status: error?.status,
+  // });
 };
 
 const getDatabase = async () => {
@@ -91,30 +91,15 @@ const createMeta = ({ page = 1, limit = DEFAULT_PAGE_LIMIT, totalItems = 0 }) =>
   };
 };
 
-const fetchOmsBasicWithFallbackPaths = async (projectId) => {
-  let lastNotFoundError = null;
-
-  for (const path of OMS_BASIC_API_PATHS) {
-    try {
-      return await apiRequest({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-        params: { projectId },
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch OMS basic list.");
+const fetchOmsBasic = async (projectId) => {
+  return apiRequest({
+    url: API_ENDPOINTS.omsBasic,
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+    params: { projectId },
+  });
 };
 
 export const refreshOmsBasicUnitsForProject = async (projectId) => {
@@ -128,7 +113,7 @@ export const refreshOmsBasicUnitsForProject = async (projectId) => {
     return 0;
   }
 
-  const units = await fetchOmsBasicWithFallbackPaths(normalizedProjectId);
+  const units = await fetchOmsBasic(normalizedProjectId);
   const db = await getDatabase();
   const refreshedAt = new Date().toISOString();
 

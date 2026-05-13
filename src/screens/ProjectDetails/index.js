@@ -422,7 +422,7 @@ const ProjectDetailsScreen = ({ route }) => {
           >
             {value}
           </Text>
-          {share ? (
+          {/* {share ? (
             <Text
               style={[
                 styles.summaryShare,
@@ -432,7 +432,7 @@ const ProjectDetailsScreen = ({ route }) => {
             >
               {share}
             </Text>
-          ) : null}
+          ) : null} */}
         </View>
       </View>
     </View>
@@ -535,7 +535,6 @@ const ProjectDetailsScreen = ({ route }) => {
       "Outlet Pipe Laying": "Outlet pipe conn.",
       "Mechanical Installation": "Mechanical Accessories Inst.",
       "Controller Installation": "Automation Inst.",
-      "Dry Commissioning": "Dry commissioning",
       "Wet Commissioning": "Wet commissioning",
     };
 
@@ -732,7 +731,7 @@ const ProjectDetailsScreen = ({ route }) => {
                 ]}
               >
                 {kpiCards.map((item) => {
-                  console.log("Rendering KPI card:", item);
+                  // console.log("Rendering KPI card:", item);
 
                   return (
                     <TouchableOpacity
@@ -850,13 +849,11 @@ const ProjectDetailsScreen = ({ route }) => {
 
               {canViewProjectInsights
                 ? Object.keys(dataSet).map((key) => {
-                  console.log("Rendering section for module:", key);
                   const moduleData = dataSet[key];
                   const totalUnits = Number(moduleData?.totalUnits || 0);
                   const stages = getVisibleStages(moduleData?.stages || []);
                   const moduleTheme = getModuleTheme(key);
                   const stageTabs = stages.map((stage) => stage.label);
-                  console.log(`Module: ${key}, Stage Tabs:`, stageTabs);
                   const selectedStageLabel = stageTabs.includes(selectedStage)
                     ? selectedStage
                     : stageTabs[0] || "All";
@@ -1175,14 +1172,14 @@ const ProjectDetailsScreen = ({ route }) => {
                                           <Text style={styles.chartSummaryTitle}>
                                             {formatStageTabLabel(summary.label)}
                                           </Text>
-                                          <Text
+                                          {/* <Text
                                             style={[
                                               styles.chartSummaryPercent,
                                               { color: moduleTheme.accent },
                                             ]}
                                           >
                                             {summary.percent}% Complete
-                                          </Text>
+                                          </Text> */}
                                         </View>
 
                                         <View

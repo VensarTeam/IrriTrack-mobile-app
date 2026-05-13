@@ -1,3 +1,4 @@
+import { API_ENDPOINTS, buildApiEndpointPath } from "../config/env";
 import { apiRequest } from "./apiClient";
 
 export const submitOmsReviewAction = async ({
@@ -29,7 +30,9 @@ export const submitOmsReviewAction = async ({
   });
 
   return apiRequest({
-    url: `/api/v1/oms/submissions/${submissionId}/workflow-status`,
+    url: buildApiEndpointPath(API_ENDPOINTS.omsSubmissionWorkflowStatus, {
+      submissionId,
+    }),
     method: "PATCH",
     headers: {
       Accept: "*/*",
@@ -38,4 +41,3 @@ export const submitOmsReviewAction = async ({
     data: body,
   });
 };
-

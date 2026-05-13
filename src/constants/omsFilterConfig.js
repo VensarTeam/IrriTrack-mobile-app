@@ -46,13 +46,6 @@ export const OMS_SUBPROCESS_FILTER_OPTIONS = [
     ],
   },
   {
-    id: 8,
-    key: "dryCommissioning",
-    label: "Dry Commissioning",
-    shortLabel: "Dry Commissioning",
-    aliases: ["Dry Commissioning", "Dry commissioning"],
-  },
-  {
     id: 9,
     key: "wetCommissioning",
     label: "Wet Commissioning",

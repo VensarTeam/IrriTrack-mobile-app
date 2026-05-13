@@ -1,31 +1,31 @@
 import SQLite from "react-native-sqlite-storage";
 import { apiRequest } from "./apiClient";
+import { API_ENDPOINTS } from "../config/env";
 
 SQLite.enablePromise(true);
 
 const DB_NAME = "pmt_offline_master.db";
 const CONTRACTOR_CACHE_ID = "contractors";
 const LOG_PREFIX = "[ContractorLocal]";
-const CONTRACTOR_API_PATHS = ["/contractors", "/api/v1/contractors"];
 
 let databasePromise = null;
 let schemaPromise = null;
 
 const logContractor = (message, details = undefined) => {
   if (typeof details === "undefined") {
-    console.log(LOG_PREFIX, message);
+    //console.log(LOG_PREFIX, message);
     return;
   }
 
-  console.log(LOG_PREFIX, message, details);
+  //console.log(LOG_PREFIX, message, details);
 };
 
 const warnContractor = (message, error) => {
-  console.warn(LOG_PREFIX, message, {
-    message: error?.message || String(error),
-    code: error?.code,
-    status: error?.status,
-  });
+  // console.warn(LOG_PREFIX, message, {
+  //   message: error?.message || String(error),
+  //   code: error?.code,
+  //   status: error?.status,
+  // });
 };
 
 const getDatabase = async () => {
@@ -90,31 +90,16 @@ const buildFallbackContractorId = (contractor = {}) => {
 };
 
 const fetchContractorsFromApi = async () => {
-  let lastNotFoundError = null;
+  logContractor("Fetching contractors from API", { path: API_ENDPOINTS.contractors });
+  const response = await apiRequest({
+    url: API_ENDPOINTS.contractors,
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+  });
 
-  for (const path of CONTRACTOR_API_PATHS) {
-    try {
-      logContractor("Fetching contractors from API", { path });
-      const response = await apiRequest({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-      });
-
-      return normalizeContractors(Array.isArray(response) ? response : response?.data);
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch contractors.");
+  return normalizeContractors(Array.isArray(response) ? response : response?.data);
 };
 
 export const refreshContractorList = async () => {

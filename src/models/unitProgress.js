@@ -7,6 +7,8 @@ const STATUS_KEY_BY_CODE = {
   5: "info",
 };
 
+import { IMAGE_BASE_URL } from "../config/env";
+
 const STATUS_LABEL_BY_KEY = {
   pending: "Pending",
   toBeConfirm: "To be Confirm",
@@ -33,8 +35,7 @@ const DETAIL_VALUE_KEYS = [
   "comments",
 ];
 
-const FILE_STORAGE_BASE_URL =
-  "https://vensor-bcsb3v2.bharathcloud.com:9000/vensorb3/";
+const FILE_STORAGE_BASE_URL = IMAGE_BASE_URL;
 
 const formatDetailLabel = (value = "") =>
   String(value || "")

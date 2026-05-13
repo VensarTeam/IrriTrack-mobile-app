@@ -1,6 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import RNFS from "react-native-fs";
 import SQLite from "react-native-sqlite-storage";
+import { API_ENDPOINTS } from "../config/env";
 import { apiRequest } from "./apiClient";
 import { submitOmsCommentedResubmission } from "./omsResubmitService";
 import { removeCachedOmsWorkStatusSubmission } from "./workStatusOfflineStore";
@@ -18,7 +19,6 @@ const SUBMITTED_LOOKUP_STATUSES = [
   "draft_ready",
 ];
 const LOG_PREFIX = "[ChecklistLocal]";
-const OMS_SUBMISSION_API_PATH = "/api/v1/oms/submissions";
 
 let databasePromise = null;
 let schemaPromise = null;
@@ -50,19 +50,19 @@ const logSync = (message, details = undefined) => {
   }
 
   if (typeof details === "undefined") {
-    console.log(LOG_PREFIX, message);
+    //console.log(LOG_PREFIX, message);
     return;
   }
 
-  console.log(LOG_PREFIX, message, details);
+  //console.log(LOG_PREFIX, message, details);
 };
 
 const warnSync = (message, error) => {
-  console.warn(LOG_PREFIX, message, {
-    message: error?.message || String(error),
-    code: error?.code,
-    status: error?.status,
-  });
+  // console.warn(LOG_PREFIX, message, {
+  //   message: error?.message || String(error),
+  //   code: error?.code,
+  //   status: error?.status,
+  // });
 };
 
 const getOwnerUserId = (value = "") => String(value || "").trim();
@@ -393,7 +393,7 @@ export const fetchChecklistProcessMaster = async ({
   //logSync("Fetching process master from API", { deviceType, activeOnly });
   const processes = normalizeProcessMaster(
     await apiRequest({
-      url: "/api/v1/master/processes",
+      url: API_ENDPOINTS.masterProcesses,
       method: "GET",
       headers: {
         Accept: "*/*",
@@ -1216,7 +1216,7 @@ const submitOmsChecklistToApi = async (payload = {}) => {
   );
 
   return apiRequest({
-    url: OMS_SUBMISSION_API_PATH,
+    url: API_ENDPOINTS.omsSubmissions,
     method: "POST",
     headers: hasFiles
       ? {

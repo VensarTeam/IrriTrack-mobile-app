@@ -7,11 +7,11 @@ const LOG_PREFIX = "[MasterSync]";
 
 const logMasterSync = (message, details = undefined) => {
   if (typeof details === "undefined") {
-    console.log(LOG_PREFIX, message);
+    //console.log(LOG_PREFIX, message);
     return;
   }
 
-  console.log(LOG_PREFIX, message, details);
+  //console.log(LOG_PREFIX, message, details);
 };
 
 const getProjectIds = (projects = []) =>

@@ -1,13 +1,9 @@
+import { API_ENDPOINTS, buildApiEndpointPath } from "../config/env";
 import { apiRequest } from "./apiClient";
 import {
   createEmptyProjectDetails,
   createProjectDetails,
 } from "../models/projectDetails";
-
-const PROJECT_DETAILS_API_PATHS = (projectId) => [
-  `/api/v1/projects/id/${projectId}`,
-  `/projects/id/${projectId}`,
-];
 
 const projectDetailsResponseCache = new Map();
 const projectDetailsRequestPromises = new Map();
@@ -35,30 +31,15 @@ const buildProjectDetailsParams = ({ zoneName, villageId }) => {
   return params;
 };
 
-const fetchWithFallbackPaths = async ({ paths, params }) => {
-  let lastNotFoundError = null;
-
-  for (const path of paths) {
-    try {
-      return await apiRequest({
-        url: path,
-        method: "GET",
-        headers: {
-          Accept: "*/*",
-        },
-        params,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to fetch project details.");
+const fetchProjectDetailsFromApi = async ({ projectId, params }) => {
+  return apiRequest({
+    url: buildApiEndpointPath(API_ENDPOINTS.projectDetails, { projectId }),
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+    },
+    params,
+  });
 };
 
 export const fetchProjectDetails = async ({
@@ -100,8 +81,8 @@ export const fetchProjectDetails = async ({
       params,
     });
 
-    const requestPromise = fetchWithFallbackPaths({
-      paths: PROJECT_DETAILS_API_PATHS(projectId),
+    const requestPromise = fetchProjectDetailsFromApi({
+      projectId,
       params,
     })
       .then((response) => {

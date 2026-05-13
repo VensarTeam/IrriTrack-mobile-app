@@ -14,8 +14,8 @@ import { syncOmsBasicUnitsForProjectInBackground } from "../services/omsOfflineS
 const useDashboardViewModel = (navigation) => {
   const { logout } = useAuth();
   const fallbackProjects = useMemo(() => getProjects(), []);
-  const [cachedProjects, setCachedProjects] = useState([]);
-  const projects = cachedProjects.length ? cachedProjects : fallbackProjects;
+  const [cachedProjects, setCachedProjects] = useState(null);
+  const projects = cachedProjects !== null ? cachedProjects : fallbackProjects;
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshingProjects, setIsRefreshingProjects] = useState(false);
 
@@ -25,6 +25,8 @@ const useDashboardViewModel = (navigation) => {
 
       if (projectsFromCache.length) {
         setCachedProjects(projectsFromCache);
+      } else {
+        setCachedProjects([]);
       }
     } catch (error) {
       console.log("[ProjectDashboard]", "Unable to load cached projects", {
@@ -117,11 +119,21 @@ const useDashboardViewModel = (navigation) => {
           variant: "danger",
           onPress: () => {
             void (async () => {
-              await logout();
-              navigation.reset({
-                index: 0,
-                routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
-              });
+              try {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: ROUTES.ROOT.AUTH_STACK }],
+                });
+              } catch (error) {
+                console.warn("[Logout]", "Logout failed", error?.message);
+                showAppAlert({
+                  type: "danger",
+                  title: "Logout failed",
+                  message:
+                    error?.message || "Unable to logout. Please try again.",
+                });
+              }
             })();
           },
         },

@@ -1,9 +1,5 @@
+import { API_ENDPOINTS, buildApiEndpointPath } from "../config/env";
 import { apiRequest } from "./apiClient";
-
-const RESUBMIT_API_PATHS = [
-  (submissionId) => `/api/v1/oms/submissions/${submissionId}/resubmit`,
-  (submissionId) => `/oms/submissions/${submissionId}/resubmit`,
-];
 
 const stripFileScheme = (uri = "") => String(uri).replace(/^file:\/\//, "");
 
@@ -359,8 +355,6 @@ export const submitOmsCommentedResubmission = async ({
 
   const body = buildOmsSubmissionBody(payload);
   const data = buildOmsResubmitFormData(body);
-  let lastNotFoundError = null;
-
   console.log("[OMSResubmit]", "Submitting commented subprocess", {
     submissionId: normalizedSubmissionId,
     projectId: body.projectId,
@@ -371,26 +365,15 @@ export const submitOmsCommentedResubmission = async ({
     fileCount: (body.files || []).length,
   });
 
-  for (const buildPath of RESUBMIT_API_PATHS) {
-    try {
-      return await apiRequest({
-        url: buildPath(normalizedSubmissionId),
-        method: "PATCH",
-        headers: {
-          Accept: "*/*",
-          "Content-Type": "multipart/form-data",
-        },
-        data,
-      });
-    } catch (error) {
-      if (error?.status === 404) {
-        lastNotFoundError = error;
-        continue;
-      }
-
-      throw error;
-    }
-  }
-
-  throw lastNotFoundError || new Error("Unable to resubmit this subprocess.");
+  return apiRequest({
+    url: buildApiEndpointPath(API_ENDPOINTS.omsSubmissionResubmit, {
+      submissionId: normalizedSubmissionId,
+    }),
+    method: "PATCH",
+    headers: {
+      Accept: "*/*",
+      "Content-Type": "multipart/form-data",
+    },
+    data,
+  });
 };
