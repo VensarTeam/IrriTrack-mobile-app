@@ -201,6 +201,27 @@ const getChecklistDescription = (checklist = {}) => {
   return `Checklist item ${checklist.checklist_id}`;
 };
 
+const getChecklistDedupKey = (checklist = {}) => {
+  const labelKey = [
+    normalizeText(checklist?.description),
+    normalizeText(checklist?.input_unit),
+  ]
+    .filter(Boolean)
+    .join(":");
+
+  if (labelKey) {
+    return `label:${labelKey}`;
+  }
+
+  const checklistId = String(checklist?.checklist_id || "").trim();
+
+  if (checklistId) {
+    return `id:${checklistId}`;
+  }
+
+  return "";
+};
+
 const getFieldLabel = (checklist = {}) => {
   if (isOutletPipeCountChecklist(checklist)) {
     return getChecklistDescription(checklist);
@@ -367,7 +388,17 @@ const buildSubOption = (subprocess = {}, index = 0, parentProcess = {}) => {
     selectFields: [],
     inputFields: [],
     repeatableGroups: [],
-    apiChecklists: sortBySequence(subprocess.checklists || []),
+    apiChecklists: sortBySequence(subprocess.checklists || []).filter(
+      (checklist, index, checklists) => {
+        const dedupKey = getChecklistDedupKey(checklist);
+
+        if (!dedupKey) return true;
+
+        return checklists.findIndex(
+          (item) => getChecklistDedupKey(item) === dedupKey
+        ) === index;
+      }
+    ),
   };
 
   subOption.apiChecklists.forEach((checklist) => {

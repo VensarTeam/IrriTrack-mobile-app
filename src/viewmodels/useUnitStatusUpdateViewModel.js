@@ -88,6 +88,25 @@ const buildFixedRepeatableGroupState = (group = {}) => {
   );
 };
 
+const EMPTY_SUB_OPTION = Object.freeze({
+  id: "apiChecklistLoading",
+  label: "Loading checklist...",
+  showStatusField: false,
+  showRemarkField: false,
+  checklistItems: [],
+  photoRequirements: [],
+  selectFields: [],
+  inputFields: [],
+  repeatableGroups: [],
+  apiChecklists: [],
+});
+
+const EMPTY_SECTION = Object.freeze({
+  key: "apiChecklistLoading",
+  title: "Checklist",
+  subOptions: [EMPTY_SUB_OPTION],
+});
+
 const formatCoordinates = (location = {}) =>
   `${location.latitude ?? "-"}, ${location.longitude ?? "-"}`;
 
@@ -166,6 +185,15 @@ const normalizeText = (value) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+const getFieldDedupKey = (field = {}) =>
+  normalizeText(
+    field.description ||
+    field.label ||
+    field.title ||
+    field.placeholder ||
+    field.key
+  );
 
 const NUMBER_DATA_TYPES = new Set([
   "int",
@@ -931,14 +959,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const projectName = route?.params?.projectName || "IrriTrack";
   const sectionKey = route?.params?.sectionKey || "pipeLaying";
   const requestedSubOptionId = route?.params?.subOptionId;
-  const { sections, masterSource } = useChecklistSections({
+  const { sections, masterSource, hasApiSections } = useChecklistSections({
     module,
     unit: checklistSectionUnit,
   });
   const hydratedSubOptionsRef = useRef({});
 
   const section =
-    sections.find((item) => item.key === sectionKey) || sections[0];
+    sections.find((item) => item.key === sectionKey) || sections[0] || EMPTY_SECTION;
 
   const initialSubOptionId =
     section.subOptions.find((sub) => sub.id === requestedSubOptionId)?.id ||
@@ -987,7 +1015,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       nextSection?.subOptions?.find((sub) => sub.id === requestedSubOptionId)
         ?.id || nextSection?.subOptions?.[0]?.id;
 
-    if (!nextSection || !nextSubOptionId) return;
+    if (!nextSection || !nextSubOptionId || nextSection === EMPTY_SECTION) return;
 
     console.log("[ChecklistForm]", "Form ready", {
       source: masterSource,
@@ -1060,7 +1088,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const activeSubOption = useMemo(
     () =>
       section.subOptions.find((sub) => sub.id === activeSubOptionId) ||
-      section.subOptions[0],
+      section.subOptions[0] ||
+      EMPTY_SUB_OPTION,
     [activeSubOptionId, section.subOptions]
   );
   const workItemStatusKey = String(
@@ -1113,8 +1142,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
       : field
   );
+  const selectFieldKeys = new Set(selectFields.map((field) => getFieldDedupKey(field)));
   const inputFields = (activeSubOption.inputFields || []).filter((field) =>
-    isVisibleByRule(field, activeValues, activeSubOption)
+    isVisibleByRule(field, activeValues, activeSubOption) &&
+    !selectFieldKeys.has(getFieldDedupKey(field))
   );
   const repeatableGroups = (activeSubOption.repeatableGroups || []).filter((group) =>
     isVisibleByRule(group, activeValues, activeSubOption)
@@ -1389,12 +1420,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       localSubmissionSnapshot?.status !== "synced"
   );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
+  const isChecklistMasterUnavailable = !hasApiSections;
   const canEditPrefilledLocationFinalization = Boolean(
     activeSubOption?.id === "locationFinalization" &&
       activeSubOption?.canUpdateLocation &&
       !isCommentedForEdit
   );
   const isReadOnly =
+    isChecklistMasterUnavailable ||
     isRoleReadOnly ||
     (!isCommentedForEdit &&
       submittedFromServer &&
@@ -1402,20 +1435,24 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       !canEditPrefilledLocationFinalization) ||
     (submittedFromLocal && !isInfoResubmitWindowOpen) ||
     (hasSavedLocalSubmission && !isInfoResubmitWindowOpen);
-  const readOnlyTitle = getReadOnlyTitleFromStatus({
-    isRoleReadOnly,
-    serverStatusKey: activeServerStatusKey,
-    submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
-  });
-  const readOnlyNotice = getReadOnlyNoticeFromStatus({
-    isRoleReadOnly,
-    roleReadOnlyNotice: roleAccess.checklistReadOnlyNotice,
-    submittedFromServer,
-    submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
-    serverStatusKey: activeServerStatusKey,
-    isInfoResubmitEligible,
-    isInfoResubmitWindowOpen,
-  });
+  const readOnlyTitle = isChecklistMasterUnavailable
+    ? "Checklist unavailable"
+    : getReadOnlyTitleFromStatus({
+      isRoleReadOnly,
+      serverStatusKey: activeServerStatusKey,
+      submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
+    });
+  const readOnlyNotice = isChecklistMasterUnavailable
+    ? "Checklist master is not available from the API cache yet."
+    : getReadOnlyNoticeFromStatus({
+      isRoleReadOnly,
+      roleReadOnlyNotice: roleAccess.checklistReadOnlyNotice,
+      submittedFromServer,
+      submittedFromLocal: submittedFromLocal || hasSavedLocalSubmission,
+      serverStatusKey: activeServerStatusKey,
+      isInfoResubmitEligible,
+      isInfoResubmitWindowOpen,
+    });
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const canShowReviewActions = canReviewChecklist && submittedFromServer;
   const displayPhotoRequirements = useMemo(() => {

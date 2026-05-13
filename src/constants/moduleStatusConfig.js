@@ -179,15 +179,6 @@ export const MODULE_STATUS_SECTIONS = [
         id: "inletPipeLaying",
         label: "Inlet Pipe Laying",
         statusLabel: "Status",
-        inputFields: [
-          {
-            key: "inletPipeSize",
-            label: "Inlet Pipe Size (mm)",
-            placeholder: "Enter inlet pipe size in mm",
-            keyboardType: "numeric",
-            required: false,
-          },
-        ],
         checklistItems: checklist([
           "Check 110 mm OMS inlet pipe joined with pipeline.",
         ]),

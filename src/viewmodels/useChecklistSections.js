@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { MODULE_STATUS_SECTIONS } from "../constants/moduleStatusConfig";
 import { buildChecklistSectionsFromMaster } from "../services/checklistMasterAdapter";
 import { getCachedChecklistProcessMaster } from "../services/checklistOfflineSync";
 
@@ -151,9 +150,6 @@ const applyUnitAwareSectionContext = (sections = [], module, unit) => {
   }));
 };
 
-export const getModuleAwareSections = (module, unit) =>
-  applyUnitAwareSectionContext(MODULE_STATUS_SECTIONS, module, unit);
-
 const getChecklistCount = (sections = []) =>
   sections.reduce(
     (count, section) =>
@@ -175,18 +171,14 @@ const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
     () => ({ subChakQuantity: unitSubChakQuantity }),
     [unitSubChakQuantity]
   );
-  const fallbackSections = useMemo(
-    () => getModuleAwareSections(module, unitContext),
-    [module, unitContext]
-  );
   const [apiSections, setApiSections] = useState([]);
-  const [masterSource, setMasterSource] = useState("static");
+  const [masterSource, setMasterSource] = useState("api");
 
   useEffect(() => {
     let isMounted = true;
 
     setApiSections([]);
-    setMasterSource("static");
+    setMasterSource("api");
 
     const applyProcesses = (processes, source) => {
       const nextSections = applyUnitAwareSectionContext(
@@ -232,9 +224,7 @@ const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
         });
         const applied = applyProcesses(cachedProcesses, "sqlite-cache");
 
-        if (!applied && isMounted) {
-          console.log("[ChecklistMaster]", "Using static fallback checklist data");
-        }
+        return applied;
       } catch (error) {
         if (isMounted) {
           console.log("[ChecklistMaster]", "Local master cache unavailable", {
@@ -252,7 +242,7 @@ const useChecklistSections = ({ module = "OMS", unit = {} } = {}) => {
   }, [module, unitContext]);
 
   return {
-    sections: apiSections.length ? apiSections : fallbackSections,
+    sections: apiSections,
     masterSource,
     hasApiSections: apiSections.length > 0,
   };
