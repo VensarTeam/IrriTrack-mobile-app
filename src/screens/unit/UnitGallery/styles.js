@@ -148,6 +148,10 @@ export default StyleSheet.create({
     elevation: 3,
   },
 
+  photoThumbWrap: {
+    position: "relative",
+  },
+
   photoThumb: {
     width: "100%",
     aspectRatio: 0.86,
@@ -155,9 +159,41 @@ export default StyleSheet.create({
     backgroundColor: "#E6EEF5",
   },
 
-  photoDate: {
+  resubmitBadge: {
+    position: "absolute",
+    top: verticalScale(7),
+    right: moderateScale(7),
+    alignSelf: "flex-start",
+    backgroundColor: "#D9480F",
+    borderRadius: moderateScale(10),
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: verticalScale(3),
+  },
+
+  resubmitBadgeText: {
+    color: colors.white,
+    fontSize: moderateScale(9),
+    fontFamily: fonts.bold,
+    textAlign: "center",
+  },
+
+  photoInfo: {
     marginTop: verticalScale(6),
     marginBottom: verticalScale(2),
+    minHeight: verticalScale(34),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  checklistName: {
+    textAlign: "center",
+    fontSize: moderateScale(11),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  photoDate: {
+    marginTop: verticalScale(2),
     textAlign: "center",
     fontSize: moderateScale(11),
     color: colors.textSecondary,

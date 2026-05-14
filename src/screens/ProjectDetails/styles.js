@@ -978,7 +978,8 @@ export default StyleSheet.create({
     paddingVertical: verticalScale(6),
     borderRadius: moderateScale(999),
     borderWidth: 1,
-    backgroundColor: colors.primaryBlue,
+    borderColor: "#B7EBD7",
+    backgroundColor: "#0F806A",
   },
 
   phaseZoneBoardLabel: {

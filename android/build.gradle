@@ -6,7 +6,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath('com.android.tools.build:gradle')
+    classpath('com.android.tools.build:gradle:8.10.1')
     classpath('com.facebook.react:react-native-gradle-plugin')
     classpath('com.google.gms:google-services:4.4.4')
     classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
@@ -15,6 +15,7 @@ buildscript {
 
 allprojects {
   repositories {
+    maven { url "$rootDir/../node_modules/@notifee/react-native/android/libs" }
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }

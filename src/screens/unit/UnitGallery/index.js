@@ -15,6 +15,18 @@ import { Icons } from "../../../constants/icons";
 import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitGalleryViewModel from "../../../viewmodels/useUnitGalleryViewModel";
 
+const isResubmittedPhoto = (item = {}) =>
+  String(item?.raw?.source || "").trim().toLowerCase() === "resubmit";
+
+const getChecklistName = (item = {}) =>
+  String(
+    item?.checklistName ||
+      item?.raw?.checklistName ||
+      item?.raw?.checklist_name ||
+      item?.raw?.checkListName ||
+      ""
+  ).trim();
+
 const UnitGalleryScreen = ({ navigation, route }) => {
   const {
     module,
@@ -83,25 +95,48 @@ const UnitGalleryScreen = ({ navigation, route }) => {
 
         {photos.length ? (
           <View style={styles.photoGrid}>
-            {photos.map((item, index) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.photoCard}
-                activeOpacity={0.9}
-                onPress={() => openViewer(index)}
-              >
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.photoThumb}
-                  resizeMode="cover"
-                />
-                {item.dateLabel ? (
-                  <Text style={styles.photoDate} numberOfLines={1}>
-                    {item.dateLabel}
-                  </Text>
-                ) : null}
-              </TouchableOpacity>
-            ))}
+            {photos.map((item, index) => {
+              const checklistName = getChecklistName(item);
+
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.photoCard}
+                  activeOpacity={0.9}
+                  onPress={() => openViewer(index)}
+                >
+                  <View style={styles.photoThumbWrap}>
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.photoThumb}
+                      resizeMode="cover"
+                    />
+                    {isResubmittedPhoto(item) ? (
+                      <View style={styles.resubmitBadge}>
+                        <Text style={styles.resubmitBadgeText}>
+                          Resubmitted Image
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {checklistName || item.dateLabel ? (
+                    <View style={styles.photoInfo}>
+                      {checklistName ? (
+                        <Text style={styles.checklistName} numberOfLines={1}>
+                          {checklistName}
+                        </Text>
+                      ) : null}
+                      {item.dateLabel ? (
+                        <Text style={styles.photoDate} numberOfLines={1}>
+                          Uploaded On: {item.dateLabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyWrap}>

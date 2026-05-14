@@ -1,10 +1,22 @@
 import { registerRootComponent } from 'expo';
 
 import App from './App';
-import { registerBackgroundNotificationHandler } from './src/services/pushNotificationService';
+import {
+  displayPushNotification,
+  registerBackgroundNotificationHandler,
+  registerNotifeeBackgroundEventHandler,
+} from './src/services/pushNotificationService';
 
 registerBackgroundNotificationHandler(async (remoteMessage) => {
   console.log('Background FCM message:', remoteMessage?.messageId || remoteMessage?.data);
+
+  if (!remoteMessage?.notification) {
+    await displayPushNotification(remoteMessage);
+  }
+});
+
+registerNotifeeBackgroundEventHandler(async (remoteMessage) => {
+  console.log('Background notification event:', remoteMessage?.messageId || remoteMessage?.data);
 });
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

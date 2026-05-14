@@ -156,6 +156,16 @@ const getImageTitle = (item = {}, index = 0) =>
       `Photo ${index + 1}`
   ).trim();
 
+const getChecklistName = (item = {}) =>
+  String(
+    item?.checklistName ||
+      item?.checklist_name ||
+      item?.checkListName ||
+      item?.metadata?.checklistName ||
+      item?.metadata?.checklist_name ||
+      ""
+  ).trim();
+
 const getImageMeta = (item = {}, createdAt) => {
   const timestampLabel = toDisplayTimestamp(createdAt);
   const sourceLabel =
@@ -210,6 +220,7 @@ const normalizeGalleryImage = (item = {}, index = 0) => {
     ),
     uri: imageUri,
     title: getImageTitle(item, index),
+    checklistName: getChecklistName(item),
     createdAt: createdAt ? new Date(createdAt).getTime() : Date.now() - index * 1000,
     dateLabel: toDisplayDate(createdAt),
     meta: getImageMeta(item, createdAt),

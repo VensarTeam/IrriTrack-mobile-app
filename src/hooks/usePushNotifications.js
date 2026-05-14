@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  getNotificationContent,
   initializePushNotifications,
   subscribeToPushNotificationEvents,
 } from "../services/pushNotificationService";
 
-import { useInAppNotification } from "../context/InAppNotificationProvider";
-
 export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
-  const { showNotification } = useInAppNotification();
   const [state, setState] = useState({
     error: null,
     fcmToken: null,
@@ -34,14 +30,6 @@ export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
         });
 
         unsubscribeEvents = subscribeToPushNotificationEvents({
-          onForegroundMessage: (remoteMessage) => {
-            const { title, body } = getNotificationContent(remoteMessage);
-            showNotification({
-              title,
-              message: body || "You have a new update.",
-              type: "info",
-            });
-          },
           onNotificationOpen,
           onToken,
         });
@@ -66,7 +54,7 @@ export const usePushNotifications = ({ onToken, onNotificationOpen } = {}) => {
         unsubscribeEvents();
       }
     };
-  }, [onNotificationOpen, onToken, showNotification]);
+  }, [onNotificationOpen, onToken]);
 
   return state;
 };

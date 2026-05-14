@@ -902,17 +902,14 @@ const ProjectDetailsScreen = ({ route }) => {
                           </View>
                           <View style={styles.sectionActionRow}>
                             <TouchableOpacity
-                              style={[
-                                styles.phaseZoneBoardButton,
-                                { borderColor: moduleTheme.soft },
-                              ]}
+                              style={styles.phaseZoneBoardButton}
                               onPress={() => openSummary({ moduleKey: key })}
                               activeOpacity={0.86}
                               accessibilityRole="button"
                               accessibilityLabel="Summary"
                             >
                               <Icon
-                                source="map-marker-radius-outline"
+                                source="clipboard-text-outline"
                                 size={16}
                                 color={colors.white}
                               />
