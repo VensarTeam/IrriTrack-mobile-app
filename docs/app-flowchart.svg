@@ -1,0 +1,281 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2200" viewBox="0 0 1600 2200">
+  <defs>
+    <style>
+      .bg { fill: #f4faff; }
+      .title { font: 800 42px Arial, sans-serif; fill: #123b63; }
+      .subtitle { font: 500 20px Arial, sans-serif; fill: #617991; }
+      .laneTitle { font: 800 22px Arial, sans-serif; fill: #123b63; }
+      .boxTitle { font: 800 18px Arial, sans-serif; fill: #163048; }
+      .boxText { font: 500 15px Arial, sans-serif; fill: #425b73; }
+      .smallText { font: 500 13px Arial, sans-serif; fill: #617991; }
+      .decisionText { font: 800 16px Arial, sans-serif; fill: #163048; }
+      .edge { fill: none; stroke: #6a7d93; stroke-width: 3; marker-end: url(#arrow); }
+      .edgeDashed { fill: none; stroke: #6a7d93; stroke-width: 3; stroke-dasharray: 8 8; marker-end: url(#arrow); }
+      .edgeGreen { fill: none; stroke: #0f806a; stroke-width: 4; marker-end: url(#arrowGreen); }
+      .edgeOrange { fill: none; stroke: #cf540c; stroke-width: 4; marker-end: url(#arrowOrange); }
+      .label { font: 800 13px Arial, sans-serif; fill: #123b63; }
+      .card { fill: #ffffff; stroke: #d9e7f5; stroke-width: 2; }
+      .auth { fill: #eef5fc; stroke: #255b8e; stroke-width: 2; }
+      .role { fill: #f7fbf8; stroke: #0f806a; stroke-width: 2; }
+      .warn { fill: #fff7ed; stroke: #ef8f28; stroke-width: 2; }
+      .locked { fill: #f3f2fd; stroke: #5c5aa5; stroke-width: 2; }
+      .end { fill: #e9f8f2; stroke: #0f806a; stroke-width: 2; }
+      .diamond { fill: #ffffff; stroke: #123b63; stroke-width: 2; }
+      .pill { fill: #123b63; }
+      .pillText { font: 800 15px Arial, sans-serif; fill: #ffffff; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#6a7d93"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#0f806a"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#cf540c"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="2200"/>
+  <text class="title" x="70" y="80">IrriTrack App Flow</text>
+  <text class="subtitle" x="70" y="116">Start to end navigation, offline sync, module conditions, and role-based access</text>
+  <rect class="pill" x="70" y="145" width="210" height="34" rx="17"/>
+  <text class="pillText" x="93" y="168">Generated from code</text>
+  <text class="smallText" x="300" y="168">RootNavigator, AppTabs, AuthContext, roleAccess, Profile, Dashboard, ProjectDetails, Unit flows, WorkStatus</text>
+
+  <!-- Column guide labels -->
+  <text class="laneTitle" x="110" y="235">Authentication</text>
+  <text class="laneTitle" x="515" y="235">Main App</text>
+  <text class="laneTitle" x="930" y="235">Unit / Checklist</text>
+  <text class="laneTitle" x="1270" y="235">Roles</text>
+
+  <!-- Auth flow -->
+  <rect class="auth" x="80" y="270" width="320" height="92" rx="16"/>
+  <text class="boxTitle" x="110" y="304">App Launch</text>
+  <text class="boxText" x="110" y="330">AuthProvider restores stored session</text>
+  <text class="smallText" x="110" y="351">If restoring: RootNavigator returns null</text>
+
+  <polygon class="diamond" points="240,405 370,485 240,565 110,485"/>
+  <text class="decisionText" x="177" y="480">Valid session?</text>
+  <text class="smallText" x="172" y="504">available + not expired</text>
+
+  <rect class="auth" x="80" y="620" width="320" height="112" rx="16"/>
+  <text class="boxTitle" x="110" y="655">Auth Stack</text>
+  <text class="boxText" x="110" y="682">Login</text>
+  <text class="boxText" x="110" y="705">Forgot Password</text>
+  <text class="boxText" x="110" y="728">OTP route exists</text>
+
+  <rect class="auth" x="80" y="780" width="320" height="128" rx="16"/>
+  <text class="boxTitle" x="110" y="816">Face Login</text>
+  <text class="boxText" x="110" y="843">startFaceLogin(credentials)</text>
+  <text class="boxText" x="110" y="868">verifyFaceLogin(face image)</text>
+  <text class="smallText" x="110" y="892">On success: session saved locally</text>
+
+  <polygon class="diamond" points="610,405 740,485 610,565 480,485"/>
+  <text class="decisionText" x="548" y="480">App locked?</text>
+  <text class="smallText" x="530" y="504">stored session restored</text>
+
+  <rect class="locked" x="450" y="620" width="320" height="112" rx="16"/>
+  <text class="boxTitle" x="480" y="655">App Lock Screen</text>
+  <text class="boxText" x="480" y="682">Device authentication required</text>
+  <text class="smallText" x="480" y="706">On success: unlock app</text>
+
+  <!-- Main app -->
+  <rect class="card" x="450" y="780" width="340" height="118" rx="16"/>
+  <text class="boxTitle" x="480" y="816">App Tabs</text>
+  <text class="boxText" x="480" y="843">Dashboard</text>
+  <text class="boxText" x="480" y="868">Profile</text>
+  <text class="boxText" x="480" y="893">About</text>
+
+  <rect class="card" x="450" y="950" width="340" height="132" rx="16"/>
+  <text class="boxTitle" x="480" y="986">Dashboard</text>
+  <text class="boxText" x="480" y="1013">Load cached projects</text>
+  <text class="boxText" x="480" y="1038">Search project/client</text>
+  <text class="boxText" x="480" y="1063">Pull refresh checks network</text>
+
+  <rect class="card" x="450" y="1138" width="340" height="116" rx="16"/>
+  <text class="boxTitle" x="480" y="1174">Project Card</text>
+  <text class="boxText" x="480" y="1201">Tap project</text>
+  <text class="smallText" x="480" y="1225">Starts OMS basic sync in background</text>
+
+  <rect class="card" x="450" y="1310" width="340" height="150" rx="16"/>
+  <text class="boxTitle" x="480" y="1346">Project Details</text>
+  <text class="boxText" x="480" y="1373">Modules: OMS, RMS, GW</text>
+  <text class="boxText" x="480" y="1398">Location filters when insight allowed</text>
+  <text class="boxText" x="480" y="1423">Summary and Work Status buttons</text>
+
+  <polygon class="diamond" points="620,1510 770,1590 620,1670 470,1590"/>
+  <text class="decisionText" x="562" y="1585">Module is OMS?</text>
+  <text class="smallText" x="538" y="1609">RMS/GW under development</text>
+
+  <rect class="warn" x="210" y="1518" width="220" height="98" rx="16"/>
+  <text class="boxTitle" x="240" y="1554">RMS / GW</text>
+  <text class="boxText" x="240" y="1581">Show under</text>
+  <text class="boxText" x="240" y="1605">development alert</text>
+
+  <rect class="card" x="450" y="1725" width="340" height="128" rx="16"/>
+  <text class="boxTitle" x="480" y="1761">OMS Actions</text>
+  <text class="boxText" x="480" y="1788">Open Unit List</text>
+  <text class="boxText" x="480" y="1813">Open Summary</text>
+  <text class="boxText" x="480" y="1838">Open Work Status</text>
+
+  <!-- Unit / checklist flow -->
+  <rect class="card" x="900" y="950" width="350" height="132" rx="16"/>
+  <text class="boxTitle" x="930" y="986">Unit List</text>
+  <text class="boxText" x="930" y="1013">Filter/search units</text>
+  <text class="boxText" x="930" y="1038">Open gallery</text>
+  <text class="boxText" x="930" y="1063">Tap unit or process card</text>
+
+  <polygon class="diamond" points="1075,1135 1225,1215 1075,1295 925,1215"/>
+  <text class="decisionText" x="997" y="1210">Can open unit details?</text>
+  <text class="smallText" x="996" y="1234">Reviewer roles only</text>
+
+  <rect class="card" x="900" y="1350" width="350" height="124" rx="16"/>
+  <text class="boxTitle" x="930" y="1386">Unit Details</text>
+  <text class="boxText" x="930" y="1413">Status summary + process list</text>
+  <text class="boxText" x="930" y="1438">All Status / Review button</text>
+
+  <polygon class="diamond" points="1075,1530 1225,1610 1075,1690 925,1610"/>
+  <text class="decisionText" x="1006" y="1605">Can review checklist?</text>
+  <text class="smallText" x="995" y="1629">admin/manager/engineer</text>
+
+  <rect class="role" x="840" y="1750" width="300" height="132" rx="16"/>
+  <text class="boxTitle" x="870" y="1786">Contributor Path</text>
+  <text class="boxText" x="870" y="1813">Unit Status Update</text>
+  <text class="boxText" x="870" y="1838">Edit checklist fields/photos</text>
+  <text class="smallText" x="870" y="1862">Save locally, then sync pending work</text>
+
+  <rect class="role" x="1190" y="1750" width="300" height="132" rx="16"/>
+  <text class="boxTitle" x="1220" y="1786">Reviewer Path</text>
+  <text class="boxText" x="1220" y="1813">Unit Status Overview</text>
+  <text class="boxText" x="1220" y="1838">Open submitted item read-only</text>
+  <text class="smallText" x="1220" y="1862">Verify / approve / reject by role</text>
+
+  <rect class="card" x="900" y="1955" width="350" height="116" rx="16"/>
+  <text class="boxTitle" x="930" y="1991">Work Status Board</text>
+  <text class="boxText" x="930" y="2018">Contributor tabs: Submitted, Pending,</text>
+  <text class="boxText" x="930" y="2043">Approved, Commented</text>
+  <text class="smallText" x="930" y="2067">Reviewers also see Verified</text>
+
+  <!-- Roles -->
+  <rect class="role" x="1280" y="270" width="250" height="160" rx="16"/>
+  <text class="boxTitle" x="1310" y="306">Supervisor</text>
+  <text class="boxText" x="1310" y="333">Contributor</text>
+  <text class="boxText" x="1310" y="358">Edit checklist</text>
+  <text class="boxText" x="1310" y="383">OMS module only</text>
+  <text class="smallText" x="1310" y="407">No unit details/review</text>
+
+  <rect class="role" x="1280" y="470" width="250" height="180" rx="16"/>
+  <text class="boxTitle" x="1310" y="506">Engineer</text>
+  <text class="boxText" x="1310" y="533">Reviewer</text>
+  <text class="boxText" x="1310" y="558">View details/status</text>
+  <text class="boxText" x="1310" y="583">Verify submitted</text>
+  <text class="boxText" x="1310" y="608">Reject submitted/verified</text>
+  <text class="smallText" x="1310" y="632">Read-only checklist fields</text>
+
+  <rect class="role" x="1280" y="690" width="250" height="192" rx="16"/>
+  <text class="boxTitle" x="1310" y="726">Manager</text>
+  <text class="boxText" x="1310" y="753">Reviewer</text>
+  <text class="boxText" x="1310" y="778">Verify submitted</text>
+  <text class="boxText" x="1310" y="803">Approve verified</text>
+  <text class="boxText" x="1310" y="828">Reject submitted/verified</text>
+  <text class="smallText" x="1310" y="852">Can add contractor</text>
+
+  <rect class="role" x="1280" y="922" width="250" height="168" rx="16"/>
+  <text class="boxTitle" x="1310" y="958">Admin</text>
+  <text class="boxText" x="1310" y="985">Reviewer</text>
+  <text class="boxText" x="1310" y="1010">View all submissions</text>
+  <text class="boxText" x="1310" y="1035">No verify/approve/reject</text>
+  <text class="smallText" x="1310" y="1059">Can add contractor</text>
+
+  <rect class="role" x="1280" y="1130" width="250" height="150" rx="16"/>
+  <text class="boxTitle" x="1310" y="1166">Other Role</text>
+  <text class="boxText" x="1310" y="1193">Full default access</text>
+  <text class="boxText" x="1310" y="1218">Can edit checklist</text>
+  <text class="smallText" x="1310" y="1242">Not reviewer workflow</text>
+
+  <!-- Profile sync -->
+  <rect class="card" x="80" y="1020" width="320" height="156" rx="16"/>
+  <text class="boxTitle" x="110" y="1056">Profile Tab</text>
+  <text class="boxText" x="110" y="1083">Refresh profile if online</text>
+  <text class="boxText" x="110" y="1108">Permissions screen</text>
+  <text class="boxText" x="110" y="1133">Logout confirmation</text>
+  <text class="smallText" x="110" y="1157">Sync buttons hidden for reviewers</text>
+
+  <rect class="card" x="80" y="1225" width="320" height="178" rx="16"/>
+  <text class="boxTitle" x="110" y="1261">Master Data Sync</text>
+  <text class="boxText" x="110" y="1288">Supervisor/other non-reviewer</text>
+  <text class="boxText" x="110" y="1313">Checklist + project + contractor</text>
+  <text class="smallText" x="110" y="1337">Run in parallel with allSettled</text>
+  <text class="boxText" x="110" y="1364">OMS unit sync per project</text>
+  <text class="smallText" x="110" y="1388">Then success/failure alert</text>
+
+  <rect class="card" x="80" y="1760" width="320" height="112" rx="16"/>
+  <text class="boxTitle" x="110" y="1796">Pending Work Sync</text>
+  <text class="boxText" x="110" y="1823">Counts saved checklist items</text>
+  <text class="boxText" x="110" y="1848">Syncs queue when online</text>
+
+  <rect class="card" x="80" y="1930" width="320" height="126" rx="16"/>
+  <text class="boxTitle" x="110" y="1966">Add Contractor</text>
+  <text class="boxText" x="110" y="1993">Profile action only for</text>
+  <text class="boxText" x="110" y="2018">manager/admin</text>
+  <text class="smallText" x="110" y="2042">Others: access denied + go back</text>
+
+  <rect class="end" x="1280" y="1955" width="250" height="116" rx="16"/>
+  <text class="boxTitle" x="1310" y="1991">End States</text>
+  <text class="boxText" x="1310" y="2018">Data saved/synced</text>
+  <text class="boxText" x="1310" y="2043">Checklist reviewed</text>
+  <text class="boxText" x="1310" y="2068">Logout returns to Auth</text>
+
+  <!-- Edges -->
+  <path class="edge" d="M240 362 L240 405"/>
+  <path class="edgeOrange" d="M110 485 C55 485 55 676 80 676"/>
+  <text class="label" x="52" y="570">No</text>
+  <path class="edgeGreen" d="M370 485 L480 485"/>
+  <text class="label" x="410" y="470">Yes</text>
+  <path class="edge" d="M240 732 L240 780"/>
+  <path class="edgeGreen" d="M400 844 C430 844 420 840 450 840"/>
+  <text class="label" x="408" y="820">Success</text>
+  <path class="edgeOrange" d="M610 565 L610 620"/>
+  <text class="label" x="620" y="598">Yes</text>
+  <path class="edgeGreen" d="M610 732 L610 780"/>
+  <path class="edgeGreen" d="M740 485 C820 485 830 800 790 840"/>
+  <text class="label" x="760" y="570">No</text>
+  <path class="edge" d="M620 898 L620 950"/>
+  <path class="edge" d="M620 1082 L620 1138"/>
+  <path class="edge" d="M620 1254 L620 1310"/>
+  <path class="edgeGreen" d="M620 1460 L620 1510"/>
+  <path class="edgeOrange" d="M470 1590 L430 1590"/>
+  <text class="label" x="438" y="1570">No</text>
+  <path class="edgeGreen" d="M620 1670 L620 1725"/>
+  <text class="label" x="635" y="1700">Yes</text>
+  <path class="edge" d="M790 1788 C835 1788 835 1016 900 1016"/>
+  <path class="edge" d="M1075 1082 L1075 1135"/>
+  <path class="edgeGreen" d="M1075 1295 L1075 1350"/>
+  <text class="label" x="1090" y="1325">Yes</text>
+  <path class="edge" d="M1075 1474 L1075 1530"/>
+  <path class="edgeOrange" d="M925 1215 C815 1215 815 1790 840 1816"/>
+  <text class="label" x="855" y="1300">No: open process</text>
+  <path class="edgeOrange" d="M925 1610 C870 1610 855 1720 920 1750"/>
+  <text class="label" x="840" y="1668">No</text>
+  <path class="edgeGreen" d="M1225 1610 C1280 1610 1295 1720 1340 1750"/>
+  <text class="label" x="1264" y="1668">Yes</text>
+  <path class="edge" d="M990 1882 L1015 1955"/>
+  <path class="edge" d="M1340 1882 C1300 1930 1245 1955 1250 2013"/>
+  <path class="edge" d="M1140 1816 C1180 1890 1240 1960 1280 2013"/>
+
+  <path class="edgeDashed" d="M450 840 C320 840 270 930 240 1020"/>
+  <path class="edge" d="M240 1176 L240 1225"/>
+  <path class="edge" d="M240 1403 L240 1760"/>
+  <path class="edge" d="M240 1872 L240 1930"/>
+  <path class="edgeDashed" d="M400 1993 C720 2130 1150 2130 1280 2013"/>
+  <path class="edgeDashed" d="M1530 2013 C1570 2013 1570 680 400 676"/>
+  <text class="label" x="1434" y="1930">Logout</text>
+
+  <!-- Notes -->
+  <rect class="warn" x="450" y="1918" width="340" height="156" rx="16"/>
+  <text class="boxTitle" x="480" y="1954">Offline Behavior</text>
+  <text class="boxText" x="480" y="1981">Dashboard/Profile refresh checks NetInfo</text>
+  <text class="boxText" x="480" y="2006">Offline: use cached project/profile data</text>
+  <text class="boxText" x="480" y="2031">OfflineChecklistSyncGate runs once per login</text>
+  <text class="smallText" x="480" y="2055">Master sync first, pending queue sync after</text>
+</svg>

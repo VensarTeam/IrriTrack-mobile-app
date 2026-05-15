@@ -37,18 +37,6 @@ export default StyleSheet.create({
     color: colors.primaryBlue,
   },
 
-  headerIcon: {
-    width: moderateScale(34),
-    height: moderateScale(34),
-    borderRadius: moderateScale(17),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceBlueSoft,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginLeft: moderateScale(10),
-  },
-
   floatingFilterSection: {
     paddingTop: verticalScale(14),
     paddingBottom: verticalScale(6),
@@ -75,12 +63,6 @@ export default StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  floatingFilterValue: {
-    fontSize: fontScale(15),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
-  },
-
   subprocessList: {
     paddingHorizontal: moderateScale(16),
     paddingTop: verticalScale(6),
@@ -94,11 +76,11 @@ export default StyleSheet.create({
     borderRadius: moderateScale(999),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: "#E2E8F0", // subtle border
+    borderColor: "#E2E8F0",
   },
 
   subprocessChipActive: {
-    backgroundColor: colors.primaryBlue, // Dark elegant mode active
+    backgroundColor: colors.primaryBlue,
     borderColor: colors.primaryBlue,
   },
 
@@ -124,42 +106,6 @@ export default StyleSheet.create({
     paddingBottom: verticalScale(24),
   },
 
-  totalStrip: {
-    flexDirection: "row",
-    gap: moderateScale(8),
-    marginBottom: verticalScale(10),
-  },
-
-  summaryStat: {
-    flex: 1,
-    minWidth: 0,
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(9),
-    borderRadius: moderateScale(14),
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-
-  summaryStatWide: {
-    flex: 1.25,
-  },
-
-  summaryStatLabel: {
-    fontSize: fontScale(9),
-    fontFamily: fonts.bold,
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-
-  summaryStatValue: {
-    marginTop: verticalScale(3),
-    fontSize: fontScale(15),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
-  },
-
   phaseShell: {
     marginBottom: verticalScale(10),
     borderRadius: moderateScale(18),
@@ -167,10 +113,6 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: "hidden",
-  },
-
-  phaseShellExpanded: {
-    borderColor: "#C7DDF8",
   },
 
   phaseHeader: {
@@ -197,19 +139,17 @@ export default StyleSheet.create({
     minWidth: 0,
   },
 
-  phaseIcon: {
-    width: moderateScale(34),
-    height: moderateScale(34),
-    borderRadius: moderateScale(17),
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: moderateScale(9),
+  phasePill: {
+    borderWidth: 1.5,
+    borderRadius: moderateScale(22),
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: verticalScale(8),
   },
 
-  phaseName: {
-    fontSize: fontScale(14),
+  phasePillText: {
+    fontSize: fontScale(15),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    letterSpacing: 0.3,
   },
 
   phaseRight: {
@@ -217,25 +157,6 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
     gap: moderateScale(8),
-  },
-
-  phaseMetric: {
-    width: moderateScale(82),
-  },
-
-  phaseMetricValue: {
-    marginBottom: verticalScale(4),
-    fontSize: fontScale(10.5),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
-    textAlign: "right",
-  },
-
-  phasePercent: {
-    width: moderateScale(36),
-    fontSize: fontScale(11),
-    fontFamily: fonts.bold,
-    textAlign: "right",
   },
 
   chevronContainer: {
@@ -247,11 +168,6 @@ export default StyleSheet.create({
     backgroundColor: "#F3F6FA",
     borderWidth: 1,
     borderColor: colors.cardBorder,
-  },
-
-  chevronContainerExpanded: {
-    backgroundColor: colors.white,
-    borderColor: "#C7DDF8",
   },
 
   phaseTableContainer: {
@@ -271,6 +187,13 @@ export default StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
 
+  tableTotalRow: {
+    flexDirection: "row",
+    backgroundColor: "#DFF0FF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#9BC7E8",
+  },
+
   tableDataRow: {
     flexDirection: "row",
     backgroundColor: colors.white,
@@ -279,9 +202,11 @@ export default StyleSheet.create({
   },
 
   tableCellZone: {
-    flex: 1,
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(6),
+    width: "20%",
+    minWidth: 0,
+    minHeight: verticalScale(42),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(5),
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
@@ -290,9 +215,11 @@ export default StyleSheet.create({
   },
 
   tableCell: {
-    flex: 1,
-    paddingVertical: verticalScale(10),
-    paddingHorizontal: moderateScale(4),
+    width: "20%",
+    minWidth: 0,
+    minHeight: verticalScale(42),
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: moderateScale(5),
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
@@ -303,25 +230,53 @@ export default StyleSheet.create({
     borderRightWidth: 0,
   },
 
+  tableHeaderCell: {
+    minHeight: verticalScale(38),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: moderateScale(3),
+  },
+
+  tableHeaderCellZone: {
+    backgroundColor: colors.surfaceBlueSoft,
+  },
+
+  tableTotalCell: {
+    minHeight: verticalScale(36),
+    paddingVertical: verticalScale(7),
+    paddingHorizontal: moderateScale(3),
+    backgroundColor: "#DFF0FF",
+    borderRightColor: "#9BC7E8",
+  },
+
   tableHeaderLabel: {
-    fontSize: fontScale(9.8),
+    width: "100%",
+    fontSize: fontScale(11),
+    lineHeight: fontScale(12.8),
     fontFamily: fonts.bold,
     color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: 0,
     textAlign: "center",
   },
 
   tableHeaderValue: {
-    marginTop: verticalScale(3),
-    fontSize: fontScale(12),
+    width: "100%",
+    fontSize: fontScale(14),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    color: "#0B4A7A",
     textAlign: "center",
   },
 
   tableDataLabelZone: {
-    fontSize: fontScale(12.5),
+    minWidth: moderateScale(56),
+    paddingHorizontal: moderateScale(7),
+    paddingVertical: verticalScale(3),
+    borderRadius: moderateScale(8),
+    overflow: "hidden",
+    backgroundColor: "#EAF4FF",
+    borderWidth: 1,
+    borderColor: "#B8D7F2",
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
     color: colors.primaryBlue,
     textAlign: "center",
@@ -332,5 +287,59 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.textDark,
     textAlign: "center",
+  },
+
+  tableState: {
+    minHeight: verticalScale(76),
+    alignItems: "center",
+    justifyContent: "center",
+    gap: verticalScale(8),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(14),
+    backgroundColor: colors.white,
+  },
+
+  tableStateText: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+
+  tableErrorText: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.medium,
+    color: colors.danger,
+    textAlign: "center",
+  },
+
+  tableRetryButton: {
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.surfaceBlueSoft,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+
+  tableRetryText: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
+  },
+
+  loadMoreButton: {
+    minHeight: verticalScale(42),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FBFE",
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+
+  loadMoreText: {
+    fontSize: fontScale(12),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
   },
 });

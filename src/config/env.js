@@ -27,6 +27,7 @@ export const API_ENDPOINTS = Object.freeze({
   omsSubmissionResubmit: process.env.EXPO_PUBLIC_API_OMS_SUBMISSION_RESUBMIT_PATH,
   omsSubmissionWorkflowStatus: process.env.EXPO_PUBLIC_API_OMS_SUBMISSION_WORKFLOW_STATUS_PATH,
   omsRequestStatus: process.env.EXPO_PUBLIC_API_OMS_REQUEST_STATUS_PATH,
+  omsPhaseSummary: process.env.EXPO_PUBLIC_API_OMS_PHASE_SUMMARY_PATH,
   omsImageGallery: process.env.EXPO_PUBLIC_API_OMS_IMAGE_GALLERY_PATH,
   masterProcesses: process.env.EXPO_PUBLIC_API_MASTER_PROCESSES_PATH,
   contractors: process.env.EXPO_PUBLIC_API_CONTRACTORS_PATH,

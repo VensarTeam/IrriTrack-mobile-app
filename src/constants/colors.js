@@ -5,8 +5,8 @@ const colors = {
   primaryOrange: "#F49B3F",
   lightGreen: "#DCF7EA",
   rmsColor: "#0f806a",
-  gwColor:"#cf540c",
-  darkGreen:'#418f05',
+  gwColor: "#cf540c",
+  darkGreen: "#418f05",
 
   // Shared app theme
   vibrantGradientTop: "#eff7fc",
@@ -39,6 +39,10 @@ const colors = {
   faceGuideBorder: "rgba(255,255,255,0.95)",
   faceGuideSurface: "rgba(255,255,255,0.04)",
   guideLabelSurface: "rgba(12, 46, 77, 0.82)",
+  phase1BorderColor: "#94c4ecff",
+  phase2BorderColor: "#c796ceff",
+  phase1Text: "#2196F3",
+  phase2Text: "#9C27B0",
 
   // Surfaces and text
   white: "#FFFFFF",

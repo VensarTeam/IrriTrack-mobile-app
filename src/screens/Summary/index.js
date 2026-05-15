@@ -1,134 +1,209 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   LayoutAnimation,
-  Platform,
+  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
-  UIManager,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon, IconButton } from "react-native-paper";
 import { OMS_SUBPROCESS_FILTER_OPTIONS } from "../../constants/omsFilterConfig";
+import { fetchPhaseSummary } from "../../services/summaryService";
 import colors from "../../constants/colors";
 import styles from "./styles";
 
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+const SUBPROCESS_OPTIONS = OMS_SUBPROCESS_FILTER_OPTIONS;
+const DEFAULT_SUBPROCESS_ID = SUBPROCESS_OPTIONS[0]?.id || 4;
 
-const SUBPROCESS_OPTIONS = [
-  { id: "all", shortLabel: "All" },
-  ...OMS_SUBPROCESS_FILTER_OPTIONS,
-];
+const PHASE_COLORS = {
+  "phase-1": { border: colors.phase1BorderColor, text: colors.phase1Text },
+  "phase-2": { border: colors.phase2BorderColor, text: colors.phase2Text },
+};
 
 const PHASES = [
   {
     id: "phase-1",
     name: "Phase 1",
-    icon: "numeric-1-circle-outline",
-    zones: [
-      { id: "01", areaHa: 420, totalOms: 96, completedOms: 78 },
-      { id: "02", areaHa: 360, totalOms: 84, completedOms: 52 },
-      { id: "03", areaHa: 310, totalOms: 72, completedOms: 64 },
-      { id: "04", areaHa: 190, totalOms: 46, completedOms: 21 },
-    ],
+    apiPhase: "Phase-1",
   },
   {
     id: "phase-2",
     name: "Phase 2",
-    icon: "numeric-2-circle-outline",
-    zones: [
-      { id: "05", areaHa: 290, totalOms: 68, completedOms: 28 },
-      { id: "06", areaHa: 320, totalOms: 74, completedOms: 44 },
-      { id: "07", areaHa: 210, totalOms: 52, completedOms: 39 },
-      { id: "08", areaHa: 120, totalOms: 31, completedOms: 13 },
-    ],
+    apiPhase: "Phase-2",
   },
 ];
 
 const formatNumber = (value) => Number(value || 0).toLocaleString("en-IN");
-const formatAreaValue = (value) => formatNumber(Math.round(value || 0));
-const formatArea = (value) => `${formatAreaValue(value)} ha`;
-const formatTableHeaderTotal = (value) => `(${value})`;
+const formatAreaValue = (value) =>
+  Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+const formatZoneName = (value = "") =>
+  String(value || "").trim().toUpperCase();
 
-const getPercent = (value, total) => {
-  if (!total) return 0;
-  return Math.min(100, Math.round((Number(value) / Number(total)) * 100));
-};
+const createEmptyPhaseData = () => ({
+  summary: {
+    totalOms: 0,
+    areaHa: 0,
+    totalZone: 0,
+    completedOms: 0,
+    completedAreaHa: 0,
+  },
+  zones: [],
+  meta: null,
+  isLoading: false,
+  isLoadingMore: false,
+  error: "",
+});
 
-const getTone = (percent) => {
-  if (percent >= 80) return { color: colors.completed, bg: "#EAF8F1" };
-  if (percent >= 55) return { color: colors.partial, bg: "#FFF7DF" };
-  return { color: colors.primaryOrange, bg: "#FFF0E3" };
-};
-
-const getZoneComputedData = (zone) => {
-  const percent = getPercent(zone.completedOms, zone.totalOms);
-  const completedAreaHa = zone.totalOms
-    ? (zone.areaHa * zone.completedOms) / zone.totalOms
-    : 0;
-
-  return {
-    percent,
-    completedAreaHa,
-    tone: getTone(percent),
-  };
-};
-
-const getPhaseSummary = (phase) =>
-  phase.zones.reduce(
-    (acc, zone) => {
-      const computed = getZoneComputedData(zone);
-      acc.totalOms += zone.totalOms;
-      acc.completedOms += zone.completedOms;
-      acc.areaHa += zone.areaHa;
-      acc.completedAreaHa += computed.completedAreaHa;
-      return acc;
-    },
-    { totalOms: 0, completedOms: 0, areaHa: 0, completedAreaHa: 0 }
-  );
+const createInitialPhaseData = () =>
+  PHASES.reduce((acc, phase) => {
+    acc[phase.id] = createEmptyPhaseData();
+    return acc;
+  }, {});
 
 const SummaryScreen = ({ navigation, route }) => {
-  const [selectedSubprocessId, setSelectedSubprocessId] = useState("all");
+  const [selectedSubprocessId, setSelectedSubprocessId] = useState(DEFAULT_SUBPROCESS_ID);
   const [expandedPhaseIds, setExpandedPhaseIds] = useState({
     "phase-1": true,
     "phase-2": false,
   });
+  const [phaseDataById, setPhaseDataById] = useState(createInitialPhaseData);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const phaseRequestKeysRef = useRef({});
 
   const module = route?.params?.module || "OMS";
+  const project = route?.params?.project || {};
+  const projectId =
+    route?.params?.projectId || project?.id || project?.projectId || "";
   const projectName =
     route?.params?.projectName || route?.params?.project?.name || "Project";
-  const selectedSubprocess = SUBPROCESS_OPTIONS.find(
-    (item) => item.id === selectedSubprocessId
+  const selectedSubprocessIdForApi = selectedSubprocessId;
+
+  const loadPhaseData = useCallback(
+    async (phase, { page = 1, append = false, forceRefresh = false } = {}) => {
+      const requestKey = [
+        phase.id,
+        selectedSubprocessIdForApi,
+        page,
+        append ? "append" : "replace",
+        Date.now(),
+      ].join(":");
+      phaseRequestKeysRef.current[phase.id] = requestKey;
+
+      if (!projectId) {
+        setPhaseDataById((current) => ({
+          ...current,
+          [phase.id]: {
+            ...current[phase.id],
+            isLoading: false,
+            isLoadingMore: false,
+            error: "Project details are missing for this summary.",
+          },
+        }));
+        return;
+      }
+
+      setPhaseDataById((current) => ({
+        ...current,
+        [phase.id]: {
+          ...(current[phase.id] || createEmptyPhaseData()),
+          isLoading: !append,
+          isLoadingMore: append,
+          error: "",
+        },
+      }));
+
+      try {
+        const response = await fetchPhaseSummary({
+          projectId,
+          subprocessId: selectedSubprocessIdForApi,
+          phase: phase.apiPhase,
+          deviceType: String(module || "OMS").toLowerCase(),
+          page,
+          forceRefresh,
+        });
+
+        setPhaseDataById((current) => {
+          if (phaseRequestKeysRef.current[phase.id] !== requestKey) {
+            return current;
+          }
+
+          const previous = current[phase.id] || createEmptyPhaseData();
+          return {
+            ...current,
+            [phase.id]: {
+              ...previous,
+              summary: response.phase,
+              zones: append
+                ? [...previous.zones, ...response.zones]
+                : response.zones,
+              meta: response.meta,
+              isLoading: false,
+              isLoadingMore: false,
+              error: "",
+            },
+          };
+        });
+      } catch (error) {
+        setPhaseDataById((current) => ({
+          ...current,
+          [phase.id]:
+            phaseRequestKeysRef.current[phase.id] === requestKey
+              ? {
+                  ...(current[phase.id] || createEmptyPhaseData()),
+                  isLoading: false,
+                  isLoadingMore: false,
+                  error: append
+                    ? current[phase.id]?.error || ""
+                    : error?.message || "Unable to load summary.",
+                }
+              : current[phase.id],
+        }));
+      }
+    },
+    [module, projectId, selectedSubprocessIdForApi]
   );
 
-  const totals = useMemo(
-    () =>
-      PHASES.reduce(
-        (acc, phase) => {
-          const phaseSummary = getPhaseSummary(phase);
-          acc.totalOms += phaseSummary.totalOms;
-          acc.completedOms += phaseSummary.completedOms;
-          acc.areaHa += phaseSummary.areaHa;
-          acc.completedAreaHa += phaseSummary.completedAreaHa;
-          return acc;
-        },
-        { totalOms: 0, completedOms: 0, areaHa: 0, completedAreaHa: 0 }
-      ),
-    []
-  );
+  const refreshExpandedPhases = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all(
+        PHASES.filter((phase) => expandedPhaseIds[phase.id]).map((phase) =>
+          loadPhaseData(phase, { forceRefresh: true })
+        )
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [expandedPhaseIds, loadPhaseData]);
+
+  useEffect(() => {
+    setPhaseDataById(createInitialPhaseData());
+    PHASES.forEach((phase) => {
+      if (expandedPhaseIds[phase.id]) {
+        void loadPhaseData(phase);
+      }
+    });
+  }, [loadPhaseData]);
 
   const togglePhase = (phaseId) => {
+    const nextExpanded = !expandedPhaseIds[phaseId];
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedPhaseIds((current) => ({
       ...current,
-      [phaseId]: !current[phaseId],
+      [phaseId]: nextExpanded,
     }));
+
+    const phase = PHASES.find((item) => item.id === phaseId);
+    const phaseData = phaseDataById[phaseId];
+    if (nextExpanded && phase && !phaseData?.zones?.length && !phaseData?.isLoading) {
+      void loadPhaseData(phase);
+    }
   };
 
   return (
@@ -141,9 +216,6 @@ const SummaryScreen = ({ navigation, route }) => {
             {module} | {projectName}
           </Text>
         </View>
-        {/* <View style={styles.headerIcon}>
-          <Icon source="chart-box-outline" size={20} color={colors.primaryBlue} />
-        </View> */}
       </View>
 
       <View style={styles.floatingFilterSection}>
@@ -152,9 +224,6 @@ const SummaryScreen = ({ navigation, route }) => {
             <Icon source="filter-variant" size={18} color={colors.textSecondary} />
             <Text style={styles.floatingFilterTitle}>Filter</Text>
           </View>
-          {/* <Text style={styles.floatingFilterValue} numberOfLines={1}>
-            {selectedSubprocess?.shortLabel || selectedSubprocess?.label || "All"}
-          </Text> */}
         </View>
 
         <ScrollView
@@ -171,7 +240,11 @@ const SummaryScreen = ({ navigation, route }) => {
                   styles.subprocessChip,
                   active && styles.subprocessChipActive,
                 ]}
-                onPress={() => setSelectedSubprocessId(option.id)}
+                onPress={() => {
+                  if (!active) {
+                    setSelectedSubprocessId(option.id);
+                  }
+                }}
                 activeOpacity={0.8}
               >
                 <Text
@@ -193,28 +266,28 @@ const SummaryScreen = ({ navigation, route }) => {
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshExpandedPhases}
+            tintColor={colors.primaryBlue}
+            colors={[colors.primaryBlue]}
+          />
+        }
       >
-        {/* <View style={styles.totalStrip}>
-          <SummaryStat label="OMS" value={totals.totalOms} />
-          <SummaryStat label="Done" value={totals.completedOms} />
-          <SummaryStat label="Area" value={formatArea(totals.completedAreaHa)} wide />
-        </View> */}
-
         {PHASES.map((phase) => {
           const expanded = Boolean(expandedPhaseIds[phase.id]);
-          const phaseSummary = getPhaseSummary(phase);
-          const phasePercent = getPercent(
-            phaseSummary.completedOms,
-            phaseSummary.totalOms
-          );
-          const phaseTone = getTone(phasePercent);
+          const phaseData = phaseDataById[phase.id] || createEmptyPhaseData();
+          const phaseSummary = phaseData.summary;
+          const hasNextPage = Boolean(phaseData.meta?.hasNextPage);
+          const nextPage = Number(phaseData.meta?.page || 1) + 1;
 
           return (
             <View
               key={phase.id}
               style={[
                 styles.phaseShell,
-                expanded && styles.phaseShellExpanded,
+                { borderColor: PHASE_COLORS[phase.id]?.border || colors.cardBorder, borderWidth: 1 },
               ]}
             >
               <TouchableOpacity
@@ -226,18 +299,33 @@ const SummaryScreen = ({ navigation, route }) => {
                 activeOpacity={0.88}
               >
                 <View style={styles.phaseLeft}>
-                  <View style={[styles.phaseIcon, { backgroundColor: phaseTone.bg }]}>
-                    <Icon source={phase.icon} size={20} color={phaseTone.color} />
+                  <View
+                    style={[
+                      styles.phasePill,
+                      {
+                        borderColor: PHASE_COLORS[phase.id]?.border || colors.primaryBlue,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.phasePillText,
+                        {
+                          color: PHASE_COLORS[phase.id]?.text || colors.primaryBlue,
+                        },
+                      ]}
+                    >
+                      {phase.name}
+                    </Text>
                   </View>
-                  <Text style={styles.phaseName}>{phase.name}</Text>
                 </View>
 
                 <View style={styles.phaseRight}>
-                  <View style={[styles.chevronContainer, expanded && styles.chevronContainerExpanded]}>
+                  <View style={[styles.chevronContainer, { borderColor: PHASE_COLORS[phase.id]?.border || colors.cardBorder }]}>
                     <Icon
                       source={expanded ? "chevron-up" : "chevron-down"}
                       size={20}
-                      color={expanded ? colors.primaryBlue : colors.textSecondary}
+                      color={PHASE_COLORS[phase.id]?.text || colors.textSecondary}
                     />
                   </View>
                 </View>
@@ -246,44 +334,74 @@ const SummaryScreen = ({ navigation, route }) => {
               {expanded ? (
                 <View style={styles.phaseTableContainer}>
                   <View style={styles.tableHeaderRow}>
-                    <View style={styles.tableCellZone}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={1}>Zone</Text>
+                    <View style={[styles.tableCellZone, styles.tableHeaderCell, styles.tableHeaderCellZone]}>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Zone</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#3B82F6" }]} numberOfLines={2}>TOT OMS</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#F59E0B" }]} numberOfLines={2}>TOT Area (HA)</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#10B981" }]} numberOfLines={2}>Completed</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.tableHeaderCell, styles.tableCellLast]}>
+                      <Text style={[styles.tableHeaderLabel, { color: "#8B5CF6" }]} numberOfLines={2}>Cov Area (HA)</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.tableTotalRow}>
+                    <View style={[styles.tableCellZone, styles.tableTotalCell]}>
                       <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatTableHeaderTotal(phase.zones.length)}
+                        {formatNumber(phaseSummary.totalZone)}
                       </Text>
                     </View>
-                    <View style={styles.tableCell}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#3B82F6" }]} numberOfLines={1}>TOT OMS</Text>
+                    <View style={[styles.tableCell, styles.tableTotalCell]}>
                       <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatTableHeaderTotal(formatNumber(phaseSummary.totalOms))}
+                        {formatNumber(phaseSummary.totalOms)}
                       </Text>
                     </View>
-                    <View style={styles.tableCell}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#F59E0B" }]} numberOfLines={1}>TOT Area(HA)</Text>
+                    <View style={[styles.tableCell, styles.tableTotalCell]}>
                       <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatTableHeaderTotal(formatAreaValue(phaseSummary.areaHa))}
+                        {formatAreaValue(phaseSummary.areaHa)}
                       </Text>
                     </View>
-                    <View style={styles.tableCell}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#10B981" }]} numberOfLines={1}>COMPLETED</Text>
+                    <View style={[styles.tableCell, styles.tableTotalCell]}>
                       <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatTableHeaderTotal(formatNumber(phaseSummary.completedOms))}
+                        {formatNumber(phaseSummary.completedOms)}
                       </Text>
                     </View>
-                    <View style={[styles.tableCell, styles.tableCellLast]}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#8B5CF6" }]} numberOfLines={1}>Cov Area(HA)</Text>
+                    <View style={[styles.tableCell, styles.tableTotalCell, styles.tableCellLast]}>
                       <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatTableHeaderTotal(formatAreaValue(phaseSummary.completedAreaHa))}
+                        {formatAreaValue(phaseSummary.completedAreaHa)}
                       </Text>
                     </View>
                   </View>
 
-                  {phase.zones.map((zone) => {
-                    const { completedAreaHa } = getZoneComputedData(zone);
-                    return (
+                  {phaseData.isLoading ? (
+                    <View style={styles.tableState}>
+                      <ActivityIndicator size="small" color={colors.primaryBlue} />
+                      <Text style={styles.tableStateText}>Loading summary...</Text>
+                    </View>
+                  ) : phaseData.error ? (
+                    <View style={styles.tableState}>
+                      <Text style={styles.tableErrorText}>{phaseData.error}</Text>
+                      <TouchableOpacity
+                        style={styles.tableRetryButton}
+                        onPress={() => loadPhaseData(phase)}
+                        activeOpacity={0.82}
+                      >
+                        <Text style={styles.tableRetryText}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : phaseData.zones.length ? (
+                    phaseData.zones.map((zone) => (
                       <View key={zone.id} style={styles.tableDataRow}>
                         <View style={styles.tableCellZone}>
-                          <Text style={styles.tableDataLabelZone} numberOfLines={1}>Z-{zone.id}</Text>
+                          <Text style={styles.tableDataLabelZone} numberOfLines={1}>
+                            {formatZoneName(zone.zoneName)}
+                          </Text>
                         </View>
                         <View style={styles.tableCell}>
                           <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.totalOms}</Text>
@@ -295,11 +413,35 @@ const SummaryScreen = ({ navigation, route }) => {
                           <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.completedOms}</Text>
                         </View>
                         <View style={[styles.tableCell, styles.tableCellLast]}>
-                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(completedAreaHa)}</Text>
+                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(zone.completedAreaHa)}</Text>
                         </View>
                       </View>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <View style={styles.tableState}>
+                      <Text style={styles.tableStateText}>No summary data found.</Text>
+                    </View>
+                  )}
+
+                  {hasNextPage ? (
+                    <TouchableOpacity
+                      style={styles.loadMoreButton}
+                      onPress={() =>
+                        loadPhaseData(phase, {
+                          page: nextPage,
+                          append: true,
+                        })
+                      }
+                      disabled={phaseData.isLoadingMore}
+                      activeOpacity={0.82}
+                    >
+                      {phaseData.isLoadingMore ? (
+                        <ActivityIndicator size="small" color={colors.primaryBlue} />
+                      ) : (
+                        <Text style={styles.loadMoreText}>Load more zones</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               ) : null}
             </View>
