@@ -27,7 +27,7 @@ export default StyleSheet.create({
   headerTitle: {
     fontSize: fontScale(18),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    color: "#31556F",
   },
 
   headerMeta: {
@@ -205,7 +205,7 @@ export default StyleSheet.create({
     width: "20%",
     minWidth: 0,
     minHeight: verticalScale(42),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(5),
     paddingHorizontal: moderateScale(5),
     alignItems: "center",
     justifyContent: "center",
@@ -218,7 +218,7 @@ export default StyleSheet.create({
     width: "20%",
     minWidth: 0,
     minHeight: verticalScale(42),
-    paddingVertical: verticalScale(8),
+    paddingVertical: verticalScale(5),
     paddingHorizontal: moderateScale(5),
     alignItems: "center",
     justifyContent: "center",
@@ -237,7 +237,7 @@ export default StyleSheet.create({
   },
 
   tableHeaderCellZone: {
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: "#EAF4FF",
   },
 
   tableTotalCell: {
@@ -253,7 +253,18 @@ export default StyleSheet.create({
     fontSize: fontScale(11),
     lineHeight: fontScale(12.8),
     fontFamily: fonts.bold,
-    color: colors.textSecondary,
+    color: colors.textDark,
+    textTransform: "uppercase",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+
+  tableHeaderLabelZone: {
+    width: "100%",
+    fontSize: fontScale(11),
+    lineHeight: fontScale(12.8),
+    fontFamily: fonts.bold,
+    color: colors.primaryBlue,
     textTransform: "uppercase",
     letterSpacing: 0,
     textAlign: "center",

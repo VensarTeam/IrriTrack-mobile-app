@@ -335,19 +335,19 @@ const SummaryScreen = ({ navigation, route }) => {
                 <View style={styles.phaseTableContainer}>
                   <View style={styles.tableHeaderRow}>
                     <View style={[styles.tableCellZone, styles.tableHeaderCell, styles.tableHeaderCellZone]}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Zone</Text>
+                      <Text style={styles.tableHeaderLabelZone} numberOfLines={2}>Zone</Text>
                     </View>
                     <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#3B82F6" }]} numberOfLines={2}>TOT OMS</Text>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT OMS</Text>
                     </View>
                     <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#F59E0B" }]} numberOfLines={2}>TOT Area (HA)</Text>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT Area (HA)</Text>
                     </View>
                     <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#10B981" }]} numberOfLines={2}>Completed</Text>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Completed</Text>
                     </View>
                     <View style={[styles.tableCell, styles.tableHeaderCell, styles.tableCellLast]}>
-                      <Text style={[styles.tableHeaderLabel, { color: "#8B5CF6" }]} numberOfLines={2}>Cov Area (HA)</Text>
+                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Cov Area (HA)</Text>
                     </View>
                   </View>
 
