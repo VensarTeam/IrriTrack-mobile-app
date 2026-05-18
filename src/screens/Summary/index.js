@@ -20,7 +20,7 @@ const DEFAULT_SUBPROCESS_ID = SUBPROCESS_OPTIONS[0]?.id || 4;
 
 const PHASE_COLORS = {
   "phase-1": { border: colors.phase1BorderColor, text: colors.phase1Text },
-  "phase-2": { border: colors.phase2BorderColor, text: colors.phase2Text },
+  "phase-2": { border: colors.phase1BorderColor, text: colors.phase1Text },
 };
 
 const PHASES = [
@@ -399,7 +399,12 @@ const SummaryScreen = ({ navigation, route }) => {
                     phaseData.zones.map((zone) => (
                       <View key={zone.id} style={styles.tableDataRow}>
                         <View style={styles.tableCellZone}>
-                          <Text style={styles.tableDataLabelZone} numberOfLines={1}>
+                          <Text
+                            style={styles.tableDataLabelZone}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.82}
+                          >
                             {formatZoneName(zone.zoneName)}
                           </Text>
                         </View>
