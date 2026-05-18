@@ -30,6 +30,10 @@ const normalizePhaseSummary = (phase = {}) => ({
   totalZone: toSafeNumber(phase.totalZone),
   completedOms: toSafeNumber(phase.totalApprovedOms),
   completedAreaHa: toSafeNumber(phase.totalApprovedArea),
+  pedestal: toSafeNumber(phase.pedestal),
+  mechanical: toSafeNumber(phase["mechanical accessories"]),
+  automation: toSafeNumber(phase.automation),
+  commissioning: toSafeNumber(phase["wet commissioning"]),
 });
 
 const normalizeZoneSummary = (zone = {}, index = 0) => ({
@@ -39,6 +43,10 @@ const normalizeZoneSummary = (zone = {}, index = 0) => ({
   areaHa: toSafeNumber(zone.totalArea),
   completedOms: toSafeNumber(zone.totalApprovedOms),
   completedAreaHa: toSafeNumber(zone.totalApprovedArea),
+  pedestal: toSafeNumber(zone.pedestal),
+  mechanical: toSafeNumber(zone["mechanical accessories"]),
+  automation: toSafeNumber(zone.automation),
+  commissioning: toSafeNumber(zone["wet commissioning"]),
 });
 
 const buildPhaseSummaryCacheKey = ({

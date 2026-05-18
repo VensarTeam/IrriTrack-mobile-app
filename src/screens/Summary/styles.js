@@ -173,49 +173,64 @@ export default StyleSheet.create({
   phaseTableContainer: {
     marginHorizontal: moderateScale(10),
     marginBottom: verticalScale(14),
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(12),
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: "#CFE0F0",
     overflow: "hidden",
+  },
+
+  tableDefaultContent: {
+    width: "100%",
   },
 
   tableHeaderRow: {
     flexDirection: "row",
-    backgroundColor: colors.surfaceBlueSoft,
+    backgroundColor: "#2E648F",
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: "#1E4E72",
   },
 
   tableTotalRow: {
     flexDirection: "row",
-    backgroundColor: "#DFF0FF",
+    backgroundColor: "#DCEEFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#9BC7E8",
+    borderBottomColor: "#93aec5",
   },
 
   tableDataRow: {
     flexDirection: "row",
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: "#E6EEF7",
   },
 
-  tableCellZone: {
-    width: "20%",
-    minWidth: 0,
-    minHeight: verticalScale(42),
-    paddingVertical: verticalScale(5),
-    paddingHorizontal: moderateScale(5),
-    alignItems: "center",
-    justifyContent: "center",
-    borderRightWidth: 1,
-    borderRightColor: colors.cardBorder,
+  tableDataRowAlt: {
     backgroundColor: "#F8FBFE",
   },
 
+  tableCellZone: {
+    width: "22%",
+    minWidth: 0,
+    minHeight: verticalScale(42),
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: moderateScale(3),
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#C7DDED",
+    backgroundColor: "#F1F7FD",
+  },
+
+  tableCellZoneAll: {
+    width: "18%",
+    paddingHorizontal: moderateScale(2),
+    borderRightWidth: 1,
+    borderRightColor: "#AFCBE4",
+  },
+
   tableCell: {
-    width: "20%",
+    width: "19.5%",
     minWidth: 0,
     minHeight: verticalScale(42),
     paddingVertical: verticalScale(5),
@@ -223,7 +238,12 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
-    borderRightColor: colors.cardBorder,
+    borderRightColor: "#b3d0ed",
+  },
+
+  tableCellAll: {
+    width: "16.4%",
+    paddingHorizontal: moderateScale(2),
   },
 
   tableCellLast: {
@@ -231,75 +251,78 @@ export default StyleSheet.create({
   },
 
   tableHeaderCell: {
-    minHeight: verticalScale(38),
-    paddingVertical: verticalScale(5),
+    minHeight: verticalScale(42),
+    paddingVertical: verticalScale(4),
     paddingHorizontal: moderateScale(3),
   },
 
   tableHeaderCellZone: {
-    backgroundColor: "#EAF4FF",
+    backgroundColor: "#24577E",
   },
 
   tableTotalCell: {
     minHeight: verticalScale(36),
     paddingVertical: verticalScale(7),
     paddingHorizontal: moderateScale(3),
-    backgroundColor: "#DFF0FF",
-    borderRightColor: "#9BC7E8",
+    backgroundColor: "#DCEEFF",
+    borderRightColor: "#B7D2EA",
   },
 
   tableHeaderLabel: {
     width: "100%",
     fontSize: fontScale(11),
-    lineHeight: fontScale(12.8),
+    lineHeight: fontScale(13.5),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    color: colors.white,
     textTransform: "uppercase",
     letterSpacing: 0,
     textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
 
   tableHeaderLabelZone: {
     width: "100%",
     fontSize: fontScale(11),
-    lineHeight: fontScale(12.8),
+    lineHeight: fontScale(13.5),
     fontFamily: fonts.bold,
-    color: colors.primaryBlue,
+    color: colors.white,
     textTransform: "uppercase",
     letterSpacing: 0,
     textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
 
   tableHeaderValue: {
     width: "100%",
-    fontSize: fontScale(14),
+    fontSize: fontScale(13),
+    lineHeight: fontScale(16),
     fontFamily: fonts.bold,
     color: "#0B4A7A",
     textAlign: "center",
+    includeFontPadding: false,
   },
 
   tableDataLabelZone: {
     width: "100%",
     minWidth: 0,
-    paddingHorizontal: moderateScale(3),
-    paddingVertical: verticalScale(2),
-    borderRadius: moderateScale(8),
-    overflow: "hidden",
-    backgroundColor: "#EAF4FF",
-    borderWidth: 1,
-    borderColor: "#B8D7F2",
     fontSize: fontScale(12),
-    lineHeight: fontScale(15),
+    lineHeight: fontScale(16),
     fontFamily: fonts.bold,
-    color: colors.primaryBlue,
+    color: "#0B4A7A",
     textAlign: "center",
+    includeFontPadding: false,
   },
 
   tableDataLabel: {
-    fontSize: fontScale(12.5),
+    width: "100%",
+    fontSize: fontScale(12),
+    lineHeight: fontScale(16),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    color: "#1F3A52",
     textAlign: "center",
+    includeFontPadding: false,
   },
 
   tableState: {

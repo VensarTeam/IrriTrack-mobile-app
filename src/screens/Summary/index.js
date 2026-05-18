@@ -15,8 +15,15 @@ import { fetchPhaseSummary } from "../../services/summaryService";
 import colors from "../../constants/colors";
 import styles from "./styles";
 
-const SUBPROCESS_OPTIONS = OMS_SUBPROCESS_FILTER_OPTIONS;
-const DEFAULT_SUBPROCESS_ID = SUBPROCESS_OPTIONS[0]?.id || 4;
+const ALL_SUBPROCESS_ID = "all";
+const ALL_SUBPROCESS_OPTION = {
+  id: ALL_SUBPROCESS_ID,
+  key: "all",
+  label: "All",
+  shortLabel: "All",
+};
+const SUBPROCESS_OPTIONS = [ALL_SUBPROCESS_OPTION, ...OMS_SUBPROCESS_FILTER_OPTIONS];
+const DEFAULT_SUBPROCESS_ID = ALL_SUBPROCESS_ID;
 
 const PHASE_COLORS = {
   "phase-1": { border: colors.phase1BorderColor, text: colors.phase1Text },
@@ -52,6 +59,10 @@ const createEmptyPhaseData = () => ({
     totalZone: 0,
     completedOms: 0,
     completedAreaHa: 0,
+    pedestal: 0,
+    mechanical: 0,
+    automation: 0,
+    commissioning: 0,
   },
   zones: [],
   meta: null,
@@ -82,7 +93,8 @@ const SummaryScreen = ({ navigation, route }) => {
     route?.params?.projectId || project?.id || project?.projectId || "";
   const projectName =
     route?.params?.projectName || route?.params?.project?.name || "Project";
-  const selectedSubprocessIdForApi = selectedSubprocessId;
+  const isAllFilterSelected = selectedSubprocessId === ALL_SUBPROCESS_ID;
+  const selectedSubprocessIdForApi = isAllFilterSelected ? null : selectedSubprocessId;
 
   const loadPhaseData = useCallback(
     async (phase, { page = 1, append = false, forceRefresh = false } = {}) => {
@@ -333,98 +345,224 @@ const SummaryScreen = ({ navigation, route }) => {
 
               {expanded ? (
                 <View style={styles.phaseTableContainer}>
-                  <View style={styles.tableHeaderRow}>
-                    <View style={[styles.tableCellZone, styles.tableHeaderCell, styles.tableHeaderCellZone]}>
-                      <Text style={styles.tableHeaderLabelZone} numberOfLines={2}>Zone</Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT OMS</Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT Area (HA)</Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableHeaderCell]}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Completed</Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableHeaderCell, styles.tableCellLast]}>
-                      <Text style={styles.tableHeaderLabel} numberOfLines={2}>Cov Area (HA)</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.tableTotalRow}>
-                    <View style={[styles.tableCellZone, styles.tableTotalCell]}>
-                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatNumber(phaseSummary.totalZone)}
-                      </Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableTotalCell]}>
-                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatNumber(phaseSummary.totalOms)}
-                      </Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableTotalCell]}>
-                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatAreaValue(phaseSummary.areaHa)}
-                      </Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableTotalCell]}>
-                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatNumber(phaseSummary.completedOms)}
-                      </Text>
-                    </View>
-                    <View style={[styles.tableCell, styles.tableTotalCell, styles.tableCellLast]}>
-                      <Text style={styles.tableHeaderValue} numberOfLines={1}>
-                        {formatAreaValue(phaseSummary.completedAreaHa)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {phaseData.isLoading ? (
-                    <View style={styles.tableState}>
-                      <ActivityIndicator size="small" color={colors.primaryBlue} />
-                      <Text style={styles.tableStateText}>Loading summary...</Text>
-                    </View>
-                  ) : phaseData.error ? (
-                    <View style={styles.tableState}>
-                      <Text style={styles.tableErrorText}>{phaseData.error}</Text>
-                      <TouchableOpacity
-                        style={styles.tableRetryButton}
-                        onPress={() => loadPhaseData(phase)}
-                        activeOpacity={0.82}
-                      >
-                        <Text style={styles.tableRetryText}>Retry</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : phaseData.zones.length ? (
-                    phaseData.zones.map((zone) => (
-                      <View key={zone.id} style={styles.tableDataRow}>
-                        <View style={styles.tableCellZone}>
-                          <Text
-                            style={styles.tableDataLabelZone}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.82}
-                          >
-                            {formatZoneName(zone.zoneName)}
-                          </Text>
+                  {isAllFilterSelected ? (
+                    <View style={styles.tableDefaultContent}>
+                      <View style={styles.tableHeaderRow}>
+                        <View style={[styles.tableCellZone, styles.tableCellZoneAll, styles.tableHeaderCell, styles.tableHeaderCellZone]}>
+                          <Text style={styles.tableHeaderLabelZone} numberOfLines={2}>ZONE</Text>
                         </View>
-                        <View style={styles.tableCell}>
-                          <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.totalOms}</Text>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT OMS</Text>
                         </View>
-                        <View style={styles.tableCell}>
-                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(zone.areaHa)}</Text>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Pedestal</Text>
                         </View>
-                        <View style={styles.tableCell}>
-                          <Text style={styles.tableDataLabel} numberOfLines={1}>{zone.completedOms}</Text>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Mech</Text>
                         </View>
-                        <View style={[styles.tableCell, styles.tableCellLast]}>
-                          <Text style={styles.tableDataLabel} numberOfLines={1}>{formatAreaValue(zone.completedAreaHa)}</Text>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Auto</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableHeaderCell, styles.tableCellLast]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Comm.</Text>
                         </View>
                       </View>
-                    ))
+
+                      <View style={styles.tableTotalRow}>
+                        <View style={[styles.tableCellZone, styles.tableCellZoneAll, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.totalZone)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.totalOms)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.pedestal)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.mechanical)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.automation)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableCellAll, styles.tableTotalCell, styles.tableCellLast]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                            {formatNumber(phaseSummary.commissioning)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {phaseData.isLoading ? (
+                        <View style={styles.tableState}>
+                          <ActivityIndicator size="small" color={colors.primaryBlue} />
+                          <Text style={styles.tableStateText}>Loading summary...</Text>
+                        </View>
+                      ) : phaseData.error ? (
+                        <View style={styles.tableState}>
+                          <Text style={styles.tableErrorText}>{phaseData.error}</Text>
+                          <TouchableOpacity
+                            style={styles.tableRetryButton}
+                            onPress={() => loadPhaseData(phase)}
+                            activeOpacity={0.82}
+                          >
+                            <Text style={styles.tableRetryText}>Retry</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : phaseData.zones.length ? (
+                        phaseData.zones.map((zone, index) => (
+                          <View
+                            key={zone.id}
+                            style={[
+                              styles.tableDataRow,
+                              index % 2 === 1 && styles.tableDataRowAlt,
+                            ]}
+                          >
+                            <View style={[styles.tableCellZone, styles.tableCellZoneAll]}>
+                              <Text
+                                style={styles.tableDataLabelZone}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.68}
+                                ellipsizeMode="tail"
+                              >
+                                {formatZoneName(zone.zoneName)}
+                              </Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellAll]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{formatNumber(zone.totalOms)}</Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellAll]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{formatNumber(zone.pedestal)}</Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellAll]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{formatNumber(zone.mechanical)}</Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellAll]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{formatNumber(zone.automation)}</Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellAll, styles.tableCellLast]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{formatNumber(zone.commissioning)}</Text>
+                            </View>
+                          </View>
+                        ))
+                      ) : (
+                        <View style={styles.tableState}>
+                          <Text style={styles.tableStateText}>No summary data found.</Text>
+                        </View>
+                      )}
+                    </View>
                   ) : (
-                    <View style={styles.tableState}>
-                      <Text style={styles.tableStateText}>No summary data found.</Text>
+                    <View style={styles.tableDefaultContent}>
+                      <View style={styles.tableHeaderRow}>
+                        <View style={[styles.tableCellZone, styles.tableHeaderCell, styles.tableHeaderCellZone]}>
+                          <Text style={styles.tableHeaderLabelZone} numberOfLines={2}>ZONE</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT OMS</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>TOT Area{"\n"}(HA)</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableHeaderCell]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Completed</Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableHeaderCell, styles.tableCellLast]}>
+                          <Text style={styles.tableHeaderLabel} numberOfLines={2}>Cov Area{"\n"}(HA)</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.tableTotalRow}>
+                        <View style={[styles.tableCellZone, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                            {formatNumber(phaseSummary.totalZone)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                            {formatNumber(phaseSummary.totalOms)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                            {formatAreaValue(phaseSummary.areaHa)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableTotalCell]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                            {formatNumber(phaseSummary.completedOms)}
+                          </Text>
+                        </View>
+                        <View style={[styles.tableCell, styles.tableTotalCell, styles.tableCellLast]}>
+                          <Text style={styles.tableHeaderValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                            {formatAreaValue(phaseSummary.completedAreaHa)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {phaseData.isLoading ? (
+                        <View style={styles.tableState}>
+                          <ActivityIndicator size="small" color={colors.primaryBlue} />
+                          <Text style={styles.tableStateText}>Loading summary...</Text>
+                        </View>
+                      ) : phaseData.error ? (
+                        <View style={styles.tableState}>
+                          <Text style={styles.tableErrorText}>{phaseData.error}</Text>
+                          <TouchableOpacity
+                            style={styles.tableRetryButton}
+                            onPress={() => loadPhaseData(phase)}
+                            activeOpacity={0.82}
+                          >
+                            <Text style={styles.tableRetryText}>Retry</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : phaseData.zones.length ? (
+                        phaseData.zones.map((zone, index) => (
+                          <View
+                            key={zone.id}
+                            style={[
+                              styles.tableDataRow,
+                              index % 2 === 1 && styles.tableDataRowAlt,
+                            ]}
+                          >
+                            <View style={styles.tableCellZone}>
+                              <Text
+                                style={styles.tableDataLabelZone}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.72}
+                                ellipsizeMode="tail"
+                              >
+                                {formatZoneName(zone.zoneName)}
+                              </Text>
+                            </View>
+                            <View style={styles.tableCell}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{formatNumber(zone.totalOms)}</Text>
+                            </View>
+                            <View style={styles.tableCell}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{formatAreaValue(zone.areaHa)}</Text>
+                            </View>
+                            <View style={styles.tableCell}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{formatNumber(zone.completedOms)}</Text>
+                            </View>
+                            <View style={[styles.tableCell, styles.tableCellLast]}>
+                              <Text style={styles.tableDataLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{formatAreaValue(zone.completedAreaHa)}</Text>
+                            </View>
+                          </View>
+                        ))
+                      ) : (
+                        <View style={styles.tableState}>
+                          <Text style={styles.tableStateText}>No summary data found.</Text>
+                        </View>
+                      )}
                     </View>
                   )}
 

@@ -49,7 +49,7 @@ export const OMS_SUBPROCESS_FILTER_OPTIONS = [
     id: 9,
     key: "wetCommissioning",
     label: "Wet Commissioning",
-    shortLabel: "Wet Commissioning",
+    shortLabel: "Commissioning",
     aliases: ["Wet Commissioning", "Wet commissioning"],
   },
 ];
