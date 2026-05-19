@@ -313,8 +313,8 @@ const useUnitListViewModel = (navigation, route) => {
 
     return matchedOption?.value ?? DEFAULT_STATUS_FILTER_VALUE;
   });
-  const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY);
-  const [sortOrder, setSortOrder] = useState(DEFAULT_SORT_ORDER);
+  const [sortBy, setSortBy] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
   const [remoteUnits, setRemoteUnits] = useState([]);
   const [pagination, setPagination] = useState(createEmptyPagination());
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -322,8 +322,7 @@ const useUnitListViewModel = (navigation, route) => {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [unitsError, setUnitsError] = useState("");
   const projectName = toDisplayText(
-    route?.params?.projectName || project?.name,
-    "IrriTrack"
+    route?.params?.projectName || project?.name || "Not available"
   );
   const statusBoardEnabled = Boolean(route?.params?.statusBoardEnabled);
   const statusBoardStageLabel = String(

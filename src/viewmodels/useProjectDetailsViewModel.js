@@ -64,6 +64,8 @@ const getStageCompletedCount = (stages = [], labels = []) => {
 };
 
 const OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS = [
+  colors.primaryBlue,
+  colors.primaryGreen,
   colors.completed,
   colors.pending,
   colors.primaryBlue,

@@ -10,10 +10,31 @@ export const OMS_STATUS_FILTER_OPTIONS = [
   { value: 2, label: "Completed" },
   { value: 3, label: "Commented" },
   { value: 4, label: "Approved" },
-  { value: 5, label: "Info" },
 ];
 
 export const OMS_SUBPROCESS_FILTER_OPTIONS = [
+  {
+    id: 2,
+    key: "inletPipeLaying",
+    label: "Inlet Pipe Laying",
+    shortLabel: "Inlet Pipe Laying",
+    aliases: [
+      "Inlet Pipe Laying",
+      "Inlet pipe conn.",
+      "Inlet Pipe",
+    ],
+  },
+  {
+    id: 3,
+    key: "outletPipeLaying",
+    label: "Outlet Pipe Laying",
+    shortLabel: "Outlet Pipe Laying",
+    aliases: [
+      "Outlet Pipe Laying",
+      "Outlet pipe conn.",
+      "Outlet Pipe",
+    ],
+  },
   {
     id: 4,
     key: "pedestalEnclosureInstallation",

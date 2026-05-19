@@ -186,7 +186,7 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
                 },
               ]}
             >
-              {count > 99 ? "99+" : String(count)}
+              {String(count)}
             </Animated.Text>
           </Animated.View>
         </View>
