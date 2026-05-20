@@ -10,6 +10,7 @@ export const OMS_STATUS_FILTER_OPTIONS = [
   { value: 2, label: "Completed" },
   { value: 3, label: "Commented" },
   { value: 4, label: "Approved" },
+  { value: 5, label: "Verified" },
 ];
 
 export const OMS_SUBPROCESS_FILTER_OPTIONS = [

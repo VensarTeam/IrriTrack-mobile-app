@@ -1423,27 +1423,22 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
             <View style={styles.legendList}>
               <LegendItem
-                color={colors.completed}
-                title="Completed / Approved"
+                color={"#108D57"}
+                title="Approved"
                 subtitle="The process is fully finished or approved after review."
               />
               <LegendItem
-                color={colors.pending}
-                title="Pending"
-                subtitle="The process has not started yet."
+                color={"#D96D14"}
+                title="Submitted / Pending"
+                subtitle="The process is submitted and waiting for review."
               />
               <LegendItem
-                color={colors.toBeConfirm}
-                title="To be Confirmed"
-                subtitle="Work requires confirmation before proceeding."
+                color={"#123B63"}
+                title="Verified"
+                subtitle="The process is verified and waiting for final approval."
               />
               <LegendItem
-                color={colors.partial}
-                title="Partial"
-                subtitle="The process is underway but still has remaining steps."
-              />
-              <LegendItem
-                color={colors.primaryBlue}
+                color={"#A8472E"}
                 title="Commented"
                 subtitle="Work was reviewed with comments or sent back for correction."
               />

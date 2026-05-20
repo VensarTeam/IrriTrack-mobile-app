@@ -37,7 +37,7 @@ export default StyleSheet.create({
     height: moderateScale(76),
   },
   logo1: {
-    width: moderateScale(132),
+    width: moderateScale(162),
     height: moderateScale(46),
   },
   systemText: {

@@ -152,7 +152,10 @@ const SearchableFilterModal = ({
       ? Math.max(keyboardHeight - insets.bottom - verticalScale(10), 0)
       : 0;
   const maxCardHeight = Math.max(
-    windowHeight - topInset - androidSheetOffset - verticalScale(10),
+    Math.min(
+      windowHeight * 0.6,
+      windowHeight - topInset - androidSheetOffset - verticalScale(10)
+    ),
     verticalScale(260)
   );
   const shimmerTranslateX = shimmerProgress.interpolate({
@@ -327,6 +330,7 @@ const SearchableFilterModal = ({
             style={[
               styles.card,
               {
+                height: maxCardHeight,
                 maxHeight: maxCardHeight,
                 marginBottom: androidSheetOffset,
               },
@@ -371,10 +375,12 @@ const SearchableFilterModal = ({
 
             <View style={styles.listWrap}>
               <FlatList
+                style={styles.optionsList}
                 data={isInitialLoading ? loadingData : filteredOptions}
                 keyExtractor={keyExtractor}
                 renderItem={isInitialLoading ? renderLoadingItem : renderOption}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={
                   Platform.OS === "ios" ? "interactive" : "on-drag"
@@ -436,7 +442,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     paddingTop: verticalScale(12),
     minHeight: verticalScale(480),
-    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(12),
   },
 
   handle: {
@@ -532,6 +538,10 @@ const styles = StyleSheet.create({
   listWrap: {
     flex: 1,
     minHeight: verticalScale(220),
+  },
+
+  optionsList: {
+    flex: 1,
   },
 
   footerShimmerWrap: {

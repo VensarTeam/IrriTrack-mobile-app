@@ -70,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
           />
         </View>
         <Image
-          source={require("../../../assets/images/IrriTrack-Logo.png")}
+          source={require("../../../assets/images/logo_new.png")}
           style={styles.logo1}
           resizeMode="contain"
         />

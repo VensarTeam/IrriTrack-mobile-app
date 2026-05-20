@@ -26,17 +26,17 @@ const SUMMARY_EXCLUDED_SUBPROCESS_KEYS = new Set([
   "inletPipeLaying",
   "outletPipeLaying",
 ]);
-const SUMMARY_SUBPROCESS_OPTIONS = OMS_SUBPROCESS_FILTER_OPTIONS.filter(
-  (item) => !SUMMARY_EXCLUDED_SUBPROCESS_KEYS.has(item.key)
-);
-const SUBPROCESS_OPTIONS = [ALL_SUBPROCESS_OPTION, ...SUMMARY_SUBPROCESS_OPTIONS];
+// const SUMMARY_SUBPROCESS_OPTIONS = OMS_SUBPROCESS_FILTER_OPTIONS.filter(
+//   (item) => !SUMMARY_EXCLUDED_SUBPROCESS_KEYS.has(item.key)
+// );
+const SUBPROCESS_OPTIONS = [ALL_SUBPROCESS_OPTION, ...OMS_SUBPROCESS_FILTER_OPTIONS];
 const DEFAULT_SUBPROCESS_ID = ALL_SUBPROCESS_ID;
 
 const PHASE_COLORS = {
   "phase-1": { border: colors.phase1BorderColor, text: colors.phase1Text },
   "phase-2": { border: colors.phase1BorderColor, text: colors.phase1Text },
 };
-
+ 
 const PHASES = [
   {
     id: "phase-1",
