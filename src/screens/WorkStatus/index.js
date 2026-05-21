@@ -26,65 +26,66 @@ import useWorkStatusViewModel from "../../viewmodels/useWorkStatusViewModel";
 import { CustomTabView } from "../../components/WorkStatusTabView"; // ← new import
 import ImageViewerModal from "../../components/ImageViewerModal";
 import { IMAGE_BASE_URL } from "../../config/env";
+import { getUnitStatusPalette } from "../../utils/unitStatusPalette";
 
 // ─── remove the TabView / TabBar imports from react-native-tab-view ───────────
 // REMOVED: import { TabBar, TabView } from "react-native-tab-view";
 
 const TAB_THEME = {
   Submitted: {
-    solid: colors.primaryOrange,
-    soft: "#FFF1E7",
-    accent: "#D96D14",
+    solid: getUnitStatusPalette("Submitted").solid,
+    soft: getUnitStatusPalette("Submitted").soft,
+    accent: getUnitStatusPalette("Submitted").text,
     icon: "timeline-clock-outline",
   },
   Pending: {
-    solid: colors.pending,
-    soft: "#FFF5EA",
-    accent: "#C96E12",
+    solid: getUnitStatusPalette("Pending").solid,
+    soft: getUnitStatusPalette("Pending").soft,
+    accent: getUnitStatusPalette("Pending").text,
     icon: "progress-clock",
   },
   Verified: {
-    solid: colors.primaryBlue,
-    soft: "#ECF4FF",
-    accent: "#123B63",
+    solid: getUnitStatusPalette("Verified").solid,
+    soft: getUnitStatusPalette("Verified").soft,
+    accent: getUnitStatusPalette("Verified").text,
     icon: "shield-check-outline",
   },
   Approved: {
-    solid: colors.completed,
-    soft: "#EDFCF4",
-    accent: "#108D57",
+    solid: getUnitStatusPalette("Approved").solid,
+    soft: getUnitStatusPalette("Approved").soft,
+    accent: getUnitStatusPalette("Approved").text,
     icon: "check-decagram-outline",
   },
   Commented: {
-    solid: "#D15D42",
-    soft: "#FFF1EC",
-    accent: "#A8472E",
+    solid: getUnitStatusPalette("Commented").solid,
+    soft: getUnitStatusPalette("Commented").soft,
+    accent: getUnitStatusPalette("Commented").text,
     icon: "message-alert-outline",
   },
   Info: {
-    solid: "#4280d1",
-    soft: "#ecf7ff",
-    accent: "#2e7ba8",
+    solid: getUnitStatusPalette("Info").solid,
+    soft: getUnitStatusPalette("Info").soft,
+    accent: getUnitStatusPalette("Info").text,
     icon: "information-outline",
   }
 };
 
 const WORKFLOW_ROW_THEME = {
   submitted: {
-    soft: "#FFF1E7",
-    accent: "#D96D14",
+    soft: getUnitStatusPalette("Submitted").soft,
+    accent: getUnitStatusPalette("Submitted").text,
   },
   verified: {
-    soft: "#ECF4FF",
-    accent: "#123B63",
+    soft: getUnitStatusPalette("Verified").soft,
+    accent: getUnitStatusPalette("Verified").text,
   },
   approved: {
-    soft: "#EDFCF4",
-    accent: "#108D57",
+    soft: getUnitStatusPalette("Approved").soft,
+    accent: getUnitStatusPalette("Approved").text,
   },
   commented: {
-    soft: "#FFF1EC",
-    accent: "#A8472E",
+    soft: getUnitStatusPalette("Commented").soft,
+    accent: getUnitStatusPalette("Commented").text,
   },
 };
 
@@ -1423,24 +1424,34 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
             <View style={styles.legendList}>
               <LegendItem
-                color={"#108D57"}
+                color={getUnitStatusPalette("Approved").solid}
                 title="Approved"
                 subtitle="The process is fully finished or approved after review."
               />
               <LegendItem
-                color={"#D96D14"}
-                title="Submitted / Pending"
+                color={getUnitStatusPalette("Submitted").solid}
+                title="Submitted"
                 subtitle="The process is submitted and waiting for review."
               />
               <LegendItem
-                color={"#123B63"}
+                color={getUnitStatusPalette("Pending").solid}
+                title="Pending"
+                subtitle="The process has not started yet."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Verified").solid}
                 title="Verified"
                 subtitle="The process is verified and waiting for final approval."
               />
               <LegendItem
-                color={"#A8472E"}
+                color={getUnitStatusPalette("Commented").solid}
                 title="Commented"
                 subtitle="Work was reviewed with comments or sent back for correction."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Info").solid}
+                title="Info"
+                subtitle="Additional information is available for the process."
               />
             </View>
 

@@ -20,6 +20,10 @@ import styles from "./styles";
 import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
 import useUnitListViewModel from "../../../viewmodels/useUnitListViewModel";
+import {
+  getUnitStatusColor,
+  getUnitStatusPalette,
+} from "../../../utils/unitStatusPalette";
 
 const SHIMMER_DURATION = 1150;
 const { width } = Dimensions.get("window");
@@ -945,29 +949,49 @@ const UnitListScreen = ({ navigation, route }) => {
 
             <View style={styles.legendList}>
               <LegendItem
-                color={colors.completed}
-                title="Completed / Approved"
-                subtitle="The process is fully finished or approved after review."
+                color={getUnitStatusPalette("Completed").solid}
+                title="Completed"
+                subtitle="The process is fully finished."
               />
               <LegendItem
-                color={colors.pending}
+                color={getUnitStatusPalette("Approved").solid}
+                title="Approved"
+                subtitle="The process has been approved after review."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Verified").solid}
+                title="Verified"
+                subtitle="The process has been verified."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Pending").solid}
                 title="Pending"
                 subtitle="The process has not started yet."
               />
               <LegendItem
-                color={colors.toBeConfirm}
+                color={getUnitStatusPalette("To be Confirm").solid}
                 title="To be Confirmed"
                 subtitle="Work requires confirmation before proceeding."
               />
               <LegendItem
-                color={colors.partial}
+                color={getUnitStatusPalette("Submitted").solid}
+                title="Submitted"
+                subtitle="Work has been submitted for review."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Partial").solid}
                 title="Partial"
                 subtitle="The process is underway but still has remaining steps."
               />
               <LegendItem
-                color={colors.primaryBlue}
+                color={getUnitStatusPalette("Commented").solid}
                 title="Commented"
                 subtitle="Work was reviewed with comments or sent back for correction."
+              />
+              <LegendItem
+                color={getUnitStatusPalette("Info").solid}
+                title="Info"
+                subtitle="Additional information is available for the process."
               />
             </View>
 
@@ -987,20 +1011,7 @@ const UnitListScreen = ({ navigation, route }) => {
 export default UnitListScreen;
 
 const getStatusColor = (value) => {
-  if (
-    value === "Completed" ||
-    value === "Approved" ||
-    value === "Updated" ||
-    value === "Verified"
-  ) {
-    return colors.completed;
-  }
-  if (value === "To be Confirm") return colors.toBeConfirm;
-  if (value === "Pending") return colors.pending;
-  if (value === "Submitted") return colors.partial;
-  if (value === "Commented") return colors.primaryBlue;
-  if (value === "Info") return colors.primaryBlue;
-  return colors.partial;
+  return getUnitStatusColor(value);
 };
 
 const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {

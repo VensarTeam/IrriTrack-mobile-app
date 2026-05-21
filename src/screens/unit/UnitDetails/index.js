@@ -17,6 +17,7 @@ import sheetStyles from "../../WorkStatus/styles";
 import colors from "../../../constants/colors";
 import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitDetailsViewModel from "../../../viewmodels/useUnitDetailsViewModel";
+import { getUnitStatusPalette } from "../../../utils/unitStatusPalette";
 
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -354,53 +355,9 @@ const ChecklistValueBlock = ({ checklist, onViewImage }) => {
 
 const getDisplayStatus = (status) => status;
 
-const getStatusColors = (statusKey) => {
-  if (statusKey === "toBeConfirm") {
-    return {
-      solid: colors.toBeConfirm,
-      soft: "#EEF6FF",
-      text: colors.toBeConfirm,
-    };
-  }
-
-  if (
-    statusKey === "completed" ||
-    statusKey === "approved" ||
-    statusKey === "updated"
-  ) {
-    return {
-      solid: colors.completed,
-      soft: "#E8FFF2",
-      text: "#117A4D",
-    };
-  }
-
-  if (statusKey === "commented") {
-    return {
-      solid: colors.primaryBlue,
-      soft: "#EAF3FF",
-      text: colors.primaryBlue,
-    };
-  }
-
-  if (statusKey === "partial") {
-    return {
-      solid: colors.partial,
-      soft: "#FFF7E3",
-      text: "#A56D00",
-    };
-  }
-
-  return {
-    solid: colors.pending,
-    soft: "#FFF2E5",
-    text: "#A85D10",
-  };
-};
-
 const StatusPill = ({ status, subprocessId }) => {
   const displayStatus = getDisplayStatus(status, subprocessId);
-  const palette = getStatusColors(displayStatus?.key);
+  const palette = getUnitStatusPalette(displayStatus);
 
   return (
     <View style={[styles.statusPill, { backgroundColor: palette.soft }]}>
@@ -631,8 +588,8 @@ const UnitDetailsScreen = ({ navigation, route }) => {
                                   style={[
                                     styles.subprocessDot,
                                     {
-                                      backgroundColor: getStatusColors(
-                                        displaySubprocessStatus?.key
+                                      backgroundColor: getUnitStatusPalette(
+                                        displaySubprocessStatus
                                       ).solid,
                                     },
                                   ]}
