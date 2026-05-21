@@ -24,25 +24,92 @@ const toSafeNumber = (value) => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
-const normalizePhaseSummary = (phase = {}) => ({
+const SUBPROCESS_SUMMARY_KEYS = {
+  2: {
+    completed: "inlet pipe laying",
+    coveredArea: "inlet pipe laying installed area",
+  },
+  3: {
+    completed: "outlet pipe laying",
+    coveredArea: "outlet pipe laying installed area",
+  },
+  4: {
+    completed: "pedestal",
+    coveredArea: "pedestal installed area",
+  },
+  5: {
+    completed: "mechanical accessories",
+    coveredArea: "mechanical accessories installed area",
+  },
+  6: {
+    completed: "automation",
+    coveredArea: "automation installed area",
+  },
+  9: {
+    completed: "wet commissioning",
+    coveredArea: "wet commissioning installed area",
+  },
+};
+
+const pickFirstNumber = (source = {}, keys = []) => {
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) {
+      return toSafeNumber(source[key]);
+    }
+  }
+
+  return 0;
+};
+
+const getCompletedOms = (source = {}, subprocessId = null) => {
+  const subprocessKeys = SUBPROCESS_SUMMARY_KEYS[Number(subprocessId)];
+
+  if (subprocessKeys?.completed) {
+    return pickFirstNumber(source, [
+      subprocessKeys.completed,
+      "totalInstalledOms",
+      "totalSubmittedOms",
+      "totalApprovedOms",
+    ]);
+  }
+
+  return toSafeNumber(source.totalApprovedOms);
+};
+
+const getCoveredArea = (source = {}, subprocessId = null) => {
+  const subprocessKeys = SUBPROCESS_SUMMARY_KEYS[Number(subprocessId)];
+
+  if (subprocessKeys?.coveredArea) {
+    return pickFirstNumber(source, [
+      subprocessKeys.coveredArea,
+      "totalInstalledArea",
+      "totalSubmittedArea",
+      "totalApprovedArea",
+    ]);
+  }
+
+  return toSafeNumber(source.totalApprovedArea);
+};
+
+const normalizePhaseSummary = (phase = {}, subprocessId = null) => ({
   totalOms: toSafeNumber(phase.totalOms),
   areaHa: toSafeNumber(phase.totalArea),
   totalZone: toSafeNumber(phase.totalZone),
-  completedOms: toSafeNumber(phase.totalApprovedOms),
-  completedAreaHa: toSafeNumber(phase.totalApprovedArea),
+  completedOms: getCompletedOms(phase, subprocessId),
+  completedAreaHa: getCoveredArea(phase, subprocessId),
   pedestal: toSafeNumber(phase.pedestal),
   mechanical: toSafeNumber(phase["mechanical accessories"]),
   automation: toSafeNumber(phase.automation),
   commissioning: toSafeNumber(phase["wet commissioning"]),
 });
 
-const normalizeZoneSummary = (zone = {}, index = 0) => ({
+const normalizeZoneSummary = (zone = {}, index = 0, subprocessId = null) => ({
   id: zone.zoneName || `zone-${index + 1}`,
   zoneName: zone.zoneName || `ZONE-${index + 1}`,
   totalOms: toSafeNumber(zone.totalOms),
   areaHa: toSafeNumber(zone.totalArea),
-  completedOms: toSafeNumber(zone.totalApprovedOms),
-  completedAreaHa: toSafeNumber(zone.totalApprovedArea),
+  completedOms: getCompletedOms(zone, subprocessId),
+  completedAreaHa: getCoveredArea(zone, subprocessId),
   pedestal: toSafeNumber(zone.pedestal),
   mechanical: toSafeNumber(zone["mechanical accessories"]),
   automation: toSafeNumber(zone.automation),
@@ -144,9 +211,11 @@ export const fetchPhaseSummary = async ({
   })
     .then((response) => {
       const normalizedResponse = {
-        phase: normalizePhaseSummary(response?.data?.phase),
+        phase: normalizePhaseSummary(response?.data?.phase, subprocessId),
         zones: Array.isArray(response?.data?.zones)
-          ? response.data.zones.map(normalizeZoneSummary)
+          ? response.data.zones.map((zone, index) =>
+              normalizeZoneSummary(zone, index, subprocessId)
+            )
           : [],
         meta: response?.meta || null,
       };
