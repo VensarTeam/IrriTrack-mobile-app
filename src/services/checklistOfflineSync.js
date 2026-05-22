@@ -690,7 +690,7 @@ export const getLatestChecklistSubmissionSnapshot = async ({
       const payload = item.payload || {};
 
       return (
-        (!targetOwnerUserId || item.ownerUserId === targetOwnerUserId) &&
+        (!targetOwnerUserId || !item.ownerUserId || item.ownerUserId === targetOwnerUserId) &&
         String(payload.unitId || payload.unit?.unit_id || "") === targetUnitId &&
         Number(payload.process_id) === targetProcessId &&
         Number(payload.subprocess_id) === targetSubprocessId
@@ -723,7 +723,7 @@ const getSyncCandidates = async ({
 
   const candidates = rowsToArray(result.rows)
     .map(parseQueueRow)
-    .filter((item) => !targetOwnerUserId || item.ownerUserId === targetOwnerUserId)
+    .filter((item) => !targetOwnerUserId || !item.ownerUserId || item.ownerUserId === targetOwnerUserId)
     .filter((item) => !wantedIds || wantedIds.has(item.id))
     .slice(0, maxItems);
   logSync("Sync candidates ready", {
@@ -1497,7 +1497,7 @@ export const getPendingChecklistSubmissionCount = async ({
         `
           SELECT COUNT(*) AS pending_count
           FROM checklist_submission_queue
-          WHERE owner_user_id = ?
+          WHERE (owner_user_id = ? OR owner_user_id = '' OR owner_user_id IS NULL)
             AND status IN (?, ?, ?, ?);
         `,
         [targetOwnerUserId, ...LOCAL_DRAFT_STATUSES]

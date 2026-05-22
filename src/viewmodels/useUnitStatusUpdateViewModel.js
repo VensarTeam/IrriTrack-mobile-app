@@ -563,6 +563,275 @@ const getFieldValidationMessage = ({ field = {}, type = "select" } = {}) => {
   return `Please select ${String(label).trim().toLowerCase()}`;
 };
 
+const PIPE_LAYING_CHECKLIST_IDS = Object.freeze({
+  inletPipeSize: "2",
+  inletPipeLaid: "3",
+  inletConnected: "4",
+  outletSubChakDesignQuantity: "7",
+  outletPipeLaid: "8",
+  outletConnected: "9",
+});
+
+const getChecklistId = (field = {}) =>
+  String(field.checklistId ?? field.checklist_id ?? "").trim();
+
+const hasChecklistId = (field = {}, checklistId = "") =>
+  getChecklistId(field) === String(checklistId);
+
+const isPipeLaidSelectedValue = (value) => {
+  const text = normalizeText(value);
+
+  if (!text) {
+    return false;
+  }
+
+  if (
+    text.includes("not") ||
+    text === "no" ||
+    text === "false" ||
+    text === "pending"
+  ) {
+    return false;
+  }
+
+  return (
+    text === "yes" ||
+    text === "true" ||
+    text === "completed" ||
+    text === "done" ||
+    text === "laid" ||
+    text.includes("laid")
+  );
+};
+
+const getPipeLayingFieldState = ({
+  activeSubOption = {},
+  activeValues = {},
+  selectFields = [],
+  inputFields = [],
+  checklistItems = [],
+} = {}) => {
+  const allValueFields = [...selectFields, ...inputFields];
+  const isOutletPipeLaying = activeSubOption.id === "outletPipeLaying";
+  const pipeLaidChecklistId = isOutletPipeLaying
+    ? PIPE_LAYING_CHECKLIST_IDS.outletPipeLaid
+    : PIPE_LAYING_CHECKLIST_IDS.inletPipeLaid;
+  const connectedChecklistId = isOutletPipeLaying
+    ? PIPE_LAYING_CHECKLIST_IDS.outletConnected
+    : PIPE_LAYING_CHECKLIST_IDS.inletConnected;
+  const pipeLaidFields = allValueFields.filter((field) =>
+    hasChecklistId(field, pipeLaidChecklistId)
+  );
+  const pipeLaidChecklistItems = checklistItems.filter((item) =>
+    hasChecklistId(item, pipeLaidChecklistId)
+  );
+  const connectedFields = allValueFields.filter((field) =>
+    hasChecklistId(field, connectedChecklistId)
+  );
+  const connectedChecklistItems = checklistItems.filter((item) =>
+    hasChecklistId(item, connectedChecklistId)
+  );
+
+  const isPipeLaid =
+    pipeLaidFields.some((field) =>
+      isPipeLaidSelectedValue(activeValues[field.key])
+    ) ||
+    pipeLaidChecklistItems.some((item) => activeValues.checks?.[item.id]);
+  const isConnected =
+    connectedFields.some((field) =>
+      isPipeLaidSelectedValue(activeValues[field.key])
+    ) ||
+    connectedChecklistItems.some((item) => activeValues.checks?.[item.id]);
+
+  return {
+    isPipeLaid,
+    isConnected,
+  };
+};
+
+const isPartialStatusValue = (value) =>
+  normalizeText(value).includes("partial");
+
+const hasPipeLayingChecklistProgress = ({
+  activeValues = {},
+  selectFields = [],
+  inputFields = [],
+  checklistItems = [],
+} = {}) =>
+  [...selectFields, ...inputFields].some((field) =>
+    `${activeValues[field.key] ?? ""}`.trim()
+  ) || checklistItems.some((item) => activeValues.checks?.[item.id]);
+
+const showPipeLayingRemarkRequired = ({
+  activeSubOption = {},
+  activeValues = {},
+  pipeLayingState = {},
+  subChakQuantity = null,
+  selectFields = [],
+  inputFields = [],
+} = {}) => {
+  if (!pipeLayingState.isPipeLaid || activeValues.remark?.trim()) {
+    return false;
+  }
+
+  if (isPartialStatusValue(activeValues.status)) {
+    return true;
+  }
+
+  if (activeSubOption.id === "inletPipeLaying") {
+    return !pipeLayingState.isConnected;
+  }
+
+  if (activeSubOption.id === "outletPipeLaying") {
+    const addedSubChakQtyField = [...selectFields, ...inputFields].find(
+      (field) =>
+        hasChecklistId(
+          field,
+          PIPE_LAYING_CHECKLIST_IDS.outletSubChakDesignQuantity
+        )
+    );
+    const addedSubChakQtyVal = addedSubChakQtyField
+      ? activeValues[addedSubChakQtyField.key]
+      : null;
+
+    if (
+      addedSubChakQtyVal !== null &&
+      addedSubChakQtyVal !== undefined &&
+      subChakQuantity !== null &&
+      subChakQuantity !== undefined
+    ) {
+      const designQty = Number(subChakQuantity);
+      const addedQty = Number(addedSubChakQtyVal);
+      if (!isNaN(designQty) && !isNaN(addedQty) && designQty !== addedQty) {
+        return true;
+      }
+    }
+    return !pipeLayingState.isConnected;
+  }
+
+  return false;
+};
+
+const getPipeLayingRequiredErrors = ({
+  activeSubOption = {},
+  activeValues = {},
+  selectFields = [],
+  inputFields = [],
+  checklistItems = [],
+  subChakQuantity = null,
+} = {}) => {
+  if (
+    activeSubOption.id !== "inletPipeLaying" &&
+    activeSubOption.id !== "outletPipeLaying"
+  ) {
+    return {};
+  }
+
+  const nextErrors = {};
+  const hasChecklistProgress = hasPipeLayingChecklistProgress({
+    activeValues,
+    selectFields,
+    inputFields,
+    checklistItems,
+  });
+  const pipeLayingState = getPipeLayingFieldState({
+    activeSubOption,
+    activeValues,
+    selectFields,
+    inputFields,
+    checklistItems,
+  });
+
+  if (!hasChecklistProgress) {
+    nextErrors.form =
+      "Select or fill at least one checklist item before submitting.";
+    return nextErrors;
+  }
+
+  if (activeSubOption.id === "inletPipeLaying") {
+    const pipeLaidItem = checklistItems.find((item) =>
+      hasChecklistId(item, PIPE_LAYING_CHECKLIST_IDS.inletPipeLaid)
+    );
+    const connectedItem = checklistItems.find((item) =>
+      hasChecklistId(item, PIPE_LAYING_CHECKLIST_IDS.inletConnected)
+    );
+
+    const isPipeLaidChecked = pipeLaidItem ? Boolean(activeValues.checks?.[pipeLaidItem.id]) : false;
+    const isConnectedChecked = connectedItem ? Boolean(activeValues.checks?.[connectedItem.id]) : false;
+
+    if (!isPipeLaidChecked && isConnectedChecked) {
+      nextErrors.form = "Inlet Pipe Laid must be checked if Connected is selected.";
+      if (pipeLaidItem) {
+        nextErrors[pipeLaidItem.id] = "Inlet Pipe Laid must be checked.";
+      }
+      return nextErrors;
+    }
+  }
+
+  if (!pipeLayingState.isPipeLaid) {
+    return nextErrors;
+  }
+
+  if (activeSubOption.id === "inletPipeLaying") {
+    const inletPipeSizeField = [...selectFields, ...inputFields].find(
+      (field) => hasChecklistId(field, PIPE_LAYING_CHECKLIST_IDS.inletPipeSize)
+    );
+
+    if (
+      inletPipeSizeField &&
+      !`${activeValues[inletPipeSizeField.key] ?? ""}`.trim()
+    ) {
+      nextErrors[inletPipeSizeField.key] = getFieldValidationMessage({
+        field: inletPipeSizeField,
+        type: selectFields.some((field) => field.key === inletPipeSizeField.key)
+          ? "select"
+          : "input",
+      });
+    }
+  }
+
+  if (activeSubOption.id === "outletPipeLaying") {
+    const subChakDesignQuantityField = [...selectFields, ...inputFields].find(
+      (field) =>
+        hasChecklistId(
+          field,
+          PIPE_LAYING_CHECKLIST_IDS.outletSubChakDesignQuantity
+        )
+    );
+
+    if (
+      subChakDesignQuantityField &&
+      !`${activeValues[subChakDesignQuantityField.key] ?? ""}`.trim()
+    ) {
+      nextErrors[subChakDesignQuantityField.key] = getFieldValidationMessage({
+        field: subChakDesignQuantityField,
+        type: selectFields.some(
+          (field) => field.key === subChakDesignQuantityField.key
+        )
+          ? "select"
+          : "input",
+      });
+    }
+  }
+
+  if (
+    showPipeLayingRemarkRequired({
+      activeSubOption,
+      activeValues,
+      pipeLayingState,
+      subChakQuantity,
+      selectFields,
+      inputFields,
+    })
+  ) {
+    nextErrors.remark =
+      activeSubOption.remarkValidationMessage ||
+      "Remark is required";
+  }
+
+  return nextErrors;
+};
+
 const getInitialFormValues = (section, unit) => {
   const baseLocation = getUnitBaseLocation(unit);
 
@@ -1356,10 +1625,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             serverSubmissionAt &&
             currentTimeMs - serverSubmissionAt.getTime() <= INFO_RESUBMIT_WINDOW_MS
         );
+        const isPipeLayingSubOption =
+          subOption.id === "inletPipeLaying" || subOption.id === "outletPipeLaying";
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
           !isCommented &&
-          hasServerFilledData
+          (isPipeLayingSubOption
+            ? subprocessStatusKey === "completed"
+            : hasServerFilledData)
         );
         const submittedFromLocal = !isCommented && localSnapshot?.status === "synced";
 
@@ -2826,20 +3099,31 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   );
 
   const validateForm = () => {
+    const pipeLayingRequiredErrors = getPipeLayingRequiredErrors({
+      activeSubOption,
+      activeValues,
+      selectFields,
+      inputFields,
+      checklistItems,
+      subChakQuantity: checklistSectionUnit.subChakQuantity,
+    });
+
     if (VALIDATION_BYPASS_SUBOPTION_IDS.has(activeSubOption.id)) {
       setFieldErrors((prev) => ({
         ...prev,
-        [activeSubOption.id]: {},
+        [activeSubOption.id]: pipeLayingRequiredErrors,
       }));
 
       return {
-        isValid: true,
-        firstErrorMessage: "",
+        isValid: Object.keys(pipeLayingRequiredErrors).length === 0,
+        firstErrorMessage:
+          Object.values(pipeLayingRequiredErrors).find(Boolean) || "",
       };
     }
 
-    const nextErrors = {};
-    let firstErrorMessage = "";
+    const nextErrors = { ...pipeLayingRequiredErrors };
+    let firstErrorMessage =
+      Object.values(pipeLayingRequiredErrors).find(Boolean) || "";
 
     const setFirstErrorMessage = (message) => {
       if (!firstErrorMessage && message) {

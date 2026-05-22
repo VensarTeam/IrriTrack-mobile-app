@@ -56,6 +56,9 @@ const formatUnitNo = (value = "", module = "") => {
 const shouldUseWideProcessTile = (process, fallbackWide = false) =>
   fallbackWide || String(process?.label || "").length > 13;
 
+const shouldUseHalfProcessTile = (items = [], index = 0) =>
+  items.length % 3 === 2 && index >= items.length - 2;
+
 const UnitListScreen = ({ navigation, route }) => {
   const [showStatusInfo, setShowStatusInfo] = React.useState(false);
   const [showSortSheet, setShowSortSheet] = React.useState(false);
@@ -294,9 +297,11 @@ const UnitListScreen = ({ navigation, route }) => {
                     shouldUseWideProcessTile(
                       process,
                       processCards.length % 2 === 1 &&
-                        index === processCards.length - 1
+                        index === processCards.length - 1 &&
+                        !shouldUseHalfProcessTile(processCards, index)
                     )
                   }
+                  isHalf={shouldUseHalfProcessTile(processCards, index)}
                   isOffline={isOfflineOmsList}
                   onPress={() => openProcess(item, process)}
                 />
@@ -358,8 +363,10 @@ const UnitListScreen = ({ navigation, route }) => {
                 isWide={shouldUseWideProcessTile(
                   process,
                   processCards.length % 2 === 1 &&
-                    index === processCards.length - 1
+                    index === processCards.length - 1 &&
+                    !shouldUseHalfProcessTile(processCards, index)
                 )}
+                isHalf={shouldUseHalfProcessTile(processCards, index)}
                 onPress={() => openProcess(item, process)}
               />
             ))}
@@ -1014,7 +1021,13 @@ const getStatusColor = (value) => {
   return getUnitStatusColor(value);
 };
 
-const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
+const ProcessTile = ({
+  process,
+  isWide,
+  isHalf,
+  onPress,
+  isOffline = false,
+}) => {
   const statusColor = getStatusColor(process.value);
   const statusText = process.progressLabel
     ? process.value
@@ -1035,6 +1048,7 @@ const ProcessTile = ({ process, isWide, onPress, isOffline = false }) => {
       style={[
         styles.processTile,
         isWide && styles.processTileWide,
+        isHalf && styles.processTileHalf,
         isOffline
           ? styles.processTileOffline
           : {

@@ -651,12 +651,11 @@ export default StyleSheet.create({
   processGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
-    columnGap: moderateScale(6),
+    justifyContent: "space-between",
   },
 
   processTile: {
-    width: "31.5%",
+    width: "32%",
     borderWidth: 1,
     marginBottom: verticalScale(6),
     borderRadius: moderateScale(14),
@@ -689,11 +688,15 @@ export default StyleSheet.create({
   },
 
   processTileWide: {
-    width: "64.5%",
+    width: "66%",
+  },
+
+  processTileHalf: {
+    width: "49%",
   },
 
   skeletonProcessTileWrap: {
-    width: "31.5%",
+    width: "32%",
     marginBottom: verticalScale(6),
   },
 
@@ -764,8 +767,8 @@ export default StyleSheet.create({
   processLabel: {
     flex: 1,
     minWidth: 0,
-    fontSize: moderateScale(10),
-    lineHeight: moderateScale(12),
+    fontSize: moderateScale(10.8),
+    lineHeight: moderateScale(13),
     fontFamily: fonts.bold,
     color: colors.textDark,
   },

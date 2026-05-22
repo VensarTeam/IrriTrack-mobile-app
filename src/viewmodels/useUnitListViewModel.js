@@ -35,6 +35,8 @@ const DEFAULT_SORT_BY = "oms";
 const DEFAULT_SORT_ORDER = "asc";
 const DEFAULT_SUBPROCESS_FILTER_ID = null;
 const DEFAULT_STATUS_FILTER_VALUE = null;
+const PIPE_LAYING_SUBPROCESS_FILTER_IDS = new Set([2, 3]);
+const PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES = new Set([3, 4, 5]);
 const HIDDEN_OMS_CARD_SECTION_KEYS = new Set(["rectification"]);
 const TO_BE_VERIFY_STATUS_LABEL = "To be Confirm";
 const OMS_CARD_SUBPROCESS_LABELS = {
@@ -437,14 +439,20 @@ const useUnitListViewModel = (navigation, route) => {
     }));
   }, [processSections, shouldUseOmsApi]);
 
-  const statusFilterOptions = useMemo(
-    () =>
-      OMS_STATUS_FILTER_OPTIONS.map((item) => ({
-        value: item.value,
-        label: item.label,
-      })),
-    []
-  );
+  const statusFilterOptions = useMemo(() => {
+    const shouldHideReviewStatuses = PIPE_LAYING_SUBPROCESS_FILTER_IDS.has(
+      Number(selectedSubprocessId)
+    );
+
+    return OMS_STATUS_FILTER_OPTIONS.filter(
+      (item) =>
+        !shouldHideReviewStatuses ||
+        !PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES.has(Number(item.value))
+    ).map((item) => ({
+      value: item.value,
+      label: item.label,
+    }));
+  }, [selectedSubprocessId]);
 
   const selectedSubprocessOption = useMemo(
     () =>
@@ -464,6 +472,17 @@ const useUnitListViewModel = (navigation, route) => {
           ) || findOmsStatusFilterOptionByValue(selectedStatusValue),
     [selectedStatusValue, statusFilterOptions]
   );
+
+  useEffect(() => {
+    if (
+      selectedStatusValue !== DEFAULT_STATUS_FILTER_VALUE &&
+      !statusFilterOptions.some(
+        (item) => Number(item.value) === Number(selectedStatusValue)
+      )
+    ) {
+      setSelectedStatusValue(DEFAULT_STATUS_FILTER_VALUE);
+    }
+  }, [selectedStatusValue, statusFilterOptions]);
 
   useEffect(() => {
     if (!canUseLocationFilters && !hasRouteLocationFilters) {
