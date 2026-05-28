@@ -1,6 +1,7 @@
 import React from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   Keyboard,
@@ -213,7 +214,10 @@ const getCompactValueState = (value) => {
   return { icon: "circle-medium", tone: "neutral" };
 };
 
-const getSimpleChecklistState = (checklist) => {
+const getSimpleChecklistState = (
+  checklist,
+  { showEmptyAsCross = false } = {}
+) => {
   const rawValue = checklist?.detail?.rawValue;
   if (checklist?.isFile || Array.isArray(rawValue) || isPlainObject(rawValue)) return null;
 
@@ -229,6 +233,10 @@ const getSimpleChecklistState = (checklist) => {
   if (!n) {
     if (isRemarkChecklist) {
       return null;
+    }
+
+    if (showEmptyAsCross) {
+      return { icon: "close-circle", color: colors.danger, backgroundColor: "#FFF3F0", borderColor: "#F1C5B8" };
     }
 
     if (
@@ -323,6 +331,69 @@ const getChecklistInlineCountValue = (checklist, selectedWorkItem) => {
   }
 
   return String(getOutletPipeCountValue(checklist, selectedWorkItem) || "");
+};
+
+const isPipeLayingProcess = (process = {}) =>
+  String(process?.name || process?.rawProcess?.processName || "")
+    .trim()
+    .toLowerCase()
+    .includes("pipe laying");
+
+const isPipeLayingSubprocess = (subprocess = {}) => {
+  const name = String(
+    subprocess?.name || subprocess?.rawSubprocess?.subprocessName || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return name.includes("inlet pipe laying") || name.includes("outlet pipe laying");
+};
+
+const getPipeLayingSubprocesses = (process = {}) =>
+  (process?.subprocesses || []).filter(isPipeLayingSubprocess);
+
+const getPipeLayingProcess = (progress = { processes: [] }) =>
+  (progress?.processes || []).find(isPipeLayingProcess) || null;
+
+const PipeChecklistShimmer = () => {
+  const opacity = React.useRef(new Animated.Value(0.45)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.45,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [opacity]);
+
+  return (
+    <View style={styles.pipeShimmerGroup}>
+      {[0, 1, 2].map((item) => (
+        <Animated.View
+          key={item}
+          style={[styles.pipeShimmerCard, { opacity }]}
+        >
+          <View style={styles.pipeShimmerText} />
+          <View style={styles.pipeShimmerIcon} />
+        </Animated.View>
+      ))}
+    </View>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -478,6 +549,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     openWorkItem,
     selectedWorkItem,
     selectedProgressMatch,
+    selectedProgress,
     selectedWorkflowStatusKey,
     isSelectedProgressLoading,
     selectedProgressError,
@@ -514,11 +586,37 @@ const WorkStatusScreen = ({ route, navigation }) => {
     items: [],
     initialIndex: 0,
   });
+  const [activePipeLayingSubprocessId, setActivePipeLayingSubprocessId] =
+    React.useState("");
+  const [pendingPipeLayingSubprocessId, setPendingPipeLayingSubprocessId] =
+    React.useState("");
+  const [isPipeLayingSwitching, setIsPipeLayingSwitching] =
+    React.useState(false);
+  const pipeLayingSwitchTimerRef = React.useRef(null);
 
   const selectedProcess = selectedProgressMatch?.process || null;
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
   const selectedDetailItems = selectedSubprocess?.detailItems || [];
+  const pipeLayingSubprocesses = React.useMemo(() => {
+    const pipeLayingProcess = getPipeLayingProcess(selectedProgress);
+
+    return getPipeLayingSubprocesses(pipeLayingProcess);
+  }, [selectedProgress]);
+  const shouldShowPipeLayingSections = pipeLayingSubprocesses.length > 0;
+  const displayedPipeLayingSubprocessId =
+    pendingPipeLayingSubprocessId || activePipeLayingSubprocessId;
+  const activePipeLayingSubprocess = React.useMemo(() => {
+    if (!pipeLayingSubprocesses.length) {
+      return null;
+    }
+
+    return (
+      pipeLayingSubprocesses.find(
+        (item) => String(item.id) === String(activePipeLayingSubprocessId)
+      ) || pipeLayingSubprocesses[0]
+    );
+  }, [activePipeLayingSubprocessId, pipeLayingSubprocesses]);
   const selectedResubmitImages = React.useMemo(
     () =>
       normalizeResubmitImages(
@@ -543,6 +641,47 @@ const WorkStatusScreen = ({ route, navigation }) => {
     setIsRejectSubmitPending(false);
     setWorkflowConfirmState({ visible: false, action: "" });
   }, [selectedWorkItem?.submissionId, selectedWorkflowStatusKey]);
+
+  React.useEffect(() => {
+    setActivePipeLayingSubprocessId("");
+    setPendingPipeLayingSubprocessId("");
+    setIsPipeLayingSwitching(false);
+  }, [selectedWorkItem?.id]);
+
+  React.useEffect(() => {
+    if (!pipeLayingSubprocesses.length) {
+      setActivePipeLayingSubprocessId("");
+      return;
+    }
+
+    setActivePipeLayingSubprocessId((currentValue) => {
+      if (
+        currentValue &&
+        pipeLayingSubprocesses.some(
+          (item) => String(item.id) === String(currentValue)
+        )
+      ) {
+        return currentValue;
+      }
+
+      const selectedId = String(selectedSubprocess?.id || "");
+      const firstDifferentSubprocess =
+        pipeLayingSubprocesses.find(
+          (item) => String(item.id) !== selectedId
+        ) || pipeLayingSubprocesses[0];
+
+      return String(firstDifferentSubprocess.id || "");
+    });
+  }, [pipeLayingSubprocesses, selectedSubprocess?.id]);
+
+  React.useEffect(
+    () => () => {
+      if (pipeLayingSwitchTimerRef.current) {
+        clearTimeout(pipeLayingSwitchTimerRef.current);
+      }
+    },
+    []
+  );
 
   React.useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () => setIsRejectKeyboardVisible(true));
@@ -688,11 +827,108 @@ const WorkStatusScreen = ({ route, navigation }) => {
     }));
   }, []);
 
+  const switchPipeLayingSubprocess = React.useCallback(
+    (subprocessId) => {
+      const nextId = String(subprocessId || "");
+
+      if (!nextId || nextId === String(displayedPipeLayingSubprocessId || "")) {
+        return;
+      }
+
+      if (pipeLayingSwitchTimerRef.current) {
+        clearTimeout(pipeLayingSwitchTimerRef.current);
+      }
+
+      setPendingPipeLayingSubprocessId(nextId);
+      setIsPipeLayingSwitching(true);
+
+      pipeLayingSwitchTimerRef.current = setTimeout(() => {
+        setActivePipeLayingSubprocessId(nextId);
+        setPendingPipeLayingSubprocessId("");
+        setIsPipeLayingSwitching(false);
+        pipeLayingSwitchTimerRef.current = null;
+      }, 140);
+    },
+    [displayedPipeLayingSubprocessId]
+  );
+
   const contextChips = [
     stageLabel !== "All" ? stageLabel : "",
     zoneName !== "All" ? zoneName : "",
     villageName !== "All" ? villageName : "",
   ].filter(Boolean);
+
+  const renderChecklistCard = React.useCallback(
+    (checklist, index, checklistItems = [], options = {}) => {
+      const simpleState = getSimpleChecklistState(checklist, {
+        showEmptyAsCross: Boolean(options.showEmptyAsCross),
+      });
+      const checklistTitle = getChecklistDisplayTitle(checklist, selectedWorkItem);
+      const inlineCountValue = getChecklistInlineCountValue(
+        checklist,
+        selectedWorkItem
+      );
+      const displaySimpleState = inlineCountValue ? null : simpleState;
+
+      return (
+        <View
+          key={checklist.id}
+          style={[
+            styles.checklistCard,
+            options.isPipeChecklist && styles.pipeChecklistCard,
+            displaySimpleState && styles.checklistCardCompact,
+            index === checklistItems.length - 1 && styles.checklistCardLast,
+          ]}
+        >
+          {displaySimpleState ? (
+            <View>
+              <View style={styles.checklistInlineRow}>
+                <View style={styles.checklistInlineCopy}>
+                  <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                  {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
+                </View>
+                <View
+                  style={[
+                    styles.checklistInlineStatus,
+                    { backgroundColor: displaySimpleState.backgroundColor, borderColor: displaySimpleState.borderColor },
+                  ]}
+                >
+                  <Icon source={displaySimpleState.icon} size={18} color={displaySimpleState.color} />
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.checklistHead}>
+              <View style={styles.checklistCopy}>
+                {inlineCountValue ? (
+                  <View style={styles.checklistCountRow}>
+                    <Text style={styles.checklistCountTitle}>
+                      {checklistTitle}
+                    </Text>
+                    <View style={styles.checklistCountBadge}>
+                      <Text style={styles.checklistCountBadgeText}>
+                        {inlineCountValue}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                )}
+                {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
+                {inlineCountValue ? null : (
+                  <ChecklistValueBlock
+                    checklist={checklist}
+                    onViewImage={openImageViewer}
+                  />
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+      );
+    },
+    [openImageViewer, selectedWorkItem]
+  );
 
   // ─── renderScene is passed to CustomTabView ────────────────────────────────
   const renderScene = React.useCallback(
@@ -752,12 +988,15 @@ const WorkStatusScreen = ({ route, navigation }) => {
           <View style={styles.cardTopRow}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.cardTextWrap}>
-                <Text style={styles.cardEyebrow} numberOfLines={1}>
-                  OMS - {item?.omsName || "NODE"}
-                </Text>
-                <Text style={styles.cardTitle} numberOfLines={1}>
+                {/* <Text style={styles.cardEyebrow} numberOfLines={1}>
                   {item?.processName || "Process"}
-                </Text>
+                </Text> */}
+                <View style={styles.omsHighlight}>
+                  <Icon source="map-marker-radius-outline" size={14} color={colors.primaryBlue} />
+                  <Text style={styles.omsHighlightText} numberOfLines={1}>
+                    OMS - {item?.omsName || item?.omsId || "NODE"}
+                  </Text>
+                </View>
                 <View style={styles.subprocessHighlight}>
                   <Text style={styles.subprocessHighlightText} numberOfLines={1}>
                     {item?.subprocessName || "Subprocess"}
@@ -1144,12 +1383,18 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderCopy}>
-                <Text style={styles.sheetEyebrow}>
-                  {selectedProcess?.name || selectedWorkItem?.processName || "Process"}
-                </Text>
+                <View style={styles.sheetOmsBadge}>
+                  <Icon source="map-marker-radius-outline" size={14} color={colors.primaryBlue} />
+                  <Text style={styles.sheetOmsBadgeText} numberOfLines={1}>
+                    OMS - {selectedWorkItem?.omsName || selectedWorkItem?.omsId || "NODE"}
+                  </Text>
+                </View>
                 <Text style={styles.sheetTitle}>
                   {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
                 </Text>
+                {/* <Text style={styles.sheetSubtitle}>
+                  {selectedProcess?.name || selectedWorkItem?.processName || "Process"}
+                </Text> */}
               </View>
               <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={closeWorkItemSheet} />
             </View>
@@ -1185,10 +1430,6 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   <Text style={styles.historyButtonText}>History</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* <Text style={styles.sheetStatusCount}>
-                {selectedChecklistItems.length} checklist{selectedChecklistItems.length === 1 ? "" : "s"}
-              </Text> */}
             </View>
 
             <ScrollView
@@ -1196,7 +1437,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
               contentContainerStyle={[styles.sheetScrollContent, { paddingBottom: sheetBottomPadding }]}
               showsVerticalScrollIndicator={false}
             >
-              {isSelectedProgressLoading && !selectedWorkItem ? (
+              {isSelectedProgressLoading && !selectedProgressMatch ? (
                 <View style={styles.sheetStateCard}>
                   <ActivityIndicator size="small" color={colors.primaryBlue} />
                   <Text style={styles.sheetStateText}>Loading submitted subprocess details...</Text>
@@ -1210,70 +1451,84 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 </View>
               ) : (
                 <>
-                  {selectedChecklistItems.map((checklist, index) => {
-                    const simpleState = getSimpleChecklistState(checklist);
-                    const checklistTitle = getChecklistDisplayTitle(checklist, selectedWorkItem);
-                    const inlineCountValue = getChecklistInlineCountValue(
-                      checklist,
-                      selectedWorkItem
-                    );
-                    const displaySimpleState = inlineCountValue ? null : simpleState;
-                    return (
-                      <View
-                        key={checklist.id}
-                        style={[
-                          styles.checklistCard,
-                          displaySimpleState && styles.checklistCardCompact,
-                          index === selectedChecklistItems.length - 1 && styles.checklistCardLast,
-                        ]}
-                      >
-                        {displaySimpleState ? (
-                          <View>
-                            <View style={styles.checklistInlineRow}>
-                              <View style={styles.checklistInlineCopy}>
-                                <Text style={styles.checklistTitle}>{checklistTitle}</Text>
-                                {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                              </View>
-                              <View
-                                style={[
-                                  styles.checklistInlineStatus,
-                                  { backgroundColor: displaySimpleState.backgroundColor, borderColor: displaySimpleState.borderColor },
-                                ]}
-                              >
-                                <Icon source={displaySimpleState.icon} size={18} color={displaySimpleState.color} />
-                              </View>
-                            </View>
-                          </View>
-                        ) : (
-                          <View style={styles.checklistHead}>
-                            <View style={styles.checklistCopy}>
-                              {inlineCountValue ? (
-                                <View style={styles.checklistCountRow}>
-                                  <Text style={styles.checklistCountTitle}>
-                                    {checklistTitle}
-                                  </Text>
-                                  <View style={styles.checklistCountBadge}>
-                                    <Text style={styles.checklistCountBadgeText}>
-                                      {inlineCountValue}
-                                    </Text>
-                                  </View>
-                                </View>
-                              ) : (
-                                <Text style={styles.checklistTitle}>{checklistTitle}</Text>
-                              )}
-                              {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
-                              {inlineCountValue ? null : (
-                                <ChecklistValueBlock
-                                  checklist={checklist}
-                                  onViewImage={openImageViewer}
-                                />
-                              )}
-                            </View>
-                          </View>
-                        )}
+                  <View style={styles.pipeLayingSection}>
+                    <View style={styles.pipeLayingSectionHeader}>
+                      <View style={styles.pipeLayingTitleWrap}>
+                        <View style={styles.pipeLayingTitleCopy}>
+                          <Text style={styles.pipeLayingTitle}>
+                            {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
+                          </Text>
+                        </View>
                       </View>
-                    );
-                  })}
+                    </View>
+
+                    {selectedChecklistItems.map((checklist, index) =>
+                      renderChecklistCard(
+                        checklist,
+                        index,
+                        selectedChecklistItems,
+                        {
+                          showEmptyAsCross: isPipeLayingSubprocess(selectedSubprocess),
+                          isPipeChecklist: isPipeLayingSubprocess(selectedSubprocess),
+                        }
+                      )
+                    )}
+                  </View>
+
+                  {shouldShowPipeLayingSections ? (
+                    <View style={[styles.pipeLayingSection, styles.commonPipeLayingSection]}>
+                      <View style={styles.pipeLayingToggleRow}>
+                        {pipeLayingSubprocesses.map((subprocess) => {
+                          const isActive =
+                            String(displayedPipeLayingSubprocessId || "") ===
+                            String(subprocess.id);
+
+                          return (
+                            <TouchableOpacity
+                              key={subprocess.id}
+                              style={[
+                                styles.pipeLayingToggleButton,
+                                isActive && styles.pipeLayingToggleButtonActive,
+                              ]}
+                              activeOpacity={0.88}
+                              onPress={() =>
+                                switchPipeLayingSubprocess(subprocess.id)
+                              }
+                            >
+                              <Text
+                                style={[
+                                  styles.pipeLayingToggleText,
+                                  isActive && styles.pipeLayingToggleTextActive,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {subprocess.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {isPipeLayingSwitching ? (
+                        <PipeChecklistShimmer />
+                      ) : activePipeLayingSubprocess ? (
+                        <>
+                          {(activePipeLayingSubprocess.checklists || []).map(
+                            (checklist, index) =>
+                              renderChecklistCard(
+                                checklist,
+                                index,
+                                activePipeLayingSubprocess.checklists || [],
+                                {
+                                  showEmptyAsCross: true,
+                                  isPipeChecklist: true,
+                                }
+                              )
+                          )}
+                        </>
+                      ) : null}
+                    </View>
+                  ) : null}
 
                   {selectedResubmitImages.length ? (
                     <View style={styles.reviewDetailsSection}>

@@ -259,13 +259,13 @@ export default StyleSheet.create({
 
   cardEyebrow: {
     marginBottom: verticalScale(4),
-    fontSize: fontScale(14),
-    color: colors.primaryBlue,
-    fontFamily: fonts.bold,
-    backgroundColor: "#EAF3FF",
+    fontSize: fontScale(10.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.semiBold,
+    backgroundColor: "#F4F7FA",
     alignSelf: "flex-start",
-    paddingHorizontal: moderateScale(10),
-    paddingVertical: verticalScale(5),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
     borderRadius: moderateScale(999),
   },
 
@@ -274,6 +274,28 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.bold,
     marginLeft: moderateScale(9),
+  },
+
+  omsHighlight: {
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+    marginTop: verticalScale(3),
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(12),
+    backgroundColor: "#EAF3FF",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+  },
+
+  omsHighlightText: {
+    flexShrink: 1,
+    fontSize: fontScale(13.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   cardMetaGroup: {
@@ -554,6 +576,28 @@ export default StyleSheet.create({
     marginBottom: verticalScale(4),
   },
 
+  sheetOmsBadge: {
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+    marginBottom: verticalScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(12),
+    backgroundColor: "#EAF3FF",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+  },
+
+  sheetOmsBadgeText: {
+    flexShrink: 1,
+    fontSize: fontScale(12.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
   sheetTitle: {
     fontSize: fontScale(17),
     color: colors.textDark,
@@ -741,6 +785,86 @@ export default StyleSheet.create({
     lineHeight: fontScale(16),
   },
 
+  pipeLayingSection: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(18),
+    backgroundColor: "#F8FBFE",
+    paddingHorizontal: moderateScale(12),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(12),
+    marginBottom: verticalScale(12),
+  },
+
+  commonPipeLayingSection: {
+    backgroundColor: "#F3F8FF",
+    borderColor: "#CFE2F7",
+    paddingHorizontal: moderateScale(10),
+    paddingTop: verticalScale(10),
+  },
+
+  pipeLayingSectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: moderateScale(10),
+    marginBottom: verticalScale(11),
+  },
+
+  pipeLayingTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(9),
+  },
+
+  pipeLayingTitleCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  pipeLayingTitle: {
+    fontSize: fontScale(13.2),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    lineHeight: fontScale(18),
+  },
+
+  pipeLayingToggleRow: {
+    flexDirection: "row",
+    gap: moderateScale(4),
+    marginBottom: verticalScale(10),
+    padding: moderateScale(3),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D7E7F8",
+  },
+
+  pipeLayingToggleButton: {
+    flex: 1,
+    minHeight: verticalScale(34),
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(6),
+    borderRadius: moderateScale(9),
+  },
+
+  pipeLayingToggleButtonActive: {
+    backgroundColor: colors.primaryBlue,
+  },
+
+  pipeLayingToggleText: {
+    fontSize: fontScale(10.2),
+    color: colors.textSecondary,
+    fontFamily: fonts.bold,
+  },
+
+  pipeLayingToggleTextActive: {
+    color: colors.white,
+  },
+
   checklistCard: {
     backgroundColor: colors.white,
     borderWidth: 1,
@@ -748,6 +872,46 @@ export default StyleSheet.create({
     borderRadius: moderateScale(16),
     padding: moderateScale(13),
     marginBottom: verticalScale(10),
+  },
+
+  pipeChecklistCard: {
+    borderRadius: moderateScale(12),
+    borderColor: "#DDEAF7",
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: verticalScale(10),
+    marginBottom: verticalScale(8),
+  },
+
+  pipeShimmerGroup: {
+    gap: verticalScale(8),
+  },
+
+  pipeShimmerCard: {
+    minHeight: verticalScale(48),
+    borderRadius: moderateScale(12),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#DDEAF7",
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: verticalScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(12),
+  },
+
+  pipeShimmerText: {
+    flex: 1,
+    height: verticalScale(12),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#DCEAF8",
+  },
+
+  pipeShimmerIcon: {
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#DCEAF8",
   },
 
   checklistCardLast: {
