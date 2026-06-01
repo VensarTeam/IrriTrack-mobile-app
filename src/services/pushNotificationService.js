@@ -199,6 +199,14 @@ export const subscribeToPushNotificationEvents = ({
     }
   });
 
+  notifee.getInitialNotification().then((initialNotification) => {
+    const notification = initialNotification?.notification;
+
+    if (notification && typeof onNotificationOpen === "function") {
+      onNotificationOpen(toNotifeeRemoteMessage(notification));
+    }
+  });
+
   return () => {
     unsubscribeForeground();
     unsubscribeNotifeeForeground();

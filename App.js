@@ -13,6 +13,10 @@ import { AuthProvider } from "./src/context/AuthContext";
 import OfflineChecklistSyncGate from "./src/components/OfflineChecklistSyncGate";
 import PushNotificationBootstrap from "./src/components/PushNotificationBootstrap";
 import { InAppNotificationProvider } from "./src/context/InAppNotificationProvider";
+import {
+  flushPendingNavigation,
+  navigationRef,
+} from "./src/navigation/navigationService";
 
 const isAndroid = Platform.OS === "android";
 
@@ -104,7 +108,10 @@ const App = () => {
           <InAppNotificationProvider>
             <PushNotificationBootstrap />
             <OfflineChecklistSyncGate />
-            <NavigationContainer>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={flushPendingNavigation}
+            >
               <RootNavigator />
             </NavigationContainer>
           </InAppNotificationProvider>

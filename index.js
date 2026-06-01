@@ -3,9 +3,11 @@ import { registerRootComponent } from 'expo';
 import App from './App';
 import {
   displayPushNotification,
+  getNotificationContent,
   registerBackgroundNotificationHandler,
   registerNotifeeBackgroundEventHandler,
 } from './src/services/pushNotificationService';
+import { navigateToWorkStatus } from './src/navigation/navigationService';
 
 registerBackgroundNotificationHandler(async (remoteMessage) => {
   console.log('Background FCM message:', remoteMessage?.messageId || remoteMessage?.data);
@@ -17,6 +19,7 @@ registerBackgroundNotificationHandler(async (remoteMessage) => {
 
 registerNotifeeBackgroundEventHandler(async (remoteMessage) => {
   console.log('Background notification event:', remoteMessage?.messageId || remoteMessage?.data);
+  navigateToWorkStatus(getNotificationContent(remoteMessage).data);
 });
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

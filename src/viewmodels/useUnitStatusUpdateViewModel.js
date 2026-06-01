@@ -1367,6 +1367,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     .trim()
     .toLowerCase();
   const workItemSubprocessId = String(workItem?.subprocessId || "").trim();
+  const workItemProcessName = normalizeText(workItem?.processName || "");
+  const workItemSubprocessName = normalizeText(workItem?.subprocessName || "");
   const isCommentedWorkItem = workItemStatusKey === "commented" || workItemStatusKey === "rejected";
 
   const activeValues =
@@ -1599,14 +1601,36 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const processStatusKey = String(
           serverMatch?.process?.status?.key || ""
         ).trim().toLowerCase();
-        const isWorkflowCommented =
+        const subOptionSubprocessId = String(subOption.apiSubprocessId || "").trim();
+        const subOptionProcessName = normalizeText(
+          subOption.apiProcessDescription ||
+            subOption.processName ||
+            section.apiDescription ||
+            section.title
+        );
+        const subOptionSubprocessName = normalizeText(
+          subOption.apiDescription || subOption.label
+        );
+        const matchesWorkflowSubprocessById =
           isCommentedWorkItem &&
           workItemSubprocessId &&
-          String(subOption.apiSubprocessId || "").trim() === workItemSubprocessId;
+          subOptionSubprocessId === workItemSubprocessId;
+        const matchesWorkflowSubprocessByName =
+          isCommentedWorkItem &&
+          !workItemSubprocessId &&
+          workItemSubprocessName &&
+          subOptionSubprocessName === workItemSubprocessName &&
+          (!workItemProcessName || subOptionProcessName === workItemProcessName);
+        const isWorkflowCommented =
+          matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName;
+        const canUseProcessCommentFallback =
+          !workItemSubprocessId &&
+          !workItemSubprocessName &&
+          (section.subOptions || []).length <= 1;
         const isCommented =
           isWorkflowCommented ||
           subprocessStatusKey === "commented" ||
-          processStatusKey === "commented";
+          (canUseProcessCommentFallback && processStatusKey === "commented");
         const serverStatusKey = isCommented
           ? "commented"
           : subprocessStatusKey || processStatusKey;
@@ -1664,6 +1688,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       progressMatchesBySubOptionId,
       section.subOptions,
       workItemSubprocessId,
+      workItemProcessName,
+      workItemSubprocessName,
     ]
   );
   const activeSubmissionState = stepSubmissionStateById[activeSubOption.id] || {};

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AuthStack from "./AuthStack";
 import { ROUTES } from "./routes";
@@ -16,11 +16,18 @@ import PermissionsSettingsScreen from "../screens/PermissionsSettings";
 import { useAuth } from "../context/AuthContext";
 import AppLockScreen from "../components/AppLockScreen";
 import OfflineChecklistSyncGate from "../components/OfflineChecklistSyncGate";
+import { flushPendingNavigation } from "./navigationService";
 
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
   const { isAuthenticated, isRestoring, isAppLocked } = useAuth();
+
+  useEffect(() => {
+    if (!isRestoring && isAuthenticated && !isAppLocked) {
+      flushPendingNavigation();
+    }
+  }, [isAppLocked, isAuthenticated, isRestoring]);
 
   if (isRestoring) {
     return null;

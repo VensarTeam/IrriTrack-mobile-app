@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { getNotificationContent } from "../services/pushNotificationService";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { navigateToWorkStatus } from "../navigation/navigationService";
 
 const PushNotificationBootstrap = () => {
   const handleToken = useCallback(async (fcmToken) => {
@@ -12,6 +13,7 @@ const PushNotificationBootstrap = () => {
     const notification = getNotificationContent(remoteMessage);
 
     console.log("Notification opened:", notification);
+    navigateToWorkStatus(notification.data);
   }, []);
 
   usePushNotifications({
