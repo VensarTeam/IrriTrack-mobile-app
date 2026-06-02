@@ -2,7 +2,7 @@
   "expo": {
     "name": "IrriTrack",
     "slug": "irritrack",
-    "version": "1.1",
+    "version": "1.2",
     "icon": "./assets/icon.png",
     "extra": {
       "projectName": "IrriTrack"
