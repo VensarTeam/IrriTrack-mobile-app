@@ -1630,7 +1630,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           (matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName);
         const isWorkflowModifyApproved =
           isModifyApprovedWorkItem &&
-          (matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName);
+          (matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName) &&
+          !(
+            subprocessStatusKey === "completed" ||
+            (localSnapshot && String(localSnapshot.status || "").trim() === "synced") ||
+            localPayloadHasFilledData(localSnapshot?.payload)
+          );
         const canUseProcessCommentFallback =
           !workItemSubprocessId &&
           !workItemSubprocessName &&

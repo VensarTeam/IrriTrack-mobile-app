@@ -205,59 +205,68 @@ const matchesStageFilter = (item = {}, stageLabel = "All") => {
   );
 };
 
-const createWorkItem = (item = {}) => ({
-  id:
-    item.submissionId ||
-    item.submission_id ||
-    `${item.unitId || item.unit_id || item.omsUnitId || item.oms_unit_id || item.omsId || item.oms_id || "OMS"}-${item.subprocessId || item.subprocess_id || item.subProcessId || "SUB"}`,
-  submissionId: item.submissionId || item.submission_id || "",
-  projectId: item.projectId || item.project_id || "",
-  unitId:
-    item.unitId ||
-    item.unit_id ||
-    item.omsUnitId ||
-    item.oms_unit_id ||
-    item.omsId ||
-    item.oms_id ||
-    "",
-  omsId: item.omsId || item.oms_id || "",
-  omsName:
-    item.omsName ||
-    item.oms_name ||
-    item.nodeNo ||
-    item.node_no ||
-    item.omsId ||
-    item.oms_id ||
-    "",
-  processId: Number(item.processId || item.process_id || item.processID) || null,
-  processName: item.processName || item.process_name || "Process",
-  subprocessId:
-    Number(item.subprocessId || item.subprocess_id || item.subProcessId) || null,
-  subprocessName: item.subprocessName || item.subprocess_name || "Subprocess",
-  subCheckQty: Number(item.subCheckQty || item.sub_check_qty) || 0,
-  status: String(item.status || item.current_status || "").trim().toLowerCase(),
-  submittedAt: item.submittedAt || item.submitted_at || null,
-  verifiedAt: item.verifiedAt || item.verified_at || null,
-  approvedAt: item.approvedAt || item.approved_at || null,
-  rejectedAt: item.rejectedAt || item.rejected_at || null,
-  modifyRequestAt: item.modifyRequestAt || item.modify_request_at || null,
-  modifyApprovedAt:
-    item.modifyApprovedAt ||
-    item.modify_approved_at ||
-    item.modifierStatusAt ||
-    item.modifier_status_at ||
-    null,
-  modifierRemark: item.modifierRemark || item.modifier_remark || "",
-  modifierStatusAt: item.modifierStatusAt || item.modifier_status_at || null,
-  modifierStatusByName: item.modifierStatusByName || item.modifier_status_by_name || "",
-  rejectionRemark: item.rejectionRemark || item.rejection_remark || "",
-  submittedByName: item.submittedByName || item.submitted_by_name || "",
-  verifiedByName: item.verifiedByName || item.verified_by_name || "",
-  approvedByName: item.approvedByName || item.approved_by_name || "",
-  rejectedByName: item.rejectedByName || item.rejected_by_name || "",
-  requestBucket: getRequestBucket(item),
-  rawItem: item,
-});
+const createWorkItem = (item = {}) => {
+  const normalizedStatus = String(item.status || item.current_status || "").trim().toLowerCase();
+
+  return {
+    id:
+      item.submissionId ||
+      item.submission_id ||
+      `${item.unitId || item.unit_id || item.omsUnitId || item.oms_unit_id || item.omsId || item.oms_id || "OMS"}-${item.subprocessId || item.subprocess_id || item.subProcessId || "SUB"}`,
+    submissionId: item.submissionId || item.submission_id || "",
+    projectId: item.projectId || item.project_id || "",
+    unitId:
+      item.unitId ||
+      item.unit_id ||
+      item.omsUnitId ||
+      item.oms_unit_id ||
+      item.omsId ||
+      item.oms_id ||
+      "",
+    omsId: item.omsId || item.oms_id || "",
+    omsName:
+      item.omsName ||
+      item.oms_name ||
+      item.nodeNo ||
+      item.node_no ||
+      item.omsId ||
+      item.oms_id ||
+      "",
+    processId: Number(item.processId || item.process_id || item.processID) || null,
+    processName: item.processName || item.process_name || "Process",
+    subprocessId:
+      Number(item.subprocessId || item.subprocess_id || item.subProcessId) || null,
+    subprocessName: item.subprocessName || item.subprocess_name || "Subprocess",
+    subCheckQty: Number(item.subCheckQty || item.sub_check_qty) || 0,
+    status: normalizedStatus,
+    submittedAt: item.submittedAt || item.submitted_at || null,
+    verifiedAt: item.verifiedAt || item.verified_at || null,
+    approvedAt: item.approvedAt || item.approved_at || null,
+    rejectedAt: item.rejectedAt || item.rejected_at || null,
+    modifyRequestAt:
+      item.modifyRequestAt ||
+      item.modify_request_at ||
+      (normalizedStatus === "modify_request"
+        ? item.modifierStatusAt || item.modifier_status_at || null
+        : null),
+    modifyApprovedAt:
+      item.modifyApprovedAt ||
+      item.modify_approved_at ||
+      (normalizedStatus === "modify_approved"
+        ? item.modifierStatusAt || item.modifier_status_at || null
+        : null),
+    modifierRemark: item.modifierRemark || item.modifier_remark || "",
+    modifierStatusAt: item.modifierStatusAt || item.modifier_status_at || null,
+    modifierStatusByName: item.modifierStatusByName || item.modifier_status_by_name || "",
+    rejectionRemark: item.rejectionRemark || item.rejection_remark || "",
+    submittedByName: item.submittedByName || item.submitted_by_name || "",
+    verifiedByName: item.verifiedByName || item.verified_by_name || "",
+    approvedByName: item.approvedByName || item.approved_by_name || "",
+    rejectedByName: item.rejectedByName || item.rejected_by_name || "",
+    requestBucket: getRequestBucket(item),
+    rawItem: item,
+  };
+};
 
 const createEmptyTabData = (tabs = []) =>
   tabs.reduce((acc, tab) => {
@@ -396,14 +405,32 @@ const formatWorkStatusDate = (value) => {
   }
 };
 
-const getWorkItemStatusDetails = (item = {}) =>
-  [
+const getWorkItemStatusDetails = (item = {}) => {
+  const normalizedStatus = String(item.status || "").trim().toLowerCase();
+  const modifierDate =
+    item.modifierStatusAt || item.modifyRequestAt || item.modifyApprovedAt || null;
+  const modifierStage =
+    normalizedStatus === "modify_request"
+      ? "Modify Request"
+      : "Modify Approved";
+  const modifierKey =
+    normalizedStatus === "modify_request" ? "modify_request" : "modify_approved";
+
+  return [
     item?.submittedByName
       ? {
           key: "submitted",
           stage: "Submitted",
           actorName: item.submittedByName,
           date: formatWorkStatusDate(item.submittedAt),
+        }
+      : null,
+    modifierDate
+      ? {
+          key: modifierKey,
+          stage: modifierStage,
+          actorName: item.modifierStatusByName || item.approvedByName || "Reviewer",
+          date: formatWorkStatusDate(modifierDate),
         }
       : null,
     item?.verifiedByName
@@ -422,15 +449,6 @@ const getWorkItemStatusDetails = (item = {}) =>
           date: formatWorkStatusDate(item.approvedAt),
         }
       : null,
-    (item?.modifierStatusAt || item?.modifyApprovedAt)
-      ? {
-          key: "modify_approved",
-          stage: "Modify Approved",
-          actorName:
-            item.modifierStatusByName || item.approvedByName || "Reviewer",
-          date: formatWorkStatusDate(item.modifierStatusAt || item.modifyApprovedAt),
-        }
-      : null,
     item?.rejectedByName
       ? {
           key: "commented",
@@ -440,6 +458,7 @@ const getWorkItemStatusDetails = (item = {}) =>
         }
       : null,
   ].filter(Boolean);
+};
 
 const getWorkflowActionItemPatch = (action = "") => {
   const normalizedAction = String(action || "").trim().toLowerCase();
