@@ -432,6 +432,47 @@ export default StyleSheet.create({
     lineHeight: fontScale(16),
   },
 
+  modifyRequestButton: {
+    marginTop: verticalScale(10),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(9),
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: verticalScale(9),
+    borderRadius: moderateScale(14),
+    backgroundColor: "#FBFAFF",
+    borderWidth: 1,
+    borderColor: "#DCCBFF",
+  },
+
+  modifyRequestIconWrap: {
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F1EAFF",
+  },
+
+  modifyRequestCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  modifyRequestTitle: {
+    fontSize: fontScale(12.4),
+    color: "#4C1D95",
+    fontFamily: fonts.bold,
+  },
+
+  modifyRequestSubtitle: {
+    marginTop: verticalScale(2),
+    fontSize: fontScale(10.4),
+    lineHeight: fontScale(13),
+    color: "#6D5A93",
+    fontFamily: fonts.medium,
+  },
+
   cardActionIcon: {
     width: moderateScale(28),
     height: moderateScale(28),
@@ -439,6 +480,17 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryBlue,
+  },
+
+  modifyConfirmButton: {
+    backgroundColor: "#7C3AED",
+    borderColor: "#7C3AED",
+  },
+
+  modifyConfirmText: {
+    color: colors.white,
+    fontSize: fontScale(13),
+    fontFamily: fonts.bold,
   },
 
   loadMoreWrap: {
@@ -1363,6 +1415,11 @@ export default StyleSheet.create({
     borderColor: "#4E8FE6",
   },
 
+  reviewModifyButton: {
+    backgroundColor: "#F6F0FF",
+    borderColor: "#A78BFA",
+  },
+
   reviewApproveButton: {
     backgroundColor: colors.primaryBlue,
     borderColor: "#0D5AA7",
@@ -1383,6 +1440,12 @@ export default StyleSheet.create({
   reviewVerifyText: {
     fontSize: fontScale(12.5),
     color: "#135EAF",
+    fontFamily: fonts.bold,
+  },
+
+  reviewModifyText: {
+    fontSize: fontScale(12.5),
+    color: "#5B21B6",
     fontFamily: fonts.bold,
   },
 

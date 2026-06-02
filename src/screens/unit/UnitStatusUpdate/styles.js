@@ -733,6 +733,61 @@ export default StyleSheet.create({
     marginTop: verticalScale(12),
   },
 
+  optionalPhotoPrompt: {
+    marginTop: verticalScale(12),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+    padding: moderateScale(11),
+    borderRadius: moderateScale(13),
+    backgroundColor: "#F8FBFF",
+    borderWidth: 1,
+    borderColor: "#D8E8F7",
+  },
+
+  optionalPhotoCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  optionalPhotoTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  optionalPhotoText: {
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(10),
+    lineHeight: moderateScale(14),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  optionalPhotoAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(4),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.primaryBlue,
+  },
+
+  optionalPhotoAddIcon: {
+    color: colors.white,
+    fontSize: moderateScale(16),
+    lineHeight: moderateScale(17),
+    fontFamily: fonts.bold,
+  },
+
+  optionalPhotoAddText: {
+    color: colors.white,
+    fontSize: moderateScale(11),
+    fontFamily: fonts.bold,
+  },
+
   photoSectionTitle: {
     fontSize: moderateScale(12),
     color: colors.primaryBlue,

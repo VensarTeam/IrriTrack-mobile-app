@@ -53,6 +53,18 @@ const TAB_META = {
     icon: "💬",
     activeGradient: ["#E06848", "#A8472E"],
   },
+  "Modify Request": {
+    solid: "#123B63",
+    soft: "#F1EAFF",
+    icon: "✎",
+    activeGradient: ["#7C3AED", "#5B21B6"],
+  },
+  "Modify Approved": {
+    solid: "#123B63",
+    soft: "#E6FFFA",
+    icon: "✓",
+    activeGradient: ["#0D9488", "#0F766E"],
+  },
   Info: {
     solid: "#123B63",
     soft: "#EAF4FF",

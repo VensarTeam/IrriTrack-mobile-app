@@ -20,6 +20,8 @@ const TAB_STATUS_QUERY = {
   Verified: "verified",
   Approved: "approved",
   Commented: "rejected",
+  "Modify Request": "modify_request",
+  "Modify Approved": "modify_approved",
 };
 
 const EMPTY_COUNTS = {
@@ -28,6 +30,8 @@ const EMPTY_COUNTS = {
   verified: 0,
   approved: 0,
   rejected: 0,
+  modifyRequest: 0,
+  modifyApproved: 0,
 };
 
 const toDisplayText = (value, fallback = "") => {
@@ -98,16 +102,53 @@ const findProgressSubprocessMatch = (
   return null;
 };
 
-const getTabsForRole = (canReviewChecklist) =>
-  canReviewChecklist
+const getTabsForRole = (roleAccess = {}) => {
+  const baseTabs = roleAccess.canReviewChecklist
     ? ["Submitted", "Pending", "Verified", "Approved", "Commented"]
     : ["Submitted", "Pending", "Approved", "Commented"];
+
+  return roleAccess.canReviewChecklist
+    ? [...baseTabs, "Modify Request", "Modify Approved"]
+    : [...baseTabs, "Modify Approved"];
+};
 
 const getRequestBucket = (item = {}) => {
   const normalizedStatus = String(item?.status || "").trim().toLowerCase();
 
   if (normalizedStatus === "info") {
     return "Info";
+  }
+
+  if (
+    normalizedStatus === "7" ||
+    normalizedStatus === "modify_approved" ||
+    normalizedStatus === "modify approved" ||
+    normalizedStatus === "modification_approved" ||
+    normalizedStatus === "modification approved"
+  ) {
+    return "Modify Approved";
+  }
+
+  if (
+    normalizedStatus === "2" ||
+    normalizedStatus === "modify_rejected" ||
+    normalizedStatus === "modify rejected" ||
+    normalizedStatus === "modification_rejected" ||
+    normalizedStatus === "modification rejected"
+  ) {
+    return "Pending";
+  }
+
+  if (
+    item?.modifyRequestAt ||
+    item?.modify_request_at ||
+    normalizedStatus === "6" ||
+    normalizedStatus === "modify_request" ||
+    normalizedStatus === "modify request" ||
+    normalizedStatus === "modification_requested" ||
+    normalizedStatus === "modification requested"
+  ) {
+    return "Modify Request";
   }
 
   if (item?.rejectedAt || item?.rejectionRemark) {
@@ -199,6 +240,16 @@ const createWorkItem = (item = {}) => ({
   verifiedAt: item.verifiedAt || item.verified_at || null,
   approvedAt: item.approvedAt || item.approved_at || null,
   rejectedAt: item.rejectedAt || item.rejected_at || null,
+  modifyRequestAt: item.modifyRequestAt || item.modify_request_at || null,
+  modifyApprovedAt:
+    item.modifyApprovedAt ||
+    item.modify_approved_at ||
+    item.modifierStatusAt ||
+    item.modifier_status_at ||
+    null,
+  modifierRemark: item.modifierRemark || item.modifier_remark || "",
+  modifierStatusAt: item.modifierStatusAt || item.modifier_status_at || null,
+  modifierStatusByName: item.modifierStatusByName || item.modifier_status_by_name || "",
   rejectionRemark: item.rejectionRemark || item.rejection_remark || "",
   submittedByName: item.submittedByName || item.submitted_by_name || "",
   verifiedByName: item.verifiedByName || item.verified_by_name || "",
@@ -231,6 +282,24 @@ const resolveCountByTab = ({ tab, counts, roleAccess }) => {
       return Number(counts?.approved || 0);
     case "Commented":
       return Number(counts?.rejected || 0);
+    case "Modify Request":
+      return Number(
+        counts?.modifyRequest ||
+          counts?.modify_request ||
+          counts?.modificationRequested ||
+          counts?.modification_requested ||
+          counts?.status6 ||
+          0
+      );
+    case "Modify Approved":
+      return Number(
+        counts?.modifyApproved ||
+          counts?.modify_approved ||
+          counts?.modificationApproved ||
+          counts?.modification_approved ||
+          counts?.status7 ||
+          0
+      );
     default:
       return 0;
   }
@@ -257,6 +326,28 @@ const getWorkflowStatusKey = (item = {}, override = "") => {
 
   if (normalizedStatus === "info") {
     return "info";
+  }
+
+  if (
+    item?.modifyRequestAt ||
+    item?.modify_request_at ||
+    normalizedStatus === "6" ||
+    normalizedStatus === "modify_request" ||
+    normalizedStatus === "modify request" ||
+    normalizedStatus === "modification_requested" ||
+    normalizedStatus === "modification requested"
+  ) {
+    return "modify_request";
+  }
+
+  if (
+    normalizedStatus === "7" ||
+    normalizedStatus === "modify_approved" ||
+    normalizedStatus === "modify approved" ||
+    normalizedStatus === "modification_approved" ||
+    normalizedStatus === "modification approved"
+  ) {
+    return "modify_approved";
   }
 
   if (
@@ -331,6 +422,15 @@ const getWorkItemStatusDetails = (item = {}) =>
           date: formatWorkStatusDate(item.approvedAt),
         }
       : null,
+    (item?.modifierStatusAt || item?.modifyApprovedAt)
+      ? {
+          key: "modify_approved",
+          stage: "Modify Approved",
+          actorName:
+            item.modifierStatusByName || item.approvedByName || "Reviewer",
+          date: formatWorkStatusDate(item.modifierStatusAt || item.modifyApprovedAt),
+        }
+      : null,
     item?.rejectedByName
       ? {
           key: "commented",
@@ -370,6 +470,33 @@ const getWorkflowActionItemPatch = (action = "") => {
   }
 
   return null;
+};
+
+const getModifyRequestItemPatch = (action = "modify_request") => {
+  const normalizedAction = String(action || "").trim().toLowerCase();
+  const now = new Date().toISOString();
+
+  if (normalizedAction === "modify_approved") {
+    return {
+      status: "7",
+      requestBucket: "Modify Approved",
+      modifyApprovedAt: now,
+    };
+  }
+
+  if (normalizedAction === "modify_rejected") {
+    return {
+      status: "2",
+      requestBucket: "Pending",
+      submittedAt: now,
+    };
+  }
+
+  return {
+    status: "6",
+    requestBucket: "Modify Request",
+    modifyRequestAt: now,
+  };
 };
 
 const applyWorkflowActionToTabItems = ({
@@ -422,6 +549,49 @@ const applyWorkflowActionToTabItems = ({
   return nextItemsByTab;
 };
 
+const applyModifyRequestToTabItems = ({
+  itemsByTab,
+  tabs,
+  submissionId,
+  action = "modify_request",
+} = {}) => {
+  const normalizedSubmissionId = String(submissionId || "").trim();
+
+  if (!normalizedSubmissionId) {
+    return itemsByTab;
+  }
+
+  const nextItemsByTab = createEmptyTabData(tabs);
+  let updatedItem = null;
+
+  tabs.forEach((tab) => {
+    (itemsByTab[tab] || []).forEach((item) => {
+      if (String(item?.submissionId || "").trim() !== normalizedSubmissionId) {
+        nextItemsByTab[tab].push(item);
+        return;
+      }
+
+      updatedItem = {
+        ...item,
+        ...getModifyRequestItemPatch(action),
+      };
+    });
+  });
+
+  if (!updatedItem) {
+    return itemsByTab;
+  }
+
+  if (tabs.includes(updatedItem.requestBucket)) {
+    nextItemsByTab[updatedItem.requestBucket] = [
+      ...(nextItemsByTab[updatedItem.requestBucket] || []),
+      updatedItem,
+    ];
+  }
+
+  return nextItemsByTab;
+};
+
 const useWorkStatusViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const module = route?.params?.module || "OMS";
@@ -436,8 +606,8 @@ const useWorkStatusViewModel = (navigation, route) => {
   const zoneName = String(route?.params?.zoneName || "All").trim() || "All";
   const villageName = String(route?.params?.villageName || "All").trim() || "All";
   const tabs = useMemo(
-    () => getTabsForRole(roleAccess.canReviewChecklist),
-    [roleAccess.canReviewChecklist]
+    () => getTabsForRole(roleAccess),
+    [roleAccess]
   );
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const { sections: processSections } = useChecklistSections({ module });
@@ -456,6 +626,7 @@ const useWorkStatusViewModel = (navigation, route) => {
   const [submissionHistoryError, setSubmissionHistoryError] = useState("");
   const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
   const [workflowStatusOverrides, setWorkflowStatusOverrides] = useState({});
+  const [modifyRequestOverrides, setModifyRequestOverrides] = useState({});
   const [reviewRemark, setReviewRemark] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
@@ -745,6 +916,25 @@ const useWorkStatusViewModel = (navigation, route) => {
             .map((item) => createWorkItem(item));
         });
 
+        Object.values(modifyRequestOverrides).forEach((item) => {
+          const submissionId = String(item?.submissionId || "").trim();
+
+          if (!submissionId) {
+            return;
+          }
+
+          tabs.forEach((tab) => {
+            nextItemsByTab[tab] = (nextItemsByTab[tab] || []).filter(
+              (tabItem) =>
+                String(tabItem?.submissionId || "").trim() !== submissionId
+            );
+          });
+          nextItemsByTab["Modify Request"] = [
+            ...(nextItemsByTab["Modify Request"] || []),
+            item,
+          ];
+        });
+
         setCounts(nextCounts);
         setItemsByTab(nextItemsByTab);
         setWorkflowStatusOverrides({});
@@ -784,6 +974,7 @@ const useWorkStatusViewModel = (navigation, route) => {
       isOnline,
       ownerUserId,
       projectId,
+      modifyRequestOverrides,
       roleAccess.canEditChecklist,
       roleAccess.canReviewChecklist,
       stageLabel,
@@ -814,10 +1005,16 @@ const useWorkStatusViewModel = (navigation, route) => {
   const countsByTab = useMemo(
     () =>
       tabs.reduce((acc, tab) => {
+        if (tab === "Modify Request" || tab === "Modify Approved") {
+          const serverCount = resolveCountByTab({ tab, counts, roleAccess });
+          acc[tab] = Math.max(serverCount, (itemsByTab[tab] || []).length);
+          return acc;
+        }
+
         acc[tab] = resolveCountByTab({ tab, counts, roleAccess });
         return acc;
       }, {}),
-    [counts, roleAccess, tabs]
+    [counts, itemsByTab, roleAccess, tabs]
   );
 
   const unitsByTab = useMemo(
@@ -861,12 +1058,19 @@ const useWorkStatusViewModel = (navigation, route) => {
     (item) => {
       const isCommentedItem =
         String(item?.requestBucket || "").trim().toLowerCase() === "commented";
+      const isModifyApprovedItem =
+        String(item?.requestBucket || "").trim().toLowerCase() ===
+        "modify approved";
       const canRectifyCommentedItem =
         isCommentedItem &&
         roleAccess.canEditChecklist &&
         !roleAccess.canReviewChecklist;
+      const canEditModifyApprovedItem =
+        isModifyApprovedItem &&
+        roleAccess.canEditChecklist &&
+        !roleAccess.canReviewChecklist;
 
-      if (canRectifyCommentedItem) {
+      if (canRectifyCommentedItem || canEditModifyApprovedItem) {
         const resolvedRoute = resolveProcessRoute(item);
 
         if (resolvedRoute) {
@@ -908,6 +1112,67 @@ const useWorkStatusViewModel = (navigation, route) => {
     setReviewError("");
   }, []);
 
+  const requestModification = useCallback(
+    async (item, remark = "") => {
+      const submissionId = String(item?.submissionId || "").trim();
+
+      if (!submissionId) {
+        return;
+      }
+
+      setIsWorkflowSubmitting(true);
+
+      try {
+        await submitOmsReviewAction({
+          action: "modify_request",
+          submissionId,
+          remark,
+        });
+      } catch (nextError) {
+        const message =
+          nextError?.message || "Unable to request modification right now.";
+
+        showAppAlert({
+          type: "danger",
+          title: "Modify request failed",
+          message,
+        });
+        throw nextError;
+      } finally {
+        setIsWorkflowSubmitting(false);
+      }
+
+      const patchedItem = {
+        ...item,
+        ...getModifyRequestItemPatch(),
+      };
+
+      setModifyRequestOverrides((currentValue) => ({
+        ...currentValue,
+        [submissionId]: patchedItem,
+      }));
+      setItemsByTab((currentValue) =>
+        applyModifyRequestToTabItems({
+          itemsByTab: currentValue,
+          tabs,
+          submissionId,
+          action: "modify_request",
+        })
+      );
+      setSelectedWorkItem((currentValue) =>
+        String(currentValue?.submissionId || "").trim() === submissionId
+          ? patchedItem
+          : currentValue
+      );
+      showAppAlert({
+        type: "success",
+        title: "Modify request added",
+        message: "This item has been moved to Modify Request.",
+      });
+    },
+    [tabs]
+  );
+
   const openSubmissionHistory = useCallback(() => {
     if (!selectedWorkItem) {
       return;
@@ -943,14 +1208,15 @@ const useWorkStatusViewModel = (navigation, route) => {
   }, [reviewError]);
 
   const submitWorkItemAction = useCallback(
-    async (action) => {
+    async (action, actionRemark = reviewRemark) => {
       const normalizedAction = String(action || "").trim().toLowerCase();
+      const normalizedRemark = String(actionRemark || "").trim();
 
       if (!selectedSubmissionId) {
         return;
       }
 
-      if (normalizedAction === "reject" && !String(reviewRemark || "").trim()) {
+      if (normalizedAction === "reject" && !normalizedRemark) {
         setReviewError("Remark is required to reject this subprocess.");
         return;
       }
@@ -961,12 +1227,16 @@ const useWorkStatusViewModel = (navigation, route) => {
         await submitOmsReviewAction({
           action: normalizedAction,
           submissionId: selectedSubmissionId,
-          remark: reviewRemark,
+          remark: normalizedRemark,
         });
 
         const nextStatusKey =
           normalizedAction === "reject"
             ? "commented"
+            : normalizedAction === "modify_approved"
+            ? "modify_approved"
+            : normalizedAction === "modify_rejected"
+            ? "submitted"
             : normalizedAction === "verify"
             ? "verified"
             : "approved";
@@ -983,6 +1253,24 @@ const useWorkStatusViewModel = (navigation, route) => {
             action: normalizedAction,
           })
         );
+        if (
+          normalizedAction === "modify_approved" ||
+          normalizedAction === "modify_rejected"
+        ) {
+          setItemsByTab((currentValue) =>
+            applyModifyRequestToTabItems({
+              itemsByTab: currentValue,
+              tabs,
+              submissionId: selectedSubmissionId,
+              action: normalizedAction,
+            })
+          );
+          setModifyRequestOverrides((currentValue) => {
+            const nextValue = { ...currentValue };
+            delete nextValue[selectedSubmissionId];
+            return nextValue;
+          });
+        }
         setSelectedWorkItem((currentValue) => {
           if (
             String(currentValue?.submissionId || "").trim() !==
@@ -991,13 +1279,24 @@ const useWorkStatusViewModel = (navigation, route) => {
             return currentValue;
           }
 
-          const patch = getWorkflowActionItemPatch(normalizedAction);
+          const patch =
+            normalizedAction === "modify_approved" ||
+            normalizedAction === "modify_rejected"
+              ? getModifyRequestItemPatch(normalizedAction)
+              : getWorkflowActionItemPatch(normalizedAction);
           return patch ? { ...currentValue, ...patch } : currentValue;
         });
-        await Promise.all([
-          refreshSelectedProgress(),
-          loadBoard({ silent: true, forceRefresh: true }),
-        ]);
+        if (
+          normalizedAction === "modify_approved" ||
+          normalizedAction === "modify_rejected"
+        ) {
+          await refreshSelectedProgress();
+        } else {
+          await Promise.all([
+            refreshSelectedProgress(),
+            loadBoard({ silent: true, forceRefresh: true }),
+          ]);
+        }
         setReviewRemark("");
         setReviewError("");
 
@@ -1006,6 +1305,10 @@ const useWorkStatusViewModel = (navigation, route) => {
           title:
             normalizedAction === "verify"
               ? "Verified successfully"
+              : normalizedAction === "modify_approved"
+              ? "Modify request approved"
+              : normalizedAction === "modify_rejected"
+              ? "Modify request rejected"
               : normalizedAction === "approve"
               ? "Approved successfully"
               : "Rejected successfully",
@@ -1067,6 +1370,17 @@ const useWorkStatusViewModel = (navigation, route) => {
       canVerify: Boolean(roleAccess.canVerifyChecklist),
       canApprove: Boolean(roleAccess.canApproveChecklist),
       canReject: Boolean(roleAccess.canRejectChecklist),
+      canModify: Boolean(
+        roleAccess.canVerifyChecklist || roleAccess.canApproveChecklist
+      ),
+      canReviewModifyRequest: Boolean(
+        roleAccess.canVerifyChecklist || roleAccess.canApproveChecklist
+      ),
+      canViewModifyRequestOnly: Boolean(
+        roleAccess.canReviewChecklist &&
+          !roleAccess.canVerifyChecklist &&
+          !roleAccess.canApproveChecklist
+      ),
     },
     canLoadMore: false,
     loadMore: () => {},
@@ -1092,6 +1406,7 @@ const useWorkStatusViewModel = (navigation, route) => {
     refreshSubmissionHistory,
     updateReviewRemark,
     submitWorkItemAction,
+    requestModification,
     refreshSelectedProgress,
     getUnitStatusDetails,
     getUnitWorkBucket,

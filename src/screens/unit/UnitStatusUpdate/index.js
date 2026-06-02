@@ -83,6 +83,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     readOnlyTitle,
     readOnlyNotice,
     isCommentedForEdit,
+    isModifyApprovedForEdit,
+    canAddCommentedPhoto,
     commentedRemark,
     isRemarkRequired,
     checklistItems,
@@ -113,6 +115,8 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     pickFromCamera,
     pickFromGallery,
     removeSelectedPhoto,
+    addCommentedPhotoUpload,
+    dismissCommentedPhotoUpload,
     submitActiveSubOption,
     handleBack,
     getSubOptionLabel,
@@ -666,6 +670,15 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               </View>
             ) : null}
 
+            {isModifyApprovedForEdit ? (
+              <View style={styles.readOnlyBanner}>
+                <Text style={styles.readOnlyBannerTitle}>Modify Approved</Text>
+                <Text style={styles.readOnlyBannerText}>
+                  Update checklist values only. Photo changes are disabled for this request.
+                </Text>
+              </View>
+            ) : null}
+
             {showStatusField
               ? renderSelectField({
                   elementKey: "status",
@@ -782,6 +795,27 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               </View>
             ) : null}
 
+            {canAddCommentedPhoto ? (
+              <View style={styles.optionalPhotoPrompt}>
+                <View style={styles.optionalPhotoCopy}>
+                  <Text style={styles.optionalPhotoTitle}>
+                    Add rectification photo
+                  </Text>
+                  <Text style={styles.optionalPhotoText}>
+                    Add only if a fresh photo is needed for this commented subprocess.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.optionalPhotoAddButton}
+                  activeOpacity={0.88}
+                  onPress={addCommentedPhotoUpload}
+                >
+                  <Text style={styles.optionalPhotoAddIcon}>+</Text>
+                  <Text style={styles.optionalPhotoAddText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {photoRequirements.length ? (
               <View style={styles.photoSection}>
                 <View style={styles.sectionHeaderRow}>
@@ -824,7 +858,17 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         <Text style={styles.photoSlotTitle}>
                           {index + 1}. {requirement.label}
                         </Text>
-                        {media && !isServerPrefilledPhoto ? (
+                        {isCommentedForEdit ? (
+                          <TouchableOpacity
+                            style={styles.photoRemoveBtn}
+                            onPress={dismissCommentedPhotoUpload}
+                            disabled={!canEditPhoto}
+                          >
+                            <Text style={styles.photoRemoveBtnText}>
+                              Close
+                            </Text>
+                          </TouchableOpacity>
+                        ) : media && !isServerPrefilledPhoto ? (
                           <TouchableOpacity
                             style={styles.photoRemoveBtn}
                             onPress={() => removeSelectedPhoto(requirement.id)}

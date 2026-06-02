@@ -1261,6 +1261,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     requirementId: "",
     message: "",
   });
+  const [commentedPhotoUploadBySubOptionId, setCommentedPhotoUploadBySubOptionId] =
+    useState({});
   const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now());
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1370,6 +1372,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const workItemProcessName = normalizeText(workItem?.processName || "");
   const workItemSubprocessName = normalizeText(workItem?.subprocessName || "");
   const isCommentedWorkItem = workItemStatusKey === "commented" || workItemStatusKey === "rejected";
+  const isModifyApprovedWorkItem =
+    workItemStatusKey === "modify approved" ||
+    workItemStatusKey === "modify_approved" ||
+    workItemStatusKey === "7";
 
   const activeValues =
     formValues[activeSubOption.id] ||
@@ -1612,17 +1618,19 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           subOption.apiDescription || subOption.label
         );
         const matchesWorkflowSubprocessById =
-          isCommentedWorkItem &&
           workItemSubprocessId &&
           subOptionSubprocessId === workItemSubprocessId;
         const matchesWorkflowSubprocessByName =
-          isCommentedWorkItem &&
           !workItemSubprocessId &&
           workItemSubprocessName &&
           subOptionSubprocessName === workItemSubprocessName &&
           (!workItemProcessName || subOptionProcessName === workItemProcessName);
         const isWorkflowCommented =
-          matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName;
+          isCommentedWorkItem &&
+          (matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName);
+        const isWorkflowModifyApproved =
+          isModifyApprovedWorkItem &&
+          (matchesWorkflowSubprocessById || matchesWorkflowSubprocessByName);
         const canUseProcessCommentFallback =
           !workItemSubprocessId &&
           !workItemSubprocessName &&
@@ -1671,6 +1679,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           isInfoResubmitEligible,
           isInfoResubmitWindowOpen,
           isCommented,
+          isModifyApproved: isWorkflowModifyApproved,
           submittedFromServer,
           submittedFromLocal,
           isSubmitted:
@@ -1683,6 +1692,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }, {}),
     [
       isCommentedWorkItem,
+      isModifyApprovedWorkItem,
       currentTimeMs,
       localSubmissionSnapshots,
       progressMatchesBySubOptionId,
@@ -1704,6 +1714,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubmissionState.isInfoResubmitWindowOpen
   );
   const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
+  const isModifyApprovedForEdit = Boolean(
+    activeSubmissionState.isModifyApproved
+  );
   const submittedFromServer = Boolean(activeSubmissionState.submittedFromServer);
   const submittedFromLocal = Boolean(activeSubmissionState.submittedFromLocal);
   const commentedRemark = String(workItem?.rejectionRemark || "").trim();
@@ -1711,10 +1724,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     localSubmissionSnapshot?.payload
   );
   const hasSavedLocalSubmission = Boolean(
-    !isCommentedForEdit && localSnapshotHasFilledData
+    !isCommentedForEdit && !isModifyApprovedForEdit && localSnapshotHasFilledData
   );
   const hasLocalDraftSnapshot = Boolean(
     !isCommentedForEdit &&
+      !isModifyApprovedForEdit &&
       localSnapshotHasFilledData &&
       localSubmissionSnapshot?.status !== "synced"
   );
@@ -1723,12 +1737,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const canEditPrefilledLocationFinalization = Boolean(
     activeSubOption?.id === "locationFinalization" &&
       activeSubOption?.canUpdateLocation &&
-      !isCommentedForEdit
+      !isCommentedForEdit &&
+      !isModifyApprovedForEdit
   );
   const isReadOnly =
     isChecklistMasterUnavailable ||
     isRoleReadOnly ||
     (!isCommentedForEdit &&
+      !isModifyApprovedForEdit &&
       submittedFromServer &&
       !isInfoResubmitWindowOpen &&
       !canEditPrefilledLocationFinalization) ||
@@ -1755,13 +1771,30 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const canReviewChecklist = roleAccess.canReviewChecklist;
   const canShowReviewActions = canReviewChecklist && submittedFromServer;
   const displayPhotoRequirements = useMemo(() => {
-    if (!isCommentedForEdit || !photoRequirements.length) {
+    if (!isCommentedForEdit) {
+      if (isModifyApprovedForEdit) {
+        return [];
+      }
+
       return photoRequirements;
     }
 
-    return [RECTIFICATION_PHOTO_REQUIREMENT];
-  }, [isCommentedForEdit, photoRequirements]);
+    return commentedPhotoUploadBySubOptionId[activeSubOption.id]
+      ? [RECTIFICATION_PHOTO_REQUIREMENT]
+      : [];
+  }, [
+    activeSubOption.id,
+    commentedPhotoUploadBySubOptionId,
+    isCommentedForEdit,
+    isModifyApprovedForEdit,
+    photoRequirements,
+  ]);
   const activePhotoRequirements = displayPhotoRequirements;
+  const canAddCommentedPhoto = Boolean(
+    isCommentedForEdit &&
+      !isReadOnly &&
+      !commentedPhotoUploadBySubOptionId[activeSubOption.id]
+  );
   const reviewActionNotice = canReviewChecklist
     ? submittedFromServer
       ? roleAccess.reviewNotice
@@ -1821,7 +1854,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       repeatableGroups: { ...baseValues.repeatableGroups },
     };
     const hydrationPhotoRequirements = isCommentedForEdit
-      ? [RECTIFICATION_PHOTO_REQUIREMENT]
+      ? activePhotoRequirements
+      : isModifyApprovedForEdit
+        ? []
       : allPhotoRequirements.filter((requirement) =>
           isVisibleByRule(requirement, nextValues, activeSubOption)
         );
@@ -2152,6 +2187,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   }, [
     activeServerStatusKey,
     activeSubOption,
+    activePhotoRequirements,
     checklistItems,
     formValues,
     activeServerHasFilledData,
@@ -2160,6 +2196,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     allPhotoRequirements,
     inputFields,
     isCommentedForEdit,
+    isModifyApprovedForEdit,
     localSubmissionSnapshot,
     photoRequirements,
     progressMatch,
@@ -3066,6 +3103,44 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     });
   };
 
+  const addCommentedPhotoUpload = () => {
+    if (!isCommentedForEdit || isReadOnly) {
+      return;
+    }
+
+    setCommentedPhotoUploadBySubOptionId((currentValue) => ({
+      ...currentValue,
+      [activeSubOption.id]: true,
+    }));
+  };
+
+  const dismissCommentedPhotoUpload = async () => {
+    if (!isCommentedForEdit || isReadOnly) {
+      return;
+    }
+
+    await removeSelectedPhoto(RECTIFICATION_PHOTO_REQUIREMENT.id);
+    setCommentedPhotoUploadBySubOptionId((currentValue) => {
+      const nextValue = { ...currentValue };
+      delete nextValue[activeSubOption.id];
+      return nextValue;
+    });
+    setFieldErrors((prev) => {
+      const activeSubOptionErrors = prev[activeSubOption.id] || {};
+      const nextPhotoSlots = { ...(activeSubOptionErrors.photoSlots || {}) };
+      delete nextPhotoSlots[RECTIFICATION_PHOTO_REQUIREMENT.id];
+
+      return {
+        ...prev,
+        [activeSubOption.id]: {
+          ...activeSubOptionErrors,
+          photos: null,
+          photoSlots: nextPhotoSlots,
+        },
+      };
+    });
+  };
+
   const openPhotoPreview = (requirementId) => {
     const media = activeValues.photos?.[requirementId];
     if (!media?.uri) return;
@@ -3685,17 +3760,33 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setIsSubmitting(true);
 
     try {
-      const gallerySaveResult = await saveSubmittedPhotosToDeviceGallery(
-        payload.photos
-      );
+      let gallerySaveResult = { savedCount: 0, denied: false };
+      let submitPayload = payload;
+
+      // For modify approved submissions, exclude images and track changes
+      if (isModifyApprovedForEdit) {
+        submitPayload = {
+          ...payload,
+          photos: [], // Exclude photos for modify mode
+        };
+      } else {
+        gallerySaveResult = await saveSubmittedPhotosToDeviceGallery(
+          payload.photos
+        );
+      }
+
       const result = await submitChecklistOfflineFirst({
         deviceType: module,
         section,
         subOption: activeSubOption,
-        payload,
+        payload: submitPayload,
         ownerUserId,
         offlineOnly: false,
-        submissionMode: isCommentedForEdit ? "commented_resubmit" : "submit",
+        submissionMode: isCommentedForEdit
+          ? "commented_resubmit"
+          : isModifyApprovedForEdit
+            ? "modify_approved_resubmit"
+            : "submit",
         resubmitSubmissionId: workItem?.submissionId || "",
       });
       if (result.submission) {
@@ -3738,6 +3829,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         title: wasSynced
           ? isCommentedForEdit
             ? "Resubmitted successfully"
+            : isModifyApprovedForEdit
+              ? "Modification submitted"
             : "Submitted successfully"
           : "Saved locally",
         actions: [
@@ -3756,8 +3849,12 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
     } catch (error) {
       console.log(
-        isCommentedForEdit ? "[ChecklistResubmit]" : "[ChecklistDraft]",
-        isCommentedForEdit ? "Resubmit failed" : "Local save failed",
+        isCommentedForEdit || isModifyApprovedForEdit
+          ? "[ChecklistResubmit]"
+          : "[ChecklistDraft]",
+        isCommentedForEdit || isModifyApprovedForEdit
+          ? "Resubmit failed"
+          : "Local save failed",
         {
           message: error?.message,
           code: error?.code,
@@ -3766,11 +3863,14 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       );
       showAppAlert({
         type: "danger",
-        title: isCommentedForEdit ? "Resubmit failed" : "Save failed",
+        title:
+          isCommentedForEdit || isModifyApprovedForEdit
+            ? "Resubmit failed"
+            : "Save failed",
         message:
           error?.message ||
-          (isCommentedForEdit
-            ? "Unable to resubmit this commented subprocess right now. Please try again."
+          (isCommentedForEdit || isModifyApprovedForEdit
+            ? "Unable to resubmit this subprocess right now. Please try again."
             : "Unable to save checklist data on this device. Please try again."),
       });
     } finally {
@@ -3844,6 +3944,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubOptionId,
     stepSubmissionStateById,
     isCommentedForEdit,
+    isModifyApprovedForEdit,
+    canAddCommentedPhoto,
     commentedRemark,
     activeValues,
     activeErrors,
@@ -3852,7 +3954,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     isReadOnly,
     readOnlyTitle,
     readOnlyNotice,
-    commentedRemark,
     canReviewChecklist,
     canShowReviewActions,
     reviewActionNotice,
@@ -3893,6 +3994,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     pickFromCamera,
     pickFromGallery,
     removeSelectedPhoto,
+    addCommentedPhotoUpload,
+    dismissCommentedPhotoUpload,
     submitActiveSubOption,
     submitReviewAction,
     handleBack,

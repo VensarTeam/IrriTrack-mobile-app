@@ -63,6 +63,18 @@ const TAB_THEME = {
     accent: getUnitStatusPalette("Commented").text,
     icon: "message-alert-outline",
   },
+  "Modify Request": {
+    solid: "#7C3AED",
+    soft: "#F1EAFF",
+    accent: "#5B21B6",
+    icon: "file-edit-outline",
+  },
+  "Modify Approved": {
+    solid: "#0D9488",
+    soft: "#E6FFFA",
+    accent: "#0F766E",
+    icon: "file-check-outline",
+  },
   Info: {
     solid: getUnitStatusPalette("Info").solid,
     soft: getUnitStatusPalette("Info").soft,
@@ -87,6 +99,10 @@ const WORKFLOW_ROW_THEME = {
   commented: {
     soft: getUnitStatusPalette("Commented").soft,
     accent: getUnitStatusPalette("Commented").text,
+  },
+  modify_approved: {
+    soft: getUnitStatusPalette("Modify Approved").soft,
+    accent: getUnitStatusPalette("Modify Approved").text,
   },
 };
 
@@ -566,6 +582,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     refreshSubmissionHistory,
     updateReviewRemark,
     submitWorkItemAction,
+    requestModification,
     refreshSelectedProgress,
     getUnitStatusDetails,
     getUnitWorkBucket,
@@ -581,6 +598,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
     visible: false,
     action: "",
   });
+  const [modifyRequestConfirmItem, setModifyRequestConfirmItem] =
+    React.useState(null);
+  const [modifyRequestRemark, setModifyRequestRemark] = React.useState("");
   const [imageViewerState, setImageViewerState] = React.useState({
     visible: false,
     items: [],
@@ -629,6 +649,14 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const historySheetBottomPadding = insets.bottom + 20;
 
   const canVerifySelected = reviewCapabilities.canVerify && selectedWorkflowStatusKey === "submitted";
+  const canModifySelected =
+    reviewCapabilities.canModify && selectedWorkflowStatusKey === "submitted";
+  const canApproveModifyRequest =
+    reviewCapabilities.canReviewModifyRequest &&
+    selectedWorkflowStatusKey === "modify_request";
+  const canRejectModifyRequest =
+    reviewCapabilities.canReviewModifyRequest &&
+    selectedWorkflowStatusKey === "modify_request";
   const canApproveSelected = reviewCapabilities.canApprove && selectedWorkflowStatusKey === "verified";
   const canRejectSelected =
     reviewCapabilities.canReject &&
@@ -771,6 +799,52 @@ const WorkStatusScreen = ({ route, navigation }) => {
       : workflowConfirmState.action === "verify"
         ? "Are you sure you want to verify this subprocess response?"
         : "Are you sure you want to reject this subprocess response with the entered remark?";
+
+  const openModifyRequestConfirmation = React.useCallback((item, action = "modify_request") => {
+    setModifyRequestConfirmItem({ item, action });
+    setModifyRequestRemark("");
+  }, []);
+
+  const closeModifyRequestConfirmation = React.useCallback(() => {
+    setModifyRequestConfirmItem(null);
+    setModifyRequestRemark("");
+  }, []);
+
+  const confirmModifyRequest = React.useCallback(async () => {
+    if (!modifyRequestConfirmItem) {
+      return;
+    }
+
+    const action = String(modifyRequestConfirmItem.action || "").trim();
+
+    if (action === "modify_request") {
+      await requestModification(modifyRequestConfirmItem.item, modifyRequestRemark);
+    } else {
+      await submitWorkItemAction(action, modifyRequestRemark);
+    }
+
+    closeModifyRequestConfirmation();
+  }, [
+    closeModifyRequestConfirmation,
+    modifyRequestConfirmItem,
+    modifyRequestRemark,
+    requestModification,
+    submitWorkItemAction,
+  ]);
+
+  const modifyRequestModalTitle =
+    modifyRequestConfirmItem?.action === "modify_approved"
+      ? "Approve Modify Request"
+      : modifyRequestConfirmItem?.action === "modify_rejected"
+        ? "Reject Modify Request"
+        : "Request Modification";
+
+  const modifyRequestModalMessage =
+    modifyRequestConfirmItem?.action === "modify_approved"
+      ? "Approve this request so the supervisor can update the submission."
+      : modifyRequestConfirmItem?.action === "modify_rejected"
+        ? "Reject this modification request and keep the submitted status."
+        : "Ask for correction on this submission. Remark is optional.";
 
   const openImageViewer = React.useCallback(
     ({ uri = "", title = "", meta = "", items = [], initialIndex = 0 } = {}) => {
@@ -942,7 +1016,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
           keyExtractor={(unit, index) =>
             String(unit?.id || unit?.submissionId || unit?.omsId || `${sceneRoute.key}-${index}`)
           }
-          renderItem={renderUnitCard}
+          renderItem={(props) =>
+            renderUnitCard({ ...props, tabKey: sceneRoute.key })
+          }
           contentContainerStyle={styles.sceneContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -977,11 +1053,20 @@ const WorkStatusScreen = ({ route, navigation }) => {
     [activeTabIndex, canLoadMore, isFetchingMore, isRefreshing, loadMore, refresh, tabs, unitsByTab]
   );
 
+  const getRemarkLabel = (item = {}) => {
+    const statusKey = String(item?.requestBucket || item?.status || "").trim().toLowerCase();
+    return statusKey === "commented" ? "Comment:" : "Remark:";
+  };
+
   const renderUnitCard = React.useCallback(
-    ({ item }) => {
+    ({ item, tabKey }) => {
       const bucket = getUnitWorkBucket(item);
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
       const statusDetails = getUnitStatusDetails(item);
+      const canRequestModification =
+        tabKey === "Pending" &&
+        !canReviewChecklist &&
+        Boolean(item?.submissionId);
 
       return (
         <TouchableOpacity style={styles.card} onPress={() => openWorkItem(item)} activeOpacity={0.9}>
@@ -1046,11 +1131,44 @@ const WorkStatusScreen = ({ route, navigation }) => {
               ) : null}
               {item?.rejectionRemark ? (
                 <View style={styles.cardCommentBlock}>
-                  <Text style={styles.cardCommentLabel}>Comment:</Text>
+                  <Text style={styles.cardCommentLabel}>{getRemarkLabel(item)}</Text>
                   <Text style={styles.cardRemarkText} numberOfLines={2}>
                     {item.rejectionRemark}
                   </Text>
                 </View>
+              ) : null}
+
+              {item?.modifierRemark ? (
+                <View style={styles.cardCommentBlock}>
+                  <Text style={styles.cardCommentLabel}>{getRemarkLabel(item)}</Text>
+                  <Text style={styles.cardRemarkText} numberOfLines={2}>
+                    {item.modifierRemark}
+                  </Text>
+                </View>
+              ) : null}
+
+              {canRequestModification ? (
+                <TouchableOpacity
+                  style={styles.modifyRequestButton}
+                  activeOpacity={0.9}
+                  onPress={(event) => {
+                    event?.stopPropagation?.();
+                    openModifyRequestConfirmation(item, "modify_request");
+                  }}
+                >
+                  <View style={styles.modifyRequestIconWrap}>
+                    <Icon source="file-edit-outline" size={16} color="#5B21B6" />
+                  </View>
+                  <View style={styles.modifyRequestCopy}>
+                    <Text style={styles.modifyRequestTitle}>
+                      Request Modification
+                    </Text>
+                    <Text style={styles.modifyRequestSubtitle}>
+                      Send this submission to modify request
+                    </Text>
+                  </View>
+                  <Icon source="chevron-right" size={18} color="#7C3AED" />
+                </TouchableOpacity>
               ) : null}
             </View>
           </View>
@@ -1072,7 +1190,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       );
     },
-    [getUnitStatusDetails, getUnitWorkBucket, openWorkItem]
+    [
+      canReviewChecklist,
+      getUnitStatusDetails,
+      getUnitWorkBucket,
+      openModifyRequestConfirmation,
+      openWorkItem,
+    ]
   );
 
   return (
@@ -1201,6 +1325,61 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     >
                       Confirm
                     </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={Boolean(modifyRequestConfirmItem)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModifyRequestConfirmation}
+      >
+        <Pressable
+          style={styles.rejectModalBackdrop}
+          onPress={closeModifyRequestConfirmation}
+        >
+          <View style={styles.rejectModalRoot}>
+            <Pressable style={styles.confirmationModalCard} onPress={() => {}}>
+              <Text style={styles.rejectModalTitle}>{modifyRequestModalTitle}</Text>
+              <Text style={styles.rejectModalSubtitle}>
+                {modifyRequestModalMessage}
+              </Text>
+
+              <TextInput
+                style={[styles.reviewRemarkInput, styles.rejectModalInput]}
+                placeholder="Remark (optional)"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                value={modifyRequestRemark}
+                onChangeText={setModifyRequestRemark}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.rejectModalActionRow}>
+                <TouchableOpacity
+                  style={[styles.reviewActionButton, styles.reviewCancelButton]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={closeModifyRequestConfirmation}
+                >
+                  <Text style={styles.reviewCancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.reviewActionButton, styles.modifyConfirmButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                  activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                  disabled={isWorkflowSubmitting}
+                  onPress={confirmModifyRequest}
+                >
+                  {isWorkflowSubmitting ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Text style={styles.modifyConfirmText}>Submit</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1589,6 +1768,10 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       <Text style={styles.reviewActionSubtitle}>
                         {selectedWorkflowStatusKey === "commented"
                           ? selectedCommentRemark || "This subprocess was commented and is waiting for field rectification."
+                          : selectedWorkflowStatusKey === "modify_request"
+                            ? "This submission is waiting for modify request review."
+                          : selectedWorkflowStatusKey === "modify_approved"
+                            ? "This modification is approved and ready for supervisor update."
                           : selectedWorkflowStatusKey === "approved"
                             ? "This subprocess is already approved."
                             : selectedWorkflowStatusKey === "verified" && !canApproveSelected
@@ -1602,16 +1785,51 @@ const WorkStatusScreen = ({ route, navigation }) => {
                         <Text style={styles.reviewErrorText}>{reviewError}</Text>
                       ) : null}
 
-                      {canVerifySelected || canApproveSelected || canRejectSelected ? (
+                      {canVerifySelected ||
+                      canModifySelected ||
+                      canApproveSelected ||
+                      canRejectSelected ||
+                      canApproveModifyRequest ||
+                      canRejectModifyRequest ? (
                         <View style={styles.reviewActionRow}>
-                          {canRejectSelected ? (
+                          {canRejectSelected || canRejectModifyRequest ? (
                             <TouchableOpacity
                               style={[styles.reviewActionButton, styles.reviewRejectButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
-                              onPress={openRejectRemarkModal}
+                              onPress={
+                                canRejectModifyRequest
+                                  ? () =>
+                                      openModifyRequestConfirmation(
+                                        selectedWorkItem,
+                                        "modify_rejected"
+                                      )
+                                  : openRejectRemarkModal
+                              }
                             >
                               <Text style={styles.reviewRejectText}>Reject</Text>
+                            </TouchableOpacity>
+                          ) : null}
+
+                          {canModifySelected || canApproveModifyRequest ? (
+                            <TouchableOpacity
+                              style={[styles.reviewActionButton, styles.reviewModifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                              disabled={isWorkflowSubmitting}
+                              onPress={() =>
+                                openModifyRequestConfirmation(
+                                  selectedWorkItem,
+                                  "modify_approved"
+                                )
+                              }
+                            >
+                              {isWorkflowSubmitting ? (
+                                <ActivityIndicator size="small" color="#5B21B6" />
+                              ) : (
+                                <Text style={styles.reviewModifyText}>
+                                  {canApproveModifyRequest ? "Approve" : "Modify"}
+                                </Text>
+                              )}
                             </TouchableOpacity>
                           ) : null}
 

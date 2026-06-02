@@ -24,6 +24,15 @@ export const submitOmsReviewAction = async ({
     body.remark = String(remark).trim();
   }
 
+  if (
+    ["modify_request", "modify_approved", "modify_rejected"].includes(
+      normalizedAction
+    ) &&
+    String(remark || "").trim()
+  ) {
+    body.remark = String(remark).trim();
+  }
+
   console.log("[OMSReview]", "Submitting workflow action", {
     submissionId,
     body,
