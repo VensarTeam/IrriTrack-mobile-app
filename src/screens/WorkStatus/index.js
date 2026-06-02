@@ -1379,7 +1379,27 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   {isWorkflowSubmitting ? (
                     <ActivityIndicator size="small" color={colors.white} />
                   ) : (
-                    <Text style={styles.modifyConfirmText}>Submit</Text>
+                    <View style={styles.actionButtonContent}>
+                      <Icon
+                        style={styles.actionButtonIcon}
+                        source={
+                          modifyRequestConfirmItem?.action === "modify_approved"
+                            ? "file-check-outline"
+                            : modifyRequestConfirmItem?.action === "modify_rejected"
+                            ? "close-circle"
+                            : "file-edit-outline"
+                        }
+                        size={16}
+                        color={colors.white}
+                      />
+                      <Text style={styles.modifyConfirmText}>
+                        {modifyRequestConfirmItem?.action === "modify_approved"
+                          ? "Modification Approve"
+                          : modifyRequestConfirmItem?.action === "modify_rejected"
+                          ? "Modification Reject"
+                          : "Request Modification"}
+                      </Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1791,78 +1811,90 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       canRejectSelected ||
                       canApproveModifyRequest ||
                       canRejectModifyRequest ? (
-                        <View style={styles.reviewActionRow}>
-                          {canRejectSelected || canRejectModifyRequest ? (
+                        <>
+                          {(canModifySelected || canApproveModifyRequest) ? (
                             <TouchableOpacity
-                              style={[styles.reviewActionButton, styles.reviewRejectButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
-                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
-                              disabled={isWorkflowSubmitting}
-                              onPress={
-                                canRejectModifyRequest
-                                  ? () =>
-                                      openModifyRequestConfirmation(
-                                        selectedWorkItem,
-                                        "modify_rejected"
-                                      )
-                                  : openRejectRemarkModal
-                              }
-                            >
-                              <Text style={styles.reviewRejectText}>Reject</Text>
-                            </TouchableOpacity>
-                          ) : null}
-
-                          {canModifySelected || canApproveModifyRequest ? (
-                            <TouchableOpacity
-                              style={[styles.reviewActionButton, styles.reviewModifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                              style={[styles.needModificationButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
                               activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
                               disabled={isWorkflowSubmitting}
                               onPress={() =>
                                 openModifyRequestConfirmation(
                                   selectedWorkItem,
-                                  "modify_approved"
+                                  canApproveModifyRequest ? "modify_approved" : "modify_request"
                                 )
                               }
                             >
                               {isWorkflowSubmitting ? (
                                 <ActivityIndicator size="small" color="#5B21B6" />
-                              ) : (
-                                <Text style={styles.reviewModifyText}>
-                                  {canApproveModifyRequest ? "Approve" : "Modify"}
-                                </Text>
+                                ) : (
+                                <View style={styles.actionButtonContent}>
+                                  <Icon style={styles.actionButtonIcon} source="file-edit-outline" size={16} color="#5B21B6" />
+                                  <Text style={styles.needModificationText}>Need Modification</Text>
+                                </View>
                               )}
                             </TouchableOpacity>
                           ) : null}
 
-                          {canVerifySelected ? (
-                            <TouchableOpacity
-                              style={[styles.reviewActionButton, styles.reviewVerifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
-                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
-                              disabled={isWorkflowSubmitting}
-                              onPress={() => openWorkflowConfirmation("verify")}
-                            >
-                              {isWorkflowSubmitting ? (
-                                <ActivityIndicator size="small" color={colors.primaryBlue} />
-                              ) : (
-                                <Text style={styles.reviewVerifyText}>Verify</Text>
-                              )}
-                            </TouchableOpacity>
-                          ) : null}
+                          <View style={styles.reviewActionRow}>
+                            {canRejectSelected || canRejectModifyRequest ? (
+                              <TouchableOpacity
+                                style={[styles.reviewActionButton, styles.reviewRejectButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                                activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                                disabled={isWorkflowSubmitting}
+                                onPress={
+                                  canRejectModifyRequest
+                                    ? () =>
+                                        openModifyRequestConfirmation(
+                                          selectedWorkItem,
+                                          "modify_rejected"
+                                        )
+                                    : openRejectRemarkModal
+                                }
+                              >
+                                <View style={styles.actionButtonContent}>
+                                  <Icon style={styles.actionButtonIcon} source="close-circle" size={16} color="#C44728" />
+                                  <Text style={styles.reviewRejectText}>Reject</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ) : null}
 
-                          {canApproveSelected ? (
-                            <TouchableOpacity
-                              style={[styles.reviewActionButton, styles.reviewApproveButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
-                              activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
-                              disabled={isWorkflowSubmitting}
-                              onPress={() => openWorkflowConfirmation("approve")}
-                            >
-                              {isWorkflowSubmitting ? (
-                                <ActivityIndicator size="small" color={colors.white} />
-                              ) : (
-                                <Text style={styles.reviewApproveText}>Approve</Text>
-                              )}
-                            </TouchableOpacity>
-                          ) : null}
-                        </View>
+                            {canVerifySelected ? (
+                              <TouchableOpacity
+                                style={[styles.reviewActionButton, styles.reviewVerifyButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                                activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                                disabled={isWorkflowSubmitting}
+                                onPress={() => openWorkflowConfirmation("verify")}
+                              >
+                                {isWorkflowSubmitting ? (
+                                  <ActivityIndicator size="small" color={colors.primaryBlue} />
+                                ) : (
+                                  <View style={styles.actionButtonContent}>
+                                    <Icon style={styles.actionButtonIcon} source="shield-check-outline" size={16} color="#135EAF" />
+                                    <Text style={styles.reviewVerifyText}>Verify</Text>
+                                  </View>
+                                )}
+                              </TouchableOpacity>
+                            ) : null}
+
+                            {canApproveSelected ? (
+                              <TouchableOpacity
+                                style={[styles.reviewActionButton, styles.reviewApproveButton, isWorkflowSubmitting && styles.reviewActionButtonDisabled]}
+                                activeOpacity={isWorkflowSubmitting ? 1 : 0.9}
+                                disabled={isWorkflowSubmitting}
+                                onPress={() => openWorkflowConfirmation("approve")}
+                              >
+                                {isWorkflowSubmitting ? (
+                                  <ActivityIndicator size="small" color={colors.white} />
+                                ) : (
+                                  <View style={styles.actionButtonContent}>
+                                    <Icon style={styles.actionButtonIcon} source="check-decagram-outline" size={16} color={colors.white} />
+                                    <Text style={styles.reviewApproveText}>Approve</Text>
+                                  </View>
+                                )}
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
+                        </>
                       ) : (
                         <View style={styles.workflowStateNotice}>
                           <Text style={styles.workflowStateNoticeText}>

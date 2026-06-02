@@ -1449,6 +1449,39 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
+  needModificationButton: {
+    width: "100%",
+    minHeight: verticalScale(52),
+    marginTop: verticalScale(8),
+    borderRadius: moderateScale(14),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F6F0FF",
+    borderWidth: 1,
+    borderColor: "#A78BFA",
+    paddingHorizontal: moderateScale(14),
+    shadowColor: "#061423",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+
+  needModificationText: {
+    fontSize: fontScale(13),
+    color: "#5B21B6",
+    fontFamily: fonts.bold,
+  },
+
+  actionButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  actionButtonIcon: {
+    marginRight: moderateScale(8),
+  },
+
   reviewApproveText: {
     fontSize: fontScale(12.5),
     color: colors.white,
