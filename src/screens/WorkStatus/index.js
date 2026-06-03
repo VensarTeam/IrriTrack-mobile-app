@@ -1064,7 +1064,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
       const statusDetails = getUnitStatusDetails(item);
       const canRequestModification =
-        tabKey === "Pending" &&
+        ["Submitted", "Pending"].includes(tabKey) &&
+        ["Submitted", "Pending"].includes(bucket) &&
         !canReviewChecklist &&
         Boolean(item?.submissionId);
 
