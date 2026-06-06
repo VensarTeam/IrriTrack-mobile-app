@@ -984,6 +984,7 @@ const ProjectDetailsScreen = ({ route }) => {
                                 moduleKey: key,
                                 subprocessId: item.subprocessId,
                                 subprocessLabel: item.fullLabel || item.label,
+                                status: item.status,
                               })
                             }
                           >

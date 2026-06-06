@@ -32,6 +32,7 @@ const ImageViewerModal = ({
   initialIndex = 0,
   onRequestClose,
   onIndexChange,
+  backgroundColor = colors.white,
 }) => {
   const viewerItems = React.useMemo(() => normalizeItems(items), [items]);
   const [activeIndex, setActiveIndex] = React.useState(initialIndex);
@@ -64,7 +65,6 @@ const ImageViewerModal = ({
     () =>
       ({ imageIndex }) => {
         const activeItem = viewerItems[imageIndex] || null;
-        const subtitle = activeItem?.meta || "Pinch or double tap to zoom";
 
         return (
           <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
@@ -81,7 +81,7 @@ const ImageViewerModal = ({
               </View>
               <IconButton
                 icon="close"
-                iconColor={colors.white}
+                iconColor={colors.textDark}
                 onPress={onRequestClose}
               />
             </View>
@@ -93,17 +93,14 @@ const ImageViewerModal = ({
 
   const FooterComponent = React.useMemo(
     () =>
-      ({ imageIndex }) => {
-        const activeItem = viewerItems[imageIndex] || null;
-
+      () => {
         return (
           <SafeAreaView edges={["bottom"]} style={styles.footerSafeArea}>
             <View style={styles.footer}>
               {/* <Text style={styles.meta} numberOfLines={2}>
-                {activeItem?.meta ||
-                  (viewerItems.length > 1
-                    ? "Swipe left or right to browse more images."
-                    : "Pinch or double tap to zoom.")}
+                {viewerItems.length > 1
+                  ? "Swipe left or right to browse more images."
+                  : "Pinch or double tap to zoom."}
               </Text> */}
             </View>
           </SafeAreaView>
@@ -120,21 +117,23 @@ const ImageViewerModal = ({
     <Modal
       visible={visible}
       animationType="fade"
-      transparent={true}
+      transparent={false}
+      presentationStyle="fullScreen"
       onRequestClose={onRequestClose}
     >
       <ImageViewer
+        key={`${visible ? "visible" : "hidden"}-${activeIndex}-${viewerItems.length}`}
         imageUrls={viewerItems.map((item) => item.viewerSource)}
         index={activeIndex}
         onCancel={onRequestClose}
         onChange={handleIndexChange}
         renderHeader={(imageIndex) => <HeaderComponent imageIndex={imageIndex || 0} />}
-        renderFooter={(imageIndex) => <FooterComponent imageIndex={imageIndex || 0} />}
+        renderFooter={() => <FooterComponent />}
         renderIndicator={() => null}
         enableSwipeDown={false}
         saveToLocalByLongPress={false}
         enablePreload
-        backgroundColor="#05070B"
+        backgroundColor={backgroundColor}
         useNativeDriver={false}
         flipThreshold={PAGE_FLIP_THRESHOLD}
         maxOverflow={EDGE_OVERFLOW}
@@ -168,13 +167,13 @@ const styles = StyleSheet.create({
     paddingRight: moderateScale(12),
   },
   title: {
-    color: colors.white,
+    color: colors.textDark,
     fontSize: moderateScale(16),
     fontFamily: fonts.bold,
   },
   subtitle: {
     marginTop: verticalScale(2),
-    color: "rgba(255,255,255,0.74)",
+    color: colors.textSecondary,
     fontSize: moderateScale(11),
     fontFamily: fonts.medium,
   },

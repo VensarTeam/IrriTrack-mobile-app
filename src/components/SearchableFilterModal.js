@@ -147,6 +147,7 @@ const SearchableFilterModal = ({
 
   const bottomInset = Math.max(insets.bottom, 0);
   const topInset = Math.max(insets.top, verticalScale(12));
+  const sheetBottomPadding = bottomInset + verticalScale(10);
   const androidSheetOffset =
     Platform.OS === "android" && keyboardHeight > 0
       ? Math.max(keyboardHeight - insets.bottom - verticalScale(10), 0)
@@ -379,13 +380,16 @@ const SearchableFilterModal = ({
                 data={isInitialLoading ? loadingData : filteredOptions}
                 keyExtractor={keyExtractor}
                 renderItem={isInitialLoading ? renderLoadingItem : renderOption}
-                showsVerticalScrollIndicator
+                showsVerticalScrollIndicator={false}
                 nestedScrollEnabled
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={
                   Platform.OS === "ios" ? "interactive" : "on-drag"
                 }
-                contentContainerStyle={listContentStyle}
+                contentContainerStyle={[
+                  listContentStyle,
+                  { paddingBottom: sheetBottomPadding },
+                ]}
                 ListEmptyComponent={
                   isInitialLoading ? null : (
                     <View style={styles.emptyState}>
@@ -550,7 +554,7 @@ const styles = StyleSheet.create({
   },
 
   listFooterSpace: {
-    height: verticalScale(4),
+    height: verticalScale(16),
   },
 
   optionItem: {

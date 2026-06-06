@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from "../config/env";
 import { apiRequestWithMeta } from "./apiClient";
 import { getCachedOmsBasicUnitsPage } from "./omsOfflineStore";
+import { getOmsStatusFilterApiValue } from "../constants/omsFilterConfig";
 
 export const DEFAULT_OMS_PAGE_LIMIT = 5;
 
@@ -51,13 +52,13 @@ const buildOmsListParams = ({
   const hasStatus =
     status !== null && status !== undefined && status !== "";
   const normalizedSubprocessId = hasSubprocessId ? Number(subprocessId) : NaN;
-  const normalizedStatus = hasStatus ? Number(status) : NaN;
+  const normalizedStatus = getOmsStatusFilterApiValue(status);
 
   if (hasSubprocessId && Number.isInteger(normalizedSubprocessId) && normalizedSubprocessId > 0) {
     params.subprocessId = normalizedSubprocessId;
   }
 
-  if (hasStatus && Number.isInteger(normalizedStatus) && normalizedStatus >= 0 && normalizedStatus <= 5) {
+  if (hasStatus && String(normalizedStatus || "").trim()) {
     params.status = normalizedStatus;
   }
 

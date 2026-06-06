@@ -4,13 +4,44 @@ const normalizeText = (value = "") =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ");
 
+export const OMS_STATUS_FILTER_KEYS = {
+  pending: "pending",
+  partial: "partial",
+  completed: "completed",
+  commented: "commented",
+  approved: "approved",
+  verified: "verified",
+  totalInstalled: "totalInstalled",
+};
+
 export const OMS_STATUS_FILTER_OPTIONS = [
-  { value: 0, label: "Pending" },
-  { value: 1, label: "Partial" },
-  { value: 2, label: "Completed" },
-  { value: 3, label: "Commented" },
-  { value: 4, label: "Approved" },
-  { value: 5, label: "Verified" },
+  { value: OMS_STATUS_FILTER_KEYS.pending, label: "Pending", apiValue: "0" },
+  { value: OMS_STATUS_FILTER_KEYS.partial, label: "Partial", apiValue: "1" },
+  {
+    value: OMS_STATUS_FILTER_KEYS.completed,
+    label: "Completed",
+    apiValue: "2",
+  },
+  {
+    value: OMS_STATUS_FILTER_KEYS.totalInstalled,
+    label: "Total Installed",
+    apiValue: "2,3,4,5,6,7",
+  },
+  {
+    value: OMS_STATUS_FILTER_KEYS.commented,
+    label: "Commented",
+    apiValue: "3",
+  },
+  {
+    value: OMS_STATUS_FILTER_KEYS.approved,
+    label: "Approved",
+    apiValue: "4",
+  },
+  {
+    value: OMS_STATUS_FILTER_KEYS.verified,
+    label: "Verified",
+    apiValue: "4,5",
+  },
 ];
 
 export const OMS_SUBPROCESS_FILTER_OPTIONS = [
@@ -77,11 +108,55 @@ export const OMS_SUBPROCESS_FILTER_OPTIONS = [
 ];
 
 export const findOmsStatusFilterOptionByValue = (value) => {
-  const normalizedValue = Number(value);
+  const normalizedValue = normalizeText(value);
+  const rawValue = String(value ?? "").trim();
+  const normalizedNumericValue = Number(value);
 
-  return OMS_STATUS_FILTER_OPTIONS.find(
-    (item) => Number(item.value) === normalizedValue
-  ) || null;
+  return (
+    OMS_STATUS_FILTER_OPTIONS.find((item) => {
+      const candidates = [item.value, item.label, item.apiValue];
+
+      return candidates.some((candidate) => {
+        if (candidate === null || candidate === undefined) {
+          return false;
+        }
+
+        const candidateRaw = String(candidate).trim();
+        return (
+          normalizeText(candidateRaw) === normalizedValue ||
+          candidateRaw === rawValue
+        );
+      });
+    }) ||
+    OMS_STATUS_FILTER_OPTIONS.find((item) => {
+      if (!Number.isFinite(normalizedNumericValue)) {
+        return false;
+      }
+
+      return String(item.apiValue || "")
+        .split(",")
+        .map((entry) => Number(entry.trim()))
+        .some((entry) => entry === normalizedNumericValue);
+    }) ||
+    null
+  );
+};
+
+export const getOmsStatusFilterApiValue = (value) => {
+  const matchedOption = findOmsStatusFilterOptionByValue(value);
+
+  if (matchedOption) {
+    return matchedOption.apiValue;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean)
+      .join(",");
+  }
+
+  return String(value ?? "").trim();
 };
 
 export const findOmsSubprocessFilterOptionById = (value) => {

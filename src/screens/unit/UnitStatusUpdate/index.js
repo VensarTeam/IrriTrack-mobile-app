@@ -569,7 +569,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               (() => {
                 const submissionState = stepSubmissionStateById[sub.id] || {};
                 const isSubmitted = Boolean(submissionState.isSubmitted);
+                const isPartial = Boolean(submissionState.isPartial);
                 const isCommented = Boolean(submissionState.isCommented);
+                const isFilled = isSubmitted || isPartial;
 
                 return (
                   <TouchableOpacity
@@ -577,7 +579,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     style={[
                       styles.stepChip,
                       sub.id === activeSubOptionId && styles.stepChipActive,
-                      isSubmitted && styles.stepChipSubmitted,
+                      isFilled && styles.stepChipSubmitted,
                     ]}
                     onPress={() => setActiveSubOptionId(sub.id)}
                     activeOpacity={0.85}
@@ -587,7 +589,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         styles.stepChipNumber,
                         sub.id === activeSubOptionId &&
                           styles.stepChipNumberActive,
-                        isSubmitted && styles.stepChipNumberSubmitted,
+                        isFilled && styles.stepChipNumberSubmitted,
                       ]}
                     >
                       <Text
@@ -595,7 +597,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           styles.stepChipNumberText,
                           sub.id === activeSubOptionId &&
                             styles.stepChipNumberTextActive,
-                          isSubmitted && styles.stepChipNumberTextSubmitted,
+                          isFilled && styles.stepChipNumberTextSubmitted,
                         ]}
                       >
                         {index + 1}
@@ -608,7 +610,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           styles.stepChipText,
                           sub.id === activeSubOptionId &&
                             styles.stepChipTextActive,
-                          isSubmitted && styles.stepChipTextSubmitted,
+                          isFilled && styles.stepChipTextSubmitted,
                         ]}
                         numberOfLines={2}
                       >
@@ -623,6 +625,16 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                           ]}
                         >
                           Commented
+                        </Text>
+                      ) : isPartial ? (
+                        <Text
+                          style={[
+                            styles.stepChipStatus,
+                            sub.id === activeSubOptionId &&
+                              styles.stepChipStatusActive,
+                          ]}
+                        >
+                          Partial
                         </Text>
                       ) : isSubmitted ? (
                         <Text
@@ -642,7 +654,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                         styles.stepChipDot,
                         sub.id === activeSubOptionId &&
                           styles.stepChipDotActive,
-                        isSubmitted && styles.stepChipDotSubmitted,
+                        isFilled && styles.stepChipDotSubmitted,
                       ]}
                     />
                   </TouchableOpacity>

@@ -8,6 +8,7 @@ import {
 import { ROUTES } from "../navigation/routes";
 import colors from "../constants/colors";
 import {
+  OMS_STATUS_FILTER_KEYS,
   OMS_SUBPROCESS_FILTER_OPTIONS,
 } from "../constants/omsFilterConfig";
 import { useAuth } from "../context/AuthContext";
@@ -72,8 +73,6 @@ const OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS = [
   colors.partial,
   colors.completed,
 ];
-const OMS_COMPLETED_STATUS_FILTER_VALUE = 2;
-
 const useProjectDetailsViewModel = (navigation, route) => {
   const { user, roleAccess } = useAuth();
   const project = route?.params?.project || null;
@@ -548,6 +547,9 @@ const useProjectDetailsViewModel = (navigation, route) => {
       label: item.shortLabel || item.label,
       fullLabel: item.label,
       subprocessId: item.id,
+      status: item.key === "pedestalEnclosureInstallation"
+        ? OMS_STATUS_FILTER_KEYS.totalInstalled
+        : OMS_STATUS_FILTER_KEYS.completed,
       value: getStageCompletedCount(stages, item.aliases || [item.label]),
       color:
         OMS_PROJECT_DETAILS_HIGHLIGHT_COLORS[index] ||
@@ -656,7 +658,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
     moduleKey = "OMS",
     subprocessId = null,
     subprocessLabel = "",
-    status = OMS_COMPLETED_STATUS_FILTER_VALUE,
+    status = OMS_STATUS_FILTER_KEYS.completed,
   } = {}) => {
     const normalizedModuleKey = String(moduleKey || "").trim().toUpperCase();
     const normalizedSubprocessId = Number(subprocessId);

@@ -1647,6 +1647,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const serverStatusKey = isCommented
           ? "commented"
           : subprocessStatusKey || processStatusKey;
+        const isPartial = !isCommented && serverStatusKey === "partial";
         const hasServerFilledData = subprocessHasServerFilledData(
           serverMatch?.subprocess
         );
@@ -1667,16 +1668,21 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
           !isCommented &&
+          !isPartial &&
           (isPipeLayingSubOption
             ? subprocessStatusKey === "completed"
             : hasServerFilledData)
         );
-        const submittedFromLocal = !isCommented && localSnapshot?.status === "synced";
+        const submittedFromLocal =
+          !isCommented &&
+          !isPartial &&
+          localSnapshot?.status === "synced";
 
         acc[subOption.id] = {
           processStatusKey,
           subprocessStatusKey,
           serverStatusKey,
+          isPartial,
           hasServerFilledData,
           serverSubmissionAt: serverSubmissionAt
             ? serverSubmissionAt.toISOString()
@@ -1688,9 +1694,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           submittedFromServer,
           submittedFromLocal,
           isSubmitted:
-            (!isCommented && submittedFromServer) ||
+            (!isCommented && !isPartial && submittedFromServer) ||
             submittedFromLocal ||
-            (!isCommented && localPayloadHasFilledData(localSnapshot?.payload)),
+            (!isCommented &&
+              !isPartial &&
+              localPayloadHasFilledData(localSnapshot?.payload)),
         };
 
         return acc;
@@ -1728,14 +1736,22 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const localSnapshotHasFilledData = localPayloadHasFilledData(
     localSubmissionSnapshot?.payload
   );
+  const isPartialLocalSubmission = Boolean(
+    localSnapshotHasFilledData &&
+      isPartialStatusValue(localSubmissionSnapshot?.payload?.status)
+  );
   const hasSavedLocalSubmission = Boolean(
-    !isCommentedForEdit && !isModifyApprovedForEdit && localSnapshotHasFilledData
+    !isCommentedForEdit &&
+      !isModifyApprovedForEdit &&
+      localSnapshotHasFilledData &&
+      !isPartialLocalSubmission
   );
   const hasLocalDraftSnapshot = Boolean(
     !isCommentedForEdit &&
       !isModifyApprovedForEdit &&
       localSnapshotHasFilledData &&
-      localSubmissionSnapshot?.status !== "synced"
+      localSubmissionSnapshot?.status !== "synced" &&
+      !isPartialLocalSubmission
   );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
   const isChecklistMasterUnavailable = !hasApiSections;

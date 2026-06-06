@@ -4,7 +4,9 @@ import {
   findOmsStatusFilterOptionByValue,
   findOmsSubprocessFilterOptionById,
   findOmsSubprocessFilterOptionByLabel,
+  getOmsStatusFilterApiValue,
   OMS_STATUS_FILTER_OPTIONS,
+  OMS_STATUS_FILTER_KEYS,
   OMS_SUBPROCESS_FILTER_OPTIONS,
 } from "../constants/omsFilterConfig";
 import { useAuth } from "../context/AuthContext";
@@ -36,7 +38,11 @@ const DEFAULT_SORT_ORDER = "asc";
 const DEFAULT_SUBPROCESS_FILTER_ID = null;
 const DEFAULT_STATUS_FILTER_VALUE = null;
 const PIPE_LAYING_SUBPROCESS_FILTER_IDS = new Set([2, 3]);
-const PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES = new Set([3, 4, 5]);
+const PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES = new Set([
+  OMS_STATUS_FILTER_KEYS.commented,
+  OMS_STATUS_FILTER_KEYS.approved,
+  OMS_STATUS_FILTER_KEYS.verified,
+]);
 const HIDDEN_OMS_CARD_SECTION_KEYS = new Set(["rectification"]);
 const TO_BE_VERIFY_STATUS_LABEL = "To be Confirm";
 const OMS_CARD_SUBPROCESS_LABELS = {
@@ -447,7 +453,7 @@ const useUnitListViewModel = (navigation, route) => {
     return OMS_STATUS_FILTER_OPTIONS.filter(
       (item) =>
         !shouldHideReviewStatuses ||
-        !PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES.has(Number(item.value))
+        !PIPE_LAYING_HIDDEN_STATUS_FILTER_VALUES.has(String(item.value))
     ).map((item) => ({
       value: item.value,
       label: item.label,
@@ -468,7 +474,7 @@ const useUnitListViewModel = (navigation, route) => {
       selectedStatusValue === null || selectedStatusValue === undefined
         ? null
         : statusFilterOptions.find(
-            (item) => Number(item.value) === Number(selectedStatusValue)
+            (item) => String(item.value) === String(selectedStatusValue)
           ) || findOmsStatusFilterOptionByValue(selectedStatusValue),
     [selectedStatusValue, statusFilterOptions]
   );
@@ -477,7 +483,7 @@ const useUnitListViewModel = (navigation, route) => {
     if (
       selectedStatusValue !== DEFAULT_STATUS_FILTER_VALUE &&
       !statusFilterOptions.some(
-        (item) => Number(item.value) === Number(selectedStatusValue)
+        (item) => String(item.value) === String(selectedStatusValue)
       )
     ) {
       setSelectedStatusValue(DEFAULT_STATUS_FILTER_VALUE);
@@ -537,7 +543,7 @@ const useUnitListViewModel = (navigation, route) => {
           villageId: selectedVillageId,
           searchQuery: debouncedSearch,
           subprocessId: selectedSubprocessId,
-          status: selectedStatusValue,
+          status: getOmsStatusFilterApiValue(selectedStatusValue),
           sortBy,
           sortOrder,
           page,
