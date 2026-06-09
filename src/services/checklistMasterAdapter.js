@@ -107,6 +107,7 @@ const getDropdownOptions = (checklist = {}) => {
 
 const buildDynamicListGroup = (checklist, base, fieldLabel) => {
   const label = normalizeText(checklist.description);
+  const isOutletPipeIdentificationChecklist = checklist.checklist_id === 22;
 
   if (label.includes("outlet pipe identification and marking")) {
     return {
@@ -119,7 +120,7 @@ const buildDynamicListGroup = (checklist, base, fieldLabel) => {
       itemTitleFallbackPrefix: "V",
       useSubChakQuantity: true,
       imageBySubChakQuantity: true,
-      minItems: 1,
+      minItems: isOutletPipeIdentificationChecklist ? 0 : 1,
       maxItems: 8,
       uniqueSelectionFieldKeys: ["subChakName"],
       allowDuplicateValues: ["NA"],

@@ -29,8 +29,27 @@ import {
 import { useAuth } from "../context/AuthContext";
 import useUnitProgress from "../hooks/useUnitProgress";
 import useChecklistSections from "./useChecklistSections";
-import { IMAGE_BASE_URL } from "../config/env";
+import {
+  findProgressChecklistMatch,
+  hasMeaningfulServerValue,
+  normalizeText,
+  resolveServerPhotoUri,
+} from "./unitStatusUpdate/helpers";
+import {
+  PED_ENCLOSURE_REQUIRED_CHECKLIST_IDS,
+  PED_ENCLOSURE_SIZE_CHECKLIST_ID,
+  PED_ENCLOSURE_SUBOPTION_ID,
+  getSubmissionChecklistId,
+  getSubmissionPhotoId,
+  hasSubmissionPhoto,
+  hasSubmissionValue,
+  isServerSourcedMedia,
+  resolvePedestalLinkedSizeEntries,
+  resolvePedestalPhotoMedia,
+  validatePedestalEnclosureSubmission,
+} from "./unitStatusUpdate/pedestalEnclosure";
 
+// Pure builders used to initialize each subprocess form independently.
 const buildChecklistState = (checklistItems = []) =>
   checklistItems.reduce((acc, item) => {
     acc[item.id] = false;
@@ -179,13 +198,6 @@ const formatGeocodeAddress = (place = {}) => {
   return parts.join(", ");
 };
 
-const normalizeText = (value) =>
-  String(value || "")
-    .replace(/&/g, "and")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-
 const getFieldDedupKey = (field = {}) =>
   normalizeText(
     field.description ||
@@ -203,8 +215,6 @@ const NUMBER_DATA_TYPES = new Set([
   "decimal",
   "number",
 ]);
-
-const FILE_STORAGE_BASE_URL = IMAGE_BASE_URL;
 
 const inferChecklistValueType = (source = {}, value, extra = {}) => {
   if (extra.valueType) {
@@ -291,6 +301,7 @@ const toPositiveIntegerOrNull = (value) => {
   return numericValue;
 };
 
+// Server-progress helpers normalize API data before it hydrates the editable form.
 const findProgressSubprocessMatch = (
   progress = { processes: [] },
   {
@@ -333,59 +344,6 @@ const findProgressSubprocessMatch = (
   }
 
   return null;
-};
-
-const getProgressChecklistMatch = (
-  checklistsById,
-  checklistsByName,
-  source = {},
-  fallbackLabel = ""
-) => {
-  const checklistId = String(source.checklistId || source.id || source.key || "").trim();
-
-  if (checklistId && checklistsById.has(checklistId)) {
-    return checklistsById.get(checklistId) || null;
-  }
-
-  const candidateNames = [
-    source.label,
-    source.description,
-    fallbackLabel,
-  ]
-    .map((item) => normalizeText(item))
-    .filter(Boolean);
-
-  for (const candidateName of candidateNames) {
-    if (checklistsByName.has(candidateName)) {
-      return checklistsByName.get(candidateName) || null;
-    }
-  }
-
-  return null;
-};
-
-const hasMeaningfulServerValue = (value) => {
-  if (value === null || typeof value === "undefined") {
-    return false;
-  }
-
-  if (typeof value === "string") {
-    return value.trim().length > 0;
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return true;
-  }
-
-  if (Array.isArray(value)) {
-    return value.some((item) => hasMeaningfulServerValue(item));
-  }
-
-  if (typeof value === "object") {
-    return Object.values(value).some((item) => hasMeaningfulServerValue(item));
-  }
-
-  return false;
 };
 
 const getServerChecklistRawValue = (checklist = null) =>
@@ -861,6 +819,7 @@ const getInitialFormValues = (section, unit) => {
   }, {});
 };
 
+// Workflow status constants control editing, resubmission, and server-prefill behavior.
 const SUBMITTED_STATUS_KEYS = new Set([
   "submitted",
   "partial",
@@ -1142,25 +1101,6 @@ const parseRepeatableGroupItems = (group, rawValue) => {
 
     return nextItem;
   });
-};
-
-const getServerPhotoUri = (remoteValue, objectKey = "") => {
-  const rawValue = String(remoteValue || "").trim();
-  const rawObjectKey = String(objectKey || "").trim();
-
-  if (rawValue.startsWith("http://") || rawValue.startsWith("https://")) {
-    return rawValue;
-  }
-
-  if (rawObjectKey) {
-    return `${FILE_STORAGE_BASE_URL}${rawObjectKey.replace(/^\/+/, "")}`;
-  }
-
-  if (rawValue) {
-    return `${FILE_STORAGE_BASE_URL}${rawValue.replace(/^\/+/, "")}`;
-  }
-
-  return "";
 };
 
 const buildProgressHydrationSignature = (match = null) => {
@@ -1830,6 +1770,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     setReviewError("");
   }, [activeSubOption?.id]);
 
+  // Hydrate once per source revision so server/local data does not overwrite user edits.
   useEffect(() => {
     const subOptionId = activeSubOption?.id;
     const shouldHydrateFromServer = Boolean(
@@ -1897,7 +1838,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       );
 
       checklistItems.forEach((item) => {
-        const checklist = getProgressChecklistMatch(
+        const checklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           item
@@ -1911,7 +1852,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       selectFields.forEach((field) => {
-        const checklist = getProgressChecklistMatch(
+        const checklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           field
@@ -1927,7 +1868,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       inputFields.forEach((field) => {
-        const checklist = getProgressChecklistMatch(
+        const checklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           field
@@ -1943,7 +1884,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       if (showRemarkField && activeSubOption.remarkChecklist?.checklistId) {
-        const remarkChecklist = getProgressChecklistMatch(
+        const remarkChecklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           activeSubOption.remarkChecklist,
@@ -1960,7 +1901,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
 
       if (activeSubOption.locationChecklist?.checklistId) {
-        const locationChecklist = getProgressChecklistMatch(
+        const locationChecklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           activeSubOption.locationChecklist
@@ -2005,7 +1946,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           return;
         }
 
-        const checklist = getProgressChecklistMatch(
+        const checklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           group,
@@ -2024,7 +1965,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       });
 
       hydrationPhotoRequirements.forEach((requirement) => {
-        const checklist = getProgressChecklistMatch(
+        const checklist = findProgressChecklistMatch(
           checklistsById,
           checklistsByName,
           requirement
@@ -2034,7 +1975,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           checklist?.detail?.value ??
           checklist?.rawChecklist?.value;
         const metadata = checklist?.rawChecklist?.metadata || {};
-        const remoteUri = getServerPhotoUri(
+        const remoteUri = resolveServerPhotoUri(
           remoteValue,
           checklist?.rawChecklist?.objectKey || ""
         );
@@ -3220,6 +3161,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     [module, updateActiveValues]
   );
 
+  const pedestalEnclosureSubmissionValidation =
+    validatePedestalEnclosureSubmission({
+      activeSubOption,
+      activeValues,
+      checklistItems,
+      photoRequirements: activePhotoRequirements,
+      localSubmissionSnapshot,
+      progressMatch,
+    });
+
+  // Validate visible fields together with subprocess-specific business rules.
   const validateForm = () => {
     const pipeLayingRequiredErrors = getPipeLayingRequiredErrors({
       activeSubOption,
@@ -3297,6 +3249,118 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       setFirstErrorMessage("Please update location");
     }
 
+    if (pedestalEnclosureSubmissionValidation.errorMessage) {
+      nextErrors.photos = pedestalEnclosureSubmissionValidation.errorMessage;
+      setFirstErrorMessage(pedestalEnclosureSubmissionValidation.errorMessage);
+    }
+
+    const getPhotoRequirementByChecklistId = (checklistId) =>
+      activePhotoRequirements.find(
+        (item) =>
+          String(item.checklistId || item.id || "").trim() ===
+          String(checklistId)
+      );
+    const hasMergedPedestalPhoto = (checklistId) => {
+      const requirement = getPhotoRequirementByChecklistId(checklistId);
+      const media = resolvePedestalPhotoMedia({
+        checklistId,
+        requirementId: requirement?.id,
+        activeValues,
+        localSubmissionSnapshot,
+        progressMatch,
+      });
+
+      return hasSubmissionPhoto(media);
+    };
+    const hasPedestalRequirementPhoto = (requirement) => {
+      if (activeSubOption.id !== PED_ENCLOSURE_SUBOPTION_ID) {
+        return hasSubmissionPhoto(activeValues.photos?.[requirement.id]);
+      }
+
+      return hasSubmissionPhoto(
+        resolvePedestalPhotoMedia({
+          checklistId: requirement.checklistId || requirement.id,
+          requirementId: requirement.id,
+          activeValues,
+          localSubmissionSnapshot,
+          progressMatch,
+        })
+      );
+    };
+
+    const pedestalChecklist20Item = checklistItems.find(
+      (item) => String(item.checklistId || item.id || "").trim() === "20"
+    );
+    const pedestalChecklist23Item = checklistItems.find(
+      (item) => String(item.checklistId || item.id || "").trim() === "23"
+    );
+    const pedestalChecklist97Item = checklistItems.find(
+      (item) => String(item.checklistId || item.id || "").trim() === "97"
+    );
+    const isPedestalMandatoryChecklistComplete =
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      PED_ENCLOSURE_REQUIRED_CHECKLIST_IDS.every((checklistId) =>
+        checklistItems.some(
+          (item) =>
+            String(item.checklistId || item.id || "").trim() === checklistId &&
+            activeValues.checks?.[item.id]
+        )
+      );
+
+    const pedestalPhotoSlotErrors = {};
+    const setPedestalPhotoSlotError = (photoChecklistId, message) => {
+      const requirement = getPhotoRequirementByChecklistId(photoChecklistId);
+
+      if (requirement) {
+        pedestalPhotoSlotErrors[requirement.id] = message;
+      }
+    };
+
+    if (
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      !hasMergedPedestalPhoto("99") &&
+      activeValues.checks?.[pedestalChecklist20Item?.id]
+    ) {
+      setPedestalPhotoSlotError(
+        "99",
+        "Photo 99 is required because checklist 20 is completed."
+      );
+    }
+
+    if (
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      !hasMergedPedestalPhoto("100") &&
+      activeValues.checks?.[pedestalChecklist23Item?.id]
+    ) {
+      setPedestalPhotoSlotError(
+        "100",
+        "Photo 100 is required because checklist 23 is completed."
+      );
+    }
+
+    if (
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      !hasMergedPedestalPhoto("25") &&
+      activeValues.checks?.[pedestalChecklist97Item?.id]
+    ) {
+      setPedestalPhotoSlotError(
+        "25",
+        "Photo 25 is required because checklist 97 is completed."
+      );
+    }
+
+    if (
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      isPedestalMandatoryChecklistComplete &&
+      !hasMergedPedestalPhoto("26")
+    ) {
+      setPedestalPhotoSlotError(
+        "26",
+        "Signed checklist photo 26 is required to complete Pedestal & Enclosure."
+      );
+    }
+    const isPedestalLinkedSizeGroup = activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID;
+
     const missingChecklistItems = checklistItems.filter(
       (item) =>
         isRequiredByRule(item, activeValues, activeSubOption) &&
@@ -3306,7 +3370,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     const completedChecklistItems = checklistItems.filter(
       (item) => !!activeValues.checks?.[item.id]
     );
-
     let missingRequirements = [];
 
     if (repeatableGroups.length) {
@@ -3315,6 +3378,26 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       repeatableGroups.forEach((group) => {
         const items = activeValues.repeatableGroups?.[group.key] || [];
         const groupError = {};
+        const isPedestalOutletIdentificationGroup =
+          isPedestalLinkedSizeGroup &&
+          String(group.checklistId || "").trim() === PED_ENCLOSURE_SIZE_CHECKLIST_ID;
+        const isChecklist20Checked = Boolean(
+          pedestalChecklist20Item && activeValues.checks?.[pedestalChecklist20Item.id]
+        );
+
+        if (isPedestalOutletIdentificationGroup && !isChecklist20Checked) {
+          return;
+        }
+
+        if (
+          isPedestalOutletIdentificationGroup &&
+          isChecklist20Checked &&
+          items.length === 0
+        ) {
+          groupError.message =
+            "Checklist 22: Outlet pipe identification and marking is required because checklist 20 is completed.";
+          setFirstErrorMessage(groupError.message);
+        }
 
         if (group.fixedItemCount && items.length !== group.fixedItemCount) {
           groupError.message = `${group.fixedItemCount} ${group.itemLabel || "item"} entries are required`;
@@ -3370,16 +3453,23 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       }
     }
 
+    if (Object.keys(pedestalPhotoSlotErrors).length) {
+      nextErrors.photoSlots = {
+        ...(nextErrors.photoSlots || {}),
+        ...pedestalPhotoSlotErrors,
+      };
+    }
+
     if (activePhotoRequirements.length) {
       missingRequirements = activePhotoRequirements.filter(
         (requirement) =>
           isRequiredByRule(requirement, activeValues, activeSubOption) &&
-          !activeValues.photos?.[requirement.id]?.uri
+          !hasPedestalRequirementPhoto(requirement)
       );
     }
 
     const uploadedPhotosCount = activePhotoRequirements.filter(
-      (requirement) => !!activeValues.photos?.[requirement.id]?.uri
+      (requirement) => hasPedestalRequirementPhoto(requirement)
     ).length;
     const hasChecklistOrPhotoRequirements =
       checklistItems.length > 0 || activePhotoRequirements.length > 0;
@@ -3485,6 +3575,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     };
   };
 
+  // Convert the current form into the normalized checklist answer collection.
   const buildChecklistAnswers = () => {
     const answers = [];
 
@@ -3576,7 +3667,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       const media = activeValues.photos?.[requirement.id] || null;
       const mediaPath = media?.filePath || media?.uri || "";
 
-      if (requirement.synthetic || !mediaPath) {
+      if (requirement.synthetic || !mediaPath || isServerSourcedMedia(media)) {
         return;
       }
       answers.push(
@@ -3605,8 +3696,54 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return answers.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
   };
 
+  // Build the offline/API payload while preserving earlier pedestal progress.
   const buildSubmissionPayload = () => {
     const submittedAt = new Date().toISOString();
+    const pedestalLinkedSizeInfo =
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID
+        ? resolvePedestalLinkedSizeEntries({
+            repeatableGroups,
+            activeValues,
+            localSubmissionSnapshot,
+          })
+        : {
+            sizeGroup: null,
+            linkedSizeEntries: [],
+          };
+    const pedestalSubmissionPayload =
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID
+        ? {
+            checklistById: new Map(),
+            photoById: new Map(),
+          }
+        : null;
+
+    if (pedestalSubmissionPayload) {
+      (localSubmissionSnapshot?.payload?.checklist || []).forEach((entry) => {
+        if (!hasSubmissionValue(entry?.checked ?? entry?.response ?? entry?.value)) {
+          return;
+        }
+
+        const checklistId = getSubmissionChecklistId(entry);
+
+        if (checklistId) {
+          pedestalSubmissionPayload.checklistById.set(checklistId, entry);
+        }
+      });
+
+      (localSubmissionSnapshot?.payload?.photos || []).forEach((photo) => {
+        if (!hasSubmissionPhoto(photo)) {
+          return;
+        }
+
+        const photoId = getSubmissionPhotoId(photo);
+
+        if (photoId) {
+          pedestalSubmissionPayload.photoById.set(photoId, photo);
+        }
+      });
+    }
+
     const completedChecklistItems = checklistItems.filter(
       (item) => !!activeValues.checks?.[item.id]
     );
@@ -3626,19 +3763,161 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     const shouldSubmitAsPartial =
       (completedChecklistItems.length > 0 || uploadedPhotosCount > 0) &&
       (missingChecklistItems.length > 0 || missingPhotoRequirements.length > 0);
+    const submissionStatus =
+      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID
+        ? pedestalEnclosureSubmissionValidation.isComplete
+          ? "Completed"
+          : "Partially Completed"
+        : shouldSubmitAsPartial
+          ? "Partially Completed"
+          : activeValues.status;
+    const checklist = checklistItems.map((item) => {
+      const checklistId = String(item.checklistId || item.id || "").trim();
+      const isChecked = activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID
+        ? Boolean(
+            activeValues.checks?.[item.id] ||
+              pedestalSubmissionPayload?.checklistById?.has(checklistId)
+          )
+        : Boolean(activeValues.checks?.[item.id]);
+
+      return {
+        id: item.id,
+        checklist_id: item.checklistId || null,
+        label: item.label,
+        response: isChecked ? 1 : 0,
+        checked: isChecked ? 1 : 0,
+      };
+    });
+
     const photos = activePhotoRequirements
-      .map((requirement) => ({
-        checklistId: requirement.checklistId || null,
-        requirementId: requirement.id,
-        requirementLabel: requirement.label,
-        inputType: requirement.inputType || "photo",
-        dataType: requirement.dataType || "image",
-        inputUnit: requirement.inputUnit ?? null,
-        seqNo: requirement.seqNo ?? null,
-        isRequired: requirement.required !== false,
-        ...activeValues.photos?.[requirement.id],
-      }))
-      .filter((item) => item.uri);
+      .map((requirement) => {
+        const checklistId = String(
+          requirement.checklistId || requirement.id || ""
+        ).trim();
+        const currentMedia = activeValues.photos?.[requirement.id] || null;
+        const snapshotMedia =
+          pedestalSubmissionPayload?.photoById?.get(checklistId) || null;
+        const mergedMedia = currentMedia?.uri ? currentMedia : snapshotMedia;
+        const linkedSizeMetadata =
+          checklistId === "99" && pedestalLinkedSizeInfo.linkedSizeEntries.length
+            ? {
+                linkedChecklistId: pedestalLinkedSizeInfo.sizeGroup?.checklistId || PED_ENCLOSURE_SIZE_CHECKLIST_ID,
+                linkedChecklistLabel: pedestalLinkedSizeInfo.sizeGroup?.title || "Outlet Pipe Identification and Marking",
+                linkedChecklistValues: pedestalLinkedSizeInfo.linkedSizeEntries,
+            }
+            : {};
+
+        if (!mergedMedia?.uri && !mergedMedia?.filePath) {
+          return null;
+        }
+
+        if (isServerSourcedMedia(mergedMedia)) {
+          return null;
+        }
+
+        return {
+          checklistId: requirement.checklistId || null,
+          requirementId: requirement.id,
+          requirementLabel: requirement.label,
+          inputType: requirement.inputType || "photo",
+          dataType: requirement.dataType || "image",
+          inputUnit: requirement.inputUnit ?? null,
+          seqNo: requirement.seqNo ?? null,
+          isRequired: requirement.required !== false,
+          ...linkedSizeMetadata,
+          ...mergedMedia,
+        };
+      })
+      .filter((item) => item?.uri || item?.filePath);
+    const answers = buildChecklistAnswers();
+
+    if (pedestalSubmissionPayload) {
+      activePhotoRequirements.forEach((requirement) => {
+        const checklistId = String(
+          requirement.checklistId || requirement.id || ""
+        ).trim();
+        const currentMedia = activeValues.photos?.[requirement.id] || null;
+        const snapshotMedia =
+          pedestalSubmissionPayload.photoById.get(checklistId) || null;
+        const mergedMedia = currentMedia?.uri ? currentMedia : snapshotMedia;
+
+        if (!mergedMedia || isServerSourcedMedia(mergedMedia)) {
+          return;
+        }
+
+        const hasMergedAnswer = answers.some(
+          (answer) => String(answer.checklist_id || "") === checklistId
+        );
+
+        if (hasMergedAnswer) {
+          return;
+        }
+
+        const mergedMediaPath = mergedMedia.uri || mergedMedia.filePath || "";
+        const linkedSizeMetadata =
+          checklistId === "99" && pedestalLinkedSizeInfo.linkedSizeEntries.length
+            ? {
+                linkedChecklistId: pedestalLinkedSizeInfo.sizeGroup?.checklistId || PED_ENCLOSURE_SIZE_CHECKLIST_ID,
+                linkedChecklistLabel: pedestalLinkedSizeInfo.sizeGroup?.title || "Outlet Pipe Identification and Marking",
+                linkedChecklistValues: pedestalLinkedSizeInfo.linkedSizeEntries,
+              }
+            : {};
+
+        if (!mergedMediaPath) {
+          return;
+        }
+
+        answers.push(
+          buildAnswer(requirement, mergedMediaPath, {
+            valueType: "file",
+            ...linkedSizeMetadata,
+            file: mergedMedia
+              ? {
+                  file_name: mergedMedia.name,
+                  file_path: mergedMedia.filePath || mergedMedia.uri,
+                  local_uri: mergedMedia.uri,
+                  source: mergedMedia.source,
+                  mime_type: mergedMedia.type,
+                  size_kb: mergedMedia.sizeKb,
+                  width: mergedMedia.width,
+                  height: mergedMedia.height,
+                  media_type: mergedMedia.mediaType,
+                  taken_at: mergedMedia.takenAt,
+                  latitude: mergedMedia.latitude,
+                  longitude: mergedMedia.longitude,
+                  ...linkedSizeMetadata,
+                }
+              : null,
+          })
+        );
+      });
+    }
+
+    if (pedestalLinkedSizeInfo.linkedSizeEntries.length) {
+      const linkedSizeMetadata = {
+        linkedChecklistId:
+          pedestalLinkedSizeInfo.sizeGroup?.checklistId ||
+          PED_ENCLOSURE_SIZE_CHECKLIST_ID,
+        linkedChecklistLabel:
+          pedestalLinkedSizeInfo.sizeGroup?.title ||
+          "Outlet Pipe Identification and Marking",
+        linkedChecklistValues: pedestalLinkedSizeInfo.linkedSizeEntries,
+      };
+
+      answers.forEach((answer) => {
+        if (String(answer.checklist_id || "") !== "99") {
+          return;
+        }
+
+        Object.assign(answer, linkedSizeMetadata);
+
+        if (answer.file && typeof answer.file === "object") {
+          Object.assign(answer.file, linkedSizeMetadata);
+        }
+      });
+    }
+
+    answers.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
 
     return {
       draft_version: 2,
@@ -3668,19 +3947,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         activeSubOption.apiDescription || activeSubOption.label || "",
       subprocess_seq_no: activeSubOption.apiSeqNo ?? null,
       status: showStatusField
-        ? shouldSubmitAsPartial
-          ? "Partially Completed"
-          : activeValues.status
+        ? submissionStatus
         : "",
       remark: showRemarkField ? activeValues.remark : "",
-      answers: buildChecklistAnswers(),
-      checklist: checklistItems.map((item) => ({
-        id: item.id,
-        checklist_id: item.checklistId || null,
-        label: item.label,
-        response: activeValues.checks?.[item.id] ? 1 : 0,
-        checked: activeValues.checks?.[item.id] ? 1 : 0,
-      })),
+      answers,
+      checklist,
       selectValues: selectFields.map((field) => {
         const { value, metadata } = getSelectFieldSubmissionDetails(field);
 

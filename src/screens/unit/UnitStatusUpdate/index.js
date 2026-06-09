@@ -18,6 +18,7 @@ import colors from "../../../constants/colors";
 import { Icons } from "../../../constants/icons";
 import ImageViewerModal from "../../../components/ImageViewerModal";
 import useUnitStatusUpdateViewModel from "../../../viewmodels/useUnitStatusUpdateViewModel";
+import ChecklistSection from "./ChecklistSection";
 
 const OUTLET_MANIFOLD_IMAGES = {
   2: require("../../../assets/images/2 outlet Manifold.png"),
@@ -163,7 +164,6 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
   const hasPendingUpdatedLocation = Boolean(
     activeValues.pendingUpdatedLocation,
   );
-
   const openReferencePreview = (source, title) => {
     setReferencePreviewState({
       visible: true,
@@ -719,66 +719,13 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
 
             {repeatableGroups.map((group) => renderRepeatableGroup(group))}
 
-            {checklistItems.length ? (
-              <View style={styles.checklistCard}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.checklistTitle}>Checklist</Text>
-                  {/* <View style={styles.sectionCountBadge}>
-                    <Text style={styles.sectionCountBadgeText}>
-                      {checklistItems.length} item{checklistItems.length === 1 ? "" : "s"}
-                    </Text>
-                  </View> */}
-                  {checklistProgress.total ? (
-                    <View style={styles.progressPill}>
-                      <Text style={styles.progressPillText}>
-                        {checklistProgress.completed}/{checklistProgress.total}{" "}
-                        Done
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Text style={styles.sectionHelperText}>
-                  Tick each point after verifying it on site.
-                </Text>
-
-                {checklistItems.map((item) => {
-                  const checked = !!activeValues.checks?.[item.id];
-
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.checkItem,
-                        checked && styles.checkItemChecked,
-                        isReadOnly && styles.fieldDisabled,
-                      ]}
-                      onPress={() => toggleChecklistItem(item.id)}
-                      activeOpacity={isReadOnly ? 1 : 0.86}
-                      disabled={isReadOnly}
-                    >
-                      <View
-                        style={[
-                          styles.checkbox,
-                          checked && styles.checkboxChecked,
-                        ]}
-                      >
-                        {checked ? (
-                          <Icons.tickGreen width={14} height={14} />
-                        ) : null}
-                      </View>
-                      <Text
-                        style={[
-                          styles.checkItemText,
-                          checked && styles.checkItemTextChecked,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ) : null}
+            <ChecklistSection
+              checklistItems={checklistItems}
+              checklistProgress={checklistProgress}
+              activeValues={activeValues}
+              isReadOnly={isReadOnly}
+              toggleChecklistItem={toggleChecklistItem}
+            />
 
             {showRemarkField ? (
               <View style={styles.fieldBlock}>

@@ -680,6 +680,18 @@ export default StyleSheet.create({
     backgroundColor: colors.lightGreen,
   },
 
+  checkItemContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  checkItemLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: moderateScale(6),
+  },
+
   checkbox: {
     width: moderateScale(18),
     height: moderateScale(18),
@@ -715,6 +727,18 @@ export default StyleSheet.create({
   checkItemTextChecked: {
     color: colors.navyFreshDark,
     fontFamily: fonts.medium,
+  },
+
+  photoDependencyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(4),
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(3),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#EEF5FF",
+    borderWidth: 1,
+    borderColor: "#C9D9EE",
   },
 
   remarkInput: {
