@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
+  Dimensions,
   Linking,
   Modal,
   Platform,
@@ -24,6 +25,12 @@ import {
   getInstalledAppVersionForDisplay,
   supportsRemoteAppVersionCheck,
 } from "../services/appVersionService";
+
+const { height: windowHeight } = Dimensions.get("window");
+const RELEASE_NOTES_MAX_HEIGHT = Math.min(
+  verticalScale(112),
+  Math.max(verticalScale(76), windowHeight * 0.16)
+);
 
 const getReleaseNotes = (versionInfo) =>
   String(versionInfo?.releaseNotes || "").trim();
@@ -238,9 +245,9 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    maxHeight: "92%",
+    maxHeight: "88%",
     overflow: "hidden",
-    borderRadius: moderateScale(28),
+    borderRadius: moderateScale(22),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.loginSheetBorderLight,
@@ -248,43 +255,43 @@ const styles = StyleSheet.create({
 
   hero: {
     alignItems: "center",
-    paddingHorizontal: moderateScale(22),
-    paddingTop: verticalScale(26),
-    paddingBottom: verticalScale(22),
+    paddingHorizontal: moderateScale(18),
+    paddingTop: verticalScale(18),
+    paddingBottom: verticalScale(16),
   },
 
   iconHalo: {
-    width: moderateScale(86),
-    height: moderateScale(86),
-    borderRadius: moderateScale(43),
+    width: moderateScale(64),
+    height: moderateScale(64),
+    borderRadius: moderateScale(32),
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.loginSheetBorderLight,
-    marginBottom: verticalScale(14),
+    marginBottom: verticalScale(10),
   },
 
   title: {
-    fontSize: moderateScale(24),
+    fontSize: moderateScale(20),
     color: colors.navyFreshDark,
     fontFamily: fonts.bold,
     textAlign: "center",
   },
 
   subtitle: {
-    marginTop: verticalScale(8),
-    fontSize: moderateScale(14),
-    lineHeight: moderateScale(20),
+    marginTop: verticalScale(5),
+    fontSize: moderateScale(12),
+    lineHeight: moderateScale(17),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
     textAlign: "center",
   },
 
   body: {
-    paddingHorizontal: moderateScale(18),
-    paddingTop: verticalScale(18),
-    paddingBottom: verticalScale(18),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(14),
+    paddingBottom: verticalScale(14),
   },
 
   versionRow: {
@@ -296,9 +303,9 @@ const styles = StyleSheet.create({
 
   versionPill: {
     flex: 1,
-    borderRadius: moderateScale(16),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(13),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
     backgroundColor: colors.surfaceBluePale,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -316,41 +323,42 @@ const styles = StyleSheet.create({
   },
 
   versionValue: {
-    marginTop: verticalScale(3),
-    fontSize: moderateScale(16),
+    marginTop: verticalScale(2),
+    fontSize: moderateScale(14),
     color: colors.textDark,
     fontFamily: fonts.bold,
   },
 
   notesWrap: {
-    marginTop: verticalScale(16),
-    borderRadius: moderateScale(16),
+    marginTop: verticalScale(12),
+    borderRadius: moderateScale(13),
     backgroundColor: colors.surfaceBlueSoft,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
 
   notesTitle: {
-    paddingHorizontal: moderateScale(14),
-    paddingTop: verticalScale(12),
-    fontSize: moderateScale(13),
+    paddingHorizontal: moderateScale(12),
+    paddingTop: verticalScale(10),
+    fontSize: moderateScale(12),
     color: colors.textDark,
     fontFamily: fonts.bold,
   },
 
   notesScroll: {
-    maxHeight: verticalScale(118),
+    height: RELEASE_NOTES_MAX_HEIGHT,
+    maxHeight: RELEASE_NOTES_MAX_HEIGHT,
   },
 
   notesContent: {
-    paddingHorizontal: moderateScale(14),
-    paddingTop: verticalScale(8),
-    paddingBottom: verticalScale(12),
+    paddingHorizontal: moderateScale(12),
+    paddingTop: verticalScale(6),
+    paddingBottom: verticalScale(10),
   },
 
   notesText: {
-    fontSize: moderateScale(13),
-    lineHeight: moderateScale(19),
+    fontSize: moderateScale(12),
+    lineHeight: moderateScale(17),
     color: colors.textSecondary,
     fontFamily: fonts.regular,
   },
@@ -359,10 +367,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: moderateScale(8),
-    marginTop: verticalScale(14),
-    borderRadius: moderateScale(14),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
+    marginTop: verticalScale(12),
+    borderRadius: moderateScale(12),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(8),
     backgroundColor: "#FFF6E9",
     borderWidth: 1,
     borderColor: "#FFE3B5",
@@ -377,8 +385,8 @@ const styles = StyleSheet.create({
   },
 
   updateButton: {
-    marginTop: verticalScale(18),
-    minHeight: verticalScale(48),
+    marginTop: verticalScale(14),
+    minHeight: verticalScale(44),
     borderRadius: moderateScale(999),
     backgroundColor: colors.primaryBlue,
     flexDirection: "row",
@@ -398,7 +406,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexWrap: "wrap",
     gap: moderateScale(12),
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(8),
   },
 
   secondaryButton: {
