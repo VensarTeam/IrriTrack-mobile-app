@@ -29,6 +29,8 @@ export const PED_ENCLOSURE_COMPLETION_PHOTO_IDS = Object.freeze([
 
 const PHOTO_REQUIRED_BY_CHECKLIST_ID = Object.freeze({
   "20": "99",
+  "23": "100",
+  "97": "25",
 });
 
 /**
@@ -281,7 +283,13 @@ export const validatePedestalEnclosureSubmission = ({
   let errorMessage = "";
 
   // Return the earliest missing dependency so the UI can highlight one clear action.
-  if (
+  if (mergedPhotoIds.has("99") && !mergedChecklistIds.has("20")) {
+    errorMessage = "Checklist 20 is required because photo 99 is uploaded.";
+  } else if (mergedPhotoIds.has("100") && !mergedChecklistIds.has("23")) {
+    errorMessage = "Checklist 23 is required because photo 100 is uploaded.";
+  } else if (mergedPhotoIds.has("25") && !mergedChecklistIds.has("97")) {
+    errorMessage = "Checklist 97 is required because photo 25 is uploaded.";
+  } else if (
     mergedChecklistIds.has("20") &&
     !mergedPhotoIds.has(PHOTO_REQUIRED_BY_CHECKLIST_ID["20"])
   ) {
