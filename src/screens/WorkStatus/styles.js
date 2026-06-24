@@ -1048,6 +1048,58 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
+  pipelaidWrap: {
+    marginTop: verticalScale(9),
+    padding: moderateScale(9),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: "#DDEAF7",
+    backgroundColor: "#F8FBFF",
+  },
+
+  pipelaidTitle: {
+    fontSize: fontScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.bold,
+    textTransform: "uppercase",
+    marginBottom: verticalScale(7),
+  },
+
+  pipelaidGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: moderateScale(6),
+  },
+
+  pipelaidPill: {
+    minWidth: moderateScale(50),
+    minHeight: verticalScale(30),
+    borderRadius: moderateScale(999),
+    borderWidth: 1,
+    borderColor: "#D8E5F3",
+    backgroundColor: colors.white,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(4),
+    paddingHorizontal: moderateScale(8),
+  },
+
+  pipelaidPillSelected: {
+    borderColor: "#BFE7CF",
+    backgroundColor: "#F3FCF7",
+  },
+
+  pipelaidText: {
+    fontSize: fontScale(10.5),
+    color: colors.textSecondary,
+    fontFamily: fonts.bold,
+  },
+
+  pipelaidTextSelected: {
+    color: colors.completed,
+  },
+
   optionalText: {
     marginTop: verticalScale(4),
     fontSize: fontScale(10),

@@ -530,11 +530,52 @@ const PIPE_LAYING_CHECKLIST_IDS = Object.freeze({
   outletConnected: "9",
 });
 
+const OUTLET_SUB_CHAK_MAX_COUNT = 8;
+
 const getChecklistId = (field = {}) =>
   String(field.checklistId ?? field.checklist_id ?? "").trim();
 
 const hasChecklistId = (field = {}, checklistId = "") =>
   getChecklistId(field) === String(checklistId);
+
+const getNumberFromValue = (value) => {
+  const parsedValue = Number.parseInt(`${value ?? ""}`.match(/\d+/)?.[0], 10);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const getOutletSubChakDesignCount = (value) => {
+  const parsedValue = getNumberFromValue(value);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return null;
+  }
+
+  return Math.min(parsedValue, OUTLET_SUB_CHAK_MAX_COUNT);
+};
+
+const buildOutletPipeLaidMap = ({
+  selections = {},
+  selectedCount = null,
+  designCount = null,
+} = {}) => {
+  const visibleCount =
+    getOutletSubChakDesignCount(designCount) ||
+    OUTLET_SUB_CHAK_MAX_COUNT;
+  const fallbackCount = getNumberFromValue(selectedCount) || 0;
+
+  return Array.from({ length: visibleCount }, (_, index) => index + 1).reduce(
+    (acc, number) => {
+      const key = `S${number}`;
+      acc[key] =
+        typeof selections[number] === "boolean"
+          ? selections[number]
+          : number <= fallbackCount;
+      return acc;
+    },
+    {}
+  );
+};
 
 const isPipeLaidSelectedValue = (value) => {
   const text = normalizeText(value);
@@ -2627,6 +2668,74 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     clearFieldError("form");
   };
 
+  const toggleOutletSubChakItem = (subChakNumber) => {
+    if (isReadOnly || activeSubOption.id !== "outletPipeLaying") return;
+
+    const subChakDesignQuantityField = [...selectFields, ...inputFields].find(
+      (field) =>
+        hasChecklistId(
+          field,
+          PIPE_LAYING_CHECKLIST_IDS.outletSubChakDesignQuantity
+        )
+    );
+    const outletPipeLaidItem = checklistItems.find((item) =>
+      hasChecklistId(item, PIPE_LAYING_CHECKLIST_IDS.outletPipeLaid)
+    );
+    const designCount =
+      getOutletSubChakDesignCount(checklistSectionUnit.subChakQuantity) ||
+      OUTLET_SUB_CHAK_MAX_COUNT;
+    const visibleCount = Math.min(designCount, OUTLET_SUB_CHAK_MAX_COUNT);
+    const fallbackSelectedCount = getNumberFromValue(
+      subChakDesignQuantityField
+        ? activeValues[subChakDesignQuantityField.key]
+        : ""
+    );
+    const currentSelections = { ...(activeValues.outletSubChakChecks || {}) };
+
+    if (
+      !Object.keys(currentSelections).length &&
+      Number.isFinite(fallbackSelectedCount) &&
+      fallbackSelectedCount > 0
+    ) {
+      Array.from({ length: visibleCount }, (_, index) => index + 1).forEach(
+        (number) => {
+          currentSelections[number] = number <= fallbackSelectedCount;
+        }
+      );
+    }
+
+    currentSelections[subChakNumber] = !currentSelections[subChakNumber];
+
+    const selectedCount = Array.from(
+      { length: visibleCount },
+      (_, index) => index + 1
+    ).filter((number) => currentSelections[number]).length;
+    const nextChecks = { ...(activeValues.checks || {}) };
+
+    if (outletPipeLaidItem) {
+      nextChecks[outletPipeLaidItem.id] = selectedCount > 0;
+    }
+
+    const nextValues = {
+      outletSubChakChecks: currentSelections,
+      checks: nextChecks,
+    };
+
+    if (subChakDesignQuantityField) {
+      nextValues[subChakDesignQuantityField.key] = selectedCount
+        ? String(selectedCount)
+        : "";
+    }
+
+    updateActiveValues(nextValues);
+    clearFieldError("remark");
+    clearFieldError("form");
+
+    if (subChakDesignQuantityField) {
+      clearFieldError(subChakDesignQuantityField.key);
+    }
+  };
+
   const openMapForLocation = async (location) => {
     const latitude = Number(location?.latitude);
     const longitude = Number(location?.longitude);
@@ -3578,6 +3687,23 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   // Convert the current form into the normalized checklist answer collection.
   const buildChecklistAnswers = () => {
     const answers = [];
+    const subChakDesignQuantityField = [...selectFields, ...inputFields].find(
+      (field) =>
+        hasChecklistId(
+          field,
+          PIPE_LAYING_CHECKLIST_IDS.outletSubChakDesignQuantity
+        )
+    );
+    const outletPipeLaidMap =
+      activeSubOption.id === "outletPipeLaying"
+        ? buildOutletPipeLaidMap({
+            selections: activeValues.outletSubChakChecks || {},
+            selectedCount: subChakDesignQuantityField
+              ? activeValues[subChakDesignQuantityField.key]
+              : null,
+            designCount: checklistSectionUnit.subChakQuantity,
+          })
+        : null;
 
     if (showStatusField) {
       answers.push(
@@ -3607,9 +3733,13 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
     checklistItems.forEach((item) => {
       const checked = !!activeValues.checks?.[item.id];
+      const isOutletPipeLaid =
+        activeSubOption.id === "outletPipeLaying" &&
+        hasChecklistId(item, PIPE_LAYING_CHECKLIST_IDS.outletPipeLaid);
       answers.push(
         buildAnswer(item, checked, {
           display_value: checked ? "Yes" : "No",
+          ...(isOutletPipeLaid ? { Pipelaid: outletPipeLaidMap } : {}),
         })
       );
     });
@@ -3773,6 +3903,16 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           : activeValues.status;
     const checklist = checklistItems.map((item) => {
       const checklistId = String(item.checklistId || item.id || "").trim();
+      const isOutletPipeLaid =
+        activeSubOption.id === "outletPipeLaying" &&
+        checklistId === PIPE_LAYING_CHECKLIST_IDS.outletPipeLaid;
+      const subChakDesignQuantityField = [...selectFields, ...inputFields].find(
+        (field) =>
+          hasChecklistId(
+            field,
+            PIPE_LAYING_CHECKLIST_IDS.outletSubChakDesignQuantity
+          )
+      );
       const isChecked = activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID
         ? Boolean(
             activeValues.checks?.[item.id] ||
@@ -3786,6 +3926,17 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         label: item.label,
         response: isChecked ? 1 : 0,
         checked: isChecked ? 1 : 0,
+        ...(isOutletPipeLaid
+          ? {
+              Pipelaid: buildOutletPipeLaidMap({
+                selections: activeValues.outletSubChakChecks || {},
+                selectedCount: subChakDesignQuantityField
+                  ? activeValues[subChakDesignQuantityField.key]
+                  : null,
+                designCount: checklistSectionUnit.subChakQuantity,
+              }),
+            }
+          : {}),
       };
     });
 
@@ -4241,6 +4392,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     commentedRemark,
     activeValues,
     activeErrors,
+    designSubChakQuantity: checklistSectionUnit.subChakQuantity,
     showStatusField,
     showRemarkField,
     isReadOnly,
@@ -4278,6 +4430,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     addRepeatableGroupItem,
     removeRepeatableGroupItem,
     toggleChecklistItem,
+    toggleOutletSubChakItem,
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,

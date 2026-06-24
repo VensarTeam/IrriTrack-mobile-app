@@ -349,6 +349,122 @@ const getChecklistInlineCountValue = (checklist, selectedWorkItem) => {
   return String(getOutletPipeCountValue(checklist, selectedWorkItem) || "");
 };
 
+const parsePipelaidValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (isPlainObject(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return isPlainObject(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const normalizePipelaidSelection = (value) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value > 0;
+  }
+
+  const normalized = String(value || "").trim().toLowerCase();
+
+  return ["yes", "true", "1", "completed", "done"].includes(normalized);
+};
+
+const getPipelaidMap = (checklist = {}) => {
+  const checklistId = String(
+    checklist?.rawChecklist?.checklistId ||
+      checklist?.rawChecklist?.checklist_id ||
+      checklist?.id ||
+      ""
+  ).trim();
+  const pipelaid =
+    checklist?.rawChecklist?.Pipelaid ||
+    checklist?.rawChecklist?.pipelaid ||
+    checklist?.rawChecklist?.pipeLaid ||
+    checklist?.metadata?.Pipelaid ||
+    checklist?.metadata?.pipelaid ||
+    checklist?.detail?.rawValue?.Pipelaid ||
+    checklist?.detail?.rawValue?.pipelaid;
+
+  if (checklistId !== "8") {
+    return null;
+  }
+
+  const parsed = parsePipelaidValue(pipelaid);
+
+  if (!parsed) {
+    return null;
+  }
+
+  const entries = Object.entries(parsed)
+    .map(([key, value]) => {
+      const match = String(key).match(/\d+/);
+      const order = Number.parseInt(match?.[0], 10);
+
+      return {
+        key: String(key).toUpperCase(),
+        order: Number.isFinite(order) ? order : 999,
+        selected: normalizePipelaidSelection(value),
+      };
+    })
+    .filter((item) => item.key);
+
+  return entries.length
+    ? entries.sort((first, second) => first.order - second.order)
+    : null;
+};
+
+const PipelaidGrid = ({ items = [] }) => {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <View style={styles.pipelaidWrap}>
+      <Text style={styles.pipelaidTitle}>Pipe laid</Text>
+      <View style={styles.pipelaidGrid}>
+        {items.map((item) => (
+          <View
+            key={item.key}
+            style={[
+              styles.pipelaidPill,
+              item.selected && styles.pipelaidPillSelected,
+            ]}
+          >
+            <Icon
+              source={item.selected ? "check-circle" : "circle-outline"}
+              size={14}
+              color={item.selected ? colors.completed : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.pipelaidText,
+                item.selected && styles.pipelaidTextSelected,
+              ]}
+            >
+              {item.key}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 const isPipeLayingProcess = (process = {}) =>
   String(process?.name || process?.rawProcess?.processName || "")
     .trim()
@@ -942,6 +1058,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         checklist,
         selectedWorkItem
       );
+      const pipelaidItems = getPipelaidMap(checklist);
       const displaySimpleState = inlineCountValue ? null : simpleState;
 
       return (
@@ -970,6 +1087,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                   <Icon source={displaySimpleState.icon} size={18} color={displaySimpleState.color} />
                 </View>
               </View>
+              <PipelaidGrid items={pipelaidItems || []} />
             </View>
           ) : (
             <View style={styles.checklistHead}>
@@ -995,6 +1113,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     onViewImage={openImageViewer}
                   />
                 )}
+                <PipelaidGrid items={pipelaidItems || []} />
               </View>
             </View>
           )}

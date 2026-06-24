@@ -131,7 +131,7 @@ const logApiRequest = (config) => {
   const method = (config.method || "GET").toUpperCase();
   const url = formatRequestUrl(config);
 
-  // console.log(`[API] ${method} ${url}`);
+  console.log(`[API] ${method} ${url}`);
   // console.log("[API] curl", toCurlCommand(config));
   // console.log("[API] headers", getHeadersForLog(config.headers));
 

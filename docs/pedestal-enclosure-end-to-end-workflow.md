@@ -17,19 +17,19 @@ Code references:
 
 ## Checklist IDs
 
-| Checklist | ID |
-| --- | --- |
-| Check excavation Pit (2.5m X 2m X 0.9m depth) | `13` |
-| Check proper placement of RCC precast block | `14` |
-| Check tightening of RCC Block-Pedestal Jointing Bolts | `15` |
-| Check 110 mm inlet pipe properly installed & tightened with U-Clamps | `17` |
-| Check 63 mm Outlet pipe properly installed & tightened with U-Clamps | `18` |
-| Check 100mm MS companion flange and Stub-end provided at inlet pipe | `19` |
-| Check all butt fusion joints are properly welded | `20` |
-| Check horizontal and vertical alignment of enclosure cabinet | `21` |
-| Check outlet pipe identification and marking | `22` |
-| Backfill soil, up to Ground Level properly | `23` |
-| Check OMS box locks and latches are functioning properly | `97` |
+| UI Stage | Checklist | ID |
+| --- | --- | --- |
+| Stage 1 | Check excavation Pit (2.5m X 2m X 0.9m depth) | `13` |
+| Stage 2 | Check outlet pipe identification and marking | `22` |
+| Stage 2 | Check proper placement of RCC precast block | `14` |
+| Stage 2 | Check tightening of RCC Block-Pedestal Jointing Bolts | `15` |
+| Stage 2 | Check 110 mm inlet pipe properly installed & tightened with U-Clamps | `17` |
+| Stage 2 | Check 63 mm Outlet pipe properly installed & tightened with U-Clamps | `18` |
+| Stage 2 | Check 100mm MS companion flange and Stub-end provided at inlet pipe | `19` |
+| Stage 2 | Check horizontal and vertical alignment of enclosure cabinet | `21` |
+| Stage 2 | Check all butt fusion joints are properly welded | `20` |
+| Stage 3 | Backfill soil, up to Ground Level properly | `23` |
+| Stage 3 | Check OMS box locks and latches are functioning properly | `97` |
 
 ## Photo Checklist IDs
 
@@ -48,6 +48,16 @@ Code references:
 - Checklist `23` requires photo `100`.
 - Checklist `97` requires photo `25`.
 - Photo `26` is required only when the process is going to `Completed`.
+
+## UI Stage Layout
+
+| UI Stage | Content |
+| --- | --- |
+| Stage 1 | Checklist `13` |
+| Stage 2 | Dynamic checklist `22`, checklists `14`, `15`, `17`, `18`, `19`, `21`, `20`; checklist `20` opens photo `99` from its camera icon |
+| Stage 3 | Checklists `23`, `97`; their camera icons open photos `100` and `25` respectively |
+
+Contractor selection is common for the full subprocess and is shown outside these stage sections. Photo upload cards remain in the normal bottom photo section, while checklist camera icons provide direct camera/gallery shortcuts for linked photo slots.
 
 ## Submission Flow
 
@@ -115,8 +125,8 @@ The following photos must also be available for completion:
 - Checklist `13` can be submitted in partial state without any photo.
 - The process can be saved as partial when some required checklists are completed and the remaining required items are not yet finished.
 - If checklist `20` is completed, photo `99` must be present in the current payload or already available in the merged saved state.
-- If checklist `23` is completed, photo `100` must be present in the current payload or photo `99` must already exist in the merged saved state.
-- If checklist `97` is completed, photo `25` must be present in the current payload or photos `99` and `100` must already exist in the merged saved state.
+- If checklist `23` is completed, photo `100` must be present in the current payload or already available in the merged saved state.
+- If checklist `97` is completed, photo `25` must be present in the current payload or already available in the merged saved state.
 
 ## UI Hints
 
@@ -136,7 +146,7 @@ The following photos must also be available for completion:
 
 - If the user ticks checklist `20` and uploads photo `99`, the submission can stay partial until the remaining mandatory items are finished.
 - If the user comes back later and photo `99` is already present from the server, the photo is shown as prefilled and is not uploaded again.
-- If checklist `23` is ticked later, the screen can still complete the submission as long as photo `99` already exists in the merged saved state or photo `100` is uploaded now.
+- If checklist `23` is ticked later, the screen can still complete the submission as long as photo `100` already exists in the merged saved state or is uploaded now.
 - When all mandatory checklist items are completed and all required photos exist, the submission moves to `Completed`.
 - If a modify-approved request comes back, the user can correct checklist values without changing the existing pedestal photos.
 - If a commented request comes back, the user can add the requested rectification photo flow while keeping the pedestal validation rules intact.

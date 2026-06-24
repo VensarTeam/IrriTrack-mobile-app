@@ -10,7 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Button, IconButton } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import styles from "./styles";
@@ -29,6 +32,39 @@ const OUTLET_MANIFOLD_IMAGES = {
   7: require("../../../assets/images/7 outlet Manifold.png"),
   8: require("../../../assets/images/8 outlet Manifold.png"),
 };
+
+const PEDESTAL_ENCLOSURE_SUBOPTION_ID = "pedestalEnclosureInstallation";
+const PEDESTAL_PHOTO_DEPENDENCIES = {
+  20: "99",
+  23: "100",
+  97: "25",
+};
+const PEDESTAL_STEP_GROUPS = [
+  {
+    key: "excavation",
+    title: "Stage 1",
+    subtitle: "Excavation pit",
+    checklistIds: ["13"],
+    repeatableChecklistIds: [],
+  },
+  {
+    key: "outletInstallation",
+    title: "Stage 2",
+    subtitle: "Outlet identification, block, pipe and joint installation",
+    checklistIds: ["14", "15", "17", "18", "19", "21", "20"],
+    repeatableChecklistIds: ["22"],
+  },
+  {
+    key: "backfill",
+    title: "Stage 3",
+    subtitle: "Backfill and final enclosure checks",
+    checklistIds: ["23", "97"],
+    repeatableChecklistIds: [],
+  },
+];
+
+const getChecklistEntityId = (item = {}) =>
+  String(item.checklistId || item.checklist_id || item.id || "").trim();
 
 const normalizeCoordinate = (value) => {
   const numericValue = Number(value);
@@ -59,10 +95,15 @@ const areLocationsEqual = (first = null, second = null) => {
 };
 
 const ModuleStatusUpdateScreen = ({ navigation, route }) => {
+  const safeAreaInsets = useSafeAreaInsets();
   const [referencePreviewState, setReferencePreviewState] = React.useState({
     visible: false,
     source: null,
     title: "",
+  });
+  const [photoActionState, setPhotoActionState] = React.useState({
+    visible: false,
+    requirement: null,
   });
   const formScrollRef = React.useRef(null);
 
@@ -78,6 +119,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     setActiveSubOptionId,
     activeValues,
     activeErrors,
+    designSubChakQuantity,
     showStatusField,
     showRemarkField,
     isReadOnly,
@@ -106,6 +148,7 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     addRepeatableGroupItem,
     removeRepeatableGroupItem,
     toggleChecklistItem,
+    toggleOutletSubChakItem,
     getChecklistProgress,
     openMapForLocation,
     updateNodeLocation,
@@ -179,6 +222,51 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
       title: "",
     });
   };
+
+  const openPhotoActionSheet = React.useCallback((requirement) => {
+    const media = requirement ? activeValues.photos?.[requirement.id] : null;
+
+    if (!requirement || isReadOnly || media?.source === "server") {
+      return;
+    }
+
+    setPhotoActionState({
+      visible: true,
+      requirement,
+    });
+  }, [activeValues.photos, isReadOnly]);
+
+  const closePhotoActionSheet = React.useCallback(() => {
+    setPhotoActionState({
+      visible: false,
+      requirement: null,
+    });
+  }, []);
+
+  const handlePhotoAction = React.useCallback(
+    (source) => {
+      const requirement = photoActionState.requirement;
+
+      if (!requirement) {
+        return;
+      }
+
+      closePhotoActionSheet();
+
+      if (source === "camera") {
+        pickFromCamera(requirement);
+        return;
+      }
+
+      pickFromGallery(requirement);
+    },
+    [
+      closePhotoActionSheet,
+      photoActionState.requirement,
+      pickFromCamera,
+      pickFromGallery,
+    ]
+  );
 
   const scrollFocusedFieldIntoView = React.useCallback((event) => {
     const target = event?.target ?? event?.nativeEvent?.target ?? null;
@@ -518,6 +606,233 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
     );
   };
 
+  const renderPhotoRequirement = (requirement, index = 0) => {
+    const media = activeValues.photos?.[requirement.id];
+    const slotError = activeErrors.photoSlots?.[requirement.id];
+    const isProcessingPhoto = photoProcessingRequirementId === requirement.id;
+    const isServerPrefilledPhoto = media?.source === "server";
+    const canEditPhoto =
+      !isReadOnly && !isServerPrefilledPhoto && !isProcessingPhoto;
+
+    return (
+      <View
+        key={requirement.id}
+        style={[
+          styles.photoSlotCard,
+          slotError && styles.photoSlotCardError,
+        ]}
+      >
+        <View style={styles.photoSlotHeader}>
+          <Text style={styles.photoSlotTitle}>
+            {index + 1}. {requirement.label}
+          </Text>
+          {isCommentedForEdit ? (
+            <TouchableOpacity
+              style={styles.photoRemoveBtn}
+              onPress={dismissCommentedPhotoUpload}
+              disabled={!canEditPhoto}
+            >
+              <Text style={styles.photoRemoveBtnText}>Close</Text>
+            </TouchableOpacity>
+          ) : media && !isServerPrefilledPhoto ? (
+            <TouchableOpacity
+              style={styles.photoRemoveBtn}
+              onPress={() => removeSelectedPhoto(requirement.id)}
+              disabled={!canEditPhoto}
+            >
+              <Icons.delete height={20} width={20} />
+              <Text style={styles.photoRemoveBtnText}>Remove</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {!isServerPrefilledPhoto ? (
+          <View style={styles.uploadActionsRow}>
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                styles.uploadCameraButton,
+                !canEditPhoto && styles.fieldDisabled,
+                isProcessingPhoto && styles.uploadButtonDisabled,
+              ]}
+              onPress={() => pickFromCamera(requirement)}
+              activeOpacity={canEditPhoto ? 0.88 : 1}
+              disabled={!canEditPhoto}
+            >
+              {isProcessingPhoto ? (
+                <ActivityIndicator size="small" color={colors.primaryBlue} />
+              ) : (
+                <Icons.uploadfile height={22} width={22} />
+              )}
+              <Text style={styles.uploadButtonText}>
+                {isProcessingPhoto
+                  ? "Preparing Photo..."
+                  : media
+                    ? "Retake Photo"
+                    : "Open Camera"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                styles.uploadGalleryButton,
+                !canEditPhoto && styles.fieldDisabled,
+                isProcessingPhoto && styles.uploadButtonDisabled,
+              ]}
+              onPress={() => pickFromGallery(requirement)}
+              activeOpacity={canEditPhoto ? 0.88 : 1}
+              disabled={!canEditPhoto}
+            >
+              <Icons.gallery height={22} width={22} />
+              <Text style={styles.uploadGalleryButtonText}>
+                {media ? "Replace from Gallery" : "Open Gallery"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {isProcessingPhoto ? (
+          <View style={styles.photoProcessingWrap}>
+            <ActivityIndicator size="small" color={colors.primaryBlue} />
+            <Text style={styles.photoProcessingText}>
+              {photoProcessingMessage || "Preparing image..."}
+            </Text>
+          </View>
+        ) : null}
+
+        {media?.uri ? (
+          <TouchableOpacity
+            style={styles.photoPreviewWrap}
+            onPress={() => openPhotoPreview(requirement.id)}
+            activeOpacity={0.9}
+            disabled={isProcessingPhoto}
+          >
+            {media.mediaType === "video" ? (
+              <View style={styles.videoPreviewPlaceholder}>
+                <Text style={styles.videoPreviewText}>Video Selected</Text>
+              </View>
+            ) : (
+              <Image
+                source={{ uri: media.uri }}
+                style={styles.photoPreviewImage}
+                resizeMode="cover"
+              />
+            )}
+
+            <View style={styles.photoMetaCard}>
+              <Text style={styles.photoMetaText}>
+                Size: {media.sizeKb ? `${media.sizeKb}KB` : "Unknown"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.photoEmptyText}>No file selected</Text>
+        )}
+
+        {slotError ? <Text style={styles.errorText}>{slotError}</Text> : null}
+      </View>
+    );
+  };
+
+  const getChecklistProgressForItems = (items = []) => ({
+    total: items.length,
+    completed: items.filter((item) => activeValues.checks?.[item.id]).length,
+  });
+
+  const pedestalPhotoDependencyByChecklistId = Object.entries(
+    PEDESTAL_PHOTO_DEPENDENCIES
+  ).reduce((acc, [checklistId, photoChecklistId]) => {
+    const requirement = photoRequirements.find(
+      (item) => getChecklistEntityId(item) === photoChecklistId
+    );
+
+    if (requirement) {
+      acc[checklistId] = requirement;
+    }
+
+    return acc;
+  }, {});
+
+  const sortByConfiguredChecklistOrder = (items = [], order = []) => {
+    const orderById = new Map(order.map((id, index) => [String(id), index]));
+
+    return [...items].sort((first, second) => {
+      const firstOrder = orderById.get(getChecklistEntityId(first)) ?? 999;
+      const secondOrder = orderById.get(getChecklistEntityId(second)) ?? 999;
+
+      return firstOrder - secondOrder;
+    });
+  };
+
+  const renderPedestalStepView = () => (
+    <View style={styles.pedestalStepsWrap}>
+      {PEDESTAL_STEP_GROUPS.map((step) => {
+        const stepChecklistItems = sortByConfiguredChecklistOrder(
+          checklistItems.filter((item) =>
+            step.checklistIds.includes(getChecklistEntityId(item))
+          ),
+          step.checklistIds
+        );
+        const stepRepeatableGroups = repeatableGroups.filter((group) =>
+          step.repeatableChecklistIds.includes(getChecklistEntityId(group))
+        );
+
+        if (
+          !stepChecklistItems.length &&
+          !stepRepeatableGroups.length
+        ) {
+          return null;
+        }
+
+        return (
+          <View style={styles.pedestalStepSection} key={step.key}>
+            <View style={styles.pedestalStepHeader}>
+              <View style={styles.pedestalStepNumberBadge}>
+                <Text style={styles.pedestalStepNumberText}>
+                  {step.title.replace("Stage ", "")}
+                </Text>
+              </View>
+              <View style={styles.pedestalStepTitleWrap}>
+                <Text style={styles.pedestalStepTitle}>{step.title}</Text>
+                <Text style={styles.pedestalStepSubtitle}>
+                  {step.subtitle}
+                </Text>
+              </View>
+            </View>
+
+            {stepRepeatableGroups.map((group) => renderRepeatableGroup(group))}
+
+            {stepChecklistItems.length ? (
+              <ChecklistSection
+                checklistItems={stepChecklistItems}
+                checklistProgress={getChecklistProgressForItems(
+                  stepChecklistItems
+                )}
+                activeValues={activeValues}
+                isReadOnly={isReadOnly}
+                toggleChecklistItem={toggleChecklistItem}
+                toggleOutletSubChakItem={toggleOutletSubChakItem}
+                activeSubOptionId={activeSubOptionId}
+                inputFields={inputFields}
+                subChakQuantity={designSubChakQuantity}
+                photoDependencyByChecklistId={
+                  pedestalPhotoDependencyByChecklistId
+                }
+                onPhotoDependencyPress={openPhotoActionSheet}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+
+    </View>
+  );
+
+  const shouldUsePedestalStepView =
+    activeSubOptionId === PEDESTAL_ENCLOSURE_SUBOPTION_ID &&
+    !isCommentedForEdit;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.keyboardContainer}>
@@ -715,17 +1030,37 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
               }),
             )}
 
-            {inputFields.map((field) => renderInputField({ field }))}
+            {inputFields
+              .filter(
+                (field) =>
+                  !(
+                    activeSubOptionId === "outletPipeLaying" &&
+                    String(
+                      field.checklistId || field.checklist_id || "",
+                    ).trim() === "7"
+                  ),
+              )
+              .map((field) => renderInputField({ field }))}
 
-            {repeatableGroups.map((group) => renderRepeatableGroup(group))}
+            {shouldUsePedestalStepView ? (
+              renderPedestalStepView()
+            ) : (
+              <>
+                {repeatableGroups.map((group) => renderRepeatableGroup(group))}
 
-            <ChecklistSection
-              checklistItems={checklistItems}
-              checklistProgress={checklistProgress}
-              activeValues={activeValues}
-              isReadOnly={isReadOnly}
-              toggleChecklistItem={toggleChecklistItem}
-            />
+                <ChecklistSection
+                  checklistItems={checklistItems}
+                  checklistProgress={checklistProgress}
+                  activeValues={activeValues}
+                  isReadOnly={isReadOnly}
+                  toggleChecklistItem={toggleChecklistItem}
+                  toggleOutletSubChakItem={toggleOutletSubChakItem}
+                  activeSubOptionId={activeSubOptionId}
+                  inputFields={inputFields}
+                  subChakQuantity={designSubChakQuantity}
+                />
+              </>
+            )}
 
             {showRemarkField ? (
               <View style={styles.fieldBlock}>
@@ -794,154 +1129,9 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
                     : "Capture clear site photos so the submission is easy to verify."}
                 </Text>
 
-                {photoRequirements.map((requirement, index) => {
-                  const media = activeValues.photos?.[requirement.id];
-                  const slotError = activeErrors.photoSlots?.[requirement.id];
-                  const isProcessingPhoto =
-                    photoProcessingRequirementId === requirement.id;
-                  const isServerPrefilledPhoto = media?.source === "server";
-                  const canEditPhoto =
-                    !isReadOnly &&
-                    !isServerPrefilledPhoto &&
-                    !isProcessingPhoto;
-
-                  return (
-                    <View
-                      key={requirement.id}
-                      style={[
-                        styles.photoSlotCard,
-                        slotError && styles.photoSlotCardError,
-                      ]}
-                    >
-                      <View style={styles.photoSlotHeader}>
-                        <Text style={styles.photoSlotTitle}>
-                          {index + 1}. {requirement.label}
-                        </Text>
-                        {isCommentedForEdit ? (
-                          <TouchableOpacity
-                            style={styles.photoRemoveBtn}
-                            onPress={dismissCommentedPhotoUpload}
-                            disabled={!canEditPhoto}
-                          >
-                            <Text style={styles.photoRemoveBtnText}>
-                              Close
-                            </Text>
-                          </TouchableOpacity>
-                        ) : media && !isServerPrefilledPhoto ? (
-                          <TouchableOpacity
-                            style={styles.photoRemoveBtn}
-                            onPress={() => removeSelectedPhoto(requirement.id)}
-                            disabled={!canEditPhoto}
-                          >
-                            <Icons.delete height={20} width={20} />
-                            <Text style={styles.photoRemoveBtnText}>
-                              Remove
-                            </Text>
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-
-                      {!isServerPrefilledPhoto ? (
-                        <View style={styles.uploadActionsRow}>
-                          <TouchableOpacity
-                            style={[
-                              styles.uploadButton,
-                              styles.uploadCameraButton,
-                              !canEditPhoto && styles.fieldDisabled,
-                              isProcessingPhoto && styles.uploadButtonDisabled,
-                            ]}
-                            onPress={() => pickFromCamera(requirement)}
-                            activeOpacity={canEditPhoto ? 0.88 : 1}
-                            disabled={!canEditPhoto}
-                          >
-                            {isProcessingPhoto ? (
-                              <ActivityIndicator
-                                size="small"
-                                color={colors.primaryBlue}
-                              />
-                            ) : (
-                              <Icons.uploadfile height={22} width={22} />
-                            )}
-                            <Text style={styles.uploadButtonText}>
-                              {isProcessingPhoto
-                                ? "Preparing Photo..."
-                                : media
-                                  ? "Retake Photo"
-                                  : "Open Camera"}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[
-                              styles.uploadButton,
-                              styles.uploadGalleryButton,
-                              !canEditPhoto && styles.fieldDisabled,
-                              isProcessingPhoto && styles.uploadButtonDisabled,
-                            ]}
-                            onPress={() => pickFromGallery(requirement)}
-                            activeOpacity={canEditPhoto ? 0.88 : 1}
-                            disabled={!canEditPhoto}
-                          >
-                            <Icons.gallery height={22} width={22} />
-                            <Text style={styles.uploadGalleryButtonText}>
-                              {media ? "Replace from Gallery" : "Open Gallery"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : null}
-
-                      {isProcessingPhoto ? (
-                        <View style={styles.photoProcessingWrap}>
-                          <ActivityIndicator
-                            size="small"
-                            color={colors.primaryBlue}
-                          />
-                          <Text style={styles.photoProcessingText}>
-                            {photoProcessingMessage || "Preparing image..."}
-                          </Text>
-                        </View>
-                      ) : null}
-
-                      {media?.uri ? (
-                        <TouchableOpacity
-                          style={styles.photoPreviewWrap}
-                          onPress={() => openPhotoPreview(requirement.id)}
-                          activeOpacity={0.9}
-                          disabled={isProcessingPhoto}
-                        >
-                          {media.mediaType === "video" ? (
-                            <View style={styles.videoPreviewPlaceholder}>
-                              <Text style={styles.videoPreviewText}>
-                                Video Selected
-                              </Text>
-                            </View>
-                          ) : (
-                            <Image
-                              source={{ uri: media.uri }}
-                              style={styles.photoPreviewImage}
-                              resizeMode="cover"
-                            />
-                          )}
-
-                          <View style={styles.photoMetaCard}>
-                            <Text style={styles.photoMetaText}>
-                              Size:{" "}
-                              {media.sizeKb ? `${media.sizeKb}KB` : "Unknown"}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      ) : (
-                        <Text style={styles.photoEmptyText}>
-                          No file selected
-                        </Text>
-                      )}
-
-                      {slotError ? (
-                        <Text style={styles.errorText}>{slotError}</Text>
-                      ) : null}
-                    </View>
-                  );
-                })}
+                {photoRequirements.map((requirement, index) =>
+                  renderPhotoRequirement(requirement, index)
+                )}
 
                 {activeErrors.photos ? (
                   <Text style={styles.errorText}>{activeErrors.photos}</Text>
@@ -1192,6 +1382,64 @@ const ModuleStatusUpdateScreen = ({ navigation, route }) => {
             >
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={photoActionState.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={closePhotoActionSheet}
+      >
+        <View style={styles.photoActionOverlay}>
+          <TouchableOpacity
+            style={styles.photoActionBackdrop}
+            activeOpacity={1}
+            onPress={closePhotoActionSheet}
+          />
+          <IconButton
+            icon="close"
+            iconColor={colors.primaryBlue}
+            size={22}
+            style={[
+              styles.photoActionFloatingClose,
+              { bottom: safeAreaInsets.bottom + 154 },
+            ]}
+            onPress={closePhotoActionSheet}
+          />
+          <View
+            style={[
+              styles.photoActionSheet,
+              { paddingBottom: safeAreaInsets.bottom + 18 },
+            ]}
+          >
+            <View style={styles.photoActionHandle} />
+            <Text style={styles.photoActionTitle}>
+              {photoActionState.requirement?.label || "Select photo"}
+            </Text>
+            <View style={styles.photoActionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.photoActionButton,
+                  styles.photoActionCameraButton,
+                ]}
+                activeOpacity={0.88}
+                onPress={() => handlePhotoAction("camera")}
+              >
+                <Icons.uploadfile height={22} width={22} />
+                <Text style={styles.photoActionButtonText}>Open Camera</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.photoActionButton}
+                activeOpacity={0.88}
+                onPress={() => handlePhotoAction("gallery")}
+              >
+                <Icons.gallery height={22} width={22} />
+                <Text style={styles.photoActionButtonText}>Open Gallery</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

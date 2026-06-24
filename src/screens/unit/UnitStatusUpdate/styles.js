@@ -741,6 +741,128 @@ export default StyleSheet.create({
     borderColor: "#C9D9EE",
   },
 
+  photoDependencyBadgeAction: {
+    backgroundColor: "#E8F8EE",
+    borderColor: "#9AD4AF",
+    shadowColor: colors.primaryGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  subChakCountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: moderateScale(10),
+    borderWidth: 1,
+    borderColor: "#BCD6F4",
+    borderRadius: moderateScale(10),
+    backgroundColor: "#F8FBFF",
+    paddingHorizontal: moderateScale(9),
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(6),
+  },
+
+  subChakCountLabel: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(15),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  subChakDesignBadge: {
+    minWidth: moderateScale(44),
+    minHeight: verticalScale(38),
+    borderRadius: moderateScale(8),
+    backgroundColor: colors.primaryBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: moderateScale(10),
+  },
+
+  subChakDesignValue: {
+    fontSize: moderateScale(22),
+    lineHeight: moderateScale(25),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  subChakSelectorRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    rowGap: verticalScale(8),
+    marginTop: verticalScale(-2),
+    marginBottom: verticalScale(8),
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(10),
+    borderWidth: 1,
+    borderColor: "#CFE3D8",
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F7FCF9",
+  },
+
+  subChakOption: {
+    width: "23%",
+    minHeight: verticalScale(38),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(5),
+    paddingHorizontal: moderateScale(5),
+    borderWidth: 1,
+    borderColor: "#D7E6DE",
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.white,
+    shadowColor: colors.primaryGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+
+  subChakOptionSpaced: {
+    marginRight: "2.66%",
+  },
+
+  subChakOptionSelected: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: colors.lightGreen,
+    shadowOpacity: 0.12,
+    elevation: 2,
+  },
+
+  subChakCheckbox: {
+    width: moderateScale(18),
+    height: moderateScale(18),
+    borderRadius: moderateScale(9),
+    borderWidth: 1,
+    borderColor: "#B8CEC1",
+    backgroundColor: "#F8FBFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  subChakCheckboxSelected: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: colors.primaryGreen,
+  },
+
+  subChakOptionText: {
+    fontSize: moderateScale(11.5),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  subChakOptionTextSelected: {
+    color: colors.navyFreshDark,
+  },
+
   remarkInput: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -755,6 +877,64 @@ export default StyleSheet.create({
 
   photoSection: {
     marginTop: verticalScale(12),
+  },
+
+  pedestalStepsWrap: {
+    marginTop: verticalScale(12),
+  },
+
+  pedestalStepSection: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: moderateScale(12),
+    backgroundColor: "#F8FBFF",
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: verticalScale(10),
+    marginBottom: verticalScale(10),
+  },
+
+  pedestalStepHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: verticalScale(8),
+  },
+
+  pedestalStepNumberBadge: {
+    width: moderateScale(28),
+    height: moderateScale(28),
+    borderRadius: moderateScale(14),
+    backgroundColor: colors.primaryBlue,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: moderateScale(8),
+  },
+
+  pedestalStepNumberText: {
+    fontSize: moderateScale(12),
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+
+  pedestalStepTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  pedestalStepTitle: {
+    fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  pedestalStepSubtitle: {
+    marginTop: verticalScale(1),
+    fontSize: moderateScale(10),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+  },
+
+  pedestalStepPhotoGroup: {
+    marginTop: verticalScale(8),
   },
 
   optionalPhotoPrompt: {
@@ -1414,6 +1594,100 @@ locationBtnSecondaryText: {
 
   modalCloseText: {
     fontSize: moderateScale(12),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
+  },
+
+  photoActionOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.32)",
+  },
+
+  photoActionBackdrop: {
+    flex: 1,
+  },
+
+  photoActionFloatingClose: {
+    position: "absolute",
+    alignSelf: "center",
+    zIndex: 2,
+    width: moderateScale(46),
+    height: moderateScale(46),
+    borderRadius: moderateScale(23),
+    margin: 0,
+    padding: 0,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  photoActionSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: moderateScale(30),
+    borderTopRightRadius: moderateScale(30),
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(18),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+
+  photoActionHandle: {
+    alignSelf: "center",
+    width: moderateScale(42),
+    height: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: "#D8E5F3",
+    marginBottom: verticalScale(10),
+  },
+
+  photoActionTitle: {
+    fontSize: moderateScale(13),
+    lineHeight: moderateScale(18),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+    marginBottom: verticalScale(12),
+  },
+
+  photoActionRow: {
+    flexDirection: "row",
+    gap: moderateScale(10),
+  },
+
+  photoActionButton: {
+    flex: 1,
+    minHeight: verticalScale(46),
+    borderRadius: moderateScale(999),
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: "#F8FBFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: moderateScale(6),
+    paddingHorizontal: moderateScale(8),
+  },
+
+  photoActionCameraButton: {
+    borderColor: colors.primaryBlue,
+    backgroundColor: colors.surfaceBlue,
+  },
+
+  photoActionButtonText: {
+    fontSize: moderateScale(11),
     color: colors.primaryBlue,
     fontFamily: fonts.bold,
   },

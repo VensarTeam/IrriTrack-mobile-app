@@ -9,6 +9,7 @@ import colors from "./src/constants/colors";
 import RootNavigator from "./src/navigation/RootNavigator";
 import AndroidSplash from "./src/components/AndroidSplash";
 import AppAlertProvider from "./src/context/AppAlertProvider";
+import AppUpdateGate from "./src/components/AppUpdateGate";
 import { AuthProvider } from "./src/context/AuthContext";
 import OfflineChecklistSyncGate from "./src/components/OfflineChecklistSyncGate";
 import PushNotificationBootstrap from "./src/components/PushNotificationBootstrap";
@@ -108,6 +109,7 @@ const App = () => {
           <InAppNotificationProvider>
             <PushNotificationBootstrap />
             <OfflineChecklistSyncGate />
+            <AppUpdateGate />
             <NavigationContainer
               ref={navigationRef}
               onReady={flushPendingNavigation}

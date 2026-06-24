@@ -261,6 +261,7 @@ const isOutletPipeCountChecklist = (checklist = {}) => {
 
   return (
     checklistId === 6 ||
+    checklistId === 7 ||
     label.includes("sub chak as per design") ||
     label.includes("subchak as per design") ||
     label.includes("no of outlet pipes") ||

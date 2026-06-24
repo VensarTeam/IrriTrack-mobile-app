@@ -2,6 +2,8 @@ export const APP_ENV_NAME = process.env.EXPO_PUBLIC_APP_ENV_NAME || "manual";
 export const IS_PRODUCTION_ENV = process.env.EXPO_PUBLIC_IS_PRODUCTION_ENV === "true";
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+export const APP_VERSION_APP_ID =
+  process.env.EXPO_PUBLIC_APP_VERSION_APP_ID || "11";
 
 // export const ASSET_BASE_URL = process.env.EXPO_PUBLIC_ASSET_BASE_URL; // Using B3 Image URL for assets as well, as per latest requirements.
 
@@ -32,6 +34,7 @@ export const API_ENDPOINTS = Object.freeze({
   masterProcesses: process.env.EXPO_PUBLIC_API_MASTER_PROCESSES_PATH,
   contractors: process.env.EXPO_PUBLIC_API_CONTRACTORS_PATH,
   notificationTokens: process.env.EXPO_PUBLIC_API_NOTIFICATION_TOKENS_PATH,
+  appVersion: process.env.EXPO_PUBLIC_API_APP_VERSION_PATH || "app-version",
 });
 
 export const buildApiEndpointPath = (template, params = {}) =>

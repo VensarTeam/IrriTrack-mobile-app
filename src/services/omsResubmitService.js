@@ -191,6 +191,7 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
             value: item?.value,
             hasFile: Boolean(file),
           }),
+          ...(item.Pipelaid ? { Pipelaid: item.Pipelaid } : {}),
           file,
         };
       });
@@ -225,6 +226,7 @@ const buildOmsSubmissionChecklist = (payload = {}) => {
       checklistId: item.checklist_id,
       value: item.checked ? "Yes" : "No",
       valueType: "string",
+      ...(item.Pipelaid ? { Pipelaid: item.Pipelaid } : {}),
     });
   });
 
@@ -313,6 +315,7 @@ const buildOmsResubmitFormData = (body = {}) => {
         checklistId: item.checklistId,
         value: item.value,
         ...(item.valueType ? { valueType: item.valueType } : {}),
+        ...(item.Pipelaid ? { Pipelaid: item.Pipelaid } : {}),
       })),
     })
   );

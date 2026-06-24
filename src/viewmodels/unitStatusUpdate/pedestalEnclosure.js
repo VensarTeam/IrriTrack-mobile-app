@@ -30,9 +30,6 @@ export const PED_ENCLOSURE_COMPLETION_PHOTO_IDS = Object.freeze([
 const PHOTO_REQUIRED_BY_CHECKLIST_ID = Object.freeze({
   "20": "99",
 });
-const PREVIOUS_PHOTOS_REQUIRED_BEFORE_CHECKLIST_ID = Object.freeze({
-  "97": ["99", "100"],
-});
 
 /**
  * Returns true when media came from a previous server submission.
@@ -293,11 +290,7 @@ export const validatePedestalEnclosureSubmission = ({
     errorMessage = "Photo 100 is required because checklist 23 is completed.";
   } else if (
     mergedChecklistIds.has("97") &&
-    !mergedPhotoIds.has("25") &&
-    !(
-      mergedPhotoIds.has(PREVIOUS_PHOTOS_REQUIRED_BEFORE_CHECKLIST_ID["97"][0]) &&
-      mergedPhotoIds.has(PREVIOUS_PHOTOS_REQUIRED_BEFORE_CHECKLIST_ID["97"][1])
-    )
+    !mergedPhotoIds.has("25")
   ) {
     errorMessage = "Photo 25 is required because checklist 97 is completed.";
   } else if (isMandatoryChecklistComplete && !isCompletionPhotoSetComplete) {

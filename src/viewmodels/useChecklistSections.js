@@ -46,6 +46,7 @@ const formatChecklistLabelWithUnitContext = (item = {}, context = {}) => {
 
   if (
     (checklistId === 6 ||
+      checklistId === 7 ||
       normalizedLookupLabel.includes("sub-chak as per design") ||
       normalizedLookupLabel.includes("sub chak as per design") ||
       normalizedLookupLabel.includes("subchak as per design") ||
