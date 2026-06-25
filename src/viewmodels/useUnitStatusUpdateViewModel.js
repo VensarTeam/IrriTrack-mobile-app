@@ -36,6 +36,7 @@ import {
   resolveServerPhotoUri,
 } from "./unitStatusUpdate/helpers";
 import {
+  PED_ENCLOSURE_COMPLETION_PHOTO_IDS,
   PED_ENCLOSURE_REQUIRED_CHECKLIST_IDS,
   PED_ENCLOSURE_SIZE_CHECKLIST_ID,
   PED_ENCLOSURE_SUBOPTION_ID,
@@ -475,6 +476,62 @@ const localPayloadHasFilledData = (payload = {}) => {
     return hasMeaningfulServerValue(answer?.value);
   });
 };
+
+const localPedestalPayloadIsComplete = (payload = {}) => {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const completedChecklistIds = new Set();
+  const uploadedPhotoIds = new Set();
+
+  (payload.checklist || []).forEach((entry) => {
+    if (!hasSubmissionValue(entry?.checked ?? entry?.response ?? entry?.value)) {
+      return;
+    }
+
+    const checklistId = getSubmissionChecklistId(entry);
+
+    if (checklistId) {
+      completedChecklistIds.add(checklistId);
+    }
+  });
+
+  (payload.answers || []).forEach((answer) => {
+    const checklistId = getSubmissionChecklistId(answer);
+
+    if (!checklistId || !hasSubmissionValue(answer?.value)) {
+      return;
+    }
+
+    const valueType = normalizeText(answer?.valueType || answer?.value_type || "");
+
+    if (valueType === "file" || hasSubmissionPhoto(answer?.file)) {
+      uploadedPhotoIds.add(checklistId);
+      return;
+    }
+
+    completedChecklistIds.add(checklistId);
+  });
+
+  (payload.photos || []).forEach((photo) => {
+    const photoId = getSubmissionPhotoId(photo);
+
+    if (photoId && hasSubmissionPhoto(photo)) {
+      uploadedPhotoIds.add(photoId);
+    }
+  });
+
+  return (
+    PED_ENCLOSURE_REQUIRED_CHECKLIST_IDS.every((id) =>
+      completedChecklistIds.has(id)
+    ) &&
+    PED_ENCLOSURE_COMPLETION_PHOTO_IDS.every((id) => uploadedPhotoIds.has(id))
+  );
+};
+
+const localPedestalPayloadIsPartial = (payload = {}) =>
+  localPayloadHasFilledData(payload) && !localPedestalPayloadIsComplete(payload);
 
 const toSentenceCase = (value = "") => {
   const text = String(value || "").trim();
@@ -1646,6 +1703,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         );
         const isPipeLayingSubOption =
           subOption.id === "inletPipeLaying" || subOption.id === "outletPipeLaying";
+        const isPedestalLocalPartialSubmission =
+          subOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+          localPedestalPayloadIsPartial(localSnapshot?.payload);
         const submittedFromServer = Boolean(
           serverMatch?.subprocess &&
           !isCommented &&
@@ -1657,7 +1717,8 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
         const submittedFromLocal =
           !isCommented &&
           !isPartial &&
-          localSnapshot?.status === "synced";
+          localSnapshot?.status === "synced" &&
+          !isPedestalLocalPartialSubmission;
 
         acc[subOption.id] = {
           processStatusKey,
@@ -1679,6 +1740,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             submittedFromLocal ||
             (!isCommented &&
               !isPartial &&
+              !isPedestalLocalPartialSubmission &&
               localPayloadHasFilledData(localSnapshot?.payload)),
         };
 
@@ -1721,10 +1783,15 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     localSnapshotHasFilledData &&
       isPartialStatusValue(localSubmissionSnapshot?.payload?.status)
   );
+  const isPedestalLocalPartialSubmission = Boolean(
+    activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      localPedestalPayloadIsPartial(localSubmissionSnapshot?.payload)
+  );
   const hasSavedLocalSubmission = Boolean(
     !isCommentedForEdit &&
       !isModifyApprovedForEdit &&
       localSnapshotHasFilledData &&
+      !isPedestalLocalPartialSubmission &&
       !isPartialLocalSubmission
   );
   const hasLocalDraftSnapshot = Boolean(
@@ -1732,6 +1799,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       !isModifyApprovedForEdit &&
       localSnapshotHasFilledData &&
       localSubmissionSnapshot?.status !== "synced" &&
+      !isPedestalLocalPartialSubmission &&
       !isPartialLocalSubmission
   );
   const isRoleReadOnly = !roleAccess.canEditChecklist;
@@ -1750,7 +1818,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       submittedFromServer &&
       !isInfoResubmitWindowOpen &&
       !canEditPrefilledLocationFinalization) ||
-    (submittedFromLocal && !isInfoResubmitWindowOpen) ||
+    (submittedFromLocal &&
+      !isPedestalLocalPartialSubmission &&
+      !isInfoResubmitWindowOpen) ||
     (hasSavedLocalSubmission && !isInfoResubmitWindowOpen);
   const readOnlyTitle = isChecklistMasterUnavailable
     ? "Checklist unavailable"
