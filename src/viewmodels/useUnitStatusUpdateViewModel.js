@@ -1247,6 +1247,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const module = (route?.params?.module || "OMS").toUpperCase();
   const unit = route?.params?.unit || {};
   const workItem = route?.params?.workItem || null;
+  const entrySource = String(route?.params?.entrySource || "").trim().toLowerCase();
+  const routeProcessStatusKey = String(route?.params?.processStatus || "")
+    .trim()
+    .toLowerCase();
   const checklistSectionUnit = useMemo(
     () => ({
       ...unit,
@@ -1674,14 +1678,21 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
             (localSnapshot && String(localSnapshot.status || "").trim() === "synced") ||
             localPayloadHasFilledData(localSnapshot?.payload)
           );
-        const canUseProcessCommentFallback =
-          !workItemSubprocessId &&
-          !workItemSubprocessName &&
-          (section.subOptions || []).length <= 1;
-        const isCommented =
-          isWorkflowCommented ||
-          subprocessStatusKey === "commented" ||
-          (canUseProcessCommentFallback && processStatusKey === "commented");
+        // Commented submissions may only be rectified from Work Status, which
+        // supplies the exact work item/submission to resubmit. A commented
+        // status discovered while entering from Unit List must stay read-only.
+        const isCommented = isWorkflowCommented;
+        const isCommentedOutsideWorkStatus = Boolean(
+          !isWorkflowCommented &&
+            ((entrySource === "unit_list" &&
+              (routeProcessStatusKey === "commented" ||
+                routeProcessStatusKey === "rejected")) ||
+              subprocessStatusKey === "commented" ||
+              (!workItemSubprocessId &&
+                !workItemSubprocessName &&
+                (section.subOptions || []).length <= 1 &&
+                processStatusKey === "commented"))
+        );
         const serverStatusKey = isCommented
           ? "commented"
           : subprocessStatusKey || processStatusKey;
@@ -1732,6 +1743,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
           isInfoResubmitEligible,
           isInfoResubmitWindowOpen,
           isCommented,
+          isCommentedOutsideWorkStatus,
           isModifyApproved: isWorkflowModifyApproved,
           submittedFromServer,
           submittedFromLocal,
@@ -1750,8 +1762,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       isCommentedWorkItem,
       isModifyApprovedWorkItem,
       currentTimeMs,
+      entrySource,
       localSubmissionSnapshots,
       progressMatchesBySubOptionId,
+      routeProcessStatusKey,
       section.subOptions,
       workItemSubprocessId,
       workItemProcessName,
@@ -1770,6 +1784,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     activeSubmissionState.isInfoResubmitWindowOpen
   );
   const isCommentedForEdit = Boolean(activeSubmissionState.isCommented);
+  const isCommentedOutsideWorkStatus = Boolean(
+    activeSubmissionState.isCommentedOutsideWorkStatus
+  );
   const isModifyApprovedForEdit = Boolean(
     activeSubmissionState.isModifyApproved
   );
@@ -1813,6 +1830,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
   const isReadOnly =
     isChecklistMasterUnavailable ||
     isRoleReadOnly ||
+    isCommentedOutsideWorkStatus ||
     (!isCommentedForEdit &&
       !isModifyApprovedForEdit &&
       submittedFromServer &&
@@ -3349,6 +3367,11 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       localSubmissionSnapshot,
       progressMatch,
     });
+  const shouldValidatePedestalNewSubmission = Boolean(
+    activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      !isCommentedForEdit &&
+      !isModifyApprovedForEdit
+  );
 
   // Validate visible fields together with subprocess-specific business rules.
   const validateForm = () => {
@@ -3428,7 +3451,10 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       setFirstErrorMessage("Please update location");
     }
 
-    if (pedestalEnclosureSubmissionValidation.errorMessage) {
+    if (
+      shouldValidatePedestalNewSubmission &&
+      pedestalEnclosureSubmissionValidation.errorMessage
+    ) {
       nextErrors.photos = pedestalEnclosureSubmissionValidation.errorMessage;
       setFirstErrorMessage(pedestalEnclosureSubmissionValidation.errorMessage);
     }
@@ -3496,18 +3522,18 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     };
 
     if (
-      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      shouldValidatePedestalNewSubmission &&
       !hasMergedPedestalPhoto("99") &&
       activeValues.checks?.[pedestalChecklist20Item?.id]
     ) {
       setPedestalPhotoSlotError(
         "99",
-        "Photo 99 is required because checklist 20 is completed."
+        "Full photo of inlet and outlet pipeline connections is required because checklist 20 is completed."
       );
     }
 
     if (
-      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      shouldValidatePedestalNewSubmission &&
       !hasMergedPedestalPhoto("100") &&
       activeValues.checks?.[pedestalChecklist23Item?.id]
     ) {
@@ -3518,7 +3544,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
 
     if (
-      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      shouldValidatePedestalNewSubmission &&
       !hasMergedPedestalPhoto("25") &&
       activeValues.checks?.[pedestalChecklist97Item?.id]
     ) {
@@ -3529,7 +3555,7 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     }
 
     if (
-      activeSubOption.id === PED_ENCLOSURE_SUBOPTION_ID &&
+      shouldValidatePedestalNewSubmission &&
       isPedestalMandatoryChecklistComplete &&
       !hasMergedPedestalPhoto("26")
     ) {
@@ -3659,7 +3685,9 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
       hasChecklistOrPhotoProgress &&
       (missingChecklistItems.length > 0 || missingRequirements.length > 0);
     const shouldRequireRemarkForPartial =
-      showRemarkField && isPartialChecklistSubmission;
+      showRemarkField &&
+      isPartialChecklistSubmission &&
+      activeSubOption.id !== PED_ENCLOSURE_SUBOPTION_ID;
     const shouldUseRemarkForMissingRequired =
       showRemarkField &&
       Boolean(activeSubOption.remarkValidationMessage) &&

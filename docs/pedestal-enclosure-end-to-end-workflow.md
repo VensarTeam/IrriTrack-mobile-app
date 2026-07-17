@@ -87,10 +87,10 @@ Contractor selection is common for the full subprocess and is shown outside thes
 ### Commented Flow
 
 - Used when a submission comes back with a commented/rejected update path.
-- The screen can allow a rectification photo upload when the commented workflow requires it.
-- For `Pedestal & Enclosure`, the normal pedestal photo rules still apply when the screen is in an editable commented state.
-- If the commented workflow requires a fresh photo, the screen shows the rectification upload path instead of the normal pedestal photo cards.
-- Existing server photos remain visible, but only new editable photo uploads are sent in the payload.
+- A commented submission can be opened for resubmit only from Work Status, which supplies the exact work item and submission ID. Opening the same OMS/process from Unit List remains read-only and cannot resubmit it.
+- The normal pedestal photo-ID rules (`99`, `100`, `25`, and `26`) apply only to a new/partial submit from Unit List; they are not revalidated during a commented resubmit.
+- The commented screen exposes only the rectification photo upload when the user chooses to add the requested fresh image. Normal pedestal photo cards are not shown.
+- Existing server photos are not required or re-sent in the commented resubmit payload.
 
 ### Approved / Read-Only Flow
 
@@ -137,7 +137,7 @@ The following photos must also be available for completion:
 
 ## Validation Messages
 
-- `Photo 99 is required because checklist 20 is completed.`
+- `Full photo of inlet and outlet pipeline connections is required because checklist 20 is completed.`
 - `Photo 100 is required because checklist 23 is completed.`
 - `Photo 25 is required because checklist 97 is completed.`
 - `Signed checklist photo 26 is required to complete Pedestal & Enclosure.`

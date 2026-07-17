@@ -351,7 +351,12 @@ const addChecklistToSubOption = (subOption, checklist) => {
     subOption.remarkLabel = fieldLabel;
     subOption.remarkChecklist = base;
     subOption.remarkRequiredWhen = checklist.is_required
-      ? () => true
+      ? subOption.id === "pedestalEnclosureInstallation"
+        ? ({ values, subOption: currentSubOption }) =>
+            (currentSubOption.checklistItems || []).some(
+              (item) => item.required !== false && !values?.checks?.[item.id]
+            )
+        : () => true
       : undefined;
     return;
   }

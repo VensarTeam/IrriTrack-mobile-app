@@ -37,6 +37,10 @@ Frontend validation uses backend `checklist_id` values, not checklist descriptio
 ## Validation Rules
 
 - This validation applies only to the `Pedestal & Enclosure` subprocess.
+- The pedestal photo-ID dependency validation applies to new/partial submissions opened from Unit List, not to commented resubmissions.
+- Commented pedestal resubmissions are editable only when opened from Work Status with a matching work item/submission ID; the Unit List path remains read-only.
+- A commented resubmit uses only the rectification-photo flow and does not require photos `99`, `100`, `25`, or `26` again.
+- Checklist `24` is the remark field. It is required only while a mandatory pedestal checklist item is incomplete; missing photos alone do not make the remark mandatory.
 - The Unit Status Update UI splits the subprocess into three on-screen stages so supervisors can see which checklist items have photo dependencies.
 - Contractor selection is common for the subprocess and remains outside the stage sections.
 - The process stays `Partially Completed` until all mandatory checklist items are ticked and the required photo rules are satisfied.
@@ -62,7 +66,7 @@ Photo upload cards remain in the normal bottom photo section. Camera icons on ch
 
 ## Validation Errors
 
-- `Photo 99 is required because checklist 20 is completed.`
+- `Full photo of inlet and outlet pipeline connections is required because checklist 20 is completed.`
 - `Photo 100 is required because checklist 23 is completed.`
 - `Photo 25 is required because checklist 97 is completed.`
 - `Signed checklist photo 26 is required to complete Pedestal & Enclosure.`

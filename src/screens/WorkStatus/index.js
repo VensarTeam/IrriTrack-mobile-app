@@ -760,13 +760,55 @@ const WorkStatusScreen = ({ route, navigation }) => {
       ),
     [selectedSubprocess]
   );
+
+  React.useEffect(() => {
+    if (!selectedWorkItem || !selectedSubprocess) {
+      return;
+    }
+
+    const renderedSubprocess = shouldShowPipeLayingSections
+      ? activePipeLayingSubprocess || selectedSubprocess
+      : selectedSubprocess;
+    const bottomSheetChecklistData = {
+      submissionId: selectedWorkItem?.submissionId || "",
+      process: {
+        id: selectedProcess?.id || null,
+        name: selectedProcess?.name || "",
+        status: selectedProcess?.status || null,
+      },
+      subprocess: {
+        id: renderedSubprocess?.id || null,
+        name: renderedSubprocess?.name || "",
+        status: renderedSubprocess?.status || null,
+        detailItems: renderedSubprocess?.detailItems || [],
+        checklists: renderedSubprocess?.checklists || [],
+        rawApiSubprocess: renderedSubprocess?.rawSubprocess || null,
+      },
+    };
+
+    console.log(
+      "[WorkStatus] Bottom sheet checklist data",
+      JSON.stringify(bottomSheetChecklistData, null, 2)
+    );
+  }, [
+    activePipeLayingSubprocess,
+    selectedProcess,
+    selectedSubprocess,
+    selectedWorkItem,
+    shouldShowPipeLayingSections,
+  ]);
   const selectedCommentRemark = String(selectedWorkItem?.rejectionRemark || "").trim();
   const sheetBottomPadding = insets.bottom + 24;
   const historySheetBottomPadding = insets.bottom + 20;
 
-  const canVerifySelected = reviewCapabilities.canVerify && selectedWorkflowStatusKey === "submitted";
+  const canVerifySelected =
+    !isSelectedProgressLoading &&
+    reviewCapabilities.canVerify &&
+    selectedWorkflowStatusKey === "submitted";
   const canModifySelected =
-    reviewCapabilities.canModify && selectedWorkflowStatusKey === "submitted";
+    !isSelectedProgressLoading &&
+    reviewCapabilities.canModify &&
+    selectedWorkflowStatusKey === "submitted";
   const canApproveModifyRequest =
     reviewCapabilities.canReviewModifyRequest &&
     selectedWorkflowStatusKey === "modify_request";
@@ -775,6 +817,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     selectedWorkflowStatusKey === "modify_request";
   const canApproveSelected = reviewCapabilities.canApprove && selectedWorkflowStatusKey === "verified";
   const canRejectSelected =
+    !isSelectedProgressLoading &&
     reviewCapabilities.canReject &&
     (selectedWorkflowStatusKey === "submitted" ||
       (selectedWorkflowStatusKey === "verified" &&
@@ -1185,6 +1228,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
       const canRequestModification =
         ["Submitted", "Pending"].includes(tabKey) &&
         ["Submitted", "Pending"].includes(bucket) &&
+        !["partial", "partially completed", "partially_completed"].includes(
+          String(item?.status || "").trim().toLowerCase()
+        ) &&
         !canReviewChecklist &&
         Boolean(item?.submissionId);
 
@@ -1740,7 +1786,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       { color: (TAB_THEME[getUnitWorkBucket(selectedWorkItem)] || TAB_THEME.Pending).accent },
                     ]}
                   >
-                    {selectedWorkflowStatusKey === "submitted" ? "Submitted" : getUnitWorkBucket(selectedWorkItem)}
+                    {selectedWorkflowStatusKey === "submitted"
+                      ? "Submitted"
+                      : selectedWorkflowStatusKey === "partial"
+                        ? "Partial"
+                        : getUnitWorkBucket(selectedWorkItem)}
                   </Text>
                 </View>
 
@@ -1908,6 +1958,8 @@ const WorkStatusScreen = ({ route, navigation }) => {
                       <Text style={styles.reviewActionSubtitle}>
                         {selectedWorkflowStatusKey === "commented"
                           ? selectedCommentRemark || "This subprocess was commented and is waiting for field rectification."
+                          : selectedWorkflowStatusKey === "partial"
+                            ? "This subprocess is partially completed and is not ready for review."
                           : selectedWorkflowStatusKey === "modify_request"
                             ? "This submission is waiting for modify request review."
                           : selectedWorkflowStatusKey === "modify_approved"
@@ -2020,6 +2072,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                           <Text style={styles.workflowStateNoticeText}>
                             {selectedWorkflowStatusKey === "approved" ? "Approved"
                               : selectedWorkflowStatusKey === "verified" ? "Verified"
+                                : selectedWorkflowStatusKey === "partial" ? "Partially Completed"
                                 : "View only"}
                           </Text>
                         </View>

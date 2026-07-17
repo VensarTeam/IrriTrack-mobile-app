@@ -115,6 +115,15 @@ const getTabsForRole = (roleAccess = {}) => {
 const getRequestBucket = (item = {}) => {
   const normalizedStatus = String(item?.status || "").trim().toLowerCase();
 
+  if (
+    normalizedStatus === "partial" ||
+    normalizedStatus === "partially completed" ||
+    normalizedStatus === "partially_completed"
+  ) {
+    // Keep partial work visible in the existing Pending tab.
+    return "Pending";
+  }
+
   if (normalizedStatus === "info") {
     return "Info";
   }
@@ -335,6 +344,14 @@ const getWorkflowStatusKey = (item = {}, override = "") => {
 
   if (normalizedStatus === "info") {
     return "info";
+  }
+
+  if (
+    normalizedStatus === "partial" ||
+    normalizedStatus === "partially completed" ||
+    normalizedStatus === "partially_completed"
+  ) {
+    return "partial";
   }
 
   if (
@@ -1065,16 +1082,79 @@ const useWorkStatusViewModel = (navigation, route) => {
   );
 
   const selectedWorkflowStatusKey = useMemo(
-    () =>
-      getWorkflowStatusKey(
-        selectedWorkItem,
-        workflowStatusOverrides[selectedSubmissionId] || ""
-      ),
-    [selectedSubmissionId, selectedWorkItem, workflowStatusOverrides]
+    () => {
+      const workflowOverride = workflowStatusOverrides[selectedSubmissionId] || "";
+
+      if (workflowOverride) {
+        return getWorkflowStatusKey(selectedWorkItem, workflowOverride);
+      }
+
+      const listStatusKey = getWorkflowStatusKey(selectedWorkItem);
+      const progressStatusKey = String(
+        selectedProgressMatch?.subprocess?.status?.key || ""
+      ).trim().toLowerCase();
+
+      // The Work Status list API can return `submitted` for a partially saved
+      // subprocess. The progress API has the actual subprocess completion state.
+      if (listStatusKey === "submitted" && progressStatusKey === "partial") {
+        return "partial";
+      }
+
+      return listStatusKey;
+    },
+    [
+      selectedProgressMatch,
+      selectedSubmissionId,
+      selectedWorkItem,
+      workflowStatusOverrides,
+    ]
   );
+
+  useEffect(() => {
+    if (!selectedWorkItem) {
+      return;
+    }
+
+    console.log("[WorkStatus] Bottom sheet status resolved", {
+      submissionId: selectedSubmissionId,
+      listApiStatus:
+        selectedWorkItem?.rawItem?.status ??
+        selectedWorkItem?.rawItem?.current_status ??
+        selectedWorkItem?.status ??
+        "",
+      progressProcessStatus: selectedProgressMatch?.process?.status || null,
+      progressSubprocessStatus: selectedProgressMatch?.subprocess?.status || null,
+      resolvedWorkflowStatus: selectedWorkflowStatusKey,
+      progressMatch: selectedProgressMatch,
+    });
+  }, [
+    selectedProgressMatch,
+    selectedSubmissionId,
+    selectedWorkItem,
+    selectedWorkflowStatusKey,
+  ]);
 
   const openWorkItem = useCallback(
     (item) => {
+      const apiStatus = item?.rawItem?.status ?? item?.rawItem?.current_status ?? item?.status ?? "";
+      const normalizedApiStatus = String(apiStatus || "").trim().toLowerCase();
+
+      console.log("[WorkStatus] Item clicked", {
+        submissionId: item?.submissionId || "",
+        unitId: item?.unitId || "",
+        omsName: item?.omsName || "",
+        processId: item?.processId || null,
+        processName: item?.processName || "",
+        subprocessId: item?.subprocessId || null,
+        subprocessName: item?.subprocessName || "",
+        apiStatus,
+        normalizedApiStatus,
+        requestBucket: item?.requestBucket || "",
+        resolvedWorkflowStatus: getWorkflowStatusKey(item),
+        clickedItem: item,
+        rawApiItem: item?.rawItem || null,
+      });
+
       const isCommentedItem =
         String(item?.requestBucket || "").trim().toLowerCase() === "commented";
       const isModifyApprovedItem =

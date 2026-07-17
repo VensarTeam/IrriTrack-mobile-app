@@ -834,6 +834,8 @@ const useUnitListViewModel = (navigation, route) => {
       projectName,
       sectionKey: process.sectionKey,
       subOptionId: process.subOptionId,
+      entrySource: "unit_list",
+      processStatus: process.value || process.status || "",
     });
   };
 

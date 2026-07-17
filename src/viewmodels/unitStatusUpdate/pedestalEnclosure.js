@@ -284,7 +284,8 @@ export const validatePedestalEnclosureSubmission = ({
 
   // Return the earliest missing dependency so the UI can highlight one clear action.
   if (mergedPhotoIds.has("99") && !mergedChecklistIds.has("20")) {
-    errorMessage = "Checklist 20 is required because photo 99 is uploaded.";
+    errorMessage =
+      "Checklist 20 is required because the inlet and outlet pipeline connections photo is uploaded.";
   } else if (mergedPhotoIds.has("100") && !mergedChecklistIds.has("23")) {
     errorMessage = "Checklist 23 is required because photo 100 is uploaded.";
   } else if (mergedPhotoIds.has("25") && !mergedChecklistIds.has("97")) {
@@ -293,7 +294,8 @@ export const validatePedestalEnclosureSubmission = ({
     mergedChecklistIds.has("20") &&
     !mergedPhotoIds.has(PHOTO_REQUIRED_BY_CHECKLIST_ID["20"])
   ) {
-    errorMessage = "Photo 99 is required because checklist 20 is completed.";
+    errorMessage =
+      "Full photo of inlet and outlet pipeline connections is required because checklist 20 is completed.";
   } else if (mergedChecklistIds.has("23") && !mergedPhotoIds.has("100")) {
     errorMessage = "Photo 100 is required because checklist 23 is completed.";
   } else if (
@@ -303,7 +305,8 @@ export const validatePedestalEnclosureSubmission = ({
     errorMessage = "Photo 25 is required because checklist 97 is completed.";
   } else if (isMandatoryChecklistComplete && !isCompletionPhotoSetComplete) {
     if (!mergedPhotoIds.has("99")) {
-      errorMessage = "Photo 99 is required because checklist 20 is completed.";
+      errorMessage =
+        "Full photo of inlet and outlet pipeline connections is required because checklist 20 is completed.";
     } else if (!mergedPhotoIds.has("100")) {
       errorMessage = "Photo 100 is required because checklist 23 is completed.";
     } else if (!mergedPhotoIds.has("25")) {
