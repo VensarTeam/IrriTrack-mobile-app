@@ -41,3 +41,11 @@ yarn-error.*
 *.tsbuildinfo
 android/.kotlin/sessions/kotlin-compiler-14214041371601378145.salive
 android/.kotlin/sessions/kotlin-compiler-14214041371601378145.salive
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Android Kotlin cache
+android/.kotlin/
