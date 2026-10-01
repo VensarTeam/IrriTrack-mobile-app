@@ -681,6 +681,7 @@ const useProjectDetailsViewModel = (navigation, route) => {
 
   return {
     isOnline,
+    projectId,
     canViewProjectInsights: roleAccess.canViewProjectInsights,
     canUseLocationFilters:
       canUseLocationFilters && roleAccess.canViewProjectInsights,

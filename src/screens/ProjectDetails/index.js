@@ -16,11 +16,13 @@ import { PieChart } from "react-native-gifted-charts";
 import { Icon, IconButton } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import SearchableFilterModal from "../../components/SearchableFilterModal";
+import PipeDistributoryOverview from "./pipe-distributory-overview";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { Icons } from "../../constants/icons";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 import useProjectDetailsViewModel from "../../viewmodels/useProjectDetailsViewModel";
+import { ROUTES } from "../../navigation/routes";
 
 const CHART_SECTION_PADDING = 58;
 const PIE_RADIUS = 72;
@@ -46,8 +48,11 @@ const RING_TRACK_COLORS = {
 
 const ProjectDetailsScreen = ({ route }) => {
   const navigation = useNavigation();
+  const selectedProjectModule = route?.params?.selectedModule || "omsRms";
+  const isPipeNetworkModule = selectedProjectModule === "pipeNetwork";
   const {
     isOnline,
+    projectId,
     canViewProjectInsights,
     canUseLocationFilters,
     dataSet,
@@ -656,17 +661,20 @@ const ProjectDetailsScreen = ({ route }) => {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isProjectDetailsRefreshing}
-              onRefresh={refreshProjectDetails}
-              tintColor={colors.primaryBlue}
-              colors={[colors.primaryBlue]}
-            />
-          }
-        >
+        {!isPipeNetworkModule ? (
+          <ScrollView
+            style={styles.projectOverviewScroll}
+            contentContainerStyle={styles.projectOverviewContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isProjectDetailsRefreshing}
+                onRefresh={refreshProjectDetails}
+                tintColor={colors.primaryBlue}
+                colors={[colors.primaryBlue]}
+              />
+            }
+          >
           {showSkeletonLoader ? (
             <ProjectDetailsSkeleton />
           ) : (
@@ -1263,10 +1271,26 @@ const ProjectDetailsScreen = ({ route }) => {
                 : null}
             </>
           )}
-        </ScrollView>
+          </ScrollView>
+        ) : (
+          <PipeDistributoryOverview
+            onPipeLayingReports={() =>
+              navigation.navigate(ROUTES.ROOT.PIPE_DAILY_REPORT, {
+                projectId,
+                projectName: projectHeaderSubtitle || projectHeaderTitle,
+              })
+            }
+            onAddEntry={(material) =>
+              navigation.navigate(ROUTES.ROOT.PIPE_NETWORK_ENTRY, {
+                material,
+                projectName: projectHeaderSubtitle || projectHeaderTitle,
+              })
+            }
+          />
+        )}
       </View>
 
-      {canUseLocationFilters ? (
+      {canUseLocationFilters && !isPipeNetworkModule ? (
         <SearchableFilterModal
           visible={!!filterType}
           title={filterType === "zone" ? "Select Zone" : "Select Village"}

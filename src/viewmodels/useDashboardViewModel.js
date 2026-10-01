@@ -9,7 +9,6 @@ import {
   getCachedProjectList,
   refreshProjectList,
 } from "../services/projectOfflineStore";
-import { syncOmsBasicUnitsForProjectInBackground } from "../services/omsOfflineStore";
 
 const useDashboardViewModel = (navigation) => {
   const { logout } = useAuth();
@@ -95,10 +94,7 @@ const useDashboardViewModel = (navigation) => {
   };
 
   const openProject = (project) => {
-    const projectId = project?.id || project?.projectId || "";
-    void syncOmsBasicUnitsForProjectInBackground(projectId);
-
-    navigation.navigate(ROUTES.ROOT.PROJECT_DETAILS, {
+    navigation.navigate(ROUTES.ROOT.PROJECT_MODULES, {
       project,
       projectName: project?.name,
     });

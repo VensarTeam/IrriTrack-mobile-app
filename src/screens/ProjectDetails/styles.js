@@ -47,6 +47,15 @@ export default StyleSheet.create({
     width: moderateScale(40), // matches IconButton width so title stays truly centered
   },
 
+  projectOverviewScroll: {
+    flex: 1,
+  },
+
+  projectOverviewContent: {
+    paddingTop: verticalScale(9),
+    paddingBottom: verticalScale(10),
+  },
+
   logo: {
     width: moderateScale(120),
     height: moderateScale(20),

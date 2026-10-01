@@ -4,6 +4,9 @@ import AuthStack from "./AuthStack";
 import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
+import ProjectModulesScreen from "../screens/ProjectModules";
+import PipeNetworkEntryScreen from "../screens/PipeNetworkEntry";
+import PipeDailyReportScreen from "../screens/PipeDailyReport";
 import SummaryScreen from "../screens/Summary";
 import WorkStatusScreen from "../screens/WorkStatus";
 import AddContractorScreen from "../screens/AddContractor";
@@ -49,11 +52,30 @@ const RootNavigator = () => {
         <Stack.Screen name={ROUTES.ROOT.AUTH_STACK} component={AuthStack} />
         <Stack.Screen name={ROUTES.ROOT.APP_TABS} component={AppTabs} />
         <Stack.Screen
+          name={ROUTES.ROOT.PROJECT_MODULES}
+          component={ProjectModulesScreen}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
           name={ROUTES.ROOT.PROJECT_DETAILS}
           component={ProjectDetailsScreen}
           options={{
             animation: "slide_from_right",
           }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.PIPE_NETWORK_ENTRY}
+          component={PipeNetworkEntryScreen}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.PIPE_DAILY_REPORT}
+          component={PipeDailyReportScreen}
+          options={{ headerShown: true, title: "Daily report", headerTitleAlign: "center", headerTintColor: "#123B63", headerShadowVisible: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
           name={ROUTES.ROOT.WORK_STATUS}
