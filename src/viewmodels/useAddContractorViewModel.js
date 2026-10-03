@@ -82,7 +82,9 @@ const useAddContractorViewModel = (navigation) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canAccess =
-    roleAccess.role === "manager" || roleAccess.role === "admin";
+    roleAccess.role === "manager" ||
+    roleAccess.role === "admin" ||
+    roleAccess.role === "super_admin";
 
   useEffect(() => {
     if (canAccess) {

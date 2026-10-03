@@ -7,6 +7,7 @@ import ProjectDetailsScreen from "../screens/ProjectDetails";
 import ProjectModulesScreen from "../screens/ProjectModules";
 import PipeNetworkEntryScreen from "../screens/PipeNetworkEntry";
 import PipeDailyReportScreen from "../screens/PipeDailyReport";
+import PipeWorkStatusScreen from "../screens/PipeWorkStatus";
 import SummaryScreen from "../screens/Summary";
 import WorkStatusScreen from "../screens/WorkStatus";
 import AddContractorScreen from "../screens/AddContractor";
@@ -16,9 +17,9 @@ import UnitStatusUpdateScreen from "../screens/unit/UnitStatusUpdate";
 import UnitStatusOverviewScreen from "../screens/unit/UnitStatusOverview";
 import UnitGalleryScreen from "../screens/unit/UnitGallery";
 import PermissionsSettingsScreen from "../screens/PermissionsSettings";
+import RolePermissionManagerScreen from "../screens/RolePermissionManager";
 import { useAuth } from "../context/AuthContext";
 import AppLockScreen from "../components/AppLockScreen";
-import OfflineChecklistSyncGate from "../components/OfflineChecklistSyncGate";
 import { flushPendingNavigation } from "./navigationService";
 
 const Stack = createNativeStackNavigator();
@@ -42,7 +43,6 @@ const RootNavigator = () => {
 
   return (
     <>
-      <OfflineChecklistSyncGate />
       <Stack.Navigator
         initialRouteName={
           isAuthenticated ? ROUTES.ROOT.APP_TABS : ROUTES.ROOT.AUTH_STACK
@@ -76,6 +76,11 @@ const RootNavigator = () => {
           name={ROUTES.ROOT.PIPE_DAILY_REPORT}
           component={PipeDailyReportScreen}
           options={{ headerShown: true, title: "Daily report", headerTitleAlign: "center", headerTintColor: "#123B63", headerShadowVisible: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.PIPE_WORK_STATUS}
+          component={PipeWorkStatusScreen}
+          options={{ headerShown: true, title: "Pipe Work Status", headerTitleAlign: "center", animation: "slide_from_right" }}
         />
         <Stack.Screen
           name={ROUTES.ROOT.WORK_STATUS}
@@ -137,6 +142,16 @@ const RootNavigator = () => {
           name={ROUTES.ROOT.PERMISSIONS}
           component={PermissionsSettingsScreen}
           options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name={ROUTES.ROOT.ROLE_PERMISSION_MANAGER}
+          component={RolePermissionManagerScreen}
+          options={{
+            headerShown: true,
+            title: "Role & Permissions",
+            headerTitleAlign: "center",
             animation: "slide_from_right",
           }}
         />

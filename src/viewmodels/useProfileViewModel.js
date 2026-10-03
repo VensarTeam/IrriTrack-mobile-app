@@ -46,7 +46,7 @@ const useProfileViewModel = (navigation) => {
         return;
       }
 
-      await refreshProfile();
+      await refreshProfile({ force: true });
       console.log("[Profile]", "Profile refreshed and saved locally");
     } catch (error) {
       console.warn("Unable to refresh profile", error);
@@ -181,9 +181,11 @@ const useProfileViewModel = (navigation) => {
   return {
     user,
     initials,
-    canShowSyncActions: !roleAccess.isReviewer,
+    canShowSyncActions: roleAccess.isContributor,
     canShowAddContractor:
-      roleAccess.role === "manager" || roleAccess.role === "admin",
+      roleAccess.role === "manager" ||
+      roleAccess.role === "admin" ||
+      roleAccess.role === "super_admin",
     isRefreshingProfile,
     isSyncingMasterData,
     isSyncingOmsData,

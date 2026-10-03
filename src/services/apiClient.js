@@ -394,7 +394,6 @@ export const configureApiClientAuth = ({
 };
 
 export const setApiClientAuthorizationToken = (token) => {
-  console.log("[API] Setting auth token:", token);
   if (token) {
     apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
     return;

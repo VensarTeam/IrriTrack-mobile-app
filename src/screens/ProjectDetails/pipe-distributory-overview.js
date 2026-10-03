@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   Pressable,
+  RefreshControl,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -17,17 +18,17 @@ import {
   verticalScale,
 } from "../../constants/metrics";
 
-const DEFAULT_PIPE_DATA = [
+const EMPTY_PIPE_DATA = [
   {
     key: "ms",
     label: "MS",
     name: "Mild steel",
-    laid: 134471.1,
-    planned: 269938,
+    laid: 0,
+    planned: 0,
     stages: {
-      excavation: 191840,
-      pipeLaying: 134471.1,
-      backfilling: 109250,
+      excavation: 0,
+      pipeLaying: 0,
+      backfilling: 0,
     },
     color: "#2F72D6",
     surface: "#EAF3FF",
@@ -36,12 +37,12 @@ const DEFAULT_PIPE_DATA = [
     key: "di",
     label: "DI",
     name: "Ductile iron",
-    laid: 6313.8,
-    planned: 68159,
+    laid: 0,
+    planned: 0,
     stages: {
-      excavation: 24900,
-      pipeLaying: 6313.8,
-      backfilling: 4100,
+      excavation: 0,
+      pipeLaying: 0,
+      backfilling: 0,
     },
     color: "#249A61",
     surface: "#EAF8F0",
@@ -50,12 +51,12 @@ const DEFAULT_PIPE_DATA = [
     key: "hdpe",
     label: "HDPE",
     name: "Polyethylene",
-    laid: 1789268.7,
-    planned: 2146382,
+    laid: 0,
+    planned: 0,
     stages: {
-      excavation: 2035550,
-      pipeLaying: 1789268.7,
-      backfilling: 1624800,
+      excavation: 0,
+      pipeLaying: 0,
+      backfilling: 0,
     },
     color: "#E6752D",
     surface: "#FFF2E8",
@@ -375,10 +376,15 @@ const ActionButton = ({ item, selected, onPress, compact }) => (
 );
 
 const PipeDistributoryOverview = ({
-  pipeData = DEFAULT_PIPE_DATA,
+  pipeData = EMPTY_PIPE_DATA,
   onAddEntry,
   onPipeLayingReports,
   onWorkStatus,
+  isRefreshing = false,
+  onRefresh,
+  canAddEntry = true,
+  canViewReports = true,
+  canViewWorkStatus = true,
 }) => {
   const { width, height, fontScale: systemFontScale } = useWindowDimensions();
   const [viewport, setViewport] = React.useState(null);
@@ -389,9 +395,9 @@ const PipeDistributoryOverview = ({
   const hasAnimatedChartsRef = React.useRef(false);
   const [selectedAction, setSelectedAction] = React.useState(null);
   const [selectedMaterialKey, setSelectedMaterialKey] = React.useState(
-    pipeData?.[0]?.key || DEFAULT_PIPE_DATA[0].key,
+    pipeData?.[0]?.key || EMPTY_PIPE_DATA[0].key,
   );
-  const safePipeData = pipeData?.length ? pipeData : DEFAULT_PIPE_DATA;
+  const safePipeData = pipeData?.length ? pipeData : EMPTY_PIPE_DATA;
   const totalLaid = safePipeData.reduce(
     (total, item) => total + Number(item.laid || 0),
     0,
@@ -422,6 +428,9 @@ const PipeDistributoryOverview = ({
     reports: onPipeLayingReports,
     status: onWorkStatus,
   };
+  const visibleActions = ACTIONS.filter((action) =>
+    action.key === "add" ? canAddEntry : action.key === "reports" ? canViewReports : canViewWorkStatus,
+  );
 
   React.useEffect(() => {
     hasAnimatedChartsRef.current = true;
@@ -447,6 +456,7 @@ const PipeDistributoryOverview = ({
   return (
     <ScrollView
       style={styles.scroll}
+      refreshControl={onRefresh ? <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} /> : undefined}
       onLayout={({ nativeEvent: { layout } }) => {
         setViewport((previous) => previous?.width === layout.width && previous?.height === layout.height
           ? previous : { width: layout.width, height: layout.height });
@@ -504,7 +514,7 @@ const PipeDistributoryOverview = ({
 
       <View style={styles.actionSection}>
         <View style={inlineActions ? styles.actionRow : { gap: 8 }}>
-          <ActionButton
+          {visibleActions.some((action) => action.key === "add") ? <ActionButton
             item={{
               ...ACTIONS[0],
               label: inlineActions ? "Add entry" : `Add entry · ${selectedMaterial.label}`,
@@ -512,9 +522,9 @@ const PipeDistributoryOverview = ({
             selected={selectedAction === ACTIONS[0].key}
             onPress={() => handleAction(ACTIONS[0])}
             compact={inlineActions}
-          />
+          /> : null}
         <View style={[styles.actionRow, inlineActions && { flex: 2 }]}>
-          {ACTIONS.slice(1).map((action) => (
+          {visibleActions.filter((action) => action.key !== "add").map((action) => (
             <ActionButton
               key={action.key}
               item={action}

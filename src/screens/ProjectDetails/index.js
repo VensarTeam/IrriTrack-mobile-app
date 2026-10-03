@@ -23,6 +23,8 @@ import { Icons } from "../../constants/icons";
 import { moderateScale, verticalScale } from "../../constants/metrics";
 import useProjectDetailsViewModel from "../../viewmodels/useProjectDetailsViewModel";
 import { ROUTES } from "../../navigation/routes";
+import { useAuth } from "../../context/AuthContext";
+import usePipeDashboardViewModel from "../../viewmodels/usePipeDashboardViewModel";
 
 const CHART_SECTION_PADDING = 58;
 const PIE_RADIUS = 72;
@@ -50,6 +52,19 @@ const ProjectDetailsScreen = ({ route }) => {
   const navigation = useNavigation();
   const selectedProjectModule = route?.params?.selectedModule || "omsRms";
   const isPipeNetworkModule = selectedProjectModule === "pipeNetwork";
+  const { user, roleAccess } = useAuth();
+  const pipePermissions = roleAccess?.effectivePermissions || new Set();
+  const isPipeSupervisor = roleAccess?.role === "supervisor";
+  const hasPipeScreenPermission = (permission) =>
+    pipePermissions.has(permission) ||
+    roleAccess?.role === "developer" ||
+    (isPipeSupervisor && [
+      "pipe_laying.screen.overview",
+      "pipe_laying.screen.piping_data",
+      "pipe_laying.screen.daily_report",
+      "pipe_laying.screen.checklist",
+      "pipe_laying.screen.checklist_requests",
+    ].includes(permission));
   const {
     isOnline,
     projectId,
@@ -99,6 +114,11 @@ const ProjectDetailsScreen = ({ route }) => {
     openSummary,
     openSubprocessUnitList,
   } = useProjectDetailsViewModel(navigation, route);
+  const pipeDashboard = usePipeDashboardViewModel({
+    enabled: isPipeNetworkModule,
+    projectId,
+    ownerUserId: user?.id,
+  });
   const { width } = useWindowDimensions();
   const stagePagerRef = React.useRef(null);
   const stageTabScrollRef = React.useRef(null);
@@ -1274,6 +1294,20 @@ const ProjectDetailsScreen = ({ route }) => {
           </ScrollView>
         ) : (
           <PipeDistributoryOverview
+            pipeData={pipeDashboard.pipeData}
+            isLoading={pipeDashboard.loading}
+            isRefreshing={pipeDashboard.refreshing}
+            error={pipeDashboard.error}
+            isCached={pipeDashboard.isCached}
+            onRefresh={pipeDashboard.refresh}
+            canAddEntry={
+              hasPipeScreenPermission("pipe_laying.screen.checklist") &&
+              (pipePermissions.has("pipe_laying.create") ||
+                roleAccess?.role === "developer" ||
+                isPipeSupervisor)
+            }
+            canViewReports={hasPipeScreenPermission("pipe_laying.screen.daily_report")}
+            canViewWorkStatus={hasPipeScreenPermission("pipe_laying.screen.checklist_requests")}
             onPipeLayingReports={() =>
               navigation.navigate(ROUTES.ROOT.PIPE_DAILY_REPORT, {
                 projectId,
@@ -1283,6 +1317,14 @@ const ProjectDetailsScreen = ({ route }) => {
             onAddEntry={(material) =>
               navigation.navigate(ROUTES.ROOT.PIPE_NETWORK_ENTRY, {
                 material,
+                projectId,
+                projectName: projectHeaderSubtitle || projectHeaderTitle,
+              })
+            }
+            onWorkStatus={(material) =>
+              navigation.navigate(ROUTES.ROOT.PIPE_WORK_STATUS, {
+                projectId,
+                material: material?.label,
                 projectName: projectHeaderSubtitle || projectHeaderTitle,
               })
             }

@@ -75,6 +75,12 @@ export const getProfile = () =>
     method: "GET",
   });
 
+export const getPermissionMenu = () =>
+  apiRequest({
+    url: API_ENDPOINTS.permissionsMenu,
+    method: "GET",
+  });
+
 export const logoutSession = ({ refreshToken }) =>
   apiRequest({
     url: API_ENDPOINTS.authLogout,

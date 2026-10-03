@@ -6,6 +6,8 @@ import {
   syncQueuedChecklistSubmissions,
 } from "../services/checklistOfflineSync";
 import { refreshOfflineMasterData } from "../services/offlineMasterSync";
+import { normalizeUserRole } from "../services/roleAccess";
+import { flushPendingPipeMutations } from "../services/pipeNetworkSync";
 
 const canUseNetwork = (state = {}) =>
   state.isInternetReachable === true || state.isConnected !== false;
@@ -20,10 +22,26 @@ const logGate = (message, details = undefined) => {
 };
 
 const OfflineChecklistSyncGate = () => {
-  const { isAuthenticated, isAppLocked, session, user } = useAuth();
+  const {
+    authorization,
+    isAuthenticated,
+    isAppLocked,
+    refreshProfile,
+    session,
+    user,
+  } = useAuth();
   const isMasterSyncingRef = useRef(false);
   const isQueueSyncingRef = useRef(false);
   const syncedSessionRef = useRef(null);
+  const authorizationScopeKey = authorization
+    ? [
+        authorization.role,
+        JSON.stringify(authorization.permissions || {}),
+        (authorization.effectivePermissions || []).join(","),
+        (authorization.serviceIds || []).join(","),
+        (authorization.projectIds || []).join(","),
+      ].join("|")
+    : "permissions-pending";
 
   useEffect(() => {
     if (!isAuthenticated || isAppLocked) {
@@ -35,8 +53,13 @@ const OfflineChecklistSyncGate = () => {
     }
 
     let isMounted = true;
-    const sessionKey =
+    const sessionUserId =
       session?.user?.id || user?.id || user?.mobile || session?.accessToken;
+    const sessionKey = sessionUserId
+      ? `${sessionUserId}:${normalizeUserRole(
+          user?.role || session?.user?.role
+        )}:${authorizationScopeKey}`
+      : "";
     const isMasterAlreadySynced = syncedSessionRef.current === sessionKey;
 
     if (!sessionKey) {
@@ -50,13 +73,16 @@ const OfflineChecklistSyncGate = () => {
       logGate("One-time master sync active");
     }
 
-    const runMasterSync = async (networkState = null) => {
+    const runMasterSync = async (
+      networkState = null,
+      activeSessionKey = sessionKey
+    ) => {
       if (!isMounted) {
         logGate("Master sync ignored; component unmounted");
         return;
       }
 
-      if (isMasterAlreadySynced) {
+      if (syncedSessionRef.current === activeSessionKey) {
         logGate("Master sync skipped; already completed for this login");
         return;
       }
@@ -86,7 +112,7 @@ const OfflineChecklistSyncGate = () => {
       try {
         const summary = await refreshOfflineMasterData({ deviceType: "OMS" });
 
-        syncedSessionRef.current = sessionKey;
+        syncedSessionRef.current = activeSessionKey;
         logGate("One-time master data refresh completed", {
           checklistCount: summary.checklistCount,
           projectCount: summary.projectCount,
@@ -106,7 +132,7 @@ const OfflineChecklistSyncGate = () => {
       }
     };
 
-    const runQueueSync = async (networkState = null) => {
+    const runQueueSync = async (networkState = null, activeProfile = user) => {
       if (!isMounted) {
         logGate("Queue sync ignored; component unmounted");
         return;
@@ -126,18 +152,23 @@ const OfflineChecklistSyncGate = () => {
         return;
       }
 
+      if (normalizeUserRole(activeProfile?.role) !== "supervisor") {
+        logGate("Queue sync skipped; current role cannot submit checklists", {
+          role: activeProfile?.role,
+        });
+        return;
+      }
+
+      isQueueSyncingRef.current = true;
+
       try {
-        const ownerUserId = String(user?.id || user?.mobile || "").trim();
+        const ownerUserId = String(
+          activeProfile?.id || activeProfile?.mobile || ""
+        ).trim();
         const pendingCount = await getPendingChecklistSubmissionCount({
           ownerUserId,
         });
 
-        if (!pendingCount) {
-          //logGate("Queue sync skipped; no pending checklist submissions");
-          return;
-        }
-
-        isQueueSyncingRef.current = true;
         logGate("Queue sync started", {
           pendingCount,
           isConnected: networkState?.isConnected,
@@ -145,14 +176,17 @@ const OfflineChecklistSyncGate = () => {
           type: networkState?.type,
         });
 
-        const result = await syncQueuedChecklistSubmissions({
-          ownerUserId,
-        });
+        const result = pendingCount
+          ? await syncQueuedChecklistSubmissions({ ownerUserId })
+          : { checked: 0, synced: 0, failed: 0, skippedOffline: 0 };
+        const pipeResult = await flushPendingPipeMutations(ownerUserId);
         logGate("Queue sync finished", {
           checked: result.checked,
           synced: result.synced,
           failed: result.failed,
           skippedOffline: result.skippedOffline,
+          pipeSynced: pipeResult.synced,
+          pipeFailed: pipeResult.failed,
         });
       } catch (error) {
         logGate("Queue sync failed", {
@@ -165,14 +199,44 @@ const OfflineChecklistSyncGate = () => {
     };
 
     const runSync = async (networkState = null) => {
-      await runMasterSync(networkState);
-      await runQueueSync(networkState);
+      if (networkState && !canUseNetwork(networkState)) {
+        return;
+      }
+
+      let activeProfile = user;
+
+      try {
+        activeProfile = (await refreshProfile()) || user;
+      } catch (error) {
+        logGate("Profile sync failed; deferring protected sync", {
+          message: error?.message,
+          status: error?.status,
+        });
+        return;
+      }
+
+      const activeSessionKey = activeProfile?.id
+        ? `${activeProfile.id}:${normalizeUserRole(
+            activeProfile.role
+          )}:${authorizationScopeKey}`
+        : sessionKey;
+
+      await runMasterSync(networkState, activeSessionKey);
+      await runQueueSync(networkState, activeProfile);
     };
 
-    logGate("Checking network for checklist sync gate");
-    void NetInfo.fetch().then(runSync);
-    const unsubscribe = NetInfo.addEventListener((networkState) => {
-      if (canUseNetwork(networkState)) {
+    let hasHandledNetworkState = false;
+    let wasNetworkUsable = false;
+    const handleNetworkState = (networkState) => {
+      const isNetworkUsable = canUseNetwork(networkState);
+      const shouldRunSync =
+        isNetworkUsable &&
+        (!hasHandledNetworkState || !wasNetworkUsable);
+
+      hasHandledNetworkState = true;
+      wasNetworkUsable = isNetworkUsable;
+
+      if (shouldRunSync) {
         //logGate("Network restored; triggering checklist sync", {
         //   isConnected: networkState.isConnected,
         //   isInternetReachable: networkState.isInternetReachable,
@@ -180,14 +244,28 @@ const OfflineChecklistSyncGate = () => {
         // });
         void runSync(networkState);
       }
-    });
+    };
+
+    logGate("Checking network for checklist sync gate");
+    void NetInfo.fetch().then(handleNetworkState);
+    const unsubscribe = NetInfo.addEventListener(handleNetworkState);
 
     return () => {
       logGate("Sync gate cleanup");
       isMounted = false;
       unsubscribe();
     };
-  }, [isAuthenticated, isAppLocked, session, user]);
+  }, [
+    isAuthenticated,
+    isAppLocked,
+    authorizationScopeKey,
+    refreshProfile,
+    session?.user?.id,
+    session?.user?.role,
+    user?.id,
+    user?.mobile,
+    user?.role,
+  ]);
 
   return null;
 };

@@ -7,6 +7,7 @@ export const ROUTES = {
     PROJECT_DETAILS: "ProjectDetails",
     PIPE_NETWORK_ENTRY: "PipeNetworkEntry",
     PIPE_DAILY_REPORT: "PipeDailyReport",
+    PIPE_WORK_STATUS: "PipeWorkStatus",
     SUMMARY: "Summary",
     WORK_STATUS: "WorkStatus",
     UNIT_LIST_SCREEN: "UnitListScreen",
@@ -19,6 +20,7 @@ export const ROUTES = {
     MODULE_STATUS_UPDATE: "UnitStatusUpdate",
     MODULE_STATUS_OVERVIEW: "UnitStatusOverview",
     PERMISSIONS: "Permissions",
+    ROLE_PERMISSION_MANAGER: "RolePermissionManager",
     // Backward aliases
     OMS_DETAILS: "UnitDetails",
     OMS_STATUS_UPDATE: "UnitStatusUpdate",

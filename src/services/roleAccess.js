@@ -2,7 +2,20 @@ const CONTRIBUTOR_ROLES = new Set([
   "supervisor",
 ]);
 
-const REVIEWER_ROLES = new Set(["manager", "admin", "engineer"]);
+const REVIEWER_ROLES = new Set([
+  "manager",
+  "admin",
+  "super_admin",
+  "engineer",
+  "developer",
+  "ho",
+  "auditor_readonly",
+]);
+
+const ROLE_ALIASES = Object.freeze({
+  field_engineer: "engineer",
+  site_engineer: "engineer",
+});
 
 const toRoleLabel = (role = "") =>
   String(role || "")
@@ -12,16 +25,70 @@ const toRoleLabel = (role = "") =>
     .join(" ");
 
 export const normalizeUserRole = (role) =>
+  ROLE_ALIASES[String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")] ||
   String(role || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "_");
+    .replace(/[\s-]+/g, "_");
 
-export const createRoleAccess = (role) => {
+const normalizeId = (value) => String(value || "").trim().toLowerCase();
+
+export const createOmsWorkflowAccess = ({
+  role,
+  userId,
+  assignedEngineerId,
+  assignedManagerId,
+} = {}) => {
+  const normalizedRole = normalizeUserRole(role);
+  const actorId = normalizeId(userId);
+  const engineerId = normalizeId(assignedEngineerId);
+  const managerId = normalizeId(assignedManagerId);
+  const hasRouting = Boolean(engineerId || managerId);
+  const isEngineer = normalizedRole === "engineer";
+  const isManager = normalizedRole === "manager";
+  const isAssignedEngineer = Boolean(actorId && engineerId === actorId);
+  const isAssignedManager = Boolean(actorId && managerId === actorId);
+  const canReview = hasRouting
+    ? (isEngineer && isAssignedEngineer) ||
+      (isManager && (isAssignedEngineer || isAssignedManager))
+    : isEngineer || isManager;
+
+  return {
+    hasRouting,
+    isAssignedEngineer,
+    isAssignedManager,
+    canReview,
+    canVerify: canReview,
+    canReject: canReview,
+    canModify: canReview,
+    canReviewModifyRequest: canReview,
+    canApprove: hasRouting ? isManager && isAssignedManager : isManager,
+  };
+};
+
+export const createRoleAccess = (role, authorization = null) => {
   const normalizedRole = normalizeUserRole(role);
   const isContributor = CONTRIBUTOR_ROLES.has(normalizedRole);
   const isReviewer = REVIEWER_ROLES.has(normalizedRole);
   const isManagedRole = isContributor || isReviewer;
+  const hasMatchingAuthorization =
+    authorization?.role === normalizedRole &&
+    Array.isArray(authorization?.effectivePermissions);
+  const isAuthorizationReady = Boolean(
+    hasMatchingAuthorization && authorization?.syncedAt
+  );
+  const effectivePermissions = new Set(
+    hasMatchingAuthorization ? authorization.effectivePermissions : []
+  );
+  const canViewOms = hasMatchingAuthorization
+    ? Boolean(
+        authorization?.permissions?.canViewOms ||
+          effectivePermissions.has("oms.view")
+      )
+    : isManagedRole;
 
   if (!isManagedRole) {
     return {
@@ -30,21 +97,25 @@ export const createRoleAccess = (role) => {
       isContributor: false,
       isReviewer: false,
       isManagedRole: false,
+      isAuthorizationReady: false,
       canVerifyChecklist: false,
       canApproveChecklist: false,
       canRejectChecklist: false,
       prefersSingleReviewAction: false,
-      canViewProjectInsights: true,
-      canOpenModuleList: true,
-      canOpenUnitDetails: true,
-      canViewUnitStatus: true,
-      canOpenProcessTabs: true,
-      canEditChecklist: true,
+      canViewProjectInsights: false,
+      canOpenModuleList: false,
+      canOpenUnitDetails: false,
+      canViewUnitStatus: false,
+      canOpenProcessTabs: false,
+      canEditChecklist: false,
       canReviewChecklist: false,
       projectDetailsNotice: "",
       unitListNotice: "",
       checklistReadOnlyNotice: "",
       reviewNotice: "",
+      canViewOms: false,
+      canViewPipeLaying: false,
+      effectivePermissions,
     };
   }
 
@@ -54,13 +125,16 @@ export const createRoleAccess = (role) => {
     isContributor,
     isReviewer,
     isManagedRole,
+    isAuthorizationReady,
     canVerifyChecklist:
-      normalizedRole === "engineer" || normalizedRole === "manager",
-    canApproveChecklist: normalizedRole === "manager",
+      isAuthorizationReady &&
+      (normalizedRole === "engineer" || normalizedRole === "manager"),
+    canApproveChecklist:
+      isAuthorizationReady && normalizedRole === "manager",
     canRejectChecklist:
-      normalizedRole === "engineer" || normalizedRole === "manager",
+      isAuthorizationReady &&
+      (normalizedRole === "engineer" || normalizedRole === "manager"),
     prefersSingleReviewAction: false,
-    // Temporary override: allow supervisor to see full Project Details insights.
     canViewProjectInsights: isReviewer,
     canOpenModuleList: true,
     canOpenUnitDetails: isReviewer,
@@ -68,20 +142,30 @@ export const createRoleAccess = (role) => {
     canOpenProcessTabs: true,
     canEditChecklist: isContributor,
     canReviewChecklist: isReviewer,
+    canViewOms,
+    canViewPipeLaying: hasMatchingAuthorization
+      ? Boolean(
+          authorization?.permissions?.canViewPipeLaying ||
+            effectivePermissions.has("pipe_laying.view") ||
+            [...effectivePermissions].some((permission) =>
+              permission.startsWith("pipe_laying.screen.")
+            )
+        )
+      : normalizedRole === "supervisor",
+    effectivePermissions,
     projectDetailsNotice: isContributor
-      ? "Module-wise analytics are available for admin, manager, and engineer roles. You can continue with OMS checklist work from the cards below."
+      ? "Module-wise analytics are available for super admin, admin, manager, and engineer roles. You can continue with OMS checklist work from the cards below."
       : "",
     unitListNotice: isContributor
-      ? "Open a process card to fill the checklist. Unit details are available for admin, manager, and engineer roles."
+      ? "Open a process card to fill the checklist. Unit details are available for super admin, admin, manager, and engineer roles."
       : "Open a unit card for full status details, or use a process card to review checklist data.",
     checklistReadOnlyNotice: isReviewer
-      ? "Admin, manager, and engineer roles can review submitted checklist data here, but cannot edit field entries."
+      ? "Reviewer roles can inspect submitted checklist data here, but cannot edit field entries."
       : "",
-    reviewNotice:
-      normalizedRole === "admin"
-        ? "Admin can view every submission here, but cannot verify, approve, or reject."
-        : isReviewer
-          ? "Review workflow actions are available after opening a submitted item from Work Status."
-          : "",
+    reviewNotice: isReviewer
+      ? normalizedRole === "engineer" || normalizedRole === "manager"
+        ? "Review workflow actions are available after opening an assigned item from Work Status."
+        : `${toRoleLabel(normalizedRole)} can view every submission here, but cannot verify, approve, or reject.`
+      : "",
   };
 };

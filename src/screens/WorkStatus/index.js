@@ -28,6 +28,7 @@ import { CustomTabView } from "../../components/WorkStatusTabView"; // ← new i
 import ImageViewerModal from "../../components/ImageViewerModal";
 import { IMAGE_BASE_URL } from "../../config/env";
 import { getUnitStatusPalette } from "../../utils/unitStatusPalette";
+import { showAppAlert } from "../../services/alertService";
 
 // ─── remove the TabView / TabBar imports from react-native-tab-view ───────────
 // REMOVED: import { TabBar, TabView } from "react-native-tab-view";
@@ -673,6 +674,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     isRefreshing,
     isFetchingMore,
     error,
+    canEditChecklist,
     canReviewChecklist,
     reviewCapabilities,
     canLoadMore,
@@ -808,7 +810,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const canModifySelected =
     !isSelectedProgressLoading &&
     reviewCapabilities.canModify &&
-    selectedWorkflowStatusKey === "submitted";
+    ["submitted", "verified"].includes(selectedWorkflowStatusKey);
   const canApproveModifyRequest =
     reviewCapabilities.canReviewModifyRequest &&
     selectedWorkflowStatusKey === "modify_request";
@@ -819,9 +821,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const canRejectSelected =
     !isSelectedProgressLoading &&
     reviewCapabilities.canReject &&
-    (selectedWorkflowStatusKey === "submitted" ||
-      (selectedWorkflowStatusKey === "verified" &&
-        reviewCapabilities.canApprove));
+    ["submitted", "verified"].includes(selectedWorkflowStatusKey);
 
   React.useEffect(() => {
     setIsRejectRemarkModalVisible(false);
@@ -975,11 +975,25 @@ const WorkStatusScreen = ({ route, navigation }) => {
     }
 
     const action = String(modifyRequestConfirmItem.action || "").trim();
+    const normalizedRemark = String(modifyRequestRemark || "").trim();
+    const isRemarkRequired =
+      action === "modify_rejected" ||
+      (action === "modify_approved" &&
+        selectedWorkflowStatusKey !== "modify_request");
+
+    if (isRemarkRequired && !normalizedRemark) {
+      showAppAlert({
+        type: "danger",
+        title: "Remark required",
+        message: "Add a remark before updating this modification request.",
+      });
+      return;
+    }
 
     if (action === "modify_request") {
-      await requestModification(modifyRequestConfirmItem.item, modifyRequestRemark);
+      await requestModification(modifyRequestConfirmItem.item, normalizedRemark);
     } else {
-      await submitWorkItemAction(action, modifyRequestRemark);
+      await submitWorkItemAction(action, normalizedRemark);
     }
 
     closeModifyRequestConfirmation();
@@ -1000,7 +1014,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
   const modifyRequestModalMessage =
     modifyRequestConfirmItem?.action === "modify_approved"
-      ? "Approve this request so the supervisor can update the submission."
+      ? selectedWorkflowStatusKey === "modify_request"
+        ? "Approve this request so the supervisor can update the submission."
+        : "Send this submission back for correction. A remark is required."
       : modifyRequestConfirmItem?.action === "modify_rejected"
         ? "Reject this modification request and keep the submitted status."
         : "Ask for correction on this submission. Remark is optional.";
@@ -1231,6 +1247,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         !["partial", "partially completed", "partially_completed"].includes(
           String(item?.status || "").trim().toLowerCase()
         ) &&
+        canEditChecklist &&
         !canReviewChecklist &&
         Boolean(item?.submissionId);
 
@@ -1358,6 +1375,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
     },
     [
       canReviewChecklist,
+      canEditChecklist,
       getUnitStatusDetails,
       getUnitWorkBucket,
       openModifyRequestConfirmation,
@@ -1518,7 +1536,13 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
               <TextInput
                 style={[styles.reviewRemarkInput, styles.rejectModalInput]}
-                placeholder="Remark (optional)"
+                placeholder={
+                  modifyRequestConfirmItem?.action === "modify_rejected" ||
+                  (modifyRequestConfirmItem?.action === "modify_approved" &&
+                    selectedWorkflowStatusKey !== "modify_request")
+                    ? "Remark (required)"
+                    : "Remark (optional)"
+                }
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 value={modifyRequestRemark}
@@ -1992,7 +2016,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
                               onPress={() =>
                                 openModifyRequestConfirmation(
                                   selectedWorkItem,
-                                  canApproveModifyRequest ? "modify_approved" : "modify_request"
+                                  "modify_approved"
                                 )
                               }
                             >

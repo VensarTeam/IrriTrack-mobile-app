@@ -13,6 +13,7 @@ import useUnitProgress from "../hooks/useUnitProgress";
 import { findUnitProgressSubprocess } from "../models/unitProgress";
 import { submitOmsReviewAction } from "../services/omsReviewService";
 import { showAppAlert } from "../services/alertService";
+import { createOmsWorkflowAccess } from "../services/roleAccess";
 
 const TAB_STATUS_QUERY = {
   Requests: "",
@@ -272,6 +273,14 @@ const createWorkItem = (item = {}) => {
     verifiedByName: item.verifiedByName || item.verified_by_name || "",
     approvedByName: item.approvedByName || item.approved_by_name || "",
     rejectedByName: item.rejectedByName || item.rejected_by_name || "",
+    assignedEngineerId:
+      item.assignedEngineerId || item.assigned_engineer_id || "",
+    assignedEngineerName:
+      item.assignedEngineerName || item.assigned_engineer_name || "",
+    assignedManagerId:
+      item.assignedManagerId || item.assigned_manager_id || "",
+    assignedManagerName:
+      item.assignedManagerName || item.assigned_manager_name || "",
     requestBucket: getRequestBucket(item),
     rawItem: item,
   };
@@ -629,7 +638,7 @@ const applyModifyRequestToTabItems = ({
 };
 
 const useWorkStatusViewModel = (navigation, route) => {
-  const { user, roleAccess } = useAuth();
+  const { user, roleAccess, refreshProfile } = useAuth();
   const module = route?.params?.module || "OMS";
   const project = route?.params?.project || null;
   const projectId = project?.id || project?.projectId || user?.projectId || "";
@@ -672,6 +681,22 @@ const useWorkStatusViewModel = (navigation, route) => {
   const selectedWorkItemRef = useRef(null);
   const selectedProgressRefreshKeyRef = useRef("");
   const selectedSubmissionId = String(selectedWorkItem?.submissionId || "").trim();
+  const selectedReviewCapabilities = useMemo(
+    () =>
+      createOmsWorkflowAccess({
+        role: roleAccess.isAuthorizationReady ? roleAccess.role : "",
+        userId: user?.id,
+        assignedEngineerId: selectedWorkItem?.assignedEngineerId,
+        assignedManagerId: selectedWorkItem?.assignedManagerId,
+      }),
+    [
+      roleAccess.isAuthorizationReady,
+      roleAccess.role,
+      selectedWorkItem?.assignedEngineerId,
+      selectedWorkItem?.assignedManagerId,
+      user?.id,
+    ]
+  );
   const selectedUnitId = String(
     selectedWorkItem?.unitId || selectedWorkItem?.omsId || ""
   ).trim();
@@ -1025,6 +1050,13 @@ const useWorkStatusViewModel = (navigation, route) => {
 
   useFocusEffect(
     useCallback(() => {
+      void refreshProfile({ maxAgeMs: 30 * 1000 }).catch((nextError) => {
+        console.log("[WorkStatus] Profile sync deferred; using saved role", {
+          message: nextError?.message,
+          status: nextError?.status,
+        });
+      });
+
       if (!hasFocusedOnceRef.current) {
         hasFocusedOnceRef.current = true;
         return undefined;
@@ -1035,7 +1067,7 @@ const useWorkStatusViewModel = (navigation, route) => {
         void refreshSelectedProgress();
       }
       return undefined;
-    }, [loadBoard, refreshSelectedProgress])
+    }, [loadBoard, refreshProfile, refreshSelectedProgress])
   );
 
   const countsByTab = useMemo(
@@ -1315,8 +1347,28 @@ const useWorkStatusViewModel = (navigation, route) => {
         return;
       }
 
-      if (normalizedAction === "reject" && !normalizedRemark) {
-        setReviewError("Remark is required to reject this subprocess.");
+      const isAllowed =
+        (normalizedAction === "approve" &&
+          selectedReviewCapabilities.canApprove) ||
+        (["verify", "reject", "modify_approved", "modify_rejected"].includes(
+          normalizedAction
+        ) && selectedReviewCapabilities.canReview);
+
+      if (!isAllowed) {
+        setReviewError(
+          "This submission is view-only because it is not assigned to your current role."
+        );
+        return;
+      }
+
+      const isRemarkRequired =
+        normalizedAction === "reject" ||
+        normalizedAction === "modify_rejected" ||
+        (normalizedAction === "modify_approved" &&
+          selectedWorkflowStatusKey !== "modify_request");
+
+      if (isRemarkRequired && !normalizedRemark) {
+        setReviewError("Remark is required for this workflow action.");
         return;
       }
 
@@ -1430,7 +1482,9 @@ const useWorkStatusViewModel = (navigation, route) => {
       loadBoard,
       refreshSelectedProgress,
       reviewRemark,
+      selectedReviewCapabilities,
       selectedSubmissionId,
+      selectedWorkflowStatusKey,
       tabs,
     ]
   );
@@ -1464,21 +1518,12 @@ const useWorkStatusViewModel = (navigation, route) => {
     isRefreshing,
     isFetchingMore: false,
     error,
+    canEditChecklist: roleAccess.canEditChecklist,
     canReviewChecklist: roleAccess.canReviewChecklist,
     reviewCapabilities: {
-      canVerify: Boolean(roleAccess.canVerifyChecklist),
-      canApprove: Boolean(roleAccess.canApproveChecklist),
-      canReject: Boolean(roleAccess.canRejectChecklist),
-      canModify: Boolean(
-        roleAccess.canVerifyChecklist || roleAccess.canApproveChecklist
-      ),
-      canReviewModifyRequest: Boolean(
-        roleAccess.canVerifyChecklist || roleAccess.canApproveChecklist
-      ),
+      ...selectedReviewCapabilities,
       canViewModifyRequestOnly: Boolean(
-        roleAccess.canReviewChecklist &&
-          !roleAccess.canVerifyChecklist &&
-          !roleAccess.canApproveChecklist
+        roleAccess.canReviewChecklist && !selectedReviewCapabilities.canReview
       ),
     },
     canLoadMore: false,

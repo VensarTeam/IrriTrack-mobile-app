@@ -33,6 +33,7 @@ export const normalizeAuthSession = (session, createUser, referenceTime = Date.n
       referenceTime
     ),
     user: createUser(session.user),
+    authorization: session.authorization || null,
   };
 };
 
@@ -47,6 +48,8 @@ export const mergeAuthSession = (
       ...currentSession,
       ...incomingSession,
       user: incomingSession?.user || currentSession?.user,
+      authorization:
+        incomingSession?.authorization || currentSession?.authorization || null,
     },
     createUser,
     referenceTime

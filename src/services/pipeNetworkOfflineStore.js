@@ -1,0 +1,104 @@
+import SQLite from "react-native-sqlite-storage";
+
+SQLite.enablePromise(true);
+
+const DB_NAME = "pmt_offline_master.db";
+let databasePromise;
+let schemaPromise;
+
+const getDatabase = async () => {
+  if (!databasePromise) databasePromise = SQLite.openDatabase({ name: DB_NAME, location: "default" });
+  const db = await databasePromise;
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      await db.executeSql(`
+        CREATE TABLE IF NOT EXISTS pipe_network_cache (
+          cache_key TEXT PRIMARY KEY NOT NULL,
+          owner_user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          refreshed_at TEXT NOT NULL
+        );
+      `);
+      await db.executeSql(`
+        CREATE TABLE IF NOT EXISTS pipe_network_sync_queue (
+          id TEXT PRIMARY KEY NOT NULL,
+          owner_user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          operation TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          state TEXT NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          last_error TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+      await db.executeSql(`CREATE INDEX IF NOT EXISTS idx_pipe_sync_owner_state ON pipe_network_sync_queue(owner_user_id, state, created_at);`);
+    })();
+  }
+  await schemaPromise;
+  return db;
+};
+
+const cacheKey = (ownerUserId, projectId, resource) => `${ownerUserId}:${projectId}:${resource}`;
+
+export const savePipeCache = async ({ ownerUserId, projectId, resource, payload }) => {
+  if (!ownerUserId || !projectId || !resource) return;
+  const db = await getDatabase();
+  await db.executeSql(
+    `INSERT OR REPLACE INTO pipe_network_cache(cache_key, owner_user_id, project_id, payload_json, refreshed_at) VALUES (?, ?, ?, ?, ?);`,
+    [cacheKey(ownerUserId, projectId, resource), ownerUserId, projectId, JSON.stringify(payload), new Date().toISOString()],
+  );
+};
+
+export const getPipeCache = async ({ ownerUserId, projectId, resource }) => {
+  if (!ownerUserId || !projectId || !resource) return null;
+  const db = await getDatabase();
+  const [result] = await db.executeSql(
+    `SELECT payload_json, refreshed_at FROM pipe_network_cache WHERE cache_key = ? AND owner_user_id = ? LIMIT 1;`,
+    [cacheKey(ownerUserId, projectId, resource), ownerUserId],
+  );
+  if (!result.rows.length) return null;
+  const row = result.rows.item(0);
+  try {
+    return { payload: JSON.parse(row.payload_json), refreshedAt: row.refreshed_at };
+  } catch {
+    return null;
+  }
+};
+
+export const queuePipeMutation = async ({ id, ownerUserId, projectId, operation, payload }) => {
+  const db = await getDatabase();
+  const now = new Date().toISOString();
+  await db.executeSql(
+    `INSERT OR REPLACE INTO pipe_network_sync_queue(id, owner_user_id, project_id, operation, payload_json, state, attempts, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?);`,
+    [id, ownerUserId, projectId, operation, JSON.stringify(payload), now, now],
+  );
+  return id;
+};
+
+export const listPendingPipeMutations = async (ownerUserId) => {
+  const db = await getDatabase();
+  const [result] = await db.executeSql(
+    `SELECT * FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry') ORDER BY created_at ASC;`,
+    [ownerUserId],
+  );
+  return Array.from({ length: result.rows.length }, (_, index) => {
+    const row = result.rows.item(index);
+    return { ...row, payload: JSON.parse(row.payload_json) };
+  });
+};
+
+export const completePipeMutation = async (id) => {
+  const db = await getDatabase();
+  await db.executeSql(`DELETE FROM pipe_network_sync_queue WHERE id = ?;`, [id]);
+};
+
+export const failPipeMutation = async ({ id, error, blocked = false }) => {
+  const db = await getDatabase();
+  await db.executeSql(
+    `UPDATE pipe_network_sync_queue SET state = ?, attempts = attempts + 1, last_error = ?, updated_at = ? WHERE id = ?;`,
+    [blocked ? "blocked" : "retry", error || "Sync failed", new Date().toISOString(), id],
+  );
+};

@@ -44,8 +44,13 @@ const ProfileScreen = ({ navigation }) => {
     navigation.navigate(ROUTES.ROOT.PERMISSIONS);
   }, [navigation]);
 
+  const handleOpenRoleManager = useCallback(() => {
+    navigation.navigate(ROUTES.ROOT.ROLE_PERMISSION_MANAGER);
+  }, [navigation]);
+
   const isActiveUser = user.isActive === true;
   const role = toTitleCase(user.role) || "No Role Assigned";
+  const canManageRoles = String(user.role || "").toLowerCase() === "developer";
 
   return (
     <View style={styles.screen}>
@@ -137,6 +142,25 @@ const ProfileScreen = ({ navigation }) => {
               <Text style={styles.actionCardTitle}>Add Contractor</Text>
             </View>
 
+            <View style={styles.actionCardArrowWrap}>
+              <Icon source="chevron-right" size={22} color={colors.primaryBlue} />
+            </View>
+          </TouchableOpacity>
+        ) : null}
+
+        {canManageRoles ? (
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={handleOpenRoleManager}
+            activeOpacity={0.9}
+          >
+            <View style={styles.actionCardIconWrap}>
+              <Icon source="account-key-outline" size={22} color={colors.navyFreshDark} />
+            </View>
+            <View style={styles.actionCardCopy}>
+              <Text style={styles.actionCardTitle}>Role & Permissions</Text>
+              <Text style={styles.actionCardSubtitle}>Manage mobile access for users</Text>
+            </View>
             <View style={styles.actionCardArrowWrap}>
               <Icon source="chevron-right" size={22} color={colors.primaryBlue} />
             </View>

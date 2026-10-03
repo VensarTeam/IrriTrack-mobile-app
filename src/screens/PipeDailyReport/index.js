@@ -1,14 +1,16 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Icon } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SearchableFilterModal from "../../components/SearchableFilterModal";
-import { fetchPipeDailyWorks } from "../../services/pipeDailyWorkApi";
+import { fetchPipeDailyWorks, fetchPipeWorkFilterOptions } from "../../services/pipeDailyWorkApi";
 import colors from "../../constants/colors";
-import { displayDate, filterReports, formatNumber, localDate, normalizeReports, readRows } from "./report-data";
+import { displayDate, formatNumber, localDate, normalizeReports, readRows } from "./report-data";
 import styles from "./styles";
+import { useAuth } from "../../context/AuthContext";
+import { getPipeCache, savePipeCache } from "../../services/pipeNetworkOfflineStore";
 
 const EMPTY_FILTERS = { search: "", location: "All", label: "All", from: "", to: "" };
 const STAGES = { excavation: "Excavation", pipe_laying: "Pipe laying", backfilling: "Backfilling" };
@@ -63,6 +65,7 @@ const ReportCard = React.memo(function ReportCard({ item }) {
 
 export default function PipeDailyReportScreen({ route }) {
   const { projectId } = route.params || {};
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +76,10 @@ export default function PipeDailyReportScreen({ route }) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalLaidLengthM, setTotalLaidLengthM] = useState(0);
+  const [locations, setLocations] = useState(["All"]);
+  const [labels, setLabels] = useState(["All"]);
   const requestBusy = useRef(false);
   const lastQuery = useRef("");
   const loadedIds = useRef(new Set());
@@ -85,7 +92,7 @@ export default function PipeDailyReportScreen({ route }) {
     requestBusy.current = true;
     setLoading(nextPage === 1);
     setLoadingMore(nextPage > 1);
-    const query = `${projectId}|${filters.from}|${filters.to}`;
+    const query = `${projectId}|${filters.search}|${filters.location}|${filters.label}|${filters.from}|${filters.to}`;
     if (query !== lastQuery.current) {
       setRows(null);
       setPage(0);
@@ -93,9 +100,20 @@ export default function PipeDailyReportScreen({ route }) {
       lastQuery.current = query;
     }
     setError("");
+    const resource = `daily-report:${query}:${nextPage}`;
+    if (nextPage === 1) {
+      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      if (cached?.payload && !controller.signal.aborted) {
+        const cachedRows = normalizeReports(readRows(cached.payload));
+        setRows(cachedRows);
+        setTotalCount(Number(cached.payload?.totalCount ?? cachedRows.length));
+        setTotalLaidLengthM(Number(cached.payload?.totalLaidLengthM ?? 0));
+        setLoading(false);
+      }
+    }
     try {
       if (!projectId) throw new Error("Project is missing. Go back and open this report from your project.");
-      const works = await fetchPipeDailyWorks({ projectId, signal: controller.signal, page: nextPage, limit: 20, fromDate: filters.from, toDate: filters.to });
+      const works = await fetchPipeDailyWorks({ projectId, signal: controller.signal, page: nextPage, limit: 20, fromDate: filters.from, toDate: filters.to, q: filters.search.trim() || undefined, location: filters.location === "All" ? undefined : filters.location, label: filters.label === "All" ? undefined : filters.label });
       if (!controller.signal.aborted) {
         const incoming = normalizeReports(readRows(works));
         const hasNewRecords = incoming.some((item) => !loadedIds.current.has(item.id));
@@ -103,8 +121,11 @@ export default function PipeDailyReportScreen({ route }) {
         incoming.forEach((item) => loadedIds.current.add(item.id));
         setRows((previous) => nextPage === 1 ? incoming : [...new Map([...(previous || []), ...incoming].map((item) => [item.id, item])).values()]);
         setPage(nextPage);
-        // The supplied envelope has no total or next-page metadata.
-        setHasMore(incoming.length === 20 && (nextPage === 1 || hasNewRecords));
+        const nextTotal = Number(works?.totalCount ?? incoming.length);
+        setTotalCount(nextTotal);
+        setTotalLaidLengthM(Number(works?.totalLaidLengthM ?? 0));
+        setHasMore(nextPage * 20 < nextTotal && (nextPage === 1 || hasNewRecords));
+        await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: works });
       }
     } catch (err) {
       if (!controller.signal.aborted) setError(err.message || "Could not load daily reports. Please try again.");
@@ -115,17 +136,28 @@ export default function PipeDailyReportScreen({ route }) {
         requestBusy.current = false;
       }
     }
-  }, [projectId, filters.from, filters.to]);
+  }, [projectId, filters.from, filters.label, filters.location, filters.search, filters.to, user?.id]);
   useFocusEffect(useCallback(() => {
-    load();
-    return () => controllerRef.current?.abort();
+    const timer = setTimeout(() => load(), filters.search ? 350 : 0);
+    return () => { clearTimeout(timer); controllerRef.current?.abort(); };
   }, [load]));
 
-  const filtered = useMemo(() => filterReports(rows || [], filters), [rows, filters]);
+  useFocusEffect(useCallback(() => {
+    if (!projectId) return undefined;
+    let active = true;
+    Promise.all([
+      fetchPipeWorkFilterOptions({ projectId, field: "location", page: 1, limit: 100 }),
+      fetchPipeWorkFilterOptions({ projectId, field: "label", page: 1, limit: 100 }),
+    ]).then(([locationResponse, labelResponse]) => {
+      if (!active) return;
+      setLocations(["All", ...(locationResponse?.items || []).map((item) => item.value)]);
+      setLabels(["All", ...(labelResponse?.items || []).map((item) => item.value)]);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [projectId]));
+
+  const filtered = rows || [];
   const hasFilters = Object.keys(EMPTY_FILTERS).some((key) => filters[key] !== EMPTY_FILTERS[key]);
-  const total = filtered.reduce((sum, row) => sum + (row.laid ?? 0), 0);
-  const locations = useMemo(() => ["All", ...new Set((rows || []).map((row) => row.location).filter(Boolean))].sort((a, b) => a === "All" ? -1 : b === "All" ? 1 : a.localeCompare(b)), [rows]);
-  const labels = useMemo(() => ["All", ...new Set((rows || []).filter((row) => filters.location === "All" || row.location === filters.location).map((row) => row.label).filter(Boolean))], [rows, filters.location]);
   const clear = () => { setFilters(EMPTY_FILTERS); setDateField(null); };
 
   const header = <View style={styles.header}>
@@ -156,8 +188,8 @@ export default function PipeDailyReportScreen({ route }) {
       {hasFilters && <Pressable accessibilityRole="button" onPress={clear} style={styles.clear}><Text style={styles.link}>Clear filters</Text></Pressable>}
     </View>
     {rows !== null && <View style={styles.summary}>
-      <Text style={styles.muted}>{filtered.length} {filtered.length === 1 ? "entry" : "entries"} · loaded records</Text>
-      <Text style={styles.total}>Loaded laid  {formatNumber(total)} m</Text>
+      <Text style={styles.muted}>{totalCount} {totalCount === 1 ? "entry" : "entries"}</Text>
+      <Text style={styles.total}>Filtered total  {formatNumber(totalLaidLengthM)} m</Text>
     </View>}
     {!!error && <View style={styles.error}><Text selectable style={styles.errorText}>{rows !== null ? "Showing previously loaded records. " : ""}{error}</Text><Pressable accessibilityRole="button" onPress={() => load()} disabled={loading || loadingMore} style={styles.clear}><Text style={styles.link}>Retry</Text></Pressable></View>}
   </View>;
@@ -167,7 +199,7 @@ export default function PipeDailyReportScreen({ route }) {
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20, paddingLeft: Math.max(insets.left, 14), paddingRight: Math.max(insets.right, 14) }]}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentInsetAdjustmentBehavior="automatic"
       refreshControl={<RefreshControl refreshing={loading && rows !== null} onRefresh={() => load()} tintColor={colors.primaryBlue} />}
-      ListFooterComponent={hasMore ? <View style={styles.state}><Text style={styles.stateText}>Search and location filters apply to loaded records.</Text><Pressable accessibilityRole="button" disabled={loading || loadingMore} onPress={() => load(page + 1)} style={styles.button}>{loadingMore ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Load more reports</Text>}</Pressable></View> : null}
+      ListFooterComponent={hasMore ? <View style={styles.state}><Pressable accessibilityRole="button" disabled={loading || loadingMore} onPress={() => load(page + 1)} style={styles.button}>{loadingMore ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Load more reports</Text>}</Pressable></View> : null}
       ListEmptyComponent={loading && rows === null ? <View style={styles.state}><ActivityIndicator color={colors.primaryBlue} /><Text style={styles.stateText}>Loading daily reports…</Text></View> : error && rows === null ? null : <View style={styles.state}>
         <Icon source="clipboard-text-outline" size={34} color={colors.textSecondary} />
         <Text style={styles.stateTitle}>{hasFilters ? "No matching entries" : "No daily work recorded"}</Text>

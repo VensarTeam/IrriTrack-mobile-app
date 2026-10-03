@@ -20,11 +20,22 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import SearchableFilterModal from "../../components/SearchableFilterModal";
 import colors from "../../constants/colors";
 import styles from "./styles";
+import { useAuth } from "../../context/AuthContext";
+import {
+  createPipeChecklistPackage,
+  createPipeDailyWork,
+  fetchPipeChecklistMasters,
+  fetchPipeChecklistPackages,
+  fetchPipeContractors,
+  fetchPipeSegments,
+  submitPipeChecklist,
+} from "../../services/pipeNetworkApi";
+import { getPipeCache, queuePipeMutation, savePipeCache } from "../../services/pipeNetworkOfflineStore";
+import { validateDailyWork } from "../../services/pipeDailyWorkInput";
 
 const STAGES = [
-  { key: "all", label: "All", color: colors.primaryBlue },
   { key: "excavation", label: "Excavation", color: "#2876B8" },
-  { key: "pipeLaying", label: "Pipe Laying", color: "#D9792A" },
+  { key: "pipe_laying", label: "Pipe Laying", color: "#D9792A" },
   { key: "backfilling", label: "Backfilling", color: "#4C8A3B" },
 ];
 
@@ -186,6 +197,8 @@ const CHECKLISTS = {
 
 const formatDate = (date) =>
   `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+const formatApiDate = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 const FieldLabel = ({ children, required }) => (
   <Text style={styles.fieldLabel}>
@@ -222,21 +235,24 @@ const SelectField = ({ label, value, placeholder, onPress, required, error }) =>
 );
 
 const PipeNetworkEntryScreen = ({ navigation, route }) => {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width, fontScale: textScale } = useWindowDimensions();
   const stackFields = width < 360 || textScale > 1.2;
   const scrollRef = React.useRef(null);
   const materialKey = String(route?.params?.material?.label || "MS").toUpperCase();
   const material = CHECKLISTS[materialKey] ? materialKey : "MS";
-  const sections = CHECKLISTS[material];
+  const [sections, setSections] = React.useState([]);
   const allItems = sections.flatMap((section) => section.items);
   const [workDate, setWorkDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [selectedPipe, setSelectedPipe] = React.useState(PIPE_OPTIONS[material][0]);
+  const [segments, setSegments] = React.useState([]);
+  const [selectedPipe, setSelectedPipe] = React.useState("");
+  const [contractors, setContractors] = React.useState([]);
   const [contractor, setContractor] = React.useState("");
-  const [openRange, setOpenRange] = React.useState(OPEN_RANGE_OPTIONS[0]);
-  const [workType, setWorkType] = React.useState("all");
-  const [actualDiameter, setActualDiameter] = React.useState(PIPE_META[material].design);
+  const [openRange, setOpenRange] = React.useState("");
+  const [workType, setWorkType] = React.useState("excavation");
+  const [actualDiameter, setActualDiameter] = React.useState("");
   const [chainageFrom, setChainageFrom] = React.useState("0");
   const [chainageTo, setChainageTo] = React.useState("30");
   const [laidLength, setLaidLength] = React.useState("30");
@@ -244,11 +260,110 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const [responses, setResponses] = React.useState({});
   const [errors, setErrors] = React.useState({});
   const [isSaving, setIsSaving] = React.useState(false);
+  const [savedWorkId, setSavedWorkId] = React.useState(null);
+  const [savedPackageId, setSavedPackageId] = React.useState(null);
   const [picker, setPicker] = React.useState({ visible: false, field: "", title: "", options: [] });
+  const [isLoadingForm, setIsLoadingForm] = React.useState(true);
+  const [loadError, setLoadError] = React.useState("");
+  const saveScopeRef = React.useRef("");
 
-  const visibleSections = workType === "all"
-    ? sections
-    : sections.filter((section) => section.key === workType);
+  const selectedSegment = React.useMemo(
+    () => segments.find((segment) => segment.optionLabel === selectedPipe) || null,
+    [segments, selectedPipe],
+  );
+  const selectedContractor = React.useMemo(
+    () => contractors.find((entry) => entry.optionLabel === contractor) || null,
+    [contractor, contractors],
+  );
+
+  React.useEffect(() => {
+    const projectId = route?.params?.projectId;
+    const controller = new AbortController();
+    if (!projectId) {
+      setLoadError("Project is missing. Open Add Entry from a Pipe Network project.");
+      setIsLoadingForm(false);
+      return () => controller.abort();
+    }
+    setIsLoadingForm(true);
+    const applyReferenceData = (segmentResponse, contractorResponse) => {
+      if (controller.signal.aborted) return;
+      const nextSegments = (Array.isArray(segmentResponse) ? segmentResponse : segmentResponse?.items || []).map((segment) => ({
+        ...segment,
+        optionLabel: `${segment.startNode || "—"} → ${segment.stopNode || "—"} · ${segment.label || "Unlabelled"} · ${Number(segment.lengthM || 0).toLocaleString("en-IN")} m`,
+      })).filter((segment) => String(segment.material || "").toUpperCase().startsWith(material));
+      const rawContractors = Array.isArray(contractorResponse) ? contractorResponse : contractorResponse?.items || contractorResponse?.data || [];
+      const nextContractors = rawContractors.map((entry) => ({ ...entry, optionLabel: entry.firmName || entry.name || entry.contractorName || "" })).filter((entry) => entry.id && entry.optionLabel);
+      setSegments(nextSegments);
+      setContractors(nextContractors);
+      setSelectedPipe((current) => current || nextSegments[0]?.optionLabel || "");
+      setContractor((current) => current || nextContractors[0]?.optionLabel || "");
+    };
+    Promise.all([
+      getPipeCache({ ownerUserId: user?.id, projectId, resource: "entry-reference" }),
+      Promise.resolve(),
+    ]).then(([cached]) => {
+      if (cached?.payload) applyReferenceData(cached.payload.segments, cached.payload.contractors);
+    });
+    Promise.all([
+      fetchPipeSegments({ projectId, signal: controller.signal }),
+      fetchPipeContractors({ signal: controller.signal }),
+    ]).then(([segmentResponse, contractorResponse]) => {
+      applyReferenceData(segmentResponse, contractorResponse);
+      void savePipeCache({ ownerUserId: user?.id, projectId, resource: "entry-reference", payload: { segments: segmentResponse, contractors: contractorResponse } });
+      setLoadError("");
+    }).catch((error) => {
+      if (!controller.signal.aborted) setLoadError(error?.message || "Could not load Pipe Network form data.");
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsLoadingForm(false);
+    });
+    return () => controller.abort();
+  }, [material, route?.params?.projectId, user?.id]);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const projectId = route?.params?.projectId;
+    const resource = `masters:${material}:${workType}`;
+    const applyMasters = (response) => {
+      if (controller.signal.aborted) return;
+      const masters = Array.isArray(response) ? response : response?.items || [];
+      const stage = STAGES.find((entry) => entry.key === workType) || STAGES[0];
+      setSections([{ ...stage, title: stage.label, surface: workType === "excavation" ? "#EAF4FD" : workType === "pipe_laying" ? "#FFF1E5" : "#EDF7E8", items: masters.map((master) => ({
+        id: String(master.checklistId),
+        checklistId: Number(master.checklistId),
+        title: master.title || master.requirement,
+        description: master.requirement || "",
+        response: master.inputType === "photo" ? "photo" : master.inputType === "select" ? "select" : ["text", "number"].includes(master.inputType) ? "text" : "check",
+        options: Array.isArray(master.options) ? master.options : [],
+        required: master.isRequired !== false,
+        valueType: master.inputType === "photo" ? "file" : master.inputType === "checkbox" ? "boolean" : master.inputType === "number" ? "number" : "string",
+      })) }]);
+    };
+    void getPipeCache({ ownerUserId: user?.id, projectId, resource }).then((cached) => cached?.payload && applyMasters(cached.payload));
+    fetchPipeChecklistMasters({ material, processCode: workType, signal: controller.signal }).then((response) => {
+      applyMasters(response);
+      void savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: response });
+    }).catch((error) => {
+      if (!controller.signal.aborted) setLoadError(error?.message || "Could not load checklist fields.");
+    });
+    return () => controller.abort();
+  }, [material, route?.params?.projectId, user?.id, workType]);
+
+  React.useEffect(() => {
+    if (!selectedSegment) return;
+    const nextScope = `${selectedSegment.id}:${workType}`;
+    if (saveScopeRef.current && saveScopeRef.current !== nextScope) {
+      setSavedWorkId(null);
+      setSavedPackageId(null);
+    }
+    saveScopeRef.current = nextScope;
+    setActualDiameter(String(selectedSegment.diameterMm ?? ""));
+    setChainageFrom("0");
+    setChainageTo(String(Math.min(30, Number(selectedSegment.lengthM || 0))));
+    setLaidLength(String(Math.min(30, Number(selectedSegment.lengthM || 0))));
+    setOpenRange(`0 → ${Number(selectedSegment.lengthM || 0)} m`);
+  }, [selectedSegment, workType]);
+
+  const visibleSections = sections;
   const visibleItems = visibleSections.flatMap((section) => section.items);
   const completedCount = visibleItems.filter((check) => {
     const value = responses[check.id];
@@ -305,19 +420,31 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
     if (isSaving) return;
 
     const nextErrors = {};
+    if (!selectedSegment) nextErrors.pipe = true;
     if (!contractor) nextErrors.contractor = true;
     if (!actualDiameter.trim()) nextErrors.actualDiameter = true;
-    const missingChecklist = visibleItems.filter((check) => {
+    const validationErrors = validateDailyWork({
+      projectId: route?.params?.projectId,
+      segmentId: selectedSegment?.id,
+      contractorId: selectedContractor?.id,
+      chainageFromM: chainageFrom,
+      chainageToM: chainageTo,
+      lengthLaidM: laidLength,
+      actualDiameterMm: actualDiameter,
+      remark,
+    });
+    if (Object.keys(validationErrors).length) nextErrors.work = true;
+    const missingChecklist = visibleItems.filter((check) => check.required && (() => {
       const value = responses[check.id];
       return check.response === "check" ? value !== true : !value;
-    });
+    })());
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length || missingChecklist.length) {
       if (Object.keys(nextErrors).length) scrollRef.current?.scrollTo({ y: 0, animated: true });
       Alert.alert(
         "Complete required details",
-        `${Object.keys(nextErrors).length ? "Add the highlighted work details. " : ""}${missingChecklist.length ? `${missingChecklist.length} checklist response${missingChecklist.length === 1 ? " is" : "s are"} still pending.` : ""}`,
+        `${Object.values(validationErrors).join(" ") || (Object.keys(nextErrors).length ? "Add the highlighted work details. " : "")}${missingChecklist.length ? ` ${missingChecklist.length} checklist response${missingChecklist.length === 1 ? " is" : "s are"} still pending.` : ""}`,
       );
       return;
     }
@@ -342,30 +469,70 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         await FileSystem.copyAsync({ from: sourceUri, to: savedUri });
         persistedResponses[check.id] = savedUri;
       }
+      const projectId = route?.params?.projectId;
+      const workPayload = {
+        projectId,
+        clientMutationId: entryId,
+        segmentId: selectedSegment.id,
+        workDate: formatApiDate(workDate),
+        chainageFromM: Number(chainageFrom),
+        chainageToM: Number(chainageTo),
+        lengthLaidM: Number(laidLength),
+        contractorId: selectedContractor?.id,
+        contractor: selectedContractor ? undefined : contractor,
+        workType,
+        actualDiameterMm: Number(actualDiameter),
+        remark: remark.trim() || undefined,
+      };
+      const checklist = visibleItems.map((check) => ({
+        checklistId: check.checklistId,
+        value: check.response === "photo" ? "uploaded" : persistedResponses[check.id],
+        valueType: check.response === "photo" ? "file" : check.valueType,
+      }));
+      const files = Object.fromEntries(visibleItems.filter((check) => check.response === "photo" && persistedResponses[check.id]).map((check) => [check.checklistId, persistedResponses[check.id]]));
+      const packagePayload = {
+        projectId,
+        segmentId: selectedSegment.id,
+        material,
+        title: selectedSegment.label || undefined,
+        chainageFromM: Number(chainageFrom),
+        chainageToM: Number(chainageTo),
+        locationLabel: selectedSegment.locationCode || undefined,
+        remark: remark.trim() || undefined,
+      };
 
-      await FileSystem.writeAsStringAsync(
-        `${draftDirectory}${entryId}.json`,
-        JSON.stringify({
+      let queued = false;
+      let syncedWorkId = savedWorkId;
+      let syncedPackageId = savedPackageId;
+      try {
+        if (!syncedWorkId) {
+          const work = await createPipeDailyWork(workPayload);
+          syncedWorkId = work?.id || work?.workId || null;
+          setSavedWorkId(syncedWorkId);
+        }
+        if (!syncedPackageId) {
+          const existingPackages = await fetchPipeChecklistPackages({ projectId, segmentId: selectedSegment.id, material, page: 1, pageSize: 1 });
+          const existingPackageId = existingPackages?.items?.[0]?.packageId;
+          const checklistPackage = existingPackageId ? null : await createPipeChecklistPackage(packagePayload);
+          syncedPackageId = existingPackageId || checklistPackage?.packageId || checklistPackage?.id || checklistPackage?.package?.packageId;
+          setSavedPackageId(syncedPackageId);
+        }
+        const packageId = syncedPackageId;
+        if (!packageId) throw new Error("Checklist package ID was not returned by the server.");
+        await submitPipeChecklist({ payload: { packageId, processCode: workType, remark: remark.trim() || undefined, checklist }, files });
+      } catch (syncError) {
+        if (![0, 408, 429, 500, 502, 503, 504].includes(Number(syncError?.status || 0))) throw syncError;
+        await queuePipeMutation({
           id: entryId,
-          projectName: route?.params?.projectName || "",
-          material,
-          workDate: workDate.toISOString(),
-          pipe: selectedPipe,
-          contractor,
-          openRange,
-          actualDiameter,
-          chainageFrom,
-          chainageTo,
-          laidLength,
-          workType,
-          remark,
-          responses: persistedResponses,
-          createdAt: new Date().toISOString(),
-          syncStatus: "draft",
-        }),
-      );
+          ownerUserId: user?.id,
+          projectId,
+          operation: "create_pipe_entry",
+          payload: { workPayload, packagePayload, checklistPayload: { processCode: workType, remark: remark.trim() || undefined, checklist }, files, syncedWorkId, syncedPackageId },
+        });
+        queued = true;
+      }
 
-      Alert.alert("Work saved", `${material} pipe work entry is safely stored on this device.`, [
+      Alert.alert(queued ? "Saved offline" : "Work submitted", queued ? `${material} entry will sync automatically when the connection is available.` : `${material} Daily Work and checklist were submitted.`, [
         { text: "Done", onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
@@ -400,7 +567,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
     if (check.response === "select") {
       return (
         <Pressable
-          onPress={() => openPicker(`check:${check.id}`, check.title, SOIL_OPTIONS)}
+          onPress={() => openPicker(`check:${check.id}`, check.title, check.options?.length ? check.options.map(String) : SOIL_OPTIONS)}
           style={({ pressed }) => [styles.inlineSelect, pressed && styles.fieldPressed]}
         >
           <Text style={[styles.inlineSelectText, !value && styles.placeholder]} numberOfLines={1}>
@@ -453,7 +620,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         <View style={styles.processSelector}>
           <View style={styles.processSelectorHeading}>
             <Text style={styles.sectionTitle}>Work details & checklist</Text>
-            <Text style={styles.processCounter}>{completedCount}/{visibleItems.length} checks</Text>
+          <Text style={styles.processCounter}>{completedCount}/{visibleItems.length} checks</Text>
           </View>
           <View style={styles.processOptions} accessibilityRole="tablist">
             {STAGES.map((stage) => (
@@ -470,7 +637,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
             ))}
           </View>
           <Text style={styles.processHint}>
-            {workType === "all" ? "Complete all three stages in one entry." : "Complete work details and checks for the selected stage."}
+            Complete work details and the checklist for one process at a time.
           </Text>
         </View>
 
@@ -510,7 +677,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                   required
                   value={selectedPipe}
                   placeholder="Select pipe"
-                  onPress={() => openPicker("pipe", "Select pipe", PIPE_OPTIONS[material])}
+                  onPress={() => openPicker("pipe", "Select pipe", segments.map((segment) => segment.optionLabel))}
                 />
               </View>
             </View>
@@ -538,12 +705,12 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
 
             <View style={styles.pipeInfoGrid}>
               {[
-                ["Location", PIPE_META[material].location],
-                ["Label", PIPE_META[material].label],
-                ["Nodes", PIPE_META[material].nodes],
+                ["Location", selectedSegment?.locationCode || "—"],
+                ["Label", selectedSegment?.label || "—"],
+                ["Nodes", selectedSegment ? `${selectedSegment.startNode || "—"} → ${selectedSegment.stopNode || "—"}` : "—"],
                 ["Material", material],
-                ["Design Ø", `${PIPE_META[material].design} mm`],
-                ["Length", `${PIPE_META[material].length} m`],
+                ["Design Ø", `${selectedSegment?.diameterMm ?? "—"} mm`],
+                ["Length", `${selectedSegment?.lengthM ?? "—"} m`],
               ].map(([label, value]) => (
                 <View style={[styles.pipeInfoItem, stackFields && { width: "50%" }]} key={label}>
                   <Text style={styles.pipeInfoLabel}>{label}</Text>
@@ -568,7 +735,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                 />
               </View>
               <View style={[styles.formHalf, stackFields && styles.formFull]}>
-                <SelectField label="Open Range" value={openRange} onPress={() => openPicker("openRange", "Select open range", OPEN_RANGE_OPTIONS)} />
+                <SelectField label="Segment Range" value={openRange} onPress={() => openPicker("openRange", "Select segment range", [openRange].filter(Boolean))} />
               </View>
               <View style={styles.formFull}>
                 <SelectField
@@ -577,7 +744,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                   value={contractor}
                   error={errors.contractor}
                   placeholder="Select contractor"
-                  onPress={() => openPicker("contractor", "Select contractor", CONTRACTORS)}
+                  onPress={() => openPicker("contractor", "Select contractor", contractors.map((entry) => entry.optionLabel))}
                 />
               </View>
               {[
@@ -607,7 +774,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
           <View style={styles.checklistHeading}>
             <View>
               <Text style={styles.checklistEyebrow}>CHECKLIST · {material}</Text>
-              <Text style={styles.checklistTitle}>{workType === "all" ? `${allItems.length} inspection points` : STAGES.find((stage) => stage.key === workType)?.label}</Text>
+              <Text style={styles.checklistTitle}>{STAGES.find((stage) => stage.key === workType)?.label}</Text>
             </View>
             <View style={styles.completedBadge}>
               <Text style={styles.completedBadgeText}>{completedCount}/{visibleItems.length}</Text>
@@ -653,7 +820,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
             ) : (
               <Icon source="content-save-check-outline" size={20} color={colors.white} />
             )}
-            <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : workType === "all" ? "Save all stages" : "Save stage"}</Text>
+            <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : "Save & submit stage"}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -663,6 +830,8 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         title={picker.title}
         subtitle="Search or select an option."
         options={picker.options}
+        isLoading={isLoadingForm}
+        emptyMessage={loadError || "No options found."}
         selectedValue={
           picker.field === "pipe" ? selectedPipe
             : picker.field === "contractor" ? contractor

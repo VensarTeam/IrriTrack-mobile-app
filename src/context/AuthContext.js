@@ -10,6 +10,7 @@ import React, {
 import { AppState } from "react-native";
 import { createUser } from "../models/user";
 import {
+  getPermissionMenu,
   getProfile,
   logoutSession,
   refreshAccessToken as requestTokenRefresh,
@@ -32,6 +33,10 @@ import {
   shouldRefreshToken,
 } from "../services/authSession";
 import {
+  isAuthorizationSnapshotForUser,
+  normalizeAuthorizationSnapshot,
+} from "../services/authPermissions";
+import {
   clearStoredAuthSession,
   getStoredAuthSession,
   saveAuthSession,
@@ -40,6 +45,8 @@ import { authenticateDeviceForAppUnlock } from "../services/deviceAuthentication
 import { createRoleAccess } from "../services/roleAccess";
 
 const AuthContext = createContext(null);
+const PROFILE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const PROFILE_REFRESH_RETRY_BACKOFF_MS = 30 * 1000;
 const apiAuthCallbackRef = {
   getAccessToken: null,
   refreshAccessToken: null,
@@ -47,6 +54,17 @@ const apiAuthCallbackRef = {
 
 const normalizeSession = (session, referenceTime) =>
   normalizeAuthSession(session, createUser, referenceTime);
+
+const areUserProfilesEqual = (currentUser, nextUser) =>
+  JSON.stringify(currentUser || null) === JSON.stringify(nextUser || null);
+
+const areAuthorizationSnapshotsEqual = (currentValue, nextValue) => {
+  const { syncedAt: _currentSyncedAt, ...currentComparable } =
+    currentValue || {};
+  const { syncedAt: _nextSyncedAt, ...nextComparable } = nextValue || {};
+
+  return JSON.stringify(currentComparable) === JSON.stringify(nextComparable);
+};
 
 configureApiClientAuth({
   getAccessToken: (...args) => apiAuthCallbackRef.getAccessToken?.(...args),
@@ -64,6 +82,9 @@ export const AuthProvider = ({ children }) => {
     AppState.currentState === "active"
   );
   const refreshPromiseRef = useRef(null);
+  const profileRefreshPromiseRef = useRef(null);
+  const lastProfileRefreshAttemptAtRef = useRef(0);
+  const lastProfileRefreshSuccessAtRef = useRef(0);
   const unlockPromiseRef = useRef(null);
   const sessionRef = useRef(null);
 
@@ -75,6 +96,9 @@ export const AuthProvider = ({ children }) => {
 
   const clearSession = useCallback(async () => {
     refreshPromiseRef.current = null;
+    profileRefreshPromiseRef.current = null;
+    lastProfileRefreshAttemptAtRef.current = 0;
+    lastProfileRefreshSuccessAtRef.current = 0;
     unlockPromiseRef.current = null;
     setIsAppLocked(false);
     setIsUnlocking(false);
@@ -330,34 +354,163 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const refreshProfile = useCallback(async () => {
-    const currentSession = sessionRef.current;
+  const refreshProfile = useCallback(
+    ({ force = false, maxAgeMs = PROFILE_REFRESH_INTERVAL_MS } = {}) => {
+      const currentSession = sessionRef.current;
 
-    if (!currentSession || !isSessionAvailable(currentSession)) {
-      await clearSession();
-      return null;
-    }
-
-    let profile;
-
-    try {
-      profile = createUser(await getProfile());
-    } catch (error) {
-      if (isUnauthorizedApiError(error)) {
-        await clearSession();
+      if (!currentSession || !isSessionAvailable(currentSession)) {
+        return clearSession().then(() => null);
       }
 
-      throw error;
+      const now = Date.now();
+
+      if (!force && !profileRefreshPromiseRef.current) {
+        const hasFreshProfile =
+          lastProfileRefreshSuccessAtRef.current > 0 &&
+          now - lastProfileRefreshSuccessAtRef.current <
+            Math.max(0, Number(maxAgeMs) || 0);
+        const isRetryCoolingDown =
+          lastProfileRefreshAttemptAtRef.current > 0 &&
+          now - lastProfileRefreshAttemptAtRef.current <
+            PROFILE_REFRESH_RETRY_BACKOFF_MS;
+
+        if (hasFreshProfile || isRetryCoolingDown) {
+          return Promise.resolve(currentSession.user || null);
+        }
+      }
+
+      if (!profileRefreshPromiseRef.current) {
+        lastProfileRefreshAttemptAtRef.current = now;
+        profileRefreshPromiseRef.current = (async () => {
+          let profile;
+
+          try {
+            profile = createUser(await getProfile());
+          } catch (error) {
+            if (isUnauthorizedApiError(error)) {
+              await clearSession();
+            }
+
+            throw error;
+          }
+
+          let latestSession = sessionRef.current;
+
+          if (!latestSession || !isSessionAvailable(latestSession)) {
+            return null;
+          }
+
+          const didRoleChange = latestSession.user?.role !== profile.role;
+
+          if (didRoleChange) {
+            const roleChangedSession = {
+              ...latestSession,
+              user: profile,
+              authorization: null,
+            };
+
+            // Apply the safer UI role immediately and discard the old role's
+            // offline permission snapshot even if token rotation is interrupted.
+            await persistSession(roleChangedSession);
+
+            // The API authorizes OMS workflow actions from the JWT role. Rotate the
+            // access token immediately so the UI role and server role cannot drift.
+            latestSession = await refreshSession(roleChangedSession);
+          }
+
+          let authorization = isAuthorizationSnapshotForUser(
+            latestSession.authorization,
+            profile
+          )
+            ? latestSession.authorization
+            : null;
+
+          try {
+            const refreshedAuthorization = normalizeAuthorizationSnapshot(
+              await getPermissionMenu(),
+              profile.role
+            );
+            authorization = areAuthorizationSnapshotsEqual(
+              authorization,
+              refreshedAuthorization
+            )
+              ? authorization
+              : refreshedAuthorization;
+          } catch (error) {
+            if (isUnauthorizedApiError(error)) {
+              await clearSession();
+              throw error;
+            }
+
+            // A matching snapshot is safe for offline use. Never retain access
+            // cached for a different role after a web-side role update.
+            console.log("[Auth] Permission sync deferred; using saved access", {
+              hasMatchingSnapshot: Boolean(authorization),
+              message: error?.message,
+              status: error?.status,
+            });
+          }
+
+          const nextSession = {
+            ...latestSession,
+            user: profile,
+            authorization,
+          };
+
+          if (
+            !areUserProfilesEqual(latestSession.user, profile) ||
+            JSON.stringify(latestSession.authorization || null) !==
+              JSON.stringify(authorization || null)
+          ) {
+            await persistSession(nextSession);
+          }
+          lastProfileRefreshSuccessAtRef.current = Date.now();
+          return profile;
+        })().finally(() => {
+          profileRefreshPromiseRef.current = null;
+        });
+      }
+
+      return profileRefreshPromiseRef.current;
+    },
+    [clearSession, persistSession, refreshSession]
+  );
+
+  useEffect(() => {
+    if (
+      isRestoring ||
+      !isAppActive ||
+      !isSessionAvailable(session)
+    ) {
+      return undefined;
     }
 
-    const nextSession = {
-      ...currentSession,
-      user: profile,
+    const syncProfile = (options) => {
+      void refreshProfile(options).catch((error) => {
+        if (!isUnauthorizedApiError(error)) {
+          console.log("[Auth] Profile sync deferred; using saved profile", {
+            message: error?.message,
+            status: error?.status,
+          });
+        }
+      });
     };
 
-    await persistSession(nextSession);
-    return profile;
-  }, [clearSession, persistSession]);
+    syncProfile({ force: true });
+    const intervalId = setInterval(
+      () => syncProfile(),
+      PROFILE_REFRESH_INTERVAL_MS
+    );
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [
+    isAppActive,
+    isRestoring,
+    refreshProfile,
+    session?.refreshToken,
+  ]);
 
   const logout = useCallback(async () => {
     const currentSession = sessionRef.current;
@@ -370,14 +523,15 @@ export const AuthProvider = ({ children }) => {
   }, [clearSession]);
 
   const roleAccess = useMemo(
-    () => createRoleAccess(session?.user?.role),
-    [session?.user?.role]
+    () => createRoleAccess(session?.user?.role, session?.authorization),
+    [session?.authorization, session?.user?.role]
   );
 
   const value = useMemo(
     () => ({
       session,
       user: session?.user ?? null,
+      authorization: session?.authorization ?? null,
       roleAccess,
       isAuthenticated: isSessionAvailable(session),
       isRestoring,

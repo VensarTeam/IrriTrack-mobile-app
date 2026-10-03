@@ -17,6 +17,8 @@ export const API_ENDPOINTS = Object.freeze({
   authPasswordReset: process.env.EXPO_PUBLIC_API_AUTH_PASSWORD_RESET_PATH,
   authMe: process.env.EXPO_PUBLIC_API_AUTH_ME_PATH,
   authLogout: process.env.EXPO_PUBLIC_API_AUTH_LOGOUT_PATH,
+  permissionsMenu:
+    process.env.EXPO_PUBLIC_API_PERMISSIONS_MENU_PATH || "/permissions/menu",
   projects: process.env.EXPO_PUBLIC_API_PROJECTS_PATH,
   projectDetails: process.env.EXPO_PUBLIC_API_PROJECT_DETAILS_PATH,
   zones: process.env.EXPO_PUBLIC_API_ZONES_PATH,
