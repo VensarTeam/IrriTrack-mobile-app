@@ -63,11 +63,11 @@ export const flushPendingPipeMutations = (ownerUserId) => {
       try {
         if (entry.operation !== "create_pipe_entry") throw new Error(`Unsupported Pipe Network operation: ${entry.operation}`);
         await syncPipeEntry(entry);
-        await completePipeMutation(entry.id);
+        await completePipeMutation(entry.id, entry.payload);
         result.synced += 1;
       } catch (error) {
         if (Number(error?.status) === 400 && /submission already exists/i.test(String(error?.message || ""))) {
-          await completePipeMutation(entry.id);
+          await completePipeMutation(entry.id, entry.payload);
           result.synced += 1;
           continue;
         }

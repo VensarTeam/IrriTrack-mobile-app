@@ -69,6 +69,15 @@ const RootNavigator = () => {
           name={ROUTES.ROOT.PIPE_NETWORK_ENTRY}
           component={PipeNetworkEntryScreen}
           options={{
+            headerShown: true,
+            title: "Add entry",
+            headerTitleAlign: "center",
+            headerTintColor: "#123B63",
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: "#FFFFFF" },
+            statusBarStyle: "dark",
+            statusBarBackgroundColor: "#FFFFFF",
+            statusBarTranslucent: true,
             animation: "slide_from_right",
           }}
         />

@@ -35,10 +35,16 @@ const authHandlers = {
 const getHeadersForLog = (headers) =>
   axios.AxiosHeaders.from(headers || {}).toJSON();
 
+const joinRequestUrl = (baseUrl, path) => {
+  if (/^https?:\/\//i.test(path)) return path;
+  if (!baseUrl) return path;
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+};
+
 const formatRequestUrl = (config) => {
   const baseUrl = config.baseURL || "";
   const path = config.url || "";
-  const rawUrl = `${baseUrl}${path}`;
+  const rawUrl = joinRequestUrl(baseUrl, path);
 
   if (!config.params || typeof config.params !== "object") {
     return rawUrl;
@@ -395,6 +401,7 @@ export const configureApiClientAuth = ({
 
 export const setApiClientAuthorizationToken = (token) => {
   if (token) {
+    console.log(`Setting authorization token: ${token}`);
     apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
     return;
   }

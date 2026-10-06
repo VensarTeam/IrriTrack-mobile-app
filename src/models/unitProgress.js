@@ -277,8 +277,14 @@ export const createUnitProgressChecklist = (checklist = {}, index = 0) => {
     name:
       checklist.checklistName ||
       checklist.checklist_name ||
+      checklist.title ||
       checklist.description ||
       `Checklist ${index + 1}`,
+    description:
+      checklist.requirement ||
+      checklist.checklistRequirement ||
+      checklist.checklist_requirement ||
+      "",
     isRequired: checklist.isRequired !== false && checklist.is_required !== false,
     status,
     detail,

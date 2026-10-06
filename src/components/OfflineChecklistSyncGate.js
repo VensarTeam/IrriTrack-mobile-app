@@ -10,7 +10,7 @@ import { normalizeUserRole } from "../services/roleAccess";
 import { flushPendingPipeMutations } from "../services/pipeNetworkSync";
 
 const canUseNetwork = (state = {}) =>
-  state.isInternetReachable === true || state.isConnected !== false;
+  state.isConnected !== false && state.isInternetReachable !== false;
 
 const logGate = (message, details = undefined) => {
   if (typeof details === "undefined") {
@@ -152,22 +152,16 @@ const OfflineChecklistSyncGate = () => {
         return;
       }
 
-      if (normalizeUserRole(activeProfile?.role) !== "supervisor") {
-        logGate("Queue sync skipped; current role cannot submit checklists", {
-          role: activeProfile?.role,
-        });
-        return;
-      }
-
       isQueueSyncingRef.current = true;
 
       try {
         const ownerUserId = String(
           activeProfile?.id || activeProfile?.mobile || ""
         ).trim();
-        const pendingCount = await getPendingChecklistSubmissionCount({
-          ownerUserId,
-        });
+        const canSyncOmsChecklist = normalizeUserRole(activeProfile?.role) === "supervisor";
+        const pendingCount = canSyncOmsChecklist
+          ? await getPendingChecklistSubmissionCount({ ownerUserId })
+          : 0;
 
         logGate("Queue sync started", {
           pendingCount,
@@ -176,7 +170,7 @@ const OfflineChecklistSyncGate = () => {
           type: networkState?.type,
         });
 
-        const result = pendingCount
+        const result = canSyncOmsChecklist && pendingCount
           ? await syncQueuedChecklistSubmissions({ ownerUserId })
           : { checked: 0, synced: 0, failed: 0, skippedOffline: 0 };
         const pipeResult = await flushPendingPipeMutations(ownerUserId);

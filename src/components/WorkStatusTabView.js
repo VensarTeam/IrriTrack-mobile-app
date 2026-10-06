@@ -1,13 +1,13 @@
 import React from "react";
 import {
   Animated,
-  Dimensions,
   FlatList,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import colors from "../constants/colors";
@@ -75,7 +75,7 @@ const TAB_META = {
 
 const TAB_LABELS = {
   Submitted: "All",
-  Pending: "Latest Submitted",
+  Pending: "Submitted",
 };
 
 const getTabLabel = (tab) => TAB_LABELS[tab] || tab;
@@ -136,7 +136,7 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
             {
               backgroundColor: meta.solid,
               opacity: opacityAnim,
-              borderRadius: moderateScale(14),
+              borderRadius: moderateScale(12),
             },
           ]}
         />
@@ -152,7 +152,7 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
                 inputRange: [0, 1],
                 outputRange: [1, 0],
               }),
-              borderRadius: moderateScale(14),
+              borderRadius: moderateScale(12),
             },
           ]}
         />
@@ -203,15 +203,6 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
           </Animated.View>
         </View>
 
-        {/* Active bottom dot indicator */}
-        {isActive && (
-          <View
-            style={[
-              tabPillStyles.activeDot,
-              { backgroundColor: "rgba(255,255,255,0.55)" },
-            ]}
-          />
-        )}
       </Animated.View>
     </TouchableOpacity>
   );
@@ -219,22 +210,22 @@ const TabPill = React.memo(({ tab, isActive, count, onPress }) => {
 
 const tabPillStyles = StyleSheet.create({
   pill: {
-    height: verticalScale(42),
-    paddingHorizontal: moderateScale(12),
-    borderRadius: moderateScale(14),
-    marginRight: moderateScale(8),
+    height: verticalScale(40),
+    paddingHorizontal: moderateScale(11),
+    borderRadius: moderateScale(12),
+    marginRight: moderateScale(6),
     justifyContent: "center",
     alignItems: "center",
-    minWidth: moderateScale(112),
+    minWidth: moderateScale(94),
     position: "relative",
     overflow: "hidden",
   },
   activeFill: {
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(12),
   },
   inactiveBorder: {
     borderWidth: 1,
-    borderRadius: moderateScale(14),
+    borderRadius: moderateScale(12),
   },
   inner: {
     flexDirection: "row",
@@ -259,14 +250,6 @@ const tabPillStyles = StyleSheet.create({
     fontFamily: fonts.bold,
     textAlign: "center",
     lineHeight: fontScale(14),
-  },
-  activeDot: {
-    position: "absolute",
-    bottom: moderateScale(5),
-    alignSelf: "center",
-    width: moderateScale(4),
-    height: moderateScale(4),
-    borderRadius: moderateScale(2),
   },
 });
 
@@ -368,7 +351,7 @@ export const CustomTabView = ({
   renderScene,
 }) => {
   const flatListRef = React.useRef(null);
-  const screenWidth = Dimensions.get("window").width;
+  const { width: screenWidth } = useWindowDimensions();
 
   // Scroll to active tab when index changes externally
   React.useEffect(() => {
@@ -376,7 +359,7 @@ export const CustomTabView = ({
       index: activeTabIndex,
       animated: false, // instant — tab bar handles visual feedback
     });
-  }, [activeTabIndex]);
+  }, [activeTabIndex, screenWidth]);
 
   const handleTabPress = React.useCallback(
     (index) => {

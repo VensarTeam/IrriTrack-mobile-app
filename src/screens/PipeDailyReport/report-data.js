@@ -35,7 +35,7 @@ export const normalizeReports = (works, segments = []) => {
       actual: numberValue(work.actualDiameterMm),
       from: numberValue(work.chainageFromM),
       to: numberValue(work.chainageToM),
-      laid: numberValue(work.lengthLaidM),
+      laid: numberValue(work.laidLengthM ?? work.lengthLaidM),
       type: text(work.workType),
       contractor: text(work.contractorName ?? work.contractor?.name ?? work.contractor),
       remark: text(work.remark),

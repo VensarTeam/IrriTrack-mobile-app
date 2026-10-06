@@ -8,8 +8,8 @@ const cleanParams = (params = {}) =>
 export const fetchPipeDashboardStatus = ({ projectId, signal }) =>
   apiRequest({ url: "pipe-laying/status", method: "GET", params: { projectId }, signal });
 
-export const fetchPipeSegments = ({ projectId, signal }) =>
-  apiRequest({ url: "pipe-laying/segments/options", method: "GET", params: { projectId }, signal });
+export const fetchPipeSegments = ({ projectId, material, signal }) =>
+  apiRequest({ url: "pipe-laying/segments/options", method: "GET", params: cleanParams({ projectId, material }), signal });
 
 export const fetchPipeDailyWorks = ({ signal, ...params }) =>
   apiRequest({ url: "pipe-laying/works", method: "GET", params: cleanParams(params), signal });
@@ -18,7 +18,7 @@ export const fetchPipeWorkFilterOptions = ({ signal, ...params }) =>
   apiRequest({ url: "pipe-laying/works/filter-options", method: "GET", params: cleanParams(params), signal });
 
 export const fetchPipeContractors = ({ type = "PIPE_NETWORK_LAYING", signal }) =>
-  apiRequest({ url: "contractors/manage", method: "GET", params: { type }, signal });
+  apiRequest({ url: "contractors", method: "GET", params: { type }, signal });
 
 export const createPipeDailyWork = (payload) =>
   apiRequest({ url: "pipe-laying/works", method: "POST", data: payload });
@@ -52,7 +52,10 @@ export const fetchPipeChecklistPackages = ({ signal, ...params }) =>
   });
 
 export const submitPipeChecklist = ({ payload, files = {} }) => {
-  const fileEntries = Object.entries(files).filter(([, uri]) => Boolean(uri));
+  const fileEntries = Object.entries(files).flatMap(([checklistId, value]) => {
+    const uris = Array.isArray(value) ? value : [value];
+    return uris.filter(Boolean).map((uri) => [checklistId, uri]);
+  });
   if (!fileEntries.length) {
     return apiRequest({ url: "pipe-laying-checklist/submissions", method: "POST", data: payload });
   }

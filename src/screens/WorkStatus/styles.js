@@ -24,6 +24,7 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: moderateScale(8),
+    minHeight: verticalScale(52),
   },
 
   headerTitle: {
@@ -34,8 +35,10 @@ export default StyleSheet.create({
     fontFamily: fonts.bold,
   },
 
-  headerSpacer: {
-    width: moderateScale(10),
+  headerActionSlot: {
+    width: moderateScale(44),
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   headerInfoButton: {
@@ -212,36 +215,52 @@ export default StyleSheet.create({
   },
 
   sceneContent: {
-    paddingHorizontal: moderateScale(15),
-    paddingTop: verticalScale(4),
+    paddingHorizontal: moderateScale(12),
+    paddingTop: verticalScale(6),
     paddingBottom: verticalScale(24),
   },
 
   card: {
     position: "relative",
-    marginBottom: verticalScale(12),
-    paddingHorizontal: moderateScale(15),
-    paddingVertical: verticalScale(15),
-    borderRadius: moderateScale(18),
+    overflow: "hidden",
+    marginBottom: verticalScale(10),
+    borderRadius: moderateScale(16),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    shadowColor: "#B4C8D8",
-    shadowOffset: { width: 0, height: verticalScale(10) },
-    shadowOpacity: 0.12,
-    shadowRadius: scale(18),
-    elevation: scale(3),
+    boxShadow: "0 2px 8px rgba(18, 59, 99, 0.07)",
   },
 
   cardTopRow: {
-    gap: verticalScale(8),
+    gap: verticalScale(10),
+    paddingHorizontal: moderateScale(14),
+    paddingTop: verticalScale(13),
+    paddingBottom: verticalScale(11),
   },
 
   cardHeaderRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: moderateScale(12),
+    gap: moderateScale(10),
+  },
+
+  cardIdentityRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+  },
+
+  cardIdentityIcon: {
+    width: moderateScale(38),
+    height: moderateScale(38),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceBlue,
+    flexShrink: 0,
   },
 
   cardTextWrap: {
@@ -255,6 +274,21 @@ export default StyleSheet.create({
 
   cardStatusWrap: {
     alignSelf: "flex-start",
+  },
+
+  cardPrimaryTitle: {
+    fontSize: fontScale(14),
+    lineHeight: fontScale(18),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  cardProcessText: {
+    marginTop: verticalScale(3),
+    fontSize: fontScale(10.5),
+    lineHeight: fontScale(14),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
 
   cardEyebrow: {
@@ -300,20 +334,17 @@ export default StyleSheet.create({
 
   cardMetaGroup: {
     width: "100%",
-    marginTop: verticalScale(4),
-    gap: verticalScale(5),
+    paddingTop: verticalScale(8),
+    borderTopWidth: 1,
+    borderTopColor: "#E8EFF6",
+    gap: verticalScale(7),
   },
 
   workflowMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: verticalScale(6),
-    borderRadius: moderateScale(10),
-    backgroundColor: "#F7FAFD",
-    borderWidth: 1,
-    borderColor: "#E7EEF5",
+    minHeight: verticalScale(28),
   },
 
   workflowMetaTag: {
@@ -409,7 +440,6 @@ export default StyleSheet.create({
 
   cardCommentBlock: {
     marginTop: verticalScale(8),
-    marginLeft: moderateScale(9),
     paddingLeft: moderateScale(10),
     paddingRight: moderateScale(8),
     borderLeftWidth: 2,
@@ -480,6 +510,24 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primaryBlue,
+  },
+
+  cardOpenRow: {
+    minHeight: verticalScale(42),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: moderateScale(3),
+    paddingHorizontal: moderateScale(14),
+    borderTopWidth: 1,
+    borderTopColor: "#E8EFF6",
+    backgroundColor: "#FAFCFE",
+  },
+
+  cardOpenText: {
+    fontSize: fontScale(11),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   modifyConfirmButton: {
@@ -592,7 +640,7 @@ export default StyleSheet.create({
   },
 
   bottomSheet: {
-    maxHeight: "84%",
+    maxHeight: "92%",
     backgroundColor: colors.white,
     borderTopLeftRadius: moderateScale(22),
     borderTopRightRadius: moderateScale(22),
@@ -613,7 +661,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(10),
   },
 
   sheetHeaderCopy: {
@@ -651,14 +699,14 @@ export default StyleSheet.create({
   },
 
   sheetTitle: {
-    fontSize: fontScale(17),
+    fontSize: fontScale(18),
     color: colors.textDark,
     fontFamily: fonts.bold,
   },
 
   sheetSubtitle: {
-    marginTop: verticalScale(4),
-    fontSize: fontScale(11),
+    marginTop: verticalScale(2),
+    fontSize: fontScale(10.5),
     color: colors.textSecondary,
     fontFamily: fonts.medium,
     lineHeight: fontScale(16),
@@ -668,7 +716,58 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: verticalScale(11),
+    paddingTop: verticalScale(10),
+    borderTopWidth: 1,
+    borderTopColor: "#DCE8F4",
+  },
+
+  sheetSummaryCard: {
     marginBottom: verticalScale(12),
+    paddingHorizontal: moderateScale(13),
+    paddingVertical: verticalScale(12),
+    borderRadius: moderateScale(16),
+    borderCurve: "continuous",
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+    backgroundColor: "#F5F9FE",
+  },
+
+  sheetSummaryTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(10),
+  },
+
+  sheetSummaryIcon: {
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(12),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D5E7FB",
+  },
+
+  sheetSummaryCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  sheetSummaryTitle: {
+    fontSize: fontScale(14),
+    lineHeight: fontScale(19),
+    color: colors.textDark,
+    fontFamily: fonts.bold,
+  },
+
+  sheetSummaryDetails: {
+    marginTop: verticalScale(3),
+    fontSize: fontScale(10.5),
+    lineHeight: fontScale(15),
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
 
   sheetStatusGroup: {
@@ -708,6 +807,7 @@ export default StyleSheet.create({
 
   sheetScrollContent: {
     paddingBottom: verticalScale(20),
+    gap: verticalScale(12),
   },
 
   sheetStateCard: {
@@ -838,14 +938,12 @@ export default StyleSheet.create({
   },
 
   pipeLayingSection: {
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: moderateScale(18),
-    backgroundColor: "#F8FBFE",
-    paddingHorizontal: moderateScale(12),
-    paddingTop: verticalScale(12),
-    paddingBottom: verticalScale(12),
-    marginBottom: verticalScale(12),
+    borderRadius: moderateScale(16),
+    borderCurve: "continuous",
+    backgroundColor: colors.white,
   },
 
   commonPipeLayingSection: {
@@ -853,6 +951,7 @@ export default StyleSheet.create({
     borderColor: "#CFE2F7",
     paddingHorizontal: moderateScale(10),
     paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(10),
   },
 
   pipeLayingSectionHeader: {
@@ -860,7 +959,11 @@ export default StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: moderateScale(10),
-    marginBottom: verticalScale(11),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(11),
+    borderBottomWidth: 1,
+    borderBottomColor: "#E3ECF5",
+    backgroundColor: "#F8FBFE",
   },
 
   pipeLayingTitleWrap: {
@@ -881,6 +984,19 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.bold,
     lineHeight: fontScale(18),
+  },
+
+  pipeLayingCountBadge: {
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: moderateScale(999),
+    backgroundColor: colors.surfaceBlue,
+  },
+
+  pipeLayingCountText: {
+    fontSize: fontScale(9.5),
+    color: colors.primaryBlue,
+    fontFamily: fonts.bold,
   },
 
   pipeLayingToggleRow: {
@@ -919,19 +1035,15 @@ export default StyleSheet.create({
 
   checklistCard: {
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(16),
-    padding: moderateScale(13),
-    marginBottom: verticalScale(10),
+    borderBottomWidth: 1,
+    borderBottomColor: "#E3ECF5",
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(11),
   },
 
   pipeChecklistCard: {
-    borderRadius: moderateScale(12),
-    borderColor: "#DDEAF7",
-    paddingHorizontal: moderateScale(11),
+    paddingHorizontal: moderateScale(12),
     paddingVertical: verticalScale(10),
-    marginBottom: verticalScale(8),
   },
 
   pipeShimmerGroup: {
@@ -967,7 +1079,7 @@ export default StyleSheet.create({
   },
 
   checklistCardLast: {
-    marginBottom: 0,
+    borderBottomWidth: 0,
   },
 
   checklistCardCompact: {
@@ -1012,6 +1124,14 @@ export default StyleSheet.create({
     color: colors.textDark,
     fontFamily: fonts.bold,
     lineHeight: fontScale(18),
+  },
+
+  checklistDescription: {
+    marginTop: verticalScale(3),
+    fontSize: fontScale(10),
+    lineHeight: fontScale(14),
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
   },
 
   checklistCountRow: {

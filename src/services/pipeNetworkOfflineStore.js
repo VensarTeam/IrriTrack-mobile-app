@@ -1,4 +1,5 @@
 import SQLite from "react-native-sqlite-storage";
+import * as FileSystem from "expo-file-system/legacy";
 
 SQLite.enablePromise(true);
 
@@ -90,7 +91,37 @@ export const listPendingPipeMutations = async (ownerUserId) => {
   });
 };
 
-export const completePipeMutation = async (id) => {
+export const getPendingPipeMutationCount = async (ownerUserId) => {
+  if (!ownerUserId) return 0;
+  const db = await getDatabase();
+  const [result] = await db.executeSql(
+    `SELECT COUNT(*) AS count FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry');`,
+    [ownerUserId],
+  );
+  return Number(result.rows.item(0)?.count || 0);
+};
+
+export const cleanupPipeMutationFiles = async (payload = {}) => {
+  const safeRoot = `${FileSystem.documentDirectory || ""}pipe-network-entries/`;
+  if (!FileSystem.documentDirectory || !safeRoot) return;
+
+  const fileUris = Object.values(payload?.files || {})
+    .flatMap((value) => Array.isArray(value) ? value : [value])
+    .map((value) => String(value || ""))
+    .filter((value) => value.startsWith(safeRoot));
+
+  await Promise.all(fileUris.map(async (uri) => {
+    try {
+      const info = await FileSystem.getInfoAsync(uri);
+      if (info.exists) await FileSystem.deleteAsync(uri, { idempotent: true });
+    } catch {
+      // The server submission is already complete; stale-file cleanup can retry later.
+    }
+  }));
+};
+
+export const completePipeMutation = async (id, payload = null) => {
+  if (payload) await cleanupPipeMutationFiles(payload);
   const db = await getDatabase();
   await db.executeSql(`DELETE FROM pipe_network_sync_queue WHERE id = ?;`, [id]);
 };

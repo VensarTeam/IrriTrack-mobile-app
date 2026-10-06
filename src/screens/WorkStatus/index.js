@@ -342,6 +342,50 @@ const getChecklistDisplayTitle = (checklist, selectedWorkItem) => {
   return outletPipeCount ? `${baseTitle} (${outletPipeCount})` : baseTitle;
 };
 
+const getChecklistDisplayDescription = (checklist = {}) => {
+  const value = String(
+    checklist?.description ||
+      checklist?.rawChecklist?.requirement ||
+      checklist?.rawChecklist?.checklistRequirement ||
+      checklist?.rawChecklist?.checklist_requirement ||
+      ""
+  ).trim();
+
+  return value && value !== String(checklist?.name || "").trim() ? value : "";
+};
+
+const getWorkItemSummary = (item = {}) => {
+  const raw = item?.rawItem || {};
+  const startNode = raw.startNode || raw.start_node || "";
+  const stopNode = raw.stopNode || raw.stop_node || "";
+  const segmentLabel = raw.segmentLabel || raw.segment_label || raw.packageTitle || raw.title || "";
+  const material = raw.material || item.material || "";
+  const chainageFrom = raw.chainageFromM ?? raw.chainage_from_m;
+  const chainageTo = raw.chainageToM ?? raw.chainage_to_m;
+  const hasChainage = chainageFrom !== null && chainageFrom !== undefined && chainageTo !== null && chainageTo !== undefined;
+  const isPipeEntry = Boolean(startNode || stopNode || material || hasChainage);
+  const processName = raw.processDescription || raw.process_description || item.processName || "";
+  const subprocessName = item.subprocessName || "";
+
+  if (isPipeEntry) {
+    const routeLabel = startNode && stopNode ? `${startNode} → ${stopNode}` : startNode || stopNode || segmentLabel;
+    const title = [routeLabel, segmentLabel && segmentLabel !== routeLabel ? segmentLabel : ""]
+      .filter(Boolean)
+      .join(" · ");
+    const details = [processName, material, hasChainage ? `Ch ${chainageFrom}–${chainageTo} m` : ""]
+      .filter(Boolean)
+      .join(" · ");
+
+    return { title: title || "Pipe work", details, isPipeEntry };
+  }
+
+  return {
+    title: `OMS - ${item?.omsName || item?.omsId || "NODE"}`,
+    details: [processName, subprocessName].filter(Boolean).join(" · "),
+    isPipeEntry,
+  };
+};
+
 const getChecklistInlineCountValue = (checklist, selectedWorkItem) => {
   if (!isOutletPipeCountChecklist(checklist)) {
     return "";
@@ -736,6 +780,10 @@ const WorkStatusScreen = ({ route, navigation }) => {
   const selectedSubprocess = selectedProgressMatch?.subprocess || null;
   const selectedChecklistItems = selectedSubprocess?.checklists || [];
   const selectedDetailItems = selectedSubprocess?.detailItems || [];
+  const selectedSummary = React.useMemo(
+    () => getWorkItemSummary(selectedWorkItem || {}),
+    [selectedWorkItem]
+  );
   const pipeLayingSubprocesses = React.useMemo(() => {
     const pipeLayingProcess = getPipeLayingProcess(selectedProgress);
 
@@ -1113,6 +1161,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
         showEmptyAsCross: Boolean(options.showEmptyAsCross),
       });
       const checklistTitle = getChecklistDisplayTitle(checklist, selectedWorkItem);
+      const checklistDescription = getChecklistDisplayDescription(checklist);
       const inlineCountValue = getChecklistInlineCountValue(
         checklist,
         selectedWorkItem
@@ -1135,6 +1184,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
               <View style={styles.checklistInlineRow}>
                 <View style={styles.checklistInlineCopy}>
                   <Text style={styles.checklistTitle}>{checklistTitle}</Text>
+                  {checklistDescription ? (
+                    <Text style={styles.checklistDescription}>{checklistDescription}</Text>
+                  ) : null}
                   {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
                 </View>
                 <View
@@ -1165,6 +1217,9 @@ const WorkStatusScreen = ({ route, navigation }) => {
                 ) : (
                   <Text style={styles.checklistTitle}>{checklistTitle}</Text>
                 )}
+                {checklistDescription ? (
+                  <Text style={styles.checklistDescription}>{checklistDescription}</Text>
+                ) : null}
                 {!checklist.isRequired ? <Text style={styles.optionalText}>Optional</Text> : null}
                 {inlineCountValue ? null : (
                   <ChecklistValueBlock
@@ -1241,6 +1296,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
       const bucket = getUnitWorkBucket(item);
       const theme = TAB_THEME[bucket] || TAB_THEME.Pending;
       const statusDetails = getUnitStatusDetails(item);
+      const summary = getWorkItemSummary(item);
       const canRequestModification =
         ["Submitted", "Pending"].includes(tabKey) &&
         ["Submitted", "Pending"].includes(bucket) &&
@@ -1255,20 +1311,23 @@ const WorkStatusScreen = ({ route, navigation }) => {
         <TouchableOpacity style={styles.card} onPress={() => openWorkItem(item)} activeOpacity={0.9}>
           <View style={styles.cardTopRow}>
             <View style={styles.cardHeaderRow}>
-              <View style={styles.cardTextWrap}>
-                {/* <Text style={styles.cardEyebrow} numberOfLines={1}>
-                  {item?.processName || "Process"}
-                </Text> */}
-                <View style={styles.omsHighlight}>
-                  <Icon source="map-marker-radius-outline" size={14} color={colors.primaryBlue} />
-                  <Text style={styles.omsHighlightText} numberOfLines={1}>
-                    OMS - {item?.omsName || item?.omsId || "NODE"}
-                  </Text>
+              <View style={styles.cardIdentityRow}>
+                <View style={styles.cardIdentityIcon}>
+                  <Icon
+                    source={summary.isPipeEntry ? "pipe" : "map-marker-radius-outline"}
+                    size={18}
+                    color={colors.primaryBlue}
+                  />
                 </View>
-                <View style={styles.subprocessHighlight}>
-                  <Text style={styles.subprocessHighlightText} numberOfLines={1}>
-                    {item?.subprocessName || "Subprocess"}
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardPrimaryTitle} numberOfLines={2}>
+                    {summary.title}
                   </Text>
+                  {summary.details ? (
+                    <Text style={styles.cardProcessText} numberOfLines={2}>
+                      {summary.details}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -1355,21 +1414,12 @@ const WorkStatusScreen = ({ route, navigation }) => {
               ) : null}
             </View>
           </View>
-
-          {/* <View style={styles.cardBottomRow}>
-            <View style={styles.cardActionRow}>
-              {item?.rejectionRemark ? (
-                <Text style={styles.cardRemarkText} numberOfLines={2}>{item.rejectionRemark}</Text>
-              ) : (
-                <Text style={styles.cardActionText}>
-                  {canReviewChecklist ? "View submission" : "Open work"}
-                </Text>
-              )}
-              <View style={styles.cardActionIcon}>
-                <Icon source="arrow-top-right" size={14} color={colors.white} />
-              </View>
-            </View>
-          </View> */}
+          <View style={styles.cardOpenRow}>
+            <Text style={styles.cardOpenText}>
+              {canReviewChecklist ? "Review checklist" : "View checklist"}
+            </Text>
+            <Icon source="chevron-right" size={18} color={colors.primaryBlue} />
+          </View>
         </TouchableOpacity>
       );
     },
@@ -1598,19 +1648,22 @@ const WorkStatusScreen = ({ route, navigation }) => {
         </Pressable>
       </Modal>
 
-      {/* ── Main content ─────────────────────────────────────────────────── */}
+        {/* ── Main content ─────────────────────────────────────────────────── */}
       <View style={styles.container}>
         <View style={styles.header}>
-          <IconButton icon="arrow-left" onPress={handleBack} size={22} />
+          <View style={styles.headerActionSlot}>
+            <IconButton icon="arrow-left" onPress={handleBack} size={22} />
+          </View>
           <Text style={styles.headerTitle}>Work Status</Text>
-          <View style={styles.headerSpacer} />
-           <IconButton
+          <View style={styles.headerActionSlot}>
+            <IconButton
               icon="information-outline"
               iconColor={colors.primaryBlue}
               size={22}
               style={styles.headerInfoButton}
               onPress={() => setShowStatusInfo(true)}
             />
+          </View>
         </View>
 
         {/* {contextChips.length ? (
@@ -1627,7 +1680,7 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
         <View style={styles.searchRow}>
           <Searchbar
-            placeholder="Search by Node or Subprocess"
+            placeholder="Search node, pipe or process"
             onChangeText={setSearch}
             value={search}
             style={styles.searchbar}
@@ -1772,24 +1825,30 @@ const WorkStatusScreen = ({ route, navigation }) => {
 
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderCopy}>
-                <View style={styles.sheetOmsBadge}>
-                  <Icon source="map-marker-radius-outline" size={14} color={colors.primaryBlue} />
-                  <Text style={styles.sheetOmsBadgeText} numberOfLines={1}>
-                    OMS - {selectedWorkItem?.omsName || selectedWorkItem?.omsId || "NODE"}
-                  </Text>
-                </View>
-                <Text style={styles.sheetTitle}>
-                  {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
-                </Text>
-                {/* <Text style={styles.sheetSubtitle}>
-                  {selectedProcess?.name || selectedWorkItem?.processName || "Process"}
-                </Text> */}
+                <Text style={styles.sheetTitle}>Submission details</Text>
+                <Text style={styles.sheetSubtitle}>Review checklist and workflow activity</Text>
               </View>
               <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={closeWorkItemSheet} />
             </View>
 
-            <View style={styles.sheetStatusRow}>
-              <View style={styles.sheetStatusGroup}>
+            <View style={styles.sheetSummaryCard}>
+              <View style={styles.sheetSummaryTopRow}>
+                <View style={styles.sheetSummaryIcon}>
+                  <Icon
+                    source={selectedSummary.isPipeEntry ? "pipe" : "map-marker-radius-outline"}
+                    size={19}
+                    color={colors.primaryBlue}
+                  />
+                </View>
+                <View style={styles.sheetSummaryCopy}>
+                  <Text style={styles.sheetSummaryTitle}>{selectedSummary.title}</Text>
+                  {selectedSummary.details ? (
+                    <Text style={styles.sheetSummaryDetails}>{selectedSummary.details}</Text>
+                  ) : null}
+                </View>
+              </View>
+
+              <View style={styles.sheetStatusRow}>
                 <View
                   style={[
                     styles.statusPill,
@@ -1848,10 +1907,11 @@ const WorkStatusScreen = ({ route, navigation }) => {
                     <View style={styles.pipeLayingSectionHeader}>
                       <View style={styles.pipeLayingTitleWrap}>
                         <View style={styles.pipeLayingTitleCopy}>
-                          <Text style={styles.pipeLayingTitle}>
-                            {selectedSubprocess?.name || selectedWorkItem?.subprocessName || "Subprocess"}
-                          </Text>
+                          <Text style={styles.pipeLayingTitle}>Checklist</Text>
                         </View>
+                      </View>
+                      <View style={styles.pipeLayingCountBadge}>
+                        <Text style={styles.pipeLayingCountText}>{selectedChecklistItems.length} items</Text>
                       </View>
                     </View>
 

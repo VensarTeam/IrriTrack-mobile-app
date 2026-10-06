@@ -1,9 +1,10 @@
-import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, Text, TextInput, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Easing, FlatList, Platform, Pressable, RefreshControl, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Icon } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
 import SearchableFilterModal from "../../components/SearchableFilterModal";
 import { fetchPipeDailyWorks, fetchPipeWorkFilterOptions } from "../../services/pipeDailyWorkApi";
 import colors from "../../constants/colors";
@@ -14,6 +15,25 @@ import { getPipeCache, savePipeCache } from "../../services/pipeNetworkOfflineSt
 
 const EMPTY_FILTERS = { search: "", location: "All", label: "All", from: "", to: "" };
 const STAGES = { excavation: "Excavation", pipe_laying: "Pipe laying", backfilling: "Backfilling" };
+
+function ReportLoadingShimmer() {
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = Animated.loop(Animated.timing(progress, { toValue: 1, duration: 1100, easing: Easing.linear, useNativeDriver: true }));
+    animation.start();
+    return () => animation.stop();
+  }, [progress]);
+  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [-260, 260] });
+  const block = (style) => <View style={[styles.skeletonBlock, style]}><Animated.View style={[styles.skeletonShine, { transform: [{ translateX }] }]}><LinearGradient colors={["#E8EEF4", "#FFFFFF", "#E8EEF4"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.skeletonGradient} /></Animated.View></View>;
+  return <View accessibilityLabel="Loading daily reports" style={styles.skeletonList}>
+    {[0, 1, 2].map((key) => <View key={key} style={styles.skeletonCard}>
+      <View style={styles.skeletonRow}>{block(styles.skeletonTitle)}{block(styles.skeletonDate)}</View>
+      {block(styles.skeletonLine)}
+      <View style={styles.skeletonRow}>{block(styles.skeletonShort)}{block(styles.skeletonMetric)}</View>
+      <View style={styles.skeletonRow}>{block(styles.skeletonChip)}{block(styles.skeletonShort)}</View>
+    </View>)}
+  </View>;
+}
 
 function FilterButton({ title, icon, onPress, active = false }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.filter, active && styles.filterActive, pressed && styles.pressed]}>
@@ -76,10 +96,13 @@ export default function PipeDailyReportScreen({ route }) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [paginationError, setPaginationError] = useState("");
   const [totalCount, setTotalCount] = useState(0);
   const [totalLaidLengthM, setTotalLaidLengthM] = useState(0);
   const [locations, setLocations] = useState(["All"]);
   const [labels, setLabels] = useState(["All"]);
+  const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const [filterOptionsError, setFilterOptionsError] = useState("");
   const requestBusy = useRef(false);
   const lastQuery = useRef("");
   const loadedIds = useRef(new Set());
@@ -92,6 +115,7 @@ export default function PipeDailyReportScreen({ route }) {
     requestBusy.current = true;
     setLoading(nextPage === 1);
     setLoadingMore(nextPage > 1);
+    setPaginationError("");
     const query = `${projectId}|${filters.search}|${filters.location}|${filters.label}|${filters.from}|${filters.to}`;
     if (query !== lastQuery.current) {
       setRows(null);
@@ -102,13 +126,17 @@ export default function PipeDailyReportScreen({ route }) {
     setError("");
     const resource = `daily-report:${query}:${nextPage}`;
     if (nextPage === 1) {
-      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
-      if (cached?.payload && !controller.signal.aborted) {
-        const cachedRows = normalizeReports(readRows(cached.payload));
-        setRows(cachedRows);
-        setTotalCount(Number(cached.payload?.totalCount ?? cachedRows.length));
-        setTotalLaidLengthM(Number(cached.payload?.totalLaidLengthM ?? 0));
-        setLoading(false);
+      try {
+        const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+        if (cached?.payload && !controller.signal.aborted) {
+          const cachedRows = normalizeReports(readRows(cached.payload));
+          setRows(cachedRows);
+          setTotalCount(Number(cached.payload?.totalCount ?? cachedRows.length));
+          setTotalLaidLengthM(Number(cached.payload?.totalLaidLengthM ?? 0));
+          setLoading(false);
+        }
+      } catch {
+        // A local cache read failure should not prevent the online request.
       }
     }
     try {
@@ -128,7 +156,11 @@ export default function PipeDailyReportScreen({ route }) {
         await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: works });
       }
     } catch (err) {
-      if (!controller.signal.aborted) setError(err.message || "Could not load daily reports. Please try again.");
+      if (!controller.signal.aborted) {
+        const message = err.message || "Could not load daily reports. Please try again.";
+        if (nextPage > 1) setPaginationError(message);
+        else setError(message);
+      }
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
@@ -137,6 +169,43 @@ export default function PipeDailyReportScreen({ route }) {
       }
     }
   }, [projectId, filters.from, filters.label, filters.location, filters.search, filters.to, user?.id]);
+
+  const handleEndReached = useCallback(() => {
+    if (!hasMore || loading || loadingMore || requestBusy.current || paginationError) return;
+    load(page + 1);
+  }, [hasMore, load, loading, loadingMore, page, paginationError]);
+
+  const loadFilterOptions = useCallback(async (signal) => {
+    if (!projectId) return;
+    const resource = "daily-report-filter-options";
+    setFilterOptionsError("");
+    try {
+      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      if (signal?.aborted) return;
+      if (cached?.payload) {
+        setLocations(["All", ...(cached.payload.locations || [])]);
+        setLabels(["All", ...(cached.payload.labels || [])]);
+        setFilterOptionsLoading(false);
+      } else {
+        setFilterOptionsLoading(true);
+      }
+      const [locationResponse, labelResponse] = await Promise.all([
+        fetchPipeWorkFilterOptions({ projectId, field: "location", page: 1, limit: 100, signal }),
+        fetchPipeWorkFilterOptions({ projectId, field: "label", page: 1, limit: 100, signal }),
+      ]);
+      if (signal?.aborted) return;
+      const nextLocations = [...new Set((locationResponse?.items || []).map((item) => item.value).filter(Boolean))];
+      const nextLabels = [...new Set((labelResponse?.items || []).map((item) => item.value).filter(Boolean))];
+      setLocations(["All", ...nextLocations]);
+      setLabels(["All", ...nextLabels]);
+      await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: { locations: nextLocations, labels: nextLabels } });
+    } catch (err) {
+      if (!signal?.aborted) setFilterOptionsError(err.message || "Could not load filter options.");
+    } finally {
+      if (!signal?.aborted) setFilterOptionsLoading(false);
+    }
+  }, [projectId, user?.id]);
+
   useFocusEffect(useCallback(() => {
     const timer = setTimeout(() => load(), filters.search ? 350 : 0);
     return () => { clearTimeout(timer); controllerRef.current?.abort(); };
@@ -144,17 +213,10 @@ export default function PipeDailyReportScreen({ route }) {
 
   useFocusEffect(useCallback(() => {
     if (!projectId) return undefined;
-    let active = true;
-    Promise.all([
-      fetchPipeWorkFilterOptions({ projectId, field: "location", page: 1, limit: 100 }),
-      fetchPipeWorkFilterOptions({ projectId, field: "label", page: 1, limit: 100 }),
-    ]).then(([locationResponse, labelResponse]) => {
-      if (!active) return;
-      setLocations(["All", ...(locationResponse?.items || []).map((item) => item.value)]);
-      setLabels(["All", ...(labelResponse?.items || []).map((item) => item.value)]);
-    }).catch(() => {});
-    return () => { active = false; };
-  }, [projectId]));
+    const controller = new AbortController();
+    loadFilterOptions(controller.signal);
+    return () => controller.abort();
+  }, [loadFilterOptions]));
 
   const filtered = rows || [];
   const hasFilters = Object.keys(EMPTY_FILTERS).some((key) => filters[key] !== EMPTY_FILTERS[key]);
@@ -191,6 +253,7 @@ export default function PipeDailyReportScreen({ route }) {
       <Text style={styles.muted}>{totalCount} {totalCount === 1 ? "entry" : "entries"}</Text>
       <Text style={styles.total}>Filtered total  {formatNumber(totalLaidLengthM)} m</Text>
     </View>}
+    {!!filterOptionsError && <View style={styles.error}><Text selectable style={styles.errorText}>{filterOptionsError}</Text><Pressable accessibilityRole="button" onPress={() => loadFilterOptions()} disabled={filterOptionsLoading} style={styles.clear}><Text style={styles.link}>Retry filters</Text></Pressable></View>}
     {!!error && <View style={styles.error}><Text selectable style={styles.errorText}>{rows !== null ? "Showing previously loaded records. " : ""}{error}</Text><Pressable accessibilityRole="button" onPress={() => load()} disabled={loading || loadingMore} style={styles.clear}><Text style={styles.link}>Retry</Text></Pressable></View>}
   </View>;
 
@@ -199,14 +262,18 @@ export default function PipeDailyReportScreen({ route }) {
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20, paddingLeft: Math.max(insets.left, 14), paddingRight: Math.max(insets.right, 14) }]}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentInsetAdjustmentBehavior="automatic"
       refreshControl={<RefreshControl refreshing={loading && rows !== null} onRefresh={() => load()} tintColor={colors.primaryBlue} />}
-      ListFooterComponent={hasMore ? <View style={styles.state}><Pressable accessibilityRole="button" disabled={loading || loadingMore} onPress={() => load(page + 1)} style={styles.button}>{loadingMore ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Load more reports</Text>}</Pressable></View> : null}
-      ListEmptyComponent={loading && rows === null ? <View style={styles.state}><ActivityIndicator color={colors.primaryBlue} /><Text style={styles.stateText}>Loading daily reports…</Text></View> : error && rows === null ? null : <View style={styles.state}>
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={hasMore ? <View style={styles.paginationFooter}>
+        {loadingMore ? <><ActivityIndicator size="small" color={colors.primaryBlue} /><Text style={styles.stateText}>Loading more reports…</Text></> : paginationError ? <Pressable accessibilityRole="button" onPress={() => load(page + 1)} style={styles.paginationRetry}><Text style={styles.link}>Couldn’t load more. Tap to retry</Text></Pressable> : null}
+      </View> : null}
+      ListEmptyComponent={loading && rows === null ? <ReportLoadingShimmer /> : error && rows === null ? null : <View style={styles.state}>
         <Icon source="clipboard-text-outline" size={34} color={colors.textSecondary} />
         <Text style={styles.stateTitle}>{hasFilters ? "No matching entries" : "No daily work recorded"}</Text>
         <Text style={styles.stateText}>{hasFilters ? "Try another date, location or pipe label." : "Daily work entries for this project will appear here."}</Text>
         {hasFilters && <Pressable accessibilityRole="button" onPress={clear} style={styles.button}><Text style={styles.buttonText}>Clear filters</Text></Pressable>}
       </View>} />
-    <SearchableFilterModal visible={!!picker} title={picker === "location" ? "Select location" : "Select pipe label"} options={picker === "location" ? locations : labels} selectedValue={filters[picker] || "All"} onClose={() => setPicker(null)} onSelect={(value) => {
+    <SearchableFilterModal visible={!!picker} title={picker === "location" ? "Select location" : "Select pipe label"} options={picker === "location" ? locations : labels} selectedValue={filters[picker] || "All"} isLoading={filterOptionsLoading && (picker === "location" ? locations.length <= 1 : labels.length <= 1)} emptyMessage={filterOptionsError || "No filter options found."} onClose={() => setPicker(null)} onSelect={(value) => {
       setFilters((previous) => ({ ...previous, [picker]: value, ...(picker === "location" ? { label: "All" } : {}) }));
       setPicker(null);
     }} />

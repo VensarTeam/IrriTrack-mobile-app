@@ -332,6 +332,7 @@ const SearchableFilterModal = ({
               styles.card,
               {
                 height: maxCardHeight,
+                minHeight: Math.min(maxCardHeight, verticalScale(300)),
                 maxHeight: maxCardHeight,
                 marginBottom: androidSheetOffset,
               },
@@ -445,8 +446,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: moderateScale(24),
     paddingHorizontal: moderateScale(16),
     paddingTop: verticalScale(12),
-    minHeight: verticalScale(480),
+    minHeight: 0,
     paddingBottom: verticalScale(12),
+    borderCurve: "continuous",
+    boxShadow: "0 -8px 30px rgba(18,59,99,0.14)",
   },
 
   handle: {

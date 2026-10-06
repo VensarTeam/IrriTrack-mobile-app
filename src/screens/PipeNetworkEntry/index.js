@@ -2,7 +2,10 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Image,
+  InteractionManager,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,11 +15,13 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
-import { Icon, IconButton } from "react-native-paper";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import { Icon } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SearchableFilterModal from "../../components/SearchableFilterModal";
 import colors from "../../constants/colors";
 import styles from "./styles";
@@ -30,13 +35,19 @@ import {
   fetchPipeSegments,
   submitPipeChecklist,
 } from "../../services/pipeNetworkApi";
-import { getPipeCache, queuePipeMutation, savePipeCache } from "../../services/pipeNetworkOfflineStore";
+import {
+  cleanupPipeMutationFiles,
+  getPipeCache,
+  queuePipeMutation,
+  savePipeCache,
+} from "../../services/pipeNetworkOfflineStore";
 import { validateDailyWork } from "../../services/pipeDailyWorkInput";
+import { compressChecklistImage } from "../../services/checklistImageStorage";
 
 const STAGES = [
-  { key: "excavation", label: "Excavation", color: "#2876B8" },
-  { key: "pipe_laying", label: "Pipe Laying", color: "#D9792A" },
-  { key: "backfilling", label: "Backfilling", color: "#4C8A3B" },
+  { key: "excavation", label: "Excavation" },
+  { key: "pipe_laying", label: "Pipe Laying" },
+  { key: "backfilling", label: "Backfilling" },
 ];
 
 const PIPE_OPTIONS = {
@@ -200,6 +211,13 @@ const formatDate = (date) =>
 const formatApiDate = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
+const isRetryableSyncError = (error) => {
+  const status = Number(error?.status || 0);
+  return error?.isRetryable === true
+    || [0, 408, 429, 500, 502, 503, 504].includes(status)
+    || ["NETWORK_ERROR", "ERR_NETWORK", "ECONNABORTED", "REQUEST_TIMEOUT"].includes(String(error?.code || "").toUpperCase());
+};
+
 const FieldLabel = ({ children, required }) => (
   <Text style={styles.fieldLabel}>
     {children}{required ? <Text style={styles.required}> *</Text> : null}
@@ -213,26 +231,66 @@ const TextInput = ({ style, ...props }) => {
     selectionColor={colors.primaryBlue} />;
 };
 
-const SelectField = ({ label, value, placeholder, onPress, required, error }) => (
+const SelectField = ({ label, value, placeholder, onPress, required, error, loading = false }) => (
   <View style={styles.fieldBlock}>
     <FieldLabel required={required}>{label}</FieldLabel>
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ busy: loading }}
       style={({ pressed }) => [
         styles.selectField,
         error && styles.fieldError,
         pressed && styles.fieldPressed,
       ]}
     >
-      <Text style={[styles.selectText, !value && styles.placeholder]}>
+      <Text style={[styles.selectText, !value && styles.placeholder]} numberOfLines={2}>
         {value || placeholder}
       </Text>
-      <Icon source="chevron-down" size={20} color={colors.primaryBlue} />
+      {loading ? <ActivityIndicator size="small" color={colors.primaryBlue} /> : <Icon source="chevron-down" size={20} color={colors.primaryBlue} />}
     </Pressable>
     {error ? <Text style={styles.errorText}>Please select {label.toLowerCase()}.</Text> : null}
   </View>
 );
+
+const FormLoadingSkeleton = () => {
+  const progress = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(Animated.timing(progress, {
+      toValue: 1,
+      duration: 1100,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }));
+    animation.start();
+    return () => animation.stop();
+  }, [progress]);
+
+  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [-260, 260] });
+  const block = (style, key) => (
+    <View key={key} style={[styles.skeletonBlock, style]}>
+      <Animated.View style={[styles.skeletonSweep, { transform: [{ translateX }] }]}>
+        <LinearGradient
+          colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.82)", "rgba(255,255,255,0)"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.skeletonGradient}
+        />
+      </Animated.View>
+    </View>
+  );
+
+  return (
+    <View accessibilityLabel="Loading checklist" style={styles.skeletonCard}>
+      <View style={styles.skeletonHeading}>{block(styles.skeletonIcon, "icon")}<View style={styles.skeletonHeadingCopy}>{block(styles.skeletonTitle, "title")}{block(styles.skeletonSubtitle, "subtitle")}</View></View>
+      {block(styles.skeletonChecklist, "checklist-1")}
+      {block(styles.skeletonChecklist, "checklist-2")}
+      {block(styles.skeletonChecklist, "checklist-3")}
+      {block(styles.skeletonChecklist, "checklist-4")}
+    </View>
+  );
+};
 
 const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const { user } = useAuth();
@@ -240,7 +298,8 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const { width, fontScale: textScale } = useWindowDimensions();
   const stackFields = width < 360 || textScale > 1.2;
   const scrollRef = React.useRef(null);
-  const materialKey = String(route?.params?.material?.label || "MS").toUpperCase();
+  const routeMaterial = route?.params?.material;
+  const materialKey = String(routeMaterial?.label || routeMaterial?.key || routeMaterial || "MS").toUpperCase();
   const material = CHECKLISTS[materialKey] ? materialKey : "MS";
   const [sections, setSections] = React.useState([]);
   const allItems = sections.flatMap((section) => section.items);
@@ -264,8 +323,14 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const [savedPackageId, setSavedPackageId] = React.useState(null);
   const [picker, setPicker] = React.useState({ visible: false, field: "", title: "", options: [] });
   const [isLoadingForm, setIsLoadingForm] = React.useState(true);
+  const [isLoadingChecklist, setIsLoadingChecklist] = React.useState(true);
   const [loadError, setLoadError] = React.useState("");
+  const [checklistError, setChecklistError] = React.useState("");
+  const [reloadKey, setReloadKey] = React.useState(0);
+  const [isOnline, setIsOnline] = React.useState(true);
+  const [processingPhotoId, setProcessingPhotoId] = React.useState("");
   const saveScopeRef = React.useRef("");
+  const ownerUserId = String(user?.id || user?.mobile || "").trim();
 
   const selectedSegment = React.useMemo(
     () => segments.find((segment) => segment.optionLabel === selectedPipe) || null,
@@ -275,6 +340,25 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
     () => contractors.find((entry) => entry.optionLabel === contractor) || null,
     [contractor, contractors],
   );
+  const pipeOptionLabels = React.useMemo(
+    () => segments.map((segment) => segment.optionLabel),
+    [segments],
+  );
+  const contractorOptionLabels = React.useMemo(
+    () => contractors.map((entry) => entry.optionLabel),
+    [contractors],
+  );
+
+  React.useEffect(() => {
+    const handleNetworkChange = (state) => {
+      const online = state.isConnected !== false && state.isInternetReachable !== false;
+      setIsOnline(online);
+    };
+
+    void NetInfo.fetch().then(handleNetworkChange);
+    const unsubscribe = NetInfo.addEventListener(handleNetworkChange);
+    return unsubscribe;
+  }, []);
 
   React.useEffect(() => {
     const projectId = route?.params?.projectId;
@@ -284,40 +368,86 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       setIsLoadingForm(false);
       return () => controller.abort();
     }
-    setIsLoadingForm(true);
+
+    const normalizeSegments = (response) => (Array.isArray(response) ? response : response?.items || []).map((segment) => ({
+      ...segment,
+      optionLabel: `${segment.startNode || "—"} → ${segment.stopNode || "—"} · ${segment.label || "Unlabelled"} · ${Number(segment.lengthM || 0).toLocaleString("en-IN")} m`,
+    })).filter((segment) => String(segment.material || "").toUpperCase().startsWith(material));
+    const normalizeContractors = (response) => {
+      const raw = Array.isArray(response) ? response : response?.items || response?.data || [];
+      return raw.map((entry) => ({ ...entry, optionLabel: entry.firmName || entry.name || entry.contractorName || "" })).filter((entry) => entry.id && entry.optionLabel);
+    };
     const applyReferenceData = (segmentResponse, contractorResponse) => {
       if (controller.signal.aborted) return;
-      const nextSegments = (Array.isArray(segmentResponse) ? segmentResponse : segmentResponse?.items || []).map((segment) => ({
-        ...segment,
-        optionLabel: `${segment.startNode || "—"} → ${segment.stopNode || "—"} · ${segment.label || "Unlabelled"} · ${Number(segment.lengthM || 0).toLocaleString("en-IN")} m`,
-      })).filter((segment) => String(segment.material || "").toUpperCase().startsWith(material));
-      const rawContractors = Array.isArray(contractorResponse) ? contractorResponse : contractorResponse?.items || contractorResponse?.data || [];
-      const nextContractors = rawContractors.map((entry) => ({ ...entry, optionLabel: entry.firmName || entry.name || entry.contractorName || "" })).filter((entry) => entry.id && entry.optionLabel);
+      const nextSegments = normalizeSegments(segmentResponse);
+      const nextContractors = normalizeContractors(contractorResponse);
       setSegments(nextSegments);
       setContractors(nextContractors);
-      setSelectedPipe((current) => current || nextSegments[0]?.optionLabel || "");
-      setContractor((current) => current || nextContractors[0]?.optionLabel || "");
+      setSelectedPipe((current) => nextSegments.some((entry) => entry.optionLabel === current) ? current : "");
+      setContractor((current) => nextContractors.some((entry) => entry.optionLabel === current) ? current : "");
     };
-    Promise.all([
-      getPipeCache({ ownerUserId: user?.id, projectId, resource: "entry-reference" }),
-      Promise.resolve(),
-    ]).then(([cached]) => {
-      if (cached?.payload) applyReferenceData(cached.payload.segments, cached.payload.contractors);
-    });
-    Promise.all([
-      fetchPipeSegments({ projectId, signal: controller.signal }),
-      fetchPipeContractors({ signal: controller.signal }),
-    ]).then(([segmentResponse, contractorResponse]) => {
-      applyReferenceData(segmentResponse, contractorResponse);
-      void savePipeCache({ ownerUserId: user?.id, projectId, resource: "entry-reference", payload: { segments: segmentResponse, contractors: contractorResponse } });
-      setLoadError("");
-    }).catch((error) => {
-      if (!controller.signal.aborted) setLoadError(error?.message || "Could not load Pipe Network form data.");
-    }).finally(() => {
-      if (!controller.signal.aborted) setIsLoadingForm(false);
-    });
+
+    setIsLoadingForm(true);
+    setLoadError("");
+    const cacheResource = `entry-reference:${material}`;
+    void (async () => {
+      let segmentResponse;
+      let contractorResponse;
+      let hasCachedData = false;
+      try {
+        const cached = await getPipeCache({ ownerUserId, projectId, resource: cacheResource })
+          || await getPipeCache({ ownerUserId, projectId, resource: "entry-reference" });
+        if (cached?.payload) {
+          segmentResponse = cached.payload.segments;
+          contractorResponse = cached.payload.contractors;
+          applyReferenceData(segmentResponse, contractorResponse);
+          hasCachedData = true;
+          if (!controller.signal.aborted) setIsLoadingForm(false);
+        }
+      } catch {
+        // Continue to the network refresh; a missing cache is a normal first-run state.
+      }
+
+      const networkState = await NetInfo.fetch();
+      const canRefresh = networkState.isConnected !== false && networkState.isInternetReachable !== false;
+      if (!canRefresh) {
+        if (!controller.signal.aborted) {
+          setLoadError(hasCachedData
+            ? "Offline mode: showing saved pipe and contractor options."
+            : "Pipe and contractor options are not saved on this device yet. Reconnect once to download them.");
+          setIsLoadingForm(false);
+        }
+        return;
+      }
+
+      const [segmentResult, contractorResult] = await Promise.allSettled([
+        fetchPipeSegments({ projectId, material, signal: controller.signal }),
+        fetchPipeContractors({ signal: controller.signal }),
+      ]);
+      if (controller.signal.aborted) return;
+
+      if (segmentResult.status === "fulfilled") segmentResponse = segmentResult.value;
+      if (contractorResult.status === "fulfilled") contractorResponse = contractorResult.value;
+      if (segmentResponse || contractorResponse) applyReferenceData(segmentResponse || [], contractorResponse || []);
+
+      if (segmentResult.status === "fulfilled" && contractorResult.status === "fulfilled") {
+        try {
+          await savePipeCache({ ownerUserId, projectId, resource: cacheResource, payload: { segments: segmentResponse, contractors: contractorResponse } });
+        } catch {
+          setLoadError("Options loaded, but the offline copy could not be updated.");
+        }
+      }
+
+      const failures = [segmentResult, contractorResult].filter((result) => result.status === "rejected");
+      if (failures.length) {
+        setLoadError(hasCachedData
+          ? "Could not refresh all options. Showing saved offline data."
+          : failures[0].reason?.message || "Could not load Pipe Network form data.");
+      }
+      setIsLoadingForm(false);
+    })();
     return () => controller.abort();
-  }, [material, route?.params?.projectId, user?.id]);
+  }, [material, ownerUserId, reloadKey, route?.params?.projectId]);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -327,26 +457,83 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       if (controller.signal.aborted) return;
       const masters = Array.isArray(response) ? response : response?.items || [];
       const stage = STAGES.find((entry) => entry.key === workType) || STAGES[0];
-      setSections([{ ...stage, title: stage.label, surface: workType === "excavation" ? "#EAF4FD" : workType === "pipe_laying" ? "#FFF1E5" : "#EDF7E8", items: masters.map((master) => ({
+      setSections([{ ...stage, title: stage.label, color: colors.primaryBlue, surface: colors.surfaceBlue, items: masters.map((master) => ({
         id: String(master.checklistId),
         checklistId: Number(master.checklistId),
         title: master.title || master.requirement,
         description: master.requirement || "",
         response: master.inputType === "photo" ? "photo" : master.inputType === "select" ? "select" : ["text", "number"].includes(master.inputType) ? "text" : "check",
         options: Array.isArray(master.options) ? master.options : [],
+        photoCount: Math.max(1, Number(master.photoCount || 1)),
         required: master.isRequired !== false,
         valueType: master.inputType === "photo" ? "file" : master.inputType === "checkbox" ? "boolean" : master.inputType === "number" ? "number" : "string",
       })) }]);
     };
-    void getPipeCache({ ownerUserId: user?.id, projectId, resource }).then((cached) => cached?.payload && applyMasters(cached.payload));
-    fetchPipeChecklistMasters({ material, processCode: workType, signal: controller.signal }).then((response) => {
-      applyMasters(response);
-      void savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: response });
-    }).catch((error) => {
-      if (!controller.signal.aborted) setLoadError(error?.message || "Could not load checklist fields.");
-    });
+    setSections([]);
+    setIsLoadingChecklist(true);
+    setChecklistError("");
+    void (async () => {
+      let hasCachedMasters = false;
+      try {
+        const cached = await getPipeCache({ ownerUserId, projectId, resource });
+        if (cached?.payload) {
+          applyMasters(cached.payload);
+          hasCachedMasters = true;
+          if (!controller.signal.aborted) setIsLoadingChecklist(false);
+        }
+      } catch {
+        // Continue to the network request on a first run or unreadable cache.
+      }
+
+      const networkState = await NetInfo.fetch();
+      const canRefresh = networkState.isConnected !== false && networkState.isInternetReachable !== false;
+      if (!canRefresh) {
+        if (!controller.signal.aborted) {
+          setChecklistError(hasCachedMasters
+            ? "Offline mode: showing the saved checklist."
+            : "This checklist is not saved on this device yet. Reconnect once to download it.");
+          setIsLoadingChecklist(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetchPipeChecklistMasters({ material, processCode: workType, signal: controller.signal });
+        applyMasters(response);
+        await savePipeCache({ ownerUserId, projectId, resource, payload: response });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setChecklistError(hasCachedMasters
+            ? "Could not refresh this checklist. Showing the saved offline copy."
+            : error?.message || "This checklist is not available offline yet.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoadingChecklist(false);
+      }
+    })();
     return () => controller.abort();
-  }, [material, route?.params?.projectId, user?.id, workType]);
+  }, [material, ownerUserId, reloadKey, route?.params?.projectId, workType]);
+
+  React.useEffect(() => {
+    const projectId = route?.params?.projectId;
+    if (!projectId || !isOnline) return undefined;
+    const controller = new AbortController();
+    let timer;
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        const remainingStages = STAGES.filter((stage) => stage.key !== workType);
+        void Promise.allSettled(remainingStages.map(async (stage) => {
+          const response = await fetchPipeChecklistMasters({ material, processCode: stage.key, signal: controller.signal });
+          await savePipeCache({ ownerUserId, projectId, resource: `masters:${material}:${stage.key}`, payload: response });
+        }));
+      }, 900);
+    });
+    return () => {
+      task.cancel();
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [isOnline, material, ownerUserId, route?.params?.projectId]);
 
   React.useEffect(() => {
     if (!selectedSegment) return;
@@ -365,9 +552,16 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
 
   const visibleSections = sections;
   const visibleItems = visibleSections.flatMap((section) => section.items);
+  const hasChecklistValue = (check, value) => {
+    if (check.response === "check") return value === true;
+    if (check.response === "photo") {
+      const photos = Array.isArray(value) ? value : value ? [value] : [];
+      return photos.length >= Math.max(1, Number(check.photoCount || 1));
+    }
+    return typeof value === "string" ? Boolean(value.trim()) : value !== null && typeof value !== "undefined";
+  };
   const completedCount = visibleItems.filter((check) => {
-    const value = responses[check.id];
-    return check.response === "check" ? value === true : Boolean(value);
+    return hasChecklistValue(check, responses[check.id]);
   }).length;
 
   const openPicker = (field, title, options) => {
@@ -377,7 +571,10 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const closePicker = () => setPicker((current) => ({ ...current, visible: false }));
 
   const handlePickerSelect = (value) => {
-    if (picker.field === "pipe") setSelectedPipe(value);
+    if (picker.field === "pipe") {
+      setSelectedPipe(value);
+      setErrors((current) => ({ ...current, pipe: false }));
+    }
     else if (picker.field === "contractor") {
       setContractor(value);
       setErrors((current) => ({ ...current, contractor: false }));
@@ -400,16 +597,42 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         return;
       }
 
+      const requiredPhotoCount = Math.max(1, Number(check.photoCount || 1));
+      const currentPhotos = Array.isArray(responses[check.id])
+        ? responses[check.id]
+        : responses[check.id] ? [responses[check.id]] : [];
+      const remainingPhotoCount = Math.max(1, requiredPhotoCount - currentPhotos.length);
       const result = source === "camera"
-        ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.72 })
-        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.72 });
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: false, allowsMultipleSelection: requiredPhotoCount > 1, selectionLimit: remainingPhotoCount });
 
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setResponses((current) => ({ ...current, [check.id]: result.assets[0].uri }));
+      if (!result.canceled && result.assets?.length) {
+        setProcessingPhotoId(check.id);
+        try {
+          const processedPhotos = [];
+          for (const asset of result.assets.slice(0, remainingPhotoCount)) {
+            const processedPhoto = await compressChecklistImage(asset, { takenAt: new Date().toLocaleString() });
+            processedPhotos.push(processedPhoto.uri);
+          }
+          setResponses((current) => {
+            const existing = Array.isArray(current[check.id]) ? current[check.id] : current[check.id] ? [current[check.id]] : [];
+            const base = existing.length >= requiredPhotoCount
+              ? existing.slice(0, Math.max(0, requiredPhotoCount - processedPhotos.length))
+              : existing;
+            return { ...current, [check.id]: [...base, ...processedPhotos].slice(0, requiredPhotoCount) };
+          });
+        } catch (error) {
+          Alert.alert(
+            "Photo processing failed",
+            "Unable to compress and add the date and time to this photo. Please try again.",
+          );
+        } finally {
+          setProcessingPhotoId("");
+        }
       }
     };
 
-    Alert.alert("Add site photo", check.title, [
+    Alert.alert("Add site photo", check.description || check.title, [
       { text: "Camera", onPress: () => launch("camera") },
       { text: "Gallery", onPress: () => launch("gallery") },
       { text: "Cancel", style: "cancel" },
@@ -417,7 +640,11 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   };
 
   const saveWork = async () => {
-    if (isSaving) return;
+    if (isSaving || processingPhotoId) return;
+    if (isLoadingChecklist || !visibleItems.length) {
+      Alert.alert("Checklist is still loading", checklistError || "Please wait for the checklist, then try again.");
+      return;
+    }
 
     const nextErrors = {};
     if (!selectedSegment) nextErrors.pipe = true;
@@ -434,10 +661,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       remark,
     });
     if (Object.keys(validationErrors).length) nextErrors.work = true;
-    const missingChecklist = visibleItems.filter((check) => check.required && (() => {
-      const value = responses[check.id];
-      return check.response === "check" ? value !== true : !value;
-    })());
+    const missingChecklist = visibleItems.filter((check) => check.required && !hasChecklistValue(check, responses[check.id]));
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length || missingChecklist.length) {
@@ -461,13 +685,19 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       const persistedResponses = { ...responses };
 
       for (const check of allItems.filter((entry) => entry.response === "photo")) {
-        const sourceUri = responses[check.id];
-        if (!sourceUri?.startsWith("file://")) continue;
-
-        const sourceExtension = sourceUri.split("?")[0].match(/\.([a-zA-Z0-9]+)$/)?.[1] || "jpg";
-        const savedUri = `${draftDirectory}${entryId}-${check.id}.${sourceExtension}`;
-        await FileSystem.copyAsync({ from: sourceUri, to: savedUri });
-        persistedResponses[check.id] = savedUri;
+        const sourceUris = Array.isArray(responses[check.id]) ? responses[check.id] : responses[check.id] ? [responses[check.id]] : [];
+        const savedUris = [];
+        for (const [photoIndex, sourceUri] of sourceUris.entries()) {
+          if (!sourceUri?.startsWith("file://")) {
+            savedUris.push(sourceUri);
+            continue;
+          }
+          const sourceExtension = sourceUri.split("?")[0].match(/\.([a-zA-Z0-9]+)$/)?.[1] || "jpg";
+          const savedUri = `${draftDirectory}${entryId}-${check.id}-${photoIndex + 1}.${sourceExtension}`;
+          await FileSystem.copyAsync({ from: sourceUri, to: savedUri });
+          savedUris.push(savedUri);
+        }
+        persistedResponses[check.id] = savedUris;
       }
       const projectId = route?.params?.projectId;
       const workPayload = {
@@ -489,7 +719,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         value: check.response === "photo" ? "uploaded" : persistedResponses[check.id],
         valueType: check.response === "photo" ? "file" : check.valueType,
       }));
-      const files = Object.fromEntries(visibleItems.filter((check) => check.response === "photo" && persistedResponses[check.id]).map((check) => [check.checklistId, persistedResponses[check.id]]));
+      const files = Object.fromEntries(visibleItems.filter((check) => check.response === "photo" && persistedResponses[check.id]?.length).map((check) => [check.checklistId, persistedResponses[check.id]]));
       const packagePayload = {
         projectId,
         segmentId: selectedSegment.id,
@@ -500,36 +730,48 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         locationLabel: selectedSegment.locationCode || undefined,
         remark: remark.trim() || undefined,
       };
+      const checklistPayload = { processCode: workType, remark: remark.trim() || undefined, checklist };
 
       let queued = false;
       let syncedWorkId = savedWorkId;
       let syncedPackageId = savedPackageId;
-      try {
-        if (!syncedWorkId) {
-          const work = await createPipeDailyWork(workPayload);
-          syncedWorkId = work?.id || work?.workId || null;
-          setSavedWorkId(syncedWorkId);
-        }
-        if (!syncedPackageId) {
-          const existingPackages = await fetchPipeChecklistPackages({ projectId, segmentId: selectedSegment.id, material, page: 1, pageSize: 1 });
-          const existingPackageId = existingPackages?.items?.[0]?.packageId;
-          const checklistPackage = existingPackageId ? null : await createPipeChecklistPackage(packagePayload);
-          syncedPackageId = existingPackageId || checklistPackage?.packageId || checklistPackage?.id || checklistPackage?.package?.packageId;
-          setSavedPackageId(syncedPackageId);
-        }
-        const packageId = syncedPackageId;
-        if (!packageId) throw new Error("Checklist package ID was not returned by the server.");
-        await submitPipeChecklist({ payload: { packageId, processCode: workType, remark: remark.trim() || undefined, checklist }, files });
-      } catch (syncError) {
-        if (![0, 408, 429, 500, 502, 503, 504].includes(Number(syncError?.status || 0))) throw syncError;
+      const persistOfflineEntry = async () => {
         await queuePipeMutation({
           id: entryId,
-          ownerUserId: user?.id,
+          ownerUserId,
           projectId,
           operation: "create_pipe_entry",
-          payload: { workPayload, packagePayload, checklistPayload: { processCode: workType, remark: remark.trim() || undefined, checklist }, files, syncedWorkId, syncedPackageId },
+          payload: { workPayload, packagePayload, checklistPayload, files, syncedWorkId, syncedPackageId },
         });
         queued = true;
+      };
+
+      const networkState = await NetInfo.fetch();
+      const canSubmitNow = networkState.isConnected !== false && networkState.isInternetReachable !== false;
+      if (!canSubmitNow) {
+        await persistOfflineEntry();
+      } else {
+        try {
+          if (!syncedWorkId) {
+            const work = await createPipeDailyWork(workPayload);
+            syncedWorkId = work?.id || work?.workId || null;
+            setSavedWorkId(syncedWorkId);
+          }
+          if (!syncedPackageId) {
+            const existingPackages = await fetchPipeChecklistPackages({ projectId, segmentId: selectedSegment.id, material, page: 1, pageSize: 1 });
+            const existingPackageId = existingPackages?.items?.[0]?.packageId;
+            const checklistPackage = existingPackageId ? null : await createPipeChecklistPackage(packagePayload);
+            syncedPackageId = existingPackageId || checklistPackage?.packageId || checklistPackage?.id || checklistPackage?.package?.packageId;
+            setSavedPackageId(syncedPackageId);
+          }
+          const packageId = syncedPackageId;
+          if (!packageId) throw new Error("Checklist package ID was not returned by the server.");
+          await submitPipeChecklist({ payload: { ...checklistPayload, packageId }, files });
+          await cleanupPipeMutationFiles({ files });
+        } catch (syncError) {
+          if (!isRetryableSyncError(syncError)) throw syncError;
+          await persistOfflineEntry();
+        }
       }
 
       Alert.alert(queued ? "Saved offline" : "Work submitted", queued ? `${material} entry will sync automatically when the connection is available.` : `${material} Daily Work and checklist were submitted.`, [
@@ -553,13 +795,14 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         <Pressable
           onPress={() => setResponses((current) => ({ ...current, [check.id]: !current[check.id] }))}
           accessibilityRole="checkbox"
+          accessibilityLabel={check.description || check.title}
           accessibilityState={{ checked: Boolean(value) }}
-          style={({ pressed }) => [styles.okControl, value && styles.okControlActive, pressed && styles.fieldPressed]}
+          hitSlop={8}
+          style={({ pressed }) => [styles.checkToggle, pressed && styles.fieldPressed]}
         >
           <View style={[styles.checkbox, value && styles.checkboxActive]}>
             {value ? <Icon source="check" size={14} color={colors.white} /> : null}
           </View>
-          <Text style={[styles.okText, value && styles.okTextActive]}>{value ? "Verified" : "Mark verified"}</Text>
         </Pressable>
       );
     }
@@ -567,7 +810,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
     if (check.response === "select") {
       return (
         <Pressable
-          onPress={() => openPicker(`check:${check.id}`, check.title, check.options?.length ? check.options.map(String) : SOIL_OPTIONS)}
+          onPress={() => openPicker(`check:${check.id}`, check.description || check.title, check.options?.length ? check.options.map(String) : SOIL_OPTIONS)}
           style={({ pressed }) => [styles.inlineSelect, pressed && styles.fieldPressed]}
         >
           <Text style={[styles.inlineSelectText, !value && styles.placeholder]} numberOfLines={1}>
@@ -590,47 +833,65 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       );
     }
 
+    const isProcessingPhoto = processingPhotoId === check.id;
+    const photos = Array.isArray(value) ? value : value ? [value] : [];
+    const requiredPhotoCount = Math.max(1, Number(check.photoCount || 1));
+
     return (
       <Pressable
+        disabled={Boolean(processingPhotoId)}
         onPress={() => choosePhoto(check)}
-        style={({ pressed }) => [styles.photoButton, value && styles.photoButtonAdded, pressed && styles.fieldPressed]}
+        style={({ pressed }) => [styles.photoButton, photos.length > 0 && styles.photoButtonAdded, isProcessingPhoto && styles.buttonDisabled, pressed && styles.fieldPressed]}
       >
-        {value ? <Image source={{ uri: value }} style={styles.photoThumbnail} /> : <Icon source="camera-plus-outline" size={19} color={colors.primaryBlue} />}
-        <Text style={[styles.photoButtonText, value && styles.photoButtonTextAdded]}>
-          {value ? "Replace photo" : "Add photo"}
+        {isProcessingPhoto ? (
+          <ActivityIndicator size="small" color={colors.primaryBlue} />
+        ) : photos.length ? (
+          <View style={styles.photoPreviewRow}>{photos.map((uri) => <Image key={uri} source={{ uri }} style={styles.photoThumbnail} />)}</View>
+        ) : (
+          <Icon source="camera-plus-outline" size={19} color={colors.primaryBlue} />
+        )}
+        <Text style={[styles.photoButtonText, photos.length && styles.photoButtonTextAdded]}>
+          {isProcessingPhoto ? "Preparing photo..." : photos.length ? `${photos.length}/${requiredPhotoCount} added` : `Add ${requiredPhotoCount > 1 ? `${requiredPhotoCount} photos` : "photo"}`}
         </Text>
       </Pressable>
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <View style={styles.header}>
-          <IconButton icon="arrow-left" size={24} onPress={() => navigation.goBack()} />
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>Add entry</Text>
-            <Text style={styles.headerSubtitle}>Pipe network · Daily work</Text>
-          </View>
-          <View style={styles.headerMaterialBadge}>
-            <Text style={styles.headerMaterialText}>{material}</Text>
-          </View>
-        </View>
+  const pickerIsLoading = picker.field === "pipe"
+    ? isLoadingForm && segments.length === 0
+    : picker.field === "contractor"
+      ? isLoadingForm && contractors.length === 0
+      : picker.field.startsWith("check:")
+        ? isLoadingChecklist && picker.options.length === 0
+        : false;
+  const pickerEmptyMessage = !isOnline
+    ? "This list has not been saved on this device yet. Reconnect once to download it."
+    : loadError || checklistError || "No options found.";
+  const formBusy = isSaving || Boolean(processingPhotoId) || isLoadingChecklist || visibleItems.length === 0;
 
+  return (
+    <View style={styles.safeArea}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.processSelector}>
           <View style={styles.processSelectorHeading}>
             <Text style={styles.sectionTitle}>Work details & checklist</Text>
-          <Text style={styles.processCounter}>{completedCount}/{visibleItems.length} checks</Text>
+            <View style={styles.processHeadingMeta}>
+              <View style={[styles.networkBadge, isOnline && styles.networkBadgeHidden]} pointerEvents="none">
+                <Icon source="cloud-off-outline" size={13} color={colors.pending} />
+                <Text style={styles.networkBadgeText}>Offline</Text>
+              </View>
+              <Text style={styles.processCounter}>{completedCount}/{visibleItems.length} checks</Text>
+            </View>
           </View>
           <View style={styles.processOptions} accessibilityRole="tablist">
             {STAGES.map((stage) => (
               <Pressable
                 key={stage.key}
-                disabled={isSaving}
+                disabled={isSaving || Boolean(processingPhotoId)}
                 accessibilityRole="tab"
-                accessibilityState={{ selected: workType === stage.key, disabled: isSaving }}
+                accessibilityState={{ selected: workType === stage.key, disabled: isSaving || Boolean(processingPhotoId) }}
                 onPress={() => setWorkType(stage.key)}
-                style={[styles.processOption, workType === stage.key && { backgroundColor: stage.color, borderColor: stage.color }]}
+                style={[styles.processOption, workType === stage.key && styles.processOptionActive]}
               >
                 <Text style={[styles.processOptionText, workType === stage.key && styles.stageTabTextActive]}>{stage.label}</Text>
               </Pressable>
@@ -645,10 +906,19 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
+          contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
+          {(loadError || checklistError) ? (
+            <View style={styles.loadNotice}>
+              <Icon source="alert-circle-outline" size={19} color={colors.pending} />
+              <Text style={styles.loadNoticeText}>{checklistError || loadError}</Text>
+              <Pressable accessibilityRole="button" onPress={() => setReloadKey((value) => value + 1)} style={styles.retryButton}><Text style={styles.retryButtonText}>Retry</Text></Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeadingRow}>
               <View style={styles.sectionIcon}>
@@ -676,8 +946,10 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                   label="Pipe (Start → End)"
                   required
                   value={selectedPipe}
+                  error={errors.pipe}
+                  loading={isLoadingForm && segments.length === 0}
                   placeholder="Select pipe"
-                  onPress={() => openPicker("pipe", "Select pipe", segments.map((segment) => segment.optionLabel))}
+                  onPress={() => openPicker("pipe", "Select pipe", pipeOptionLabels)}
                 />
               </View>
             </View>
@@ -743,8 +1015,9 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                   required
                   value={contractor}
                   error={errors.contractor}
+                  loading={isLoadingForm && contractors.length === 0}
                   placeholder="Select contractor"
-                  onPress={() => openPicker("contractor", "Select contractor", contractors.map((entry) => entry.optionLabel))}
+                  onPress={() => openPicker("contractor", "Select contractor", contractorOptionLabels)}
                 />
               </View>
               {[
@@ -781,6 +1054,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
             </View>
           </View>
 
+          {isLoadingChecklist && !visibleSections.length ? <FormLoadingSkeleton /> : null}
           {visibleSections.map((section) => (
             <View style={styles.checklistSection} key={section.key}>
               <View style={[styles.checklistSectionHeader, { backgroundColor: section.surface }]}>
@@ -789,15 +1063,15 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
                 <Text style={[styles.checklistSectionCount, { color: section.color }]}>{section.items.length} items</Text>
               </View>
               {section.items.map((check, index) => (
-                <View style={[styles.checklistRow, index === section.items.length - 1 && styles.checklistRowLast]} key={check.id}>
-                  <View style={[styles.checkNumber, { backgroundColor: section.surface }]}>
-                    <Text style={[styles.checkNumberText, { color: section.color }]}>{index + 1}</Text>
-                  </View>
+                <View style={[styles.checklistRow, check.response === "check" && styles.checklistRowToggle, index === section.items.length - 1 && styles.checklistRowLast]} key={check.id}>
                   <View style={styles.checkCopy}>
-                    <Text style={styles.checkTitle}>{check.title}<Text style={styles.required}> *</Text></Text>
-                    <Text style={styles.checkDescription}>{check.description}</Text>
-                    <View style={styles.responseWrap}>{renderResponse(check)}</View>
+                    <Text style={styles.checkDescriptionPrimary}>
+                      {check.description || check.title}
+                      {check.required ? <Text style={styles.required}> *</Text> : null}
+                    </Text>
+                    {check.response !== "check" ? <View style={styles.responseWrap}>{renderResponse(check)}</View> : null}
                   </View>
+                  {check.response === "check" ? renderResponse(check) : null}
                 </View>
               ))}
             </View>
@@ -805,22 +1079,22 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <Pressable disabled={isSaving} onPress={() => navigation.goBack()} style={({ pressed }) => [styles.cancelButton, isSaving && styles.buttonDisabled, pressed && styles.buttonPressed]}>
+          <Pressable disabled={isSaving || Boolean(processingPhotoId)} onPress={() => navigation.goBack()} style={({ pressed }) => [styles.cancelButton, (isSaving || Boolean(processingPhotoId)) && styles.buttonDisabled, pressed && styles.buttonPressed]}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </Pressable>
           <Pressable
-            disabled={isSaving}
+            disabled={formBusy}
             accessibilityRole="button"
-            accessibilityState={{ busy: isSaving, disabled: isSaving }}
+            accessibilityState={{ busy: isSaving || Boolean(processingPhotoId) || isLoadingChecklist, disabled: formBusy }}
             onPress={saveWork}
-            style={({ pressed }) => [styles.saveButton, isSaving && styles.buttonDisabled, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [styles.saveButton, formBusy && styles.buttonDisabled, pressed && styles.buttonPressed]}
           >
-            {isSaving ? (
+            {isSaving || processingPhotoId ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Icon source="content-save-check-outline" size={20} color={colors.white} />
             )}
-            <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : "Save & submit stage"}</Text>
+            <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : processingPhotoId ? "Preparing photo..." : isLoadingChecklist ? "Loading checklist..." : "Save & submit stage"}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -830,8 +1104,9 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         title={picker.title}
         subtitle="Search or select an option."
         options={picker.options}
-        isLoading={isLoadingForm}
-        emptyMessage={loadError || "No options found."}
+        totalItems={picker.options.length}
+        isLoading={pickerIsLoading}
+        emptyMessage={pickerEmptyMessage}
         selectedValue={
           picker.field === "pipe" ? selectedPipe
             : picker.field === "contractor" ? contractor
@@ -843,7 +1118,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
         onClose={closePicker}
         searchPlaceholder={`Search ${picker.title.toLowerCase()}`}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
