@@ -2,6 +2,8 @@
 
 Updated: 3 October 2026
 
+> Historical integration plan. Its “Current mobile state” and “Required change” tables describe an earlier implementation and are not current. For the current app/API contract, role matrix, offline behavior, and resubmission flow, see [PIPE-NETWORK-CURRENT-FLOW.md](./PIPE-NETWORK-CURRENT-FLOW.md).
+
 Backend baseline: `vensar-irritrack-apis` branch `role-permission-api`, commit `409beb5`.
 
 This document defines the mobile flow from the Pipe Network dashboard through piping data, Daily Work, checklists, OMS-style Work Status, Daily Report, and offline synchronization. It also records the backend corrections required before stage progress can be considered reliable.

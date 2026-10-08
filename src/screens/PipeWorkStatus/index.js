@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -22,9 +23,10 @@ import { fetchPipeSubmission, fetchPipeWorkStatus, updatePipeSubmissionWorkflow 
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 import { fontScale, moderateScale, verticalScale } from "../../constants/metrics";
-import { getPipeCache, savePipeCache } from "../../services/pipeNetworkOfflineStore";
+import { getPipeCache, listPendingPipeMutations, savePipeCache } from "../../services/pipeNetworkOfflineStore";
 import { IMAGE_BASE_URL } from "../../config/env";
 import { getUnitStatusPalette } from "../../utils/unitStatusPalette";
+import ImageViewerModal from "../../components/ImageViewerModal";
 
 const TABS = ["all", "submitted", "verified", "approved", "rejected", "modify_request", "modify_approved"];
 const TAB_LABELS = {
@@ -37,6 +39,9 @@ const TAB_LABELS = {
   modify_approved: "Modify approved",
 };
 const roleCode = (value) => String(value || "").trim().toLowerCase().replace(/[ -]+/g, "_");
+const isRemarkRequired = (action, status) =>
+  ["reject", "modify_rejected"].includes(action) ||
+  (action === "modify_approved" && status !== "modify_request");
 
 const getStatusLabel = (value = "") => TAB_LABELS[String(value).toLowerCase()] || String(value || "Pending").replace(/_/g, " ");
 
@@ -62,17 +67,20 @@ const formatDate = (value) => {
 };
 
 const unwrapChecklistValue = (item = {}) => {
-  const raw = item.value ?? item.valueJson;
-  if (raw && typeof raw === "object" && !Array.isArray(raw) && Object.prototype.hasOwnProperty.call(raw, "value")) {
-    return raw.value;
+  let value = item.value ?? item.valueJson;
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || !Object.prototype.hasOwnProperty.call(value, "value")) {
+      break;
+    }
+    value = value.value;
   }
-  return raw;
+  return value;
 };
 
 const resolveImageUrl = (value = "") => {
   const source = String(value || "").trim();
   if (!source) return "";
-  if (/^https?:\/\//i.test(source)) return source;
+  if (/^(https?:|file:|content:|data:|blob:)/i.test(source)) return source;
   if (!IMAGE_BASE_URL) return source;
   return `${String(IMAGE_BASE_URL).replace(/\/?$/, "/")}${source.replace(/^\/+/, "")}`;
 };
@@ -82,22 +90,120 @@ const getChecklistImages = (value) => {
     ? value
     : Array.isArray(value?.files)
       ? value.files
-      : [];
-  return candidates
-    .map((file) => resolveImageUrl(file?.url || file?.storageKey || file?.key || file))
-    .filter(Boolean);
+      : value?.url || value?.publicUrl || value?.imageUrl || value?.objectKey || value?.storageKey || value?.uri
+        ? [value]
+        : [];
+  return candidates.map((file, index) => {
+    const uri = resolveImageUrl(
+      file?.url || file?.publicUrl || file?.imageUrl || file?.image_url ||
+      file?.objectKey || file?.object_key || file?.storageKey || file?.key ||
+      file?.uri || file?.filePath || file,
+    );
+    if (!uri) return null;
+    return {
+      id: String(file?.imageId || file?.id || uri || `checklist-image-${index}`),
+      uri,
+      title: file?.fileName || file?.name || `Checklist photo ${index + 1}`,
+      meta: file?.uploadedAt || file?.takenAt || "",
+    };
+  }).filter(Boolean);
 };
 
-const ChecklistAnswer = ({ item }) => {
+const normalizeSubmissionDetail = (response) => {
+  let detail = response;
+  for (let depth = 0; depth < 2; depth += 1) {
+    if (detail?.submissionId || Array.isArray(detail?.items)) return detail;
+    if (detail?.data && typeof detail.data === "object") {
+      detail = detail.data;
+      continue;
+    }
+    break;
+  }
+  return detail;
+};
+
+const logSubmissionDetail = (submissionId, response) => {
+  if (typeof __DEV__ === "undefined" || !__DEV__) return;
+  console.info(`[PipeWorkStatus] submission details API response (${submissionId})`, JSON.stringify(response, null, 2));
+  const detail = normalizeSubmissionDetail(response);
+  const checklistImages = (detail?.items || []).flatMap((item) =>
+    getChecklistImages(unwrapChecklistValue(item)).map((image) => ({ checklistId: item.checklistId, uri: image.uri })),
+  );
+  console.info("[PipeWorkStatus] resolved submission images", {
+    submissionId,
+    checklistImages,
+    resubmitImages: getChecklistImages(detail?.resubmitImages).map((image) => image.uri),
+  });
+};
+
+const ChecklistImageThumbnail = ({ image, index, images, onViewImages }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={failed ? `Retry ${image.title}` : `View ${image.title}`}
+      onPress={() => failed ? setFailed(false) : onViewImages?.(images, index)}
+      style={({ pressed }) => [styles.answerImageButton, pressed && styles.pressed]}
+    >
+      {failed ? (
+        <View style={[styles.answerImage, styles.answerImageUnavailable]}>
+          <Icon source="image-off-outline" size={20} color={colors.textSecondary} />
+          <Text style={styles.answerImageUnavailableText}>Tap to retry</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri: image.uri }}
+          style={styles.answerImage}
+          resizeMode="cover"
+          onLoad={(event) => {
+            if (typeof __DEV__ !== "undefined" && __DEV__) {
+              console.info("[PipeWorkStatus] image loaded", {
+                uri: image.uri,
+                width: event?.nativeEvent?.source?.width,
+                height: event?.nativeEvent?.source?.height,
+              });
+            }
+          }}
+          onError={(event) => {
+            setFailed(true);
+            if (typeof __DEV__ !== "undefined" && __DEV__) {
+              console.warn("[PipeWorkStatus] image failed to load", {
+                uri: image.uri,
+                error: event?.nativeEvent?.error || "Unknown image loading error",
+              });
+            }
+          }}
+        />
+      )}
+      {!failed ? (
+        <View style={styles.answerImageOpenHint}>
+          <Icon source="magnify-plus-outline" size={14} color={colors.white} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+};
+
+const ChecklistImageGallery = ({ images = [], onViewImages }) => (
+  <View style={styles.answerImages}>
+    {images.map((image, index) => (
+      <ChecklistImageThumbnail
+        key={image.id}
+        image={image}
+        index={index}
+        images={images}
+        onViewImages={onViewImages}
+      />
+    ))}
+  </View>
+);
+
+const ChecklistAnswer = ({ item, onViewImages }) => {
   const value = unwrapChecklistValue(item);
   const images = getChecklistImages(value);
 
   if (images.length) {
-    return (
-      <View style={styles.answerImages}>
-        {images.map((uri) => <Image key={uri} source={{ uri }} style={styles.answerImage} resizeMode="cover" />)}
-      </View>
-    );
+    return <ChecklistImageGallery images={images} onViewImages={onViewImages} />;
   }
 
   if (typeof value === "boolean") {
@@ -120,17 +226,37 @@ const getActions = (item, user) => {
   const engineer = userId && userId === String(item?.assignedEngineerId || "");
   const manager = userId && userId === String(item?.assignedManagerId || "");
   if ((role === "engineer" || role === "manager") && (engineer || manager)) {
-    if (status === "submitted") return [{ key: "verify", label: "Verify" }, { key: "reject", label: "Need correction" }];
-    if (status === "verified" && role === "manager" && manager) return [{ key: "approve", label: "Approve" }, { key: "reject", label: "Need correction" }];
+    if (status === "submitted") return [
+      { key: "verify", label: "Verify" },
+      { key: "modify_approved", label: "Need modification" },
+      { key: "reject", label: "Need correction" },
+    ];
+    if (status === "verified") return [
+      ...(role === "manager" && manager ? [{ key: "approve", label: "Approve" }] : []),
+      { key: "reject", label: "Need correction" },
+    ];
+    if (status === "modify_request") return [
+      { key: "modify_approved", label: "Allow modification" },
+      { key: "modify_rejected", label: "Reject modification" },
+    ];
   }
-  if (role === "supervisor" && ["verified", "approved"].includes(status)) return [{ key: "modify_request", label: "Request modification" }];
+  if (role === "supervisor") {
+    if (["verified", "approved"].includes(status)) {
+      return [{ key: "modify_request", label: "Request modification" }];
+    }
+    if (["modify_approved", "rejected"].includes(status)) {
+      return [{ key: "edit_resubmit", label: "Edit & resubmit" }];
+    }
+  }
   return [];
 };
 
-export default function PipeWorkStatusScreen({ route }) {
+export default function PipeWorkStatusScreen({ navigation, route }) {
   const { projectId, material } = route.params || {};
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetMaxHeight = Math.max(0, Math.min(windowHeight * 0.82, windowHeight - insets.top - insets.bottom - verticalScale(24)));
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
   const [data, setData] = useState(null);
@@ -138,15 +264,37 @@ export default function PipeWorkStatusScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [imageViewerState, setImageViewerState] = useState({ visible: false, items: [], initialIndex: 0 });
   const [actionBusy, setActionBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
   const [actionRemark, setActionRemark] = useState("");
   const [isOnline, setIsOnline] = useState(true);
+  const [pendingResubmissions, setPendingResubmissions] = useState(new Map());
   const controllerRef = useRef(null);
+  const hasLoadedDataRef = useRef(false);
 
-  React.useEffect(() => NetInfo.addEventListener((state) => {
-    setIsOnline(state.isConnected !== false && state.isInternetReachable !== false);
-  }), []);
+  const openChecklistImages = useCallback((images = [], initialIndex = 0) => {
+    const validImages = images.filter((image) => image?.uri);
+    if (!validImages.length) return;
+    setImageViewerState({
+      visible: true,
+      items: validImages,
+      initialIndex: Math.min(Math.max(0, initialIndex), validImages.length - 1),
+    });
+  }, []);
+
+  const closeImageViewer = useCallback(() => {
+    setImageViewerState((current) => ({ ...current, visible: false }));
+  }, []);
+
+  React.useEffect(() => {
+    const applyNetworkState = (state) => {
+      setIsOnline(state.isConnected !== false && state.isInternetReachable !== false);
+    };
+    void NetInfo.fetch().then(applyNetworkState);
+    return NetInfo.addEventListener(applyNetworkState);
+  }, []);
 
   const load = useCallback(async () => {
     controllerRef.current?.abort();
@@ -154,15 +302,38 @@ export default function PipeWorkStatusScreen({ route }) {
     controllerRef.current = controller;
     setLoading(true);
     setError("");
+    void listPendingPipeMutations(String(user?.id || user?.mobile || ""), { force: true })
+      .then((entries) => {
+        if (!controller.signal.aborted) setPendingResubmissions(new Map(entries
+          .filter((entry) => entry.operation === "resubmit_pipe_entry" && entry.payload?.submissionId)
+          .map((entry) => [String(entry.payload.submissionId), {
+            needsPhoto: entry.payload?.resubmitMode !== "modify_approved" && !entry.payload?.resubmitFile,
+          }])));
+      })
+      .catch(() => { if (!controller.signal.aborted) setPendingResubmissions(new Map()); });
     const resource = `work-status:${material || "all"}:${tab}:${search.trim()}`;
-    const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
-    if (cached?.payload && !controller.signal.aborted) {
-      setData(cached.payload);
-      setLoading(false);
+    try {
+      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      if (cached?.payload && !controller.signal.aborted) {
+        hasLoadedDataRef.current = true;
+        setData(cached.payload);
+        setLoading(false);
+      }
+    } catch {
+      // A cache read failure should not leave Work Status stuck in a loading state.
     }
     try {
+      const networkState = await NetInfo.fetch();
+      if (!isOnline || networkState.isConnected === false || networkState.isInternetReachable === false) {
+        if (!controller.signal.aborted) {
+          if (!hasLoadedDataRef.current) setError("Offline: showing saved work status when available.");
+          setLoading(false);
+        }
+        return;
+      }
       const response = await fetchPipeWorkStatus({ projectId, material, workflowStatus: tab === "all" ? undefined : tab, search: search.trim() || undefined, page: 1, pageSize: 100, signal: controller.signal });
       if (!controller.signal.aborted) {
+        hasLoadedDataRef.current = true;
         setData(response);
         await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: response });
       }
@@ -171,7 +342,7 @@ export default function PipeWorkStatusScreen({ route }) {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [material, projectId, search, tab, user?.id]);
+  }, [isOnline, material, projectId, search, tab, user?.id, user?.mobile]);
 
   useFocusEffect(useCallback(() => {
     const timer = setTimeout(load, search ? 350 : 0);
@@ -181,12 +352,56 @@ export default function PipeWorkStatusScreen({ route }) {
   const openItem = async (item) => {
     setSelected(item);
     setDetail(null);
-    try { setDetail(await fetchPipeSubmission({ submissionId: item.submissionId })); }
-    catch (detailError) { Alert.alert("Could not open request", detailError?.message || "Please try again."); setSelected(null); }
+    setDetailLoading(true);
+    const resource = `submission-detail:${item.submissionId}`;
+    let hasCachedDetail = false;
+    try {
+      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      if (cached?.payload) {
+        hasCachedDetail = true;
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.info(`[PipeWorkStatus] showing cached submission detail (${item.submissionId})`);
+        }
+        setDetail(normalizeSubmissionDetail(cached.payload));
+      }
+    } catch {
+      // Detail API remains available when the local copy is missing or unreadable.
+    }
+    try {
+      const networkState = await NetInfo.fetch();
+      if (networkState.isConnected === false || networkState.isInternetReachable === false) {
+        if (!hasCachedDetail) Alert.alert("Offline", "This submission’s checklist has not been saved on this device yet.");
+        return;
+      }
+      const response = await fetchPipeSubmission({ submissionId: item.submissionId });
+      logSubmissionDetail(item.submissionId, response);
+      const normalizedDetail = normalizeSubmissionDetail(response);
+      setDetail(normalizedDetail);
+      await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: normalizedDetail });
+    } catch (detailError) {
+      if (!hasCachedDetail) Alert.alert("Could not open request", detailError?.message || "Please try again.");
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const runAction = (action) => {
-    const needsRemark = action === "reject" || action === "modify_request";
+    if (action === "edit_resubmit") {
+      if (!detail?.packageId || !selected?.submissionId) {
+        Alert.alert("Checklist unavailable", "Refresh this submission before editing it.");
+        return;
+      }
+      setSelected(null);
+      navigation.navigate("PipeNetworkEntry", {
+        projectId,
+        material: selected.material,
+        resubmitSubmission: selected,
+        submissionDetail: detail,
+      });
+      return;
+    }
+    const needsRemark = ["reject", "modify_request", "modify_rejected"].includes(action) ||
+      isRemarkRequired(action, selected?.workflowStatus || selected?.status);
     const submit = async (remark = "") => {
       setActionBusy(true);
       try {
@@ -203,7 +418,20 @@ export default function PipeWorkStatusScreen({ route }) {
 
   const items = data?.items || [];
   const counts = data?.counts || {};
-  const actions = useMemo(() => isOnline ? getActions(selected, user) : [], [isOnline, selected, user]);
+  const selectedPending = selected ? pendingResubmissions.get(String(selected.submissionId)) : null;
+  const selectedNeedsPhoto = Boolean(selectedPending?.needsPhoto && (selected?.workflowStatus || selected?.status) === "rejected");
+  const actions = useMemo(
+    () => getActions(selected, user).filter((action) => (isOnline || action.key === "edit_resubmit") && !((selectedPending && !selectedNeedsPhoto) && action.key === "edit_resubmit")),
+    [isOnline, selected, selectedNeedsPhoto, selectedPending, user],
+  );
+  const pendingRemarkRequired = isRemarkRequired(
+    pendingAction,
+    selected?.workflowStatus || selected?.status,
+  );
+  const resubmitImages = useMemo(
+    () => getChecklistImages(detail?.resubmitImages),
+    [detail?.resubmitImages],
+  );
 
   return (
     <View style={styles.screen}>
@@ -267,6 +495,7 @@ export default function PipeWorkStatusScreen({ route }) {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + verticalScale(20) }]}
         renderItem={({ item }) => {
           const statusTheme = getStatusTheme(item.workflowStatus || item.status);
+          const pendingResubmission = pendingResubmissions.get(String(item.submissionId));
           const reference = [
             item.segmentLabel || item.packageTitle || "Unlabelled pipe",
             item.processDescription || item.processCode,
@@ -297,6 +526,13 @@ export default function PipeWorkStatusScreen({ route }) {
                 </View>
               ) : null}
 
+              {pendingResubmission ? (
+                <View style={styles.pendingSyncNotice}>
+                  <Icon source="cloud-upload-outline" size={16} color={colors.primaryBlue} />
+                  <Text style={styles.pendingSyncText}>{pendingResubmission.needsPhoto && (item.workflowStatus || item.status) === "rejected" ? "Correction photo needed to sync" : "Resubmission saved · waiting to sync"}</Text>
+                </View>
+              ) : null}
+
               <View style={styles.cardDivider} />
               <View style={styles.activityRow}>
                 <Icon source="account-clock-outline" size={19} color={colors.textSecondary} />
@@ -323,9 +559,9 @@ export default function PipeWorkStatusScreen({ route }) {
       />
 
       <Modal visible={Boolean(selected)} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { paddingTop: insets.top + verticalScale(12) }]}>
           <Pressable style={styles.modalDismissArea} onPress={() => setSelected(null)} />
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
+          <View style={[styles.sheet, { maxHeight: sheetMaxHeight, paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderCopy}>
@@ -337,8 +573,10 @@ export default function PipeWorkStatusScreen({ route }) {
               </Pressable>
             </View>
 
-            {!detail ? (
+            {!detail && detailLoading ? (
               <View style={styles.state}><ActivityIndicator color={colors.primaryBlue} /><Text style={styles.stateText}>Loading checklist…</Text></View>
+            ) : !detail ? (
+              <View style={styles.state}><Icon source="cloud-off-outline" size={24} color={colors.textSecondary} /><Text style={styles.stateText}>Checklist details are unavailable offline on this device.</Text></View>
             ) : (
               <FlatList
                 data={detail.items || []}
@@ -358,6 +596,21 @@ export default function PipeWorkStatusScreen({ route }) {
                       <Text style={styles.summaryProcess}>{[selected?.processDescription || selected?.processCode, selected?.material].filter(Boolean).join(" · ")}</Text>
                       <Text style={styles.summaryPeople}>{selected?.assignedEngineerName || "No engineer"} → {selected?.assignedManagerName || "No manager"}</Text>
                     </View>
+                    {selectedPending ? (
+                      <View style={styles.pendingSyncNotice}>
+                        <Icon source="cloud-upload-outline" size={16} color={colors.primaryBlue} />
+                        <Text style={styles.pendingSyncText}>{selectedNeedsPhoto ? "This older saved correction needs one new photo before it can sync." : "Your changes are saved on this device and will sync when connected."}</Text>
+                      </View>
+                    ) : null}
+                    {resubmitImages.length ? (
+                      <View style={styles.resubmitPhotosSection}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Resubmitted photos</Text>
+                          <View style={styles.itemCount}><Text style={styles.itemCountText}>{resubmitImages.length}</Text></View>
+                        </View>
+                        <ChecklistImageGallery images={resubmitImages} onViewImages={openChecklistImages} />
+                      </View>
+                    ) : null}
                     <View style={styles.sectionHeader}>
                       <Text style={styles.sectionTitle}>Checklist</Text>
                       <View style={styles.itemCount}><Text style={styles.itemCountText}>{detail.items?.length || 0} items</Text></View>
@@ -373,23 +626,28 @@ export default function PipeWorkStatusScreen({ route }) {
                       <View style={styles.answerCopy}>
                         <View style={styles.answerHeadingRow}>
                           <Text style={styles.answerRequirement}>{item.requirement || item.title || `Checklist ${item.checklistId}`}</Text>
-                          {isBoolean ? <ChecklistAnswer item={item} /> : null}
+                          {isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
                         </View>
-                        {!isBoolean ? <ChecklistAnswer item={item} /> : null}
+                        {!isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
                       </View>
                     </View>
                   );
                 }}
                 ListFooterComponent={(
                   <View style={styles.actions}>
-                    {pendingAction ? (
+                    {selectedPending && !selectedNeedsPhoto ? (
+                      <View style={styles.viewOnlyNotice}>
+                        <Icon source="cloud-upload-outline" size={18} color={colors.primaryBlue} />
+                        <Text style={styles.viewOnlyText}>Resubmission is queued. Use Profile → Pending Work to retry now.</Text>
+                      </View>
+                    ) : pendingAction ? (
                       <View style={styles.remarkBox}>
                         <Text style={styles.answerTitle}>Remark</Text>
-                        <TextInput value={actionRemark} onChangeText={setActionRemark} placeholder="Enter reason" placeholderTextColor={colors.textSecondary} multiline style={styles.remarkInput} />
+                        <TextInput value={actionRemark} onChangeText={setActionRemark} placeholder={pendingRemarkRequired ? "Remark (required)" : "Remark (optional)"} placeholderTextColor={colors.textSecondary} multiline style={styles.remarkInput} />
                         <View style={styles.actionRow}>
                           <Pressable onPress={() => setPendingAction("")} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}><Text style={styles.secondaryActionText}>Cancel</Text></Pressable>
                           <Pressable
-                            disabled={!actionRemark.trim() || actionBusy}
+                            disabled={(pendingRemarkRequired && !actionRemark.trim()) || actionBusy}
                             onPress={async () => {
                               const action = pendingAction;
                               const remark = actionRemark.trim();
@@ -406,15 +664,36 @@ export default function PipeWorkStatusScreen({ route }) {
                                 setActionBusy(false);
                               }
                             }}
-                            style={({ pressed }) => [styles.action, (!actionRemark.trim() || actionBusy) && styles.actionDisabled, pressed && styles.pressed]}
+                            style={({ pressed }) => [styles.action, ((pendingRemarkRequired && !actionRemark.trim()) || actionBusy) && styles.actionDisabled, pressed && styles.pressed]}
                           >
                             <Text style={styles.actionText}>{actionBusy ? "Submitting…" : "Submit"}</Text>
                           </Pressable>
                         </View>
                       </View>
                     ) : actions.length ? actions.map((action) => (
-                      <Pressable disabled={actionBusy} key={action.key} onPress={() => runAction(action.key)} style={({ pressed }) => [styles.action, styles.workflowAction, pressed && styles.pressed]}>
-                        <Text style={styles.actionText}>{action.label}</Text>
+                      <Pressable
+                        disabled={actionBusy}
+                        key={action.key}
+                        onPress={() => runAction(action.key)}
+                        style={({ pressed }) => [
+                          styles.action,
+                          styles.workflowAction,
+                          action.key === "edit_resubmit" && styles.editResubmitAction,
+                          action.key === "modify_request" && styles.modifyRequestAction,
+                          action.key === "modify_approved" && styles.modifyApproveAction,
+                          action.key === "modify_rejected" && styles.modifyRejectAction,
+                          action.key === "reject" && styles.rejectAction,
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.actionText,
+                          action.key === "edit_resubmit" && styles.editResubmitActionText,
+                          action.key === "modify_request" && styles.modifyRequestActionText,
+                          action.key === "modify_approved" && styles.modifyApproveActionText,
+                          action.key === "modify_rejected" && styles.modifyRejectActionText,
+                          action.key === "reject" && styles.rejectActionText,
+                        ]}>{selectedNeedsPhoto && action.key === "edit_resubmit" ? "Add correction photo" : action.label}</Text>
                       </Pressable>
                     )) : (
                       <View style={styles.viewOnlyNotice}>
@@ -429,6 +708,12 @@ export default function PipeWorkStatusScreen({ route }) {
           </View>
         </View>
       </Modal>
+      <ImageViewerModal
+        visible={imageViewerState.visible}
+        items={imageViewerState.items}
+        initialIndex={imageViewerState.initialIndex}
+        onRequestClose={closeImageViewer}
+      />
     </View>
   );
 }
@@ -461,6 +746,8 @@ const styles = StyleSheet.create({
   statusText: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: fontScale(10), lineHeight: fontScale(13), textTransform: "capitalize" },
   chainagePill: { alignSelf: "flex-start", minHeight: verticalScale(25), paddingHorizontal: moderateScale(8), borderRadius: moderateScale(8), backgroundColor: colors.surfaceBluePale, flexDirection: "row", alignItems: "center", gap: moderateScale(5) },
   chainageText: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: fontScale(10.5) },
+  pendingSyncNotice: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: moderateScale(6), paddingHorizontal: moderateScale(9), paddingVertical: verticalScale(6), borderRadius: moderateScale(9), backgroundColor: colors.surfaceBluePale },
+  pendingSyncText: { flexShrink: 1, color: colors.primaryBlue, fontFamily: fonts.semiBold, fontSize: fontScale(10.5) },
   cardDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   activityRow: { flexDirection: "row", alignItems: "center", gap: moderateScale(8) },
   activityCopy: { flex: 1, minWidth: 0, gap: verticalScale(2) },
@@ -477,7 +764,7 @@ const styles = StyleSheet.create({
   link: { color: colors.primaryBlue, fontFamily: fonts.bold, fontSize: fontScale(11) },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: colors.modalOverlay },
   modalDismissArea: { flex: 1 },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: moderateScale(24), borderTopRightRadius: moderateScale(24), borderCurve: "continuous", paddingHorizontal: moderateScale(16), paddingTop: verticalScale(8), maxHeight: "92%", minHeight: "48%" },
+  sheet: { backgroundColor: colors.white, borderTopLeftRadius: moderateScale(24), borderTopRightRadius: moderateScale(24), borderCurve: "continuous", paddingHorizontal: moderateScale(16), paddingTop: verticalScale(8), flexShrink: 1 },
   sheetHandle: { alignSelf: "center", width: moderateScale(38), height: verticalScale(4), borderRadius: moderateScale(2), backgroundColor: colors.neutralBorder, marginBottom: verticalScale(10) },
   sheetHeader: { flexDirection: "row", alignItems: "center", gap: moderateScale(10), paddingBottom: verticalScale(12) },
   sheetHeaderCopy: { flex: 1, minWidth: 0 },
@@ -486,6 +773,7 @@ const styles = StyleSheet.create({
   closeButton: { width: moderateScale(36), height: moderateScale(36), borderRadius: moderateScale(12), backgroundColor: colors.surfaceBluePale, alignItems: "center", justifyContent: "center" },
   detailList: { paddingBottom: verticalScale(8) },
   sheetSummary: { backgroundColor: colors.surfaceBluePale, borderWidth: 1, borderColor: colors.border, borderRadius: moderateScale(14), borderCurve: "continuous", padding: moderateScale(12), gap: verticalScale(5) },
+  resubmitPhotosSection: { marginTop: verticalScale(4) },
   summaryTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: moderateScale(8) },
   summaryReference: { flex: 1, minWidth: 0, color: colors.textDark, fontFamily: fonts.bold, fontSize: fontScale(13) },
   summaryProcess: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: fontScale(11.5) },
@@ -507,7 +795,11 @@ const styles = StyleSheet.create({
   booleanAnswerNo: { backgroundColor: "#FFF1F1" },
   booleanAnswerText: { fontFamily: fonts.semiBold, fontSize: fontScale(11) },
   answerImages: { flexDirection: "row", flexWrap: "wrap", gap: moderateScale(7), paddingTop: verticalScale(2) },
-  answerImage: { width: moderateScale(88), height: verticalScale(68), borderRadius: moderateScale(9), backgroundColor: colors.neutralCanvas },
+  answerImageButton: { overflow: "hidden", borderRadius: moderateScale(9), borderWidth: 1, borderColor: colors.border },
+  answerImage: { width: moderateScale(88), height: verticalScale(68), backgroundColor: colors.neutralCanvas },
+  answerImageUnavailable: { alignItems: "center", justifyContent: "center", gap: verticalScale(2) },
+  answerImageUnavailableText: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: fontScale(9) },
+  answerImageOpenHint: { position: "absolute", right: moderateScale(4), bottom: moderateScale(4), width: moderateScale(22), height: moderateScale(22), borderRadius: moderateScale(11), alignItems: "center", justifyContent: "center", backgroundColor: "rgba(18,59,99,0.78)" },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: moderateScale(9), paddingTop: verticalScale(16) },
   actionRow: { flexDirection: "row", gap: moderateScale(9) },
   action: { minHeight: verticalScale(43), backgroundColor: colors.primaryBlue, paddingHorizontal: moderateScale(17), borderRadius: moderateScale(11), alignItems: "center", justifyContent: "center" },
@@ -516,6 +808,16 @@ const styles = StyleSheet.create({
   secondaryAction: { minHeight: verticalScale(43), flex: 1, paddingHorizontal: moderateScale(16), borderRadius: moderateScale(11), borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
   secondaryActionText: { color: colors.textDark, fontFamily: fonts.semiBold, fontSize: fontScale(12) },
   actionText: { color: colors.white, fontFamily: fonts.bold, fontSize: fontScale(12) },
+  editResubmitAction: { backgroundColor: "#123B63" },
+  editResubmitActionText: { color: colors.white },
+  modifyRequestAction: { backgroundColor: "#F1EAFF", borderWidth: 1, borderColor: "#DDD0FF" },
+  modifyRequestActionText: { color: "#5B21B6" },
+  modifyApproveAction: { backgroundColor: "#E6FFFA", borderWidth: 1, borderColor: "#B8E9DE" },
+  modifyApproveActionText: { color: "#0F766E" },
+  modifyRejectAction: { backgroundColor: "#FFF1F1", borderWidth: 1, borderColor: "#F2C6C6" },
+  modifyRejectActionText: { color: colors.danger },
+  rejectAction: { backgroundColor: "#FFF1F1", borderWidth: 1, borderColor: "#F2C6C6" },
+  rejectActionText: { color: colors.danger },
   remarkBox: { width: "100%", gap: verticalScale(9) },
   remarkInput: { minHeight: verticalScale(82), borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBg, borderRadius: moderateScale(11), padding: moderateScale(11), color: colors.textDark, fontFamily: fonts.regular, fontSize: fontScale(12), textAlignVertical: "top" },
   viewOnlyNotice: { width: "100%", flexDirection: "row", alignItems: "center", gap: moderateScale(8), padding: moderateScale(11), borderRadius: moderateScale(11), backgroundColor: colors.surfaceBluePale },

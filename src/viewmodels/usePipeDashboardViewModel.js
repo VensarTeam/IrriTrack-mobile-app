@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchPipeDashboardStatus } from "../services/pipeNetworkApi";
 import { getPipeCache, savePipeCache } from "../services/pipeNetworkOfflineStore";
+import colors from "../constants/colors";
 
 const MATERIAL_META = {
-  MS: { key: "ms", label: "MS", name: "Mild steel", color: "#2F72D6", surface: "#EAF3FF" },
-  DI: { key: "di", label: "DI", name: "Ductile iron", color: "#249A61", surface: "#EAF8F0" },
-  HDPE: { key: "hdpe", label: "HDPE", name: "Polyethylene", color: "#E6752D", surface: "#FFF2E8" },
+  MS: { key: "ms", label: "MS", name: "Mild steel", color: colors.pipeMaterial.MS.accent, textColor: colors.pipeMaterial.MS.text, surface: colors.pipeMaterial.MS.surface },
+  DI: { key: "di", label: "DI", name: "Ductile iron", color: colors.pipeMaterial.DI.accent, textColor: colors.pipeMaterial.DI.text, surface: colors.pipeMaterial.DI.surface },
+  HDPE: { key: "hdpe", label: "HDPE", name: "Polyethylene", color: colors.pipeMaterial.HDPE.accent, textColor: colors.pipeMaterial.HDPE.text, surface: colors.pipeMaterial.HDPE.surface },
 };
 
 const toPipeData = (status) => {

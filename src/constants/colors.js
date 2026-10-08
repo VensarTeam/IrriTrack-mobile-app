@@ -53,10 +53,16 @@ const colors = {
   neutralCanvas: "#F3F4F6",
   neutralBorder: "#DDE1E6",
   surfaceMintSoft: "#EDF7F2",
+  // Pipe Network legend shared with the web dashboard.
+  pipeMaterial: {
+    MS: { accent: "#DD524C", text: "#A72C27", surface: "#FFF1F0" },
+    DI: { accent: "#5AC561", text: "#287735", surface: "#EFF9F0" },
+    HDPE: { accent: "#2A4DD0", text: "#263F9C", surface: "#EEF2FF" },
+  },
   pipeStage: {
-    excavation: { text: "#966018", surface: "#FFF3DF" },
-    pipe_laying: { text: "#245B92", surface: "#EAF3FF" },
-    backfilling: { text: "#23705A", surface: "#E8F5EE" },
+    excavation: { accent: "#E87B35", text: "#91491C", surface: "#FFF3EA", track: "#F8DDCB" },
+    pipe_laying: { accent: "#F3CE49", text: "#765900", surface: "#FFF9E4", track: "#F7EBB5" },
+    backfilling: { accent: "#5EC269", text: "#236B2D", surface: "#EEF9F0", track: "#DCEFE0" },
   },
   border: "#D9E8F5",
   inputBg: "#F6FBFF",

@@ -55,16 +55,9 @@ const ProjectDetailsScreen = ({ route }) => {
   const { user, roleAccess } = useAuth();
   const pipePermissions = roleAccess?.effectivePermissions || new Set();
   const isPipeSupervisor = roleAccess?.role === "supervisor";
+  const isPipeDeveloper = roleAccess?.role === "developer";
   const hasPipeScreenPermission = (permission) =>
-    pipePermissions.has(permission) ||
-    roleAccess?.role === "developer" ||
-    (isPipeSupervisor && [
-      "pipe_laying.screen.overview",
-      "pipe_laying.screen.piping_data",
-      "pipe_laying.screen.daily_report",
-      "pipe_laying.screen.checklist",
-      "pipe_laying.screen.checklist_requests",
-    ].includes(permission));
+    pipePermissions.has(permission) || isPipeDeveloper;
   const {
     isOnline,
     projectId,
@@ -1300,14 +1293,9 @@ const ProjectDetailsScreen = ({ route }) => {
             error={pipeDashboard.error}
             isCached={pipeDashboard.isCached}
             onRefresh={pipeDashboard.refresh}
-            canAddEntry={
-              hasPipeScreenPermission("pipe_laying.screen.checklist") &&
-              (pipePermissions.has("pipe_laying.create") ||
-                roleAccess?.role === "developer" ||
-                isPipeSupervisor)
-            }
-            canViewReports={hasPipeScreenPermission("pipe_laying.screen.daily_report")}
-            canViewWorkStatus={hasPipeScreenPermission("pipe_laying.screen.checklist_requests")}
+            canAddEntry={isPipeSupervisor || isPipeDeveloper}
+            canViewReports={!isPipeSupervisor && hasPipeScreenPermission("pipe_laying.screen.daily_report")}
+            canViewWorkStatus={isPipeSupervisor || hasPipeScreenPermission("pipe_laying.screen.checklist_requests")}
             onPipeLayingReports={() =>
               navigation.navigate(ROUTES.ROOT.PIPE_DAILY_REPORT, {
                 projectId,

@@ -46,6 +46,7 @@ function FilterButton({ title, icon, onPress, active = false }) {
 const ReportCard = React.memo(function ReportCard({ item }) {
   const [expanded, setExpanded] = useState(false);
   const stageColour = colors.pipeStage[item.type] || colors.pipeStage.pipe_laying;
+  const materialColour = colors.pipeMaterial[String(item.material || "").toUpperCase()];
   return <View style={styles.card}>
     <Pressable accessibilityRole="button" accessibilityLabel={`${expanded ? "Hide" : "Show"} details for ${item.label || "pipe"}`} accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)} style={({ pressed }) => [styles.cardSummary, pressed && styles.pressed]}>
     <View style={styles.cardTop}>
@@ -58,14 +59,19 @@ const ReportCard = React.memo(function ReportCard({ item }) {
     <View style={styles.nodes}>
       <Icon source="vector-polyline" size={17} color={colors.primaryBlue} />
       <Text selectable style={styles.node}>{item.start || "—"} → {item.end || "—"}</Text>
-      <Text style={styles.muted}>{item.material || ""}</Text>
+      {item.material ? (
+        <View style={styles.materialLabel}>
+          <View style={[styles.materialDot, { backgroundColor: materialColour?.accent || colors.textSecondary }]} />
+          <Text style={[styles.muted, materialColour && { color: materialColour.text }]}>{item.material}</Text>
+        </View>
+      ) : null}
     </View>
     <View style={styles.metrics}>
       <Text style={[styles.muted, styles.grow]}>Ch. <Text style={styles.value}>{formatNumber(item.from)} → {formatNumber(item.to)}</Text> m</Text>
       <View style={styles.laidMetric}><Text style={[styles.value, styles.laid]}>{formatNumber(item.laid)} <Text style={styles.unit}>m laid</Text></Text></View>
     </View>
     <View style={styles.compactFooter}>
-      <View style={styles.grow}><View style={[styles.stage, styles.stageChip, { backgroundColor: stageColour.surface }]}><Icon source={item.type === "excavation" ? "shovel" : item.type === "backfilling" ? "layers-outline" : "pipe"} size={14} color={stageColour.text} /><Text style={[styles.stageText, { color: stageColour.text }]}>{STAGES[item.type] || item.type || "All stages"}</Text></View></View>
+      <View style={styles.grow}><View style={[styles.stage, styles.stageChip, { backgroundColor: stageColour.surface }]}><View style={[styles.stageDot, { backgroundColor: stageColour.accent }]} /><Icon source={item.type === "excavation" ? "shovel" : item.type === "backfilling" ? "layers-outline" : "pipe"} size={14} color={stageColour.text} /><Text style={[styles.stageText, { color: stageColour.text }]}>{STAGES[item.type] || item.type || "All stages"}</Text></View></View>
       <Text style={styles.muted}>{expanded ? "Less" : "Details"}</Text>
       <Icon source={expanded ? "chevron-up" : "chevron-down"} size={18} color={colors.primaryBlue} />
     </View>

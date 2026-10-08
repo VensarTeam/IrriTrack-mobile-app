@@ -8,12 +8,14 @@ import {
   syncQueuedChecklistSubmissions,
 } from "../services/checklistOfflineSync";
 import { refreshOfflineMasterData } from "../services/offlineMasterSync";
+import { flushPendingPipeMutations } from "../services/pipeNetworkSync";
+import { getPendingPipeMutationCount } from "../services/pipeNetworkOfflineStore";
 
 const useProfileViewModel = (navigation) => {
   const { logout, refreshProfile, user: authenticatedUser, roleAccess } = useAuth();
   const [isRefreshingProfile, setIsRefreshingProfile] = useState(false);
   const [isSyncingMasterData, setIsSyncingMasterData] = useState(false);
-  const [isSyncingOmsData, setIsSyncingOmsData] = useState(false);
+  const [isSyncingPendingWork, setIsSyncingPendingWork] = useState(false);
   const user = authenticatedUser || {};
   const initials = (user.name || "User")
     .split(" ")
@@ -93,44 +95,65 @@ const useProfileViewModel = (navigation) => {
     }
   };
 
-  const handleSyncOmsData = async () => {
-    if (isSyncingOmsData) return;
+  const handleSyncPendingWork = async () => {
+    if (isSyncingPendingWork) return;
 
-    setIsSyncingOmsData(true);
-    console.log("[ChecklistProfile]", "Manual OMS data sync pressed");
+    setIsSyncingPendingWork(true);
+    console.log("[ChecklistProfile]", "Manual all-module pending-work sync pressed");
 
     try {
-      const ownerUserId = String(user?.id || user?.mobile || "").trim();
-      const pendingCount = await getPendingChecklistSubmissionCount({
-        ownerUserId,
-      });
-
-      if (!pendingCount) {
+      const networkState = await NetInfo.fetch();
+      if (networkState.isConnected !== true || networkState.isInternetReachable === false) {
         showAppAlert({
-          type: "info",
-          title: "No data to sync",
-          message: "No saved OMS checklist data found.",
+          type: "warning",
+          title: "You’re offline",
+          message: "Pending work remains saved on this device and will sync when the connection returns.",
         });
         return;
       }
 
-      const result = await syncQueuedChecklistSubmissions({
-        ownerUserId,
-      });
-      const syncedCount = result.synced || 0;
-      const syncMessage = result.skippedOffline
-        ? "Network unavailable. OMS data is still saved locally."
-        : result.submitApiConnected
-          ? `${syncedCount} saved OMS item(s) synced.`
-          : `${pendingCount} saved OMS item(s) are still available locally.`;
+      const ownerUserId = String(user?.id || user?.mobile || "").trim();
+      const canSyncOmsChecklist = String(user?.role || "").toLowerCase() === "supervisor";
+      const [pendingOmsCount, pendingPipeCount] = await Promise.all([
+        canSyncOmsChecklist
+          ? getPendingChecklistSubmissionCount({ ownerUserId })
+          : Promise.resolve(0),
+        getPendingPipeMutationCount(ownerUserId),
+      ]);
+
+      if (!pendingOmsCount && !pendingPipeCount) {
+        showAppAlert({
+          type: "info",
+          title: "No data to sync",
+          message: "No saved offline work is waiting to sync for any module.",
+        });
+        return;
+      }
+
+      const [omsResult, pipeResult] = await Promise.all([
+        pendingOmsCount
+          ? syncQueuedChecklistSubmissions({ ownerUserId })
+          : Promise.resolve({ synced: 0, failed: 0, skippedOffline: false }),
+        pendingPipeCount
+          ? flushPendingPipeMutations(ownerUserId, { force: true })
+          : Promise.resolve({ synced: 0, failed: 0 }),
+      ]);
+      const syncedCount = Number(omsResult.synced || 0) + Number(pipeResult.synced || 0);
+      const failedCount = Number(omsResult.failed || 0) + Number(pipeResult.failed || 0);
+      const stillQueuedCount = Math.max(0, pendingOmsCount + pendingPipeCount - syncedCount);
+      const syncMessage = omsResult.skippedOffline
+        ? "Network unavailable. Offline work remains saved locally."
+        : failedCount || stillQueuedCount
+          ? `${syncedCount} item(s) synced. ${stillQueuedCount} remain saved for retry.`
+          : `${syncedCount} offline item(s) synced across all available modules.`;
 
       showAppAlert({
-        type: result.failed || result.skippedOffline ? "warning" : "info",
-        title: "OMS data checked",
+        type: failedCount || omsResult.skippedOffline ? "warning" : "success",
+        title: "Pending work checked",
         message: syncMessage,
       });
     } catch (error) {
-      console.log("[ChecklistProfile]", "Manual OMS data sync failed", {
+      console.log("[ChecklistProfile]", "Manual pending-work sync failed", {
         message: error?.message,
         status: error?.status,
       });
@@ -139,10 +162,10 @@ const useProfileViewModel = (navigation) => {
         title: "Sync failed",
         message:
           error?.message ||
-          "Unable to sync saved OMS data. Please try again.",
+          "Unable to sync saved offline work. Please try again.",
       });
     } finally {
-      setIsSyncingOmsData(false);
+      setIsSyncingPendingWork(false);
     }
   };
 
@@ -188,10 +211,10 @@ const useProfileViewModel = (navigation) => {
       roleAccess.role === "super_admin",
     isRefreshingProfile,
     isSyncingMasterData,
-    isSyncingOmsData,
+    isSyncingPendingWork,
     handleRefreshProfile,
     handleSyncMasterData,
-    handleSyncOmsData,
+    handleSyncPendingWork,
     handleOpenAddContractor,
     handleLogout,
   };

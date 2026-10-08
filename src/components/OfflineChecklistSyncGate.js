@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { AppState, InteractionManager } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -7,10 +8,15 @@ import {
 } from "../services/checklistOfflineSync";
 import { refreshOfflineMasterData } from "../services/offlineMasterSync";
 import { normalizeUserRole } from "../services/roleAccess";
-import { flushPendingPipeMutations } from "../services/pipeNetworkSync";
+import {
+  flushPendingPipeMutations,
+} from "../services/pipeNetworkSync";
+import {
+  getPendingPipeMutationCount,
+} from "../services/pipeNetworkOfflineStore";
 
 const canUseNetwork = (state = {}) =>
-  state.isConnected !== false && state.isInternetReachable !== false;
+  state.isConnected === true && state.isInternetReachable !== false;
 
 const logGate = (message, details = undefined) => {
   if (typeof details === "undefined") {
@@ -159,21 +165,42 @@ const OfflineChecklistSyncGate = () => {
           activeProfile?.id || activeProfile?.mobile || ""
         ).trim();
         const canSyncOmsChecklist = normalizeUserRole(activeProfile?.role) === "supervisor";
-        const pendingCount = canSyncOmsChecklist
-          ? await getPendingChecklistSubmissionCount({ ownerUserId })
-          : 0;
 
         logGate("Queue sync started", {
-          pendingCount,
+          canSyncOmsChecklist,
           isConnected: networkState?.isConnected,
           isInternetReachable: networkState?.isInternetReachable,
           type: networkState?.type,
         });
 
-        const result = canSyncOmsChecklist && pendingCount
-          ? await syncQueuedChecklistSubmissions({ ownerUserId })
-          : { checked: 0, synced: 0, failed: 0, skippedOffline: 0 };
-        const pipeResult = await flushPendingPipeMutations(ownerUserId);
+        const [result, pipeResult] = await Promise.all([
+          (async () => {
+            let pendingCount = 0;
+            try {
+              pendingCount = canSyncOmsChecklist
+                ? await getPendingChecklistSubmissionCount({ ownerUserId })
+                : 0;
+              if (!pendingCount) {
+                return { checked: 0, synced: 0, failed: 0, skippedOffline: 0 };
+              }
+              return await syncQueuedChecklistSubmissions({ ownerUserId });
+            } catch (error) {
+              logGate("OMS queue sync failed", { message: error?.message, status: error?.status });
+              return { checked: pendingCount, synced: 0, failed: pendingCount, skippedOffline: 0 };
+            }
+          })(),
+          (async () => {
+            try {
+              const pendingPipeCount = await getPendingPipeMutationCount(ownerUserId);
+              return pendingPipeCount > 0
+                ? await flushPendingPipeMutations(ownerUserId)
+                : { checked: 0, synced: 0, failed: 0 };
+            } catch (error) {
+              logGate("Pipe queue sync failed", { message: error?.message, status: error?.status });
+              return { checked: 0, synced: 0, failed: 1 };
+            }
+          })(),
+        ]);
         logGate("Queue sync finished", {
           checked: result.checked,
           synced: result.synced,
@@ -202,11 +229,12 @@ const OfflineChecklistSyncGate = () => {
       try {
         activeProfile = (await refreshProfile()) || user;
       } catch (error) {
-        logGate("Profile sync failed; deferring protected sync", {
+        logGate("Profile sync failed; continuing with cached profile", {
           message: error?.message,
           status: error?.status,
         });
-        return;
+        // A transient profile refresh must not strand locally queued work.
+        activeProfile = user;
       }
 
       const activeSessionKey = activeProfile?.id
@@ -215,8 +243,49 @@ const OfflineChecklistSyncGate = () => {
           )}:${authorizationScopeKey}`
         : sessionKey;
 
-      await runMasterSync(networkState, activeSessionKey);
-      await runQueueSync(networkState, activeProfile);
+      await Promise.all([
+        runMasterSync(networkState, activeSessionKey),
+        runQueueSync(networkState, activeProfile),
+      ]);
+    };
+
+    let syncTask = null;
+    let syncTimer = null;
+    let syncScheduled = false;
+    let appIsActive = AppState.currentState === "active";
+    const retryPipeQueue = async () => {
+      if (!isMounted || !appIsActive || isQueueSyncingRef.current) return;
+      try {
+        const networkState = await NetInfo.fetch();
+        if (!canUseNetwork(networkState)) return;
+        const ownerUserId = String(user?.id || user?.mobile || "").trim();
+        const pendingCount = await getPendingPipeMutationCount(ownerUserId);
+        if (!pendingCount) return;
+        const result = await flushPendingPipeMutations(ownerUserId);
+        logGate("Pipe queue retry finished", {
+          checked: result.checked,
+          synced: result.synced,
+          failed: result.failed,
+        });
+      } catch (error) {
+        logGate("Pipe queue retry failed", { message: error?.message, status: error?.status });
+      }
+    };
+    const pipeRetryInterval = setInterval(() => {
+      void retryPipeQueue();
+    }, 45_000);
+    const scheduleSync = (networkState) => {
+      if (!isMounted || !canUseNetwork(networkState) || syncScheduled) return;
+      syncScheduled = true;
+      syncTask = InteractionManager.runAfterInteractions(() => {
+        syncTimer = setTimeout(() => {
+          syncTimer = null;
+          syncTask = null;
+          void runSync(networkState).finally(() => {
+            syncScheduled = false;
+          });
+        }, 1200);
+      });
     };
 
     let hasHandledNetworkState = false;
@@ -236,18 +305,29 @@ const OfflineChecklistSyncGate = () => {
         //   isInternetReachable: networkState.isInternetReachable,
         //   type: networkState.type,
         // });
-        void runSync(networkState);
+        scheduleSync(networkState);
       }
     };
 
     logGate("Checking network for checklist sync gate");
     void NetInfo.fetch().then(handleNetworkState);
     const unsubscribe = NetInfo.addEventListener(handleNetworkState);
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      appIsActive = state === "active";
+      if (state !== "active") return;
+      void NetInfo.fetch().then((networkState) => {
+        if (canUseNetwork(networkState)) scheduleSync(networkState);
+      });
+    });
 
     return () => {
       logGate("Sync gate cleanup");
       isMounted = false;
+      syncTask?.cancel?.();
+      if (syncTimer) clearTimeout(syncTimer);
+      clearInterval(pipeRetryInterval);
       unsubscribe();
+      appStateSubscription.remove();
     };
   }, [
     isAuthenticated,

@@ -74,6 +74,36 @@ export const submitPipeChecklist = ({ payload, files = {} }) => {
   });
 };
 
+export const resubmitRejectedPipeChecklist = ({ submissionId, payload, resubmitFile, files = {} }) => {
+  const correctionUri = String(resubmitFile || "").trim();
+  if (!submissionId || !correctionUri) {
+    throw new Error("A submission and one correction photo are required for rejected resubmission.");
+  }
+  const form = new FormData();
+  form.append("payload", JSON.stringify(payload));
+  form.append("resubmitFiles", {
+    uri: correctionUri,
+    name: correctionUri.split("/").pop()?.split("?")[0] || "correction.jpg",
+    type: "image/jpeg",
+  });
+  Object.entries(files).forEach(([checklistId, value]) => {
+    const uris = Array.isArray(value) ? value : [value];
+    uris.filter(Boolean).forEach((uri) => {
+      form.append(String(checklistId), {
+        uri,
+        name: String(uri).split("/").pop()?.split("?")[0] || `${checklistId}.jpg`,
+        type: "image/jpeg",
+      });
+    });
+  });
+  return apiRequest({
+    url: `pipe-laying-checklist/submissions/${submissionId}/resubmit`,
+    method: "PATCH",
+    data: form,
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
 export const fetchPipeWorkStatus = ({ signal, ...params }) =>
   apiRequest({
     url: "pipe-laying-checklist/request-status",

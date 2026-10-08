@@ -3,13 +3,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  Modal,
   Pressable,
   RefreshControl,
   useWindowDimensions,
   View,
 } from "react-native";
-import { PieChartPro } from "react-native-gifted-charts";
 import { Icon } from "react-native-paper";
+import Svg, { Circle } from "react-native-svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 import {
@@ -30,8 +32,7 @@ const EMPTY_PIPE_DATA = [
       pipeLaying: 0,
       backfilling: 0,
     },
-    color: "#2F72D6",
-    surface: "#EAF3FF",
+    color: colors.pipeMaterial.MS.accent,
   },
   {
     key: "di",
@@ -44,8 +45,7 @@ const EMPTY_PIPE_DATA = [
       pipeLaying: 0,
       backfilling: 0,
     },
-    color: "#249A61",
-    surface: "#EAF8F0",
+    color: colors.pipeMaterial.DI.accent,
   },
   {
     key: "hdpe",
@@ -58,8 +58,7 @@ const EMPTY_PIPE_DATA = [
       pipeLaying: 0,
       backfilling: 0,
     },
-    color: "#E6752D",
-    surface: "#FFF2E8",
+    color: colors.pipeMaterial.HDPE.accent,
   },
 ];
 
@@ -67,29 +66,17 @@ const PIPE_STAGES = [
   {
     key: "excavation",
     label: "Excavation",
-    icon: "shovel",
-    color: "#D8872E",
-    track: "#F8E7D4",
-    glow: "#F3BD7A",
-    surface: "#FFF9F2",
+    color: colors.pipeStage.excavation.accent,
   },
   {
     key: "pipeLaying",
     label: "Pipe Laying",
-    icon: "pipe",
-    color: "#2F72D6",
-    track: "#DCEAFF",
-    glow: "#83B2F1",
-    surface: "#F4F8FF",
+    color: colors.pipeStage.pipe_laying.accent,
   },
   {
     key: "backfilling",
     label: "Backfilling",
-    icon: "terrain",
-    color: "#249A61",
-    track: "#DDF3E7",
-    glow: "#78CCA2",
-    surface: "#F3FBF7",
+    color: colors.pipeStage.backfilling.accent,
   },
 ];
 
@@ -105,18 +92,12 @@ const ACTIONS = [
     key: "reports",
     label: "Daily reports",
     icon: "file-chart-outline",
-    color: "#0B7C96",
-    surface: "#EEF9FC",
-    border: "#CBEAF0",
     title: "No reports yet",
   },
   {
     key: "status",
     label: "Work status",
     icon: "clipboard-check-outline",
-    color: "#8A5A16",
-    surface: "#FFF8EA",
-    border: "#F3DFC0",
     title: "No status yet",
   },
 ];
@@ -144,59 +125,37 @@ const formatCompactLength = (value) => {
 const getPercent = (value, total) =>
   total > 0 ? Math.min(Math.round((value / total) * 1000) / 10, 100) : 0;
 
-const MaterialKpiCard = ({ item, selected, onPress, compact }) => {
+const MaterialKpiCard = ({ item, compact, isLast, stacked }) => {
   const progress = getPercent(item.laid, item.planned);
 
   return (
-    <Pressable
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.materialKpiCard,
         compact && { minHeight: 82, paddingTop: 6, paddingBottom: 6 },
-        {
-          backgroundColor: selected ? item.surface : colors.white,
-          borderColor: selected ? item.color : colors.cardBorder,
-        },
-        selected && styles.materialKpiCardSelected,
-        pressed && styles.materialKpiCardPressed,
+        !isLast && (stacked ? styles.materialKpiDividerStacked : styles.materialKpiDivider),
       ]}
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${item.label} pipe progress`}
     >
       <View style={styles.materialKpiHeader}>
         <View style={styles.materialKpiNameWrap}>
           <View style={[styles.materialKpiDot, { backgroundColor: item.color }]} />
-          <Text
-            style={[styles.materialKpiLabel, { color: item.color }]}
-          >
+          <Text style={styles.materialKpiLabel}>
             {item.label}
           </Text>
         </View>
-        <View
-          style={[
-            styles.materialKpiPercentPill,
-            { backgroundColor: selected ? colors.white : item.surface },
-          ]}
-        >
-          <Text
-            selectable
-            style={[styles.materialKpiPercent, { color: item.color }]}
-          >
-            {progress}%
-          </Text>
-        </View>
       </View>
-
-      <Text
-        selectable
-        style={styles.materialKpiValue}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
-      >
-        {formatCompactLength(item.laid)}
-      </Text>
+      <View style={styles.materialKpiValueRow}>
+        <Text
+          selectable
+          style={styles.materialKpiValue}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+        >
+          {formatCompactLength(item.laid)}
+        </Text>
+        <Text selectable style={styles.materialKpiPercent}>{progress}%</Text>
+      </View>
       <Text
         selectable
         style={styles.materialKpiPlanned}
@@ -215,130 +174,95 @@ const MaterialKpiCard = ({ item, selected, onPress, compact }) => {
           ]}
         />
       </View>
-    </Pressable>
-  );
-};
-
-const StageProgressChart = ({
-  material,
-  stage,
-  radius,
-  compact,
-  animateOnMount,
-}) => {
-  const planned = Number(material.planned || 0);
-  const completed = Math.min(
-    Number(material.stages?.[stage.key] ?? material.laid ?? 0),
-    planned,
-  );
-  const remaining = Math.max(planned - completed, 0);
-  const progress = getPercent(completed, planned);
-  const maxArcValue = planned * 0.48;
-  const splitArc = (value, getItem) => {
-    const segments = [];
-    let valueLeft = value;
-
-    while (valueLeft > 0) {
-      const segmentValue = Math.min(valueLeft, maxArcValue);
-      segments.push(getItem(segmentValue, segments.length));
-      valueLeft -= segmentValue;
-    }
-
-    return segments;
-  };
-  const completedSegments = planned
-    ? splitArc(completed, (value) => ({
-        value,
-        color: stage.color,
-        gradientCenterColor: stage.glow,
-      }))
-    : [];
-  const remainingSegments = planned
-    ? splitArc(remaining, (value) => ({
-        value,
-        color: stage.track,
-        gradientCenterColor: colors.white,
-      }))
-    : [{ value: 1, color: stage.track }];
-
-  const pieData = [...completedSegments, ...remainingSegments];
-  const dialPadding = moderateScale(2);
-  const dialSize = radius * 2 + dialPadding * 2;
-
-  return (
-    <View
-      style={[
-        styles.stageChartCard,
-        compact && { paddingTop: 6, paddingBottom: 6 },
-        { backgroundColor: colors.white },
-      ]}
-    >
-      <View style={styles.stageChartHeader}>
-        <View style={styles.stageChartTitleWrap}>
-          <View style={[styles.stageDot, { backgroundColor: stage.color }]} />
-          <Text style={styles.stageChartLabel} numberOfLines={1}>
-            {stage.label}
-          </Text>
-        </View>
-        <Text selectable style={styles.stageChartValue}>
-          {formatCompactLength(completed)}
-        </Text>
-        <Text selectable style={styles.stageRemaining}>
-          {formatCompactLength(remaining)} remaining
-        </Text>
-      </View>
-
-      <View
-        style={[
-          styles.stageChartWrap,
-          { width: dialSize, height: dialSize },
-        ]}
-      >
-        <View
-          style={[
-            styles.stagePie,
-            { left: dialPadding, top: dialPadding, transform: [{ rotate: "-90deg" }, { scaleY: -1 }] },
-          ]}
-        >
-          <PieChartPro
-            donut
-            radius={radius}
-            innerRadius={radius * 0.79}
-            data={pieData}
-            initialAngle={0}
-            endAngle={Math.PI * 2}
-            isAnimated={animateOnMount}
-            animationDuration={750}
-          />
-        </View>
-        <View style={styles.stageChartCenter} pointerEvents="none">
-          <Text
-            selectable
-            style={styles.stageChartPercent}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {progress}%
-          </Text>
-        </View>
-      </View>
-
     </View>
   );
 };
 
-const ActionButton = ({ item, selected, onPress, compact }) => (
+const StageProgressDonut = ({ stage, progress, size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(moderateScale(7), size * 0.09);
+  const radius = Math.max(center - strokeWidth / 2 - 1, 1);
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <View
+      accessibilityRole="image"
+      accessibilityLabel={`${stage.label}: ${progress}% complete`}
+      style={[styles.stageDonut, { width: size, height: size }]}
+    >
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle cx={center} cy={center} r={radius} fill="none" stroke={colors.neutralBorder} strokeWidth={strokeWidth} />
+        {progress > 0 ? (
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke={stage.color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={circumference * (1 - progress / 100)}
+            rotation={-90}
+            originX={center}
+            originY={center}
+          />
+        ) : null}
+      </Svg>
+      <View style={styles.stageDonutCenter} pointerEvents="none">
+        <Text selectable style={styles.stageDonutPercent} numberOfLines={1} adjustsFontSizeToFit>
+          {progress}%
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const StageProgressList = ({ material, largeText }) => (
+  <View style={styles.stageProgressList}>
+    {PIPE_STAGES.map((stage, index) => {
+      const planned = Number(material.planned || 0);
+      const completed = Math.min(Number(material.stages?.[stage.key] ?? material.laid ?? 0), planned);
+      const progress = getPercent(completed, planned);
+      return (
+        <View
+          key={stage.key}
+          style={[
+            styles.stageProgressRow,
+            index < PIPE_STAGES.length - 1 && styles.stageProgressRowDivider,
+          ]}
+        >
+          <StageProgressDonut stage={stage} progress={progress} size={moderateScale(60)} />
+          <View style={styles.stageRowDetails}>
+            <View style={styles.stageRowHeading}>
+              <View style={[styles.materialKpiDot, { backgroundColor: stage.color }]} />
+              <Text style={styles.stageCardTitle}>{stage.label}</Text>
+            </View>
+            <View style={[styles.stageRowMetrics, largeText && styles.stageRowMetricsStacked]}>
+              <Text selectable style={styles.stageCardMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+                {formatCompactLength(completed)}
+              </Text>
+              <Text style={styles.stageCardPlanned} numberOfLines={1} adjustsFontSizeToFit>
+                / {formatCompactLength(planned)} planned
+              </Text>
+            </View>
+            <View style={styles.stageCardTrack}>
+              <View style={[styles.stageCardProgress, { width: `${progress}%`, backgroundColor: stage.color }]} />
+            </View>
+          </View>
+        </View>
+      );
+    })}
+  </View>
+);
+
+const ActionButton = ({ item, selected, onPress, inline }) => (
   <Pressable
     style={({ pressed }) => [
       styles.actionButton,
-      item.key !== "add" && {
-        backgroundColor: item.surface,
-        borderColor: item.border,
-      },
       item.key === "add" && styles.actionButtonPrimary,
-      compact && { flex: 1, flexDirection: "column", gap: 4, minHeight: 66, paddingHorizontal: 4 },
+      inline && item.key === "add" && styles.actionButtonPrimaryInline,
       selected && item.key !== "add" && styles.actionButtonSelected,
-      selected && item.key !== "add" && { borderColor: item.color },
       pressed && styles.actionButtonPressed,
     ]}
     onPress={onPress}
@@ -354,7 +278,7 @@ const ActionButton = ({ item, selected, onPress, compact }) => (
       <Icon
         source={item.icon}
         size={moderateScale(21)}
-        color={item.key === "add" ? colors.white : item.color}
+        color={item.key === "add" ? colors.white : colors.primaryBlue}
       />
     </View>
     <View style={styles.actionTextGroup}>
@@ -362,8 +286,6 @@ const ActionButton = ({ item, selected, onPress, compact }) => (
         style={[
           styles.actionLabel,
           item.key === "add" && styles.actionLabelPrimary,
-          item.key !== "add" && { color: item.color },
-          compact && { fontSize: 12, textAlign: "center" },
         ]}
         numberOfLines={2}
         adjustsFontSizeToFit
@@ -374,6 +296,86 @@ const ActionButton = ({ item, selected, onPress, compact }) => (
     </View>
   </Pressable>
 );
+
+const MaterialEntrySheet = ({ visible, materials, onClose, onSelect }) => {
+  const insets = useSafeAreaInsets();
+  const { height, fontScale: systemFontScale } = useWindowDimensions();
+  const topSpace = Math.max(insets.top, verticalScale(12)) + verticalScale(12);
+  const bottomPadding = Math.max(insets.bottom, verticalScale(16));
+  const maxSheetHeight = Math.max(0, height - topSpace);
+  const maxOptionsHeight = Math.max(0, maxSheetHeight - bottomPadding - verticalScale(108));
+  const shouldScroll = materials.length * moderateScale(60) * Math.max(1, systemFontScale) > maxOptionsHeight;
+
+  const options = materials.map((material, index) => (
+    <Pressable
+      key={material.key}
+      style={({ pressed }) => [
+        styles.materialSheetOption,
+        index < materials.length - 1 && styles.materialSheetOptionDivider,
+        pressed && styles.materialSheetOptionPressed,
+      ]}
+      onPress={() => onSelect(material)}
+      accessibilityRole="button"
+      accessibilityLabel={`Add ${material.label} entry${material.name ? `, ${material.name}` : ""}`}
+      testID={`pipe-entry-material-${material.key}`}
+    >
+      <View style={[styles.materialSheetDot, { backgroundColor: material.color }]} />
+      <View style={styles.materialSheetOptionText}>
+        <Text style={styles.materialSheetOptionLabel}>{material.label}</Text>
+        {material.name ? <Text style={styles.materialSheetOptionName}>{material.name}</Text> : null}
+      </View>
+      <Icon source="chevron-right" size={moderateScale(20)} color={colors.textSecondary} />
+    </Pressable>
+  ));
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={[styles.materialSheetOverlay, { paddingTop: topSpace }]}>
+        <Pressable style={styles.materialSheetBackdrop} onPress={onClose} accessibilityLabel="Close material picker" accessibilityRole="button" />
+        <View
+          style={[styles.materialSheetCard, { maxHeight: maxSheetHeight, paddingBottom: bottomPadding }]}
+          accessibilityViewIsModal
+          testID="pipe-entry-material-sheet"
+        >
+          <View style={styles.materialSheetHeader}>
+            <View style={styles.materialSheetHeaderText}>
+              <Text style={styles.materialSheetTitle}>Choose material</Text>
+              <Text style={styles.materialSheetSubtitle}>Select material for your new entry</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.materialSheetClose, pressed && styles.materialSheetClosePressed]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close material picker"
+              hitSlop={4}
+            >
+              <Icon source="close" size={moderateScale(20)} color={colors.textDark} />
+            </Pressable>
+          </View>
+          {shouldScroll ? (
+            <ScrollView
+              style={[styles.materialSheetOptions, { maxHeight: maxOptionsHeight }]}
+              contentContainerStyle={styles.materialSheetOptionsContent}
+              showsVerticalScrollIndicator={false}
+              contentInsetAdjustmentBehavior="never"
+            >
+              {options}
+            </ScrollView>
+          ) : (
+            <View style={styles.materialSheetOptions}>{options}</View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 const PipeDistributoryOverview = ({
   pipeData = EMPTY_PIPE_DATA,
@@ -391,9 +393,9 @@ const PipeDistributoryOverview = ({
   const availableWidth = viewport?.width || width;
   const availableHeight = viewport?.height || height;
   const compact = availableHeight < 720 && systemFontScale < 1.3;
-  const inlineActions = availableWidth >= 320 && systemFontScale < 1.3;
-  const hasAnimatedChartsRef = React.useRef(false);
+  const inlineActions = availableWidth >= 380 && systemFontScale < 1.3;
   const [selectedAction, setSelectedAction] = React.useState(null);
+  const [isEntryMaterialSheetOpen, setIsEntryMaterialSheetOpen] = React.useState(false);
   const [selectedMaterialKey, setSelectedMaterialKey] = React.useState(
     pipeData?.[0]?.key || EMPTY_PIPE_DATA[0].key,
   );
@@ -407,22 +409,13 @@ const PipeDistributoryOverview = ({
     0,
   );
   const overallProgress = getPercent(totalLaid, totalPlanned);
-  const stageChartRadius = compact ? 30 : availableWidth < 360 ? 34 : 38;
-  const animateChartsOnLoad = !hasAnimatedChartsRef.current;
   const selectedMaterial =
     safePipeData.find((item) => item.key === selectedMaterialKey) ||
     safePipeData[0];
   const selectedActionConfig = ACTIONS.find(
     (item) => item.key === selectedAction,
   );
-  const selectedActionData =
-    selectedActionConfig?.key === "add"
-      ? {
-          ...selectedActionConfig,
-          title: `Add Entry for ${selectedMaterial.label}`,
-          message: `${selectedMaterial.label} entry screen will be connected here.`,
-        }
-      : selectedActionConfig;
+  const selectedActionData = selectedActionConfig;
   const actionCallbacks = {
     add: onAddEntry,
     reports: onPipeLayingReports,
@@ -431,10 +424,8 @@ const PipeDistributoryOverview = ({
   const visibleActions = ACTIONS.filter((action) =>
     action.key === "add" ? canAddEntry : action.key === "reports" ? canViewReports : canViewWorkStatus,
   );
-
-  React.useEffect(() => {
-    hasAnimatedChartsRef.current = true;
-  }, []);
+  const showAddEntry = visibleActions.some((action) => action.key === "add");
+  const secondaryActions = visibleActions.filter((action) => action.key !== "add");
 
   React.useEffect(() => {
     if (!safePipeData.some((item) => item.key === selectedMaterialKey)) {
@@ -443,6 +434,11 @@ const PipeDistributoryOverview = ({
   }, [safePipeData, selectedMaterialKey]);
 
   const handleAction = (action) => {
+    if (action.key === "add") {
+      setIsEntryMaterialSheetOpen(true);
+      return;
+    }
+
     const callback = actionCallbacks[action.key];
 
     if (typeof callback === "function") {
@@ -454,6 +450,7 @@ const PipeDistributoryOverview = ({
   };
 
   return (
+    <>
     <ScrollView
       style={styles.scroll}
       refreshControl={onRefresh ? <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} /> : undefined}
@@ -462,13 +459,13 @@ const PipeDistributoryOverview = ({
           ? previous : { width: layout.width, height: layout.height });
       }}
       contentContainerStyle={[styles.content, { width: "100%", maxWidth: 720, alignSelf: "center" },
-        compact && { gap: 6, paddingTop: 6, paddingBottom: 12 }]}
+        compact && { gap: 8, paddingTop: 8, paddingBottom: 16 }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.networkSummaryCard, compact && { paddingTop: 8, paddingBottom: 8 }]}>
         <View style={styles.networkSummaryTop}>
-          <Text style={styles.dashboardEyebrow}>PIPE NETWORK</Text>
+          <Text style={styles.dashboardEyebrow}>Overall progress</Text>
           <View style={styles.overallBadge}>
             <Text selectable style={styles.overallBadgeValue}>
               {overallProgress}%
@@ -482,7 +479,7 @@ const PipeDistributoryOverview = ({
               {formatLength(totalLaid)}
             </Text>
           </View>
-          <View style={styles.networkSummaryPlan}>
+          <View style={[styles.networkSummaryPlan, systemFontScale >= 1.3 && styles.largeTextAlignLeft]}>
             <Text style={styles.networkSummaryLabel}>Planned</Text>
             <Text selectable style={styles.networkSummaryPlanValue}>
               {formatLength(totalPlanned)}
@@ -499,95 +496,235 @@ const PipeDistributoryOverview = ({
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Materials</Text>
-      <View style={[styles.materialKpiGrid, systemFontScale >= 1.3 && { flexDirection: "column" }]} accessibilityRole="tablist">
-        {safePipeData.map((item) => (
-          <MaterialKpiCard
-            key={item.key}
-            item={item}
-            selected={selectedMaterial.key === item.key}
-            compact={compact}
-            onPress={() => setSelectedMaterialKey(item.key)}
-          />
-        ))}
-      </View>
-
-      <View style={styles.actionSection}>
-        <View style={inlineActions ? styles.actionRow : { gap: 8 }}>
-          {visibleActions.some((action) => action.key === "add") ? <ActionButton
-            item={{
-              ...ACTIONS[0],
-              label: inlineActions ? "Add entry" : `Add entry · ${selectedMaterial.label}`,
-            }}
-            selected={selectedAction === ACTIONS[0].key}
-            onPress={() => handleAction(ACTIONS[0])}
-            compact={inlineActions}
-          /> : null}
-        <View style={[styles.actionRow, inlineActions && { flex: 2 }]}>
-          {visibleActions.filter((action) => action.key !== "add").map((action) => (
-            <ActionButton
-              key={action.key}
-              item={action}
-              selected={selectedAction === action.key}
-              onPress={() => handleAction(action)}
-              compact={inlineActions}
+      <View style={styles.materialSection}>
+        <View style={styles.sectionHeading}>
+          <Text style={styles.sectionTitle}>Materials</Text>
+          <Text style={styles.sectionHint}>Laid / planned</Text>
+        </View>
+        <View style={[styles.materialKpiGrid, systemFontScale >= 1.3 && { flexDirection: "column" }]}>
+          {safePipeData.map((item, index) => (
+            <MaterialKpiCard
+              key={item.key}
+              item={item}
+              compact={compact}
+              isLast={index === safePipeData.length - 1}
+              stacked={systemFontScale >= 1.3}
             />
           ))}
         </View>
-        </View>
-
-        {selectedActionData ? (
-          <View style={styles.actionNotice}>
-            <Icon
-              source="information-outline"
-              size={moderateScale(17)}
-              color={colors.primaryBlue}
-            />
-            <Text style={styles.actionNoticeTitle}>
-              {selectedActionData.title}
-            </Text>
-          </View>
-        ) : null}
       </View>
+
+      {visibleActions.length ? (
+        <View style={styles.actionSection}>
+          <View style={inlineActions ? styles.actionRow : styles.actionStack}>
+            {showAddEntry ? (
+              <ActionButton
+                item={{ ...ACTIONS[0], label: "Add entry" }}
+                selected={selectedAction === ACTIONS[0].key}
+                onPress={() => handleAction(ACTIONS[0])}
+                inline={inlineActions}
+              />
+            ) : null}
+            {secondaryActions.length ? (
+              <View style={[styles.actionRow, inlineActions && { flex: 2 }]}>
+                {secondaryActions.map((action) => (
+                  <ActionButton
+                    key={action.key}
+                    item={action}
+                    selected={selectedAction === action.key}
+                    onPress={() => handleAction(action)}
+                    inline={inlineActions}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
+
+          {selectedActionData ? (
+            <View style={styles.actionNotice}>
+              <Icon source="information-outline" size={moderateScale(17)} color={colors.primaryBlue} />
+              <Text style={styles.actionNoticeTitle}>{selectedActionData.title}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.chartCard}>
         <View style={[styles.chartHeader, systemFontScale >= 1.3 && { flexDirection: "column" }]}>
-          <Text style={styles.sectionTitle}>Work progress · {selectedMaterial.label}</Text>
-          <View style={styles.chartPlannedWrap}>
+          <Text style={styles.sectionTitle}>Work progress</Text>
+          <View style={[styles.chartPlannedWrap, systemFontScale >= 1.3 && styles.largeTextAlignLeft]}>
             <Text style={styles.chartPlannedLabel}>Planned</Text>
             <Text selectable style={styles.chartPlannedValue}>
               {formatCompactLength(selectedMaterial.planned)}
             </Text>
           </View>
         </View>
-        <View style={styles.stageChartRow}>
-          {PIPE_STAGES.map((stage) => (
-            <StageProgressChart
-              key={stage.key}
-              material={selectedMaterial}
-              stage={stage}
-              radius={stageChartRadius}
-              compact={compact}
-              animateOnMount={animateChartsOnLoad}
-            />
-          ))}
+        <View style={styles.progressMaterialSelector} accessibilityRole="tablist">
+          {safePipeData.map((item) => {
+            const isSelected = item.key === selectedMaterial.key;
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => setSelectedMaterialKey(item.key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${item.label} work progress`}
+                style={({ pressed }) => [
+                  styles.progressMaterialTab,
+                  isSelected && styles.progressMaterialTabSelected,
+                  pressed && styles.progressMaterialTabPressed,
+                ]}
+              >
+                <View style={[styles.materialKpiDot, { backgroundColor: item.color }]} />
+                <Text
+                  style={[styles.progressMaterialTabText, isSelected && styles.progressMaterialTabTextSelected]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >{item.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+        <StageProgressList material={selectedMaterial} largeText={systemFontScale >= 1.3} />
       </View>
     </ScrollView>
+    <MaterialEntrySheet
+      visible={isEntryMaterialSheetOpen}
+      materials={safePipeData}
+      onSelect={(material) => {
+        setIsEntryMaterialSheetOpen(false);
+        if (typeof onAddEntry === "function") onAddEntry(material);
+      }}
+      onClose={() => setIsEntryMaterialSheetOpen(false)}
+    />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  materialSheetOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: colors.projectModalOverlay,
+  },
+
+  materialSheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  materialSheetCard: {
+    paddingHorizontal: moderateScale(16),
+    paddingTop: verticalScale(14),
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    borderCurve: "continuous",
+    backgroundColor: colors.white,
+  },
+
+  materialSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(12),
+  },
+
+  materialSheetHeaderText: {
+    flex: 1,
+    minWidth: 0,
+    gap: verticalScale(2),
+  },
+
+  materialSheetTitle: {
+    fontSize: moderateScale(18),
+    fontFamily: fonts.bold,
+    color: colors.textDark,
+  },
+
+  materialSheetSubtitle: {
+    fontSize: moderateScale(12),
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+
+  materialSheetClose: {
+    width: moderateScale(44),
+    height: moderateScale(44),
+    minWidth: 44,
+    minHeight: 44,
+    borderRadius: moderateScale(22),
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.neutralCanvas,
+  },
+
+  materialSheetClosePressed: {
+    opacity: 0.65,
+  },
+
+  materialSheetOptions: {
+    marginTop: verticalScale(14),
+    flexShrink: 1,
+    borderRadius: moderateScale(13),
+    borderCurve: "continuous",
+    overflow: "hidden",
+    backgroundColor: colors.filterPanelSurface,
+  },
+
+  materialSheetOptionsContent: {
+    flexGrow: 0,
+  },
+
+  materialSheetOption: {
+    minHeight: moderateScale(58),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(12),
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: verticalScale(10),
+  },
+
+  materialSheetOptionDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutralBorder,
+  },
+
+  materialSheetOptionPressed: {
+    backgroundColor: colors.surfaceBluePale,
+  },
+
+  materialSheetDot: {
+    width: moderateScale(9),
+    height: moderateScale(9),
+    borderRadius: moderateScale(5),
+  },
+
+  materialSheetOptionText: {
+    flex: 1,
+    minWidth: 0,
+    gap: verticalScale(1),
+  },
+
+  materialSheetOptionLabel: {
+    fontSize: moderateScale(14),
+    fontFamily: fonts.semiBold,
+    color: colors.textDark,
+  },
+
+  materialSheetOptionName: {
+    fontSize: moderateScale(11),
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+  },
+
   scroll: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.neutralCanvas,
   },
 
   content: {
     paddingHorizontal: moderateScale(15),
     paddingTop: verticalScale(8),
     paddingBottom: verticalScale(24),
-    gap: verticalScale(8),
+    gap: verticalScale(12),
   },
 
   networkSummaryCard: {
@@ -596,8 +733,7 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(10),
     borderRadius: moderateScale(17),
     borderCurve: "continuous",
-    backgroundColor: colors.primaryBlue,
-    boxShadow: "0 5px 15px rgba(18,59,99,0.18)",
+    backgroundColor: colors.white,
   },
 
   networkSummaryTop: {
@@ -615,16 +751,16 @@ const styles = StyleSheet.create({
   },
 
   networkSummaryLabel: {
-    fontSize: fontScale(8.5),
+    fontSize: fontScale(10),
     fontFamily: fonts.medium,
-    color: "#BFD7E9",
+    color: colors.textSecondary,
   },
 
   networkSummaryValue: {
     marginTop: verticalScale(1),
-    fontSize: fontScale(16),
+    fontSize: fontScale(19),
     fontFamily: fonts.bold,
-    color: colors.white,
+    color: colors.textDark,
     fontVariant: ["tabular-nums"],
   },
 
@@ -633,39 +769,22 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
 
+  largeTextAlignLeft: {
+    alignItems: "flex-start",
+  },
+
   networkSummaryPlanValue: {
     marginTop: verticalScale(1),
-    fontSize: fontScale(11),
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
-    color: "#E1EDF6",
+    color: colors.textDark,
     fontVariant: ["tabular-nums"],
     textAlign: "right",
   },
 
-  dashboardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: moderateScale(12),
-    paddingHorizontal: moderateScale(2),
-  },
-
-  dashboardHeaderText: {
-    flex: 1,
-  },
-
   dashboardEyebrow: {
-    fontSize: fontScale(14),
-    fontFamily: fonts.bold,
-    color: "#C7DFF0",
-    letterSpacing: 0.9,
-  },
-
-  dashboardTitle: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(19),
-    lineHeight: fontScale(23),
-    fontFamily: fonts.bold,
+    fontSize: fontScale(13),
+    fontFamily: fonts.semiBold,
     color: colors.textDark,
   },
 
@@ -677,30 +796,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(9),
     borderRadius: moderateScale(999),
     borderCurve: "continuous",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.17)",
+    backgroundColor: colors.surfaceBluePale,
   },
 
   overallBadgeValue: {
     fontSize: fontScale(11.5),
     fontFamily: fonts.bold,
-    color: colors.white,
+    color: colors.primaryBlue,
     fontVariant: ["tabular-nums"],
-  },
-
-  overallBadgeLabel: {
-    marginTop: verticalScale(1),
-    fontSize: fontScale(8),
-    fontFamily: fonts.bold,
-    color: "#B8D7EE",
-    letterSpacing: 0.8,
   },
 
   materialKpiGrid: {
     flexDirection: "row",
     alignItems: "stretch",
+    backgroundColor: colors.white,
+    borderRadius: moderateScale(14),
+    borderCurve: "continuous",
+    overflow: "hidden",
+  },
+
+  materialSection: {
+    gap: verticalScale(7),
+  },
+
+  sectionHeading: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
     gap: moderateScale(8),
+  },
+
+  sectionHint: {
+    fontSize: fontScale(10),
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
   },
 
   materialKpiCard: {
@@ -710,28 +839,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(8),
     paddingTop: verticalScale(8),
     paddingBottom: verticalScale(7),
-    borderRadius: moderateScale(14),
-    borderCurve: "continuous",
-    borderWidth: 1,
-    overflow: "hidden",
-    boxShadow: "0 2px 8px rgba(18,59,99,0.06)",
   },
 
-  materialKpiCardSelected: {
-    borderWidth: 1.5,
-    boxShadow: "0 4px 14px rgba(18,59,99,0.12)",
+  materialKpiDivider: {
+    borderRightWidth: 1,
+    borderRightColor: colors.neutralBorder,
   },
 
-  materialKpiCardPressed: {
-    opacity: 0.78,
-    transform: [{ scale: 0.985 }],
+  materialKpiDividerStacked: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutralBorder,
   },
 
   materialKpiHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: moderateScale(4),
   },
 
   materialKpiNameWrap: {
@@ -750,26 +872,27 @@ const styles = StyleSheet.create({
     fontSize: fontScale(12.5),
     fontFamily: fonts.bold,
     letterSpacing: 0.45,
+    color: colors.textDark,
   },
 
-  materialKpiPercentPill: {
-    minWidth: moderateScale(31),
-    height: verticalScale(19),
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: moderateScale(2),
-    borderRadius: moderateScale(999),
+  materialKpiValueRow: {
+    marginTop: verticalScale(6),
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: moderateScale(2),
   },
 
   materialKpiPercent: {
-    fontSize: fontScale(8.5),
+    fontSize: fontScale(9),
     fontFamily: fonts.bold,
     fontVariant: ["tabular-nums"],
+    color: colors.textSecondary,
   },
 
   materialKpiValue: {
-    width: "100%",
-    marginTop: verticalScale(6),
+    flex: 1,
+    minWidth: 0,
     fontSize: fontScale(14),
     lineHeight: fontScale(17),
     fontFamily: fonts.bold,
@@ -780,7 +903,7 @@ const styles = StyleSheet.create({
   materialKpiPlanned: {
     width: "100%",
     marginTop: verticalScale(2),
-    fontSize: fontScale(9),
+    fontSize: fontScale(10),
     fontFamily: fonts.medium,
     color: colors.textSecondary,
     fontVariant: ["tabular-nums"],
@@ -790,7 +913,7 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     height: verticalScale(4),
     borderRadius: moderateScale(999),
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: colors.neutralBorder,
     overflow: "hidden",
   },
 
@@ -799,70 +922,18 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(999),
   },
 
-  totalSummaryCard: {
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(10),
-    borderRadius: moderateScale(15),
-    borderCurve: "continuous",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    boxShadow: "0 3px 12px rgba(18,59,99,0.06)",
-  },
-
-  totalSummaryHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: moderateScale(12),
-  },
-
-  totalSummaryLabel: {
-    fontSize: fontScale(10),
-    fontFamily: fonts.medium,
-    color: colors.textSecondary,
-  },
-
-  totalSummaryValue: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(16),
-    fontFamily: fonts.bold,
-    color: colors.primaryBlue,
-    fontVariant: ["tabular-nums"],
-  },
-
-  totalSummaryPlannedWrap: {
-    flexShrink: 1,
-    alignItems: "flex-end",
-  },
-
-  totalSummaryPlannedLabel: {
-    fontSize: fontScale(9),
-    fontFamily: fonts.medium,
-    color: colors.textSecondary,
-  },
-
-  totalSummaryPlannedValue: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(11),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
-    fontVariant: ["tabular-nums"],
-    textAlign: "right",
-  },
-
   totalSummaryTrack: {
     marginTop: verticalScale(7),
     height: verticalScale(4),
     borderRadius: moderateScale(999),
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: colors.neutralBorder,
     overflow: "hidden",
   },
 
   totalSummaryProgress: {
     height: "100%",
     borderRadius: moderateScale(999),
-    backgroundColor: colors.primaryGreen,
+    backgroundColor: colors.primaryBlue,
   },
 
   actionSection: {
@@ -870,8 +941,8 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontSize: fontScale(14),
-    lineHeight: fontScale(18),
+    fontSize: fontScale(15),
+    lineHeight: fontScale(20),
     fontFamily: fonts.bold,
     color: colors.textDark,
   },
@@ -881,37 +952,44 @@ const styles = StyleSheet.create({
     gap: moderateScale(8),
   },
 
+  actionStack: {
+    gap: moderateScale(8),
+  },
+
   actionButton: {
     flex: 1,
     minWidth: 0,
-    minHeight: verticalScale(47),
+    minHeight: verticalScale(48),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: moderateScale(7),
+    paddingHorizontal: moderateScale(10),
     paddingVertical: verticalScale(7),
-    gap: moderateScale(6),
-    borderRadius: moderateScale(13),
+    gap: moderateScale(7),
+    borderRadius: moderateScale(12),
     borderCurve: "continuous",
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    boxShadow: "0 2px 8px rgba(18,59,99,0.06)",
+    borderColor: colors.neutralBorder,
   },
 
   actionButtonPrimary: {
     flex: 0,
-    minHeight: verticalScale(47),
+    minHeight: verticalScale(48),
     justifyContent: "center",
-    paddingHorizontal: moderateScale(7),
-    borderRadius: moderateScale(13),
+    paddingHorizontal: moderateScale(10),
+    borderRadius: moderateScale(12),
     backgroundColor: colors.primaryBlue,
     borderColor: colors.primaryBlue,
-    boxShadow: "0 4px 12px rgba(18,59,99,0.2)",
+  },
+
+  actionButtonPrimaryInline: {
+    flex: 1,
   },
 
   actionButtonSelected: {
     borderWidth: 1.5,
+    borderColor: colors.primaryBlue,
   },
 
   actionButtonPressed: {
@@ -920,36 +998,38 @@ const styles = StyleSheet.create({
   },
 
   actionIcon: {
-    width: moderateScale(28),
-    height: moderateScale(28),
-    borderRadius: moderateScale(9),
+    width: moderateScale(24),
+    height: moderateScale(24),
+    flexShrink: 0,
+    borderRadius: moderateScale(8),
     borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceBluePale,
   },
 
   actionIconPrimary: {
-    width: moderateScale(28),
-    height: moderateScale(28),
-    borderRadius: moderateScale(9),
+    width: moderateScale(24),
+    height: moderateScale(24),
+    borderRadius: moderateScale(8),
     backgroundColor: "rgba(255,255,255,0.14)",
   },
 
   actionTextGroup: {
-    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
+    alignItems: "center",
   },
 
   actionLabel: {
-    width: "100%",
-    fontSize: fontScale(13),
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
     color: colors.primaryBlue,
+    textAlign: "center",
   },
 
   actionLabelPrimary: {
-    fontSize: fontScale(14),
+    fontSize: fontScale(12),
     color: colors.white,
   },
 
@@ -973,21 +1053,11 @@ const styles = StyleSheet.create({
     color: colors.textDark,
   },
 
-  sectionEyebrow: {
-    fontSize: fontScale(10),
-    fontFamily: fonts.bold,
-    color: colors.primaryBlue,
-    letterSpacing: 0.8,
-  },
-
   chartCard: {
-    padding: moderateScale(11),
-    borderRadius: moderateScale(17),
+    padding: moderateScale(13),
+    borderRadius: moderateScale(14),
     borderCurve: "continuous",
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    boxShadow: "0 4px 14px rgba(18,59,99,0.07)",
   },
 
   chartHeader: {
@@ -997,202 +1067,163 @@ const styles = StyleSheet.create({
     gap: moderateScale(10),
   },
 
-  chartMaterialBadge: {
-    minWidth: moderateScale(46),
-    minHeight: verticalScale(30),
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: moderateScale(11),
-    borderRadius: moderateScale(10),
-    borderCurve: "continuous",
-  },
-
-  chartMaterialBadgeText: {
-    fontSize: fontScale(12),
-    fontFamily: fonts.bold,
-    letterSpacing: 0.4,
-  },
-
   chartPlannedWrap: {
     alignItems: "flex-end",
   },
 
   chartPlannedLabel: {
-    fontSize: fontScale(8),
+    fontSize: fontScale(9),
     fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
 
   chartPlannedValue: {
     marginTop: verticalScale(1),
-    fontSize: fontScale(10.5),
+    fontSize: fontScale(11.5),
     fontFamily: fonts.bold,
     color: colors.primaryBlue,
     fontVariant: ["tabular-nums"],
   },
 
-  chartCaption: {
-    marginTop: verticalScale(4),
-    fontSize: fontScale(11),
-    lineHeight: fontScale(15),
-    fontFamily: fonts.regular,
-    color: colors.textSecondary,
+  progressMaterialSelector: {
+    marginTop: verticalScale(11),
+    flexDirection: "row",
+    gap: moderateScale(3),
+    padding: moderateScale(3),
+    borderRadius: moderateScale(12),
+    borderCurve: "continuous",
+    backgroundColor: colors.neutralCanvas,
   },
 
-  selectedMaterialSummary: {
-    marginTop: verticalScale(10),
+  progressMaterialTab: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: verticalScale(40),
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: moderateScale(10),
-    paddingHorizontal: moderateScale(11),
-    paddingVertical: verticalScale(9),
-    borderRadius: moderateScale(13),
+    justifyContent: "center",
+    gap: moderateScale(5),
+    paddingHorizontal: moderateScale(6),
+    borderRadius: moderateScale(10),
     borderCurve: "continuous",
-    backgroundColor: colors.surfaceBluePale,
+    borderWidth: 1,
+    borderColor: colors.transparent,
   },
 
-  selectedMaterialName: {
-    fontSize: fontScale(12),
-    fontFamily: fonts.bold,
-    color: colors.textDark,
+  progressMaterialTabSelected: {
+    borderColor: colors.neutralBorder,
+    backgroundColor: colors.white,
   },
 
-  selectedMaterialMeta: {
-    marginTop: verticalScale(2),
-    fontSize: fontScale(9.5),
-    fontFamily: fonts.regular,
+  progressMaterialTabPressed: {
+    opacity: 0.75,
+  },
+
+  progressMaterialTabText: {
+    fontSize: fontScale(11),
+    fontFamily: fonts.semiBold,
     color: colors.textSecondary,
   },
 
-  selectedMaterialValue: {
-    maxWidth: "58%",
-    fontSize: fontScale(12),
-    fontFamily: fonts.bold,
+  progressMaterialTabTextSelected: {
     color: colors.primaryBlue,
-    fontVariant: ["tabular-nums"],
-    textAlign: "right",
   },
 
-  stageChartRow: {
-    marginTop: verticalScale(9),
+  stageProgressList: {
+    marginTop: verticalScale(8),
+  },
+
+  stageProgressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(12),
+    minHeight: verticalScale(77),
+    paddingVertical: verticalScale(8),
+  },
+
+  stageProgressRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutralBorder,
+  },
+
+  stageRowDetails: {
+    flex: 1,
+    minWidth: 0,
+    gap: verticalScale(4),
+  },
+
+  stageRowHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(6),
+  },
+
+  stageRowMetrics: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: moderateScale(4),
+  },
+
+  stageRowMetricsStacked: {
     flexDirection: "column",
-    alignItems: "stretch",
+    alignItems: "flex-start",
     gap: 0,
   },
 
-  stageChartCard: {
-    flexDirection: "row",
-    minWidth: 0,
-    alignItems: "center",
-    paddingHorizontal: moderateScale(5),
-    paddingTop: verticalScale(8),
-    paddingBottom: verticalScale(8),
-    justifyContent: "space-between",
-    gap: moderateScale(16),
-    borderRadius: 0,
-    borderCurve: "continuous",
-    backgroundColor: colors.surfaceBluePale,
-    borderWidth: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.cardBorder,
-  },
-
-  stageIcon: {
-    width: moderateScale(32),
-    height: moderateScale(32),
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(9),
-    borderCurve: "continuous",
-  },
-
-  stageChartHeader: {
+  stageCardTitle: {
     flex: 1,
-    minHeight: verticalScale(18),
-    flexDirection: "column",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    gap: moderateScale(4),
-  },
-
-  stageChartTitleWrap: {
     minWidth: 0,
-    flexShrink: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(4),
+    fontSize: fontScale(12),
+    fontFamily: fonts.semiBold,
+    color: colors.textDark,
   },
 
-  stageSequence: {
-    fontSize: fontScale(8),
-    fontFamily: fonts.bold,
-    fontVariant: ["tabular-nums"],
-    opacity: 0.72,
-  },
-
-  stageDot: {
-    width: moderateScale(6),
-    height: moderateScale(6),
-    borderRadius: moderateScale(3),
-  },
-
-  stageChartWrap: {
-    marginTop: 0,
+  stageDonut: {
     alignItems: "center",
     justifyContent: "center",
   },
 
-  stagePie: {
-    position: "absolute",
-  },
-
-  dialMarker: {
-    position: "absolute",
-    width: moderateScale(3),
-    height: verticalScale(2),
-    borderRadius: moderateScale(1),
-  },
-
-  stageChartCenter: {
+  stageDonutCenter: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    gap: verticalScale(1),
   },
 
-  stageChartPercent: {
-    maxWidth: "78%",
-    fontSize: fontScale(20),
-    color: colors.textDark,
-    fontFamily: fonts.bold,
-    fontVariant: ["tabular-nums"],
-    textAlign: "center",
-  },
-
-  stageChartLabel: {
-    flexShrink: 1,
+  stageDonutPercent: {
+    maxWidth: "80%",
     fontSize: fontScale(14),
     fontFamily: fonts.bold,
-    color: colors.textDark,
+    fontVariant: ["tabular-nums"],
     textAlign: "center",
+    color: colors.textDark,
   },
 
-  stageChartValue: {
-    width: "100%",
-    marginTop: verticalScale(5),
-    fontSize: fontScale(21),
+  stageCardMetricValue: {
+    fontSize: fontScale(14),
     fontFamily: fonts.bold,
-    color: colors.textDark,
     fontVariant: ["tabular-nums"],
-    textAlign: "left",
+    color: colors.textDark,
   },
-  stageRemaining: {
-    marginTop: verticalScale(4),
-    fontSize: fontScale(12),
-    fontFamily: fonts.medium,
+
+  stageCardPlanned: {
+    flexShrink: 1,
+    fontSize: fontScale(10),
+    fontFamily: fonts.regular,
     color: colors.textSecondary,
-    textAlign: "left",
+  },
+
+  stageCardTrack: {
+    width: "100%",
+    height: verticalScale(4),
+    marginTop: verticalScale(2),
+    overflow: "hidden",
+    borderRadius: moderateScale(99),
+    backgroundColor: colors.neutralBorder,
+  },
+
+  stageCardProgress: {
+    height: "100%",
+    borderRadius: moderateScale(99),
   },
 });
 

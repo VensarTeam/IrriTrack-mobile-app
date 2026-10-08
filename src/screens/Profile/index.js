@@ -32,10 +32,10 @@ const ProfileScreen = ({ navigation }) => {
     canShowAddContractor,
     isRefreshingProfile,
     isSyncingMasterData,
-    isSyncingOmsData,
+    isSyncingPendingWork,
     handleRefreshProfile,
     handleSyncMasterData,
-    handleSyncOmsData,
+    handleSyncPendingWork,
     handleOpenAddContractor,
     handleLogout,
   } = useProfileViewModel(navigation);
@@ -223,19 +223,19 @@ const ProfileScreen = ({ navigation }) => {
                 style={[
                   styles.syncButton,
                   styles.syncButtonPrimary,
-                  isSyncingOmsData && styles.actionButtonDisabled,
+                  isSyncingPendingWork && styles.actionButtonDisabled,
                 ]}
-                onPress={handleSyncOmsData}
-                disabled={isSyncingOmsData}
+                onPress={handleSyncPendingWork}
+                disabled={isSyncingPendingWork}
                 activeOpacity={0.88}
               >
-                {isSyncingOmsData ? (
+                {isSyncingPendingWork ? (
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <Icon source="cloud-sync-outline" size={20} color={colors.white} />
                 )}
                 <Text style={styles.syncButtonPrimaryText}>
-                  {isSyncingOmsData ? "Checking" : "Pending Work"}
+                  {isSyncingPendingWork ? "Syncing" : "Pending Work"}
                 </Text>
               </TouchableOpacity>
             </View>
