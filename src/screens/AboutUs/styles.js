@@ -1,21 +1,15 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
-import { moderateScale, verticalScale } from "../../constants/metrics";
+import { fontScale, moderateScale, verticalScale } from "../../constants/metrics";
 
 export default StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.white,
   },
-
-  header: {
-    paddingTop: verticalScale(38),
-    paddingBottom: verticalScale(14),
-    paddingHorizontal: moderateScale(18),
-    borderBottomLeftRadius: moderateScale(18),
-    borderBottomRightRadius: moderateScale(18),
-    overflow: "hidden",
+  iosScreen: {
+    backgroundColor: colors.loginHeroGradientStart,
   },
 
   headerTitleRow: {
@@ -46,7 +40,7 @@ export default StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: moderateScale(20),
+    fontSize: fontScale(20),
     fontFamily: fonts.bold,
     color: colors.navyFreshDark,
     textAlign: "center",

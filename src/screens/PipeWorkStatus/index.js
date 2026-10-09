@@ -7,7 +7,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,8 +14,8 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { Icon } from "react-native-paper";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon, IconButton, Searchbar } from "react-native-paper";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import NetInfo from "@react-native-community/netinfo";
 import { useAuth } from "../../context/AuthContext";
 import { fetchPipeSubmission, fetchPipeWorkStatus, updatePipeSubmissionWorkflow } from "../../services/pipeNetworkApi";
@@ -27,8 +26,11 @@ import { getPipeCache, listPendingPipeMutations, savePipeCache } from "../../ser
 import { IMAGE_BASE_URL } from "../../config/env";
 import { getUnitStatusPalette } from "../../utils/unitStatusPalette";
 import ImageViewerModal from "../../components/ImageViewerModal";
+import { CustomTabBar } from "../../components/WorkStatusTabView";
+import omsStyles from "../WorkStatus/styles";
 
 const TABS = ["all", "submitted", "verified", "approved", "rejected", "modify_request", "modify_approved"];
+const OMS_TABS = ["Submitted", "Pending", "Verified", "Approved", "Commented", "Modify Request", "Modify Approved"];
 const TAB_LABELS = {
   all: "All",
   submitted: "Submitted",
@@ -47,8 +49,11 @@ const getStatusLabel = (value = "") => TAB_LABELS[String(value).toLowerCase()] |
 
 const getStatusTheme = (value = "") => {
   const label = getStatusLabel(value);
+  if (label === "Modify request") return { label, backgroundColor: "#F1EAFF", color: "#5B21B6", borderColor: "#7C3AED", icon: "file-edit-outline" };
+  if (label === "Modify approved") return { label, backgroundColor: "#E6FFFA", color: "#0F766E", borderColor: "#0D9488", icon: "file-check-outline" };
   const palette = getUnitStatusPalette(label === "Commented" ? "Commented" : label);
-  return { label, backgroundColor: palette.soft, color: palette.text, borderColor: palette.solid };
+  const icon = { Submitted: "timeline-clock-outline", Verified: "shield-check-outline", Approved: "check-decagram-outline", Commented: "message-alert-outline" }[label] || "progress-clock";
+  return { label, backgroundColor: palette.soft, color: palette.text, borderColor: palette.solid, icon };
 };
 
 const formatDate = (value) => {
@@ -94,15 +99,17 @@ const getChecklistImages = (value) => {
         ? [value]
         : [];
   return candidates.map((file, index) => {
-    const uri = resolveImageUrl(
+    const primaryUri = resolveImageUrl(
       file?.url || file?.publicUrl || file?.imageUrl || file?.image_url ||
-      file?.objectKey || file?.object_key || file?.storageKey || file?.key ||
-      file?.uri || file?.filePath || file,
+      file?.uri || file?.filePath || (typeof file === "string" ? file : ""),
     );
+    const storageUri = resolveImageUrl(file?.storageKey || file?.objectKey || file?.object_key || file?.key);
+    const uri = primaryUri || storageUri;
     if (!uri) return null;
     return {
       id: String(file?.imageId || file?.id || uri || `checklist-image-${index}`),
       uri,
+      fallbackUri: storageUri && storageUri !== uri ? storageUri : "",
       title: file?.fileName || file?.name || `Checklist photo ${index + 1}`,
       meta: file?.uploadedAt || file?.takenAt || "",
     };
@@ -122,12 +129,26 @@ const normalizeSubmissionDetail = (response) => {
   return detail;
 };
 
+const logSubmissionPayload = (label, value) => {
+  if (typeof __DEV__ === "undefined" || !__DEV__) return;
+  let serialized;
+  try {
+    serialized = JSON.stringify(value, null, 2) ?? String(value);
+  } catch (error) {
+    serialized = `[Could not serialize response: ${error?.message || "unknown error"}]`;
+  }
+  const chunkSize = 3000;
+  const partCount = Math.max(1, Math.ceil(serialized.length / chunkSize));
+  for (let part = 0; part < partCount; part += 1) {
+    console.log(`${label} [${part + 1}/${partCount}] ${serialized.slice(part * chunkSize, (part + 1) * chunkSize)}`);
+  }
+};
+
 const logSubmissionDetail = (submissionId, response) => {
   if (typeof __DEV__ === "undefined" || !__DEV__) return;
-  console.info(`[PipeWorkStatus] submission details API response (${submissionId})`, JSON.stringify(response, null, 2));
   const detail = normalizeSubmissionDetail(response);
   const checklistImages = (detail?.items || []).flatMap((item) =>
-    getChecklistImages(unwrapChecklistValue(item)).map((image) => ({ checklistId: item.checklistId, uri: image.uri })),
+    getChecklistImages(unwrapChecklistValue(item)).map((image) => ({ checklistId: item.checklistId, uri: image.uri, fallbackUri: image.fallbackUri })),
   );
   console.info("[PipeWorkStatus] resolved submission images", {
     submissionId,
@@ -136,64 +157,74 @@ const logSubmissionDetail = (submissionId, response) => {
   });
 };
 
-const ChecklistImageThumbnail = ({ image, index, images, onViewImages }) => {
+const ChecklistImageThumbnail = ({ image, index, images, onViewImages, variant = "inline" }) => {
   const [failed, setFailed] = useState(false);
+  const [activeUri, setActiveUri] = useState(image.uri);
+  React.useEffect(() => {
+    setActiveUri(image.uri);
+    setFailed(false);
+  }, [image.uri, image.fallbackUri]);
+  const handlePress = () => {
+    if (failed) {
+      setFailed(false);
+      setActiveUri(image.uri);
+      return;
+    }
+    onViewImages?.(images.map((item, itemIndex) => itemIndex === index ? { ...item, uri: activeUri } : item), index);
+  };
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={failed ? `Retry ${image.title}` : `View ${image.title}`}
-      onPress={() => failed ? setFailed(false) : onViewImages?.(images, index)}
-      style={({ pressed }) => [styles.answerImageButton, pressed && styles.pressed]}
+      onPress={handlePress}
+      style={({ pressed }) => [variant === "gallery" ? omsStyles.galleryImageCard : omsStyles.filePreviewTouch, pressed && styles.pressed]}
     >
       {failed ? (
-        <View style={[styles.answerImage, styles.answerImageUnavailable]}>
-          <Icon source="image-off-outline" size={20} color={colors.textSecondary} />
-          <Text style={styles.answerImageUnavailableText}>Tap to retry</Text>
+        <View style={omsStyles.filePlaceholder}>
+          <Icon source="image-off-outline" size={22} color={colors.textSecondary} />
+          <Text style={omsStyles.filePlaceholderText}>Tap to retry</Text>
         </View>
       ) : (
         <Image
-          source={{ uri: image.uri }}
-          style={styles.answerImage}
+          source={{ uri: activeUri }}
+          style={variant === "gallery" ? omsStyles.galleryImage : omsStyles.inlinePreviewImage}
           resizeMode="cover"
           onLoad={(event) => {
             if (typeof __DEV__ !== "undefined" && __DEV__) {
               console.info("[PipeWorkStatus] image loaded", {
-                uri: image.uri,
+                uri: activeUri,
                 width: event?.nativeEvent?.source?.width,
                 height: event?.nativeEvent?.source?.height,
               });
             }
           }}
           onError={(event) => {
-            setFailed(true);
+            const canUseStorageKey = Boolean(image.fallbackUri && activeUri !== image.fallbackUri);
+            if (canUseStorageKey) setActiveUri(image.fallbackUri);
+            else setFailed(true);
             if (typeof __DEV__ !== "undefined" && __DEV__) {
-              console.warn("[PipeWorkStatus] image failed to load", {
-                uri: image.uri,
+              console.warn(canUseStorageKey ? "[PipeWorkStatus] image URL failed; trying storageKey" : "[PipeWorkStatus] image failed to load", {
+                uri: activeUri,
+                fallbackUri: canUseStorageKey ? image.fallbackUri : undefined,
                 error: event?.nativeEvent?.error || "Unknown image loading error",
               });
             }
           }}
         />
       )}
-      {!failed ? (
-        <View style={styles.answerImageOpenHint}>
-          <Icon source="magnify-plus-outline" size={14} color={colors.white} />
-        </View>
-      ) : null}
+      {variant === "gallery" ? <Text style={omsStyles.galleryImageTitle} numberOfLines={1}>{image.title}</Text> : null}
     </Pressable>
   );
 };
 
-const ChecklistImageGallery = ({ images = [], onViewImages }) => (
-  <View style={styles.answerImages}>
-    {images.map((image, index) => (
-      <ChecklistImageThumbnail
-        key={image.id}
-        image={image}
-        index={index}
-        images={images}
-        onViewImages={onViewImages}
-      />
+const ChecklistImageGallery = ({ images = [], onViewImages, variant = "inline" }) => (
+  <View style={variant === "gallery" ? omsStyles.imageGalleryGrid : omsStyles.valueBlock}>
+    {images.map((image, index) => variant === "gallery" ? (
+      <ChecklistImageThumbnail key={image.id} image={image} index={index} images={images} onViewImages={onViewImages} variant="gallery" />
+    ) : (
+      <View key={image.id} style={omsStyles.fileRow}>
+        <ChecklistImageThumbnail image={image} index={index} images={images} onViewImages={onViewImages} />
+      </View>
     ))}
   </View>
 );
@@ -208,15 +239,14 @@ const ChecklistAnswer = ({ item, onViewImages }) => {
 
   if (typeof value === "boolean") {
     return (
-      <View style={[styles.booleanAnswer, value ? styles.booleanAnswerYes : styles.booleanAnswerNo]}>
-        <Icon source={value ? "check-circle" : "close-circle"} size={17} color={value ? colors.completed : colors.danger} />
-        <Text style={[styles.booleanAnswerText, { color: value ? colors.completed : colors.danger }]}>{value ? "Yes" : "No"}</Text>
+      <View style={[omsStyles.checklistInlineStatus, { backgroundColor: value ? "#ECFBF3" : "#FFF3F0", borderColor: value ? "#C7EFD8" : "#F1C5B8" }]}>
+        <Icon source={value ? "check-circle" : "close-circle"} size={18} color={value ? colors.completed : colors.danger} />
       </View>
     );
   }
 
   const displayValue = value && typeof value === "object" ? JSON.stringify(value) : String(value ?? "—");
-  return <Text style={styles.answerValue}>{displayValue}</Text>;
+  return <View style={omsStyles.valueBlock}><View style={omsStyles.valueHighlight}><Text style={omsStyles.valueHighlightText}>{displayValue}</Text></View></View>;
 };
 
 const getActions = (item, user) => {
@@ -269,10 +299,11 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   const [actionBusy, setActionBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
   const [actionRemark, setActionRemark] = useState("");
+  const [showStatusInfo, setShowStatusInfo] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingResubmissions, setPendingResubmissions] = useState(new Map());
   const controllerRef = useRef(null);
-  const hasLoadedDataRef = useRef(false);
+  const activeResourceRef = useRef("");
 
   const openChecklistImages = useCallback((images = [], initialIndex = 0) => {
     const validImages = images.filter((image) => image?.uri);
@@ -300,6 +331,11 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
+    const resource = `work-status:${material || "all"}:${tab}:${search.trim()}`;
+    if (activeResourceRef.current !== resource) {
+      activeResourceRef.current = resource;
+      setData(null);
+    }
     setLoading(true);
     setError("");
     void listPendingPipeMutations(String(user?.id || user?.mobile || ""), { force: true })
@@ -311,11 +347,11 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
           }])));
       })
       .catch(() => { if (!controller.signal.aborted) setPendingResubmissions(new Map()); });
-    const resource = `work-status:${material || "all"}:${tab}:${search.trim()}`;
+    let hasCachedData = false;
     try {
       const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
       if (cached?.payload && !controller.signal.aborted) {
-        hasLoadedDataRef.current = true;
+        hasCachedData = true;
         setData(cached.payload);
         setLoading(false);
       }
@@ -326,14 +362,13 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       const networkState = await NetInfo.fetch();
       if (!isOnline || networkState.isConnected === false || networkState.isInternetReachable === false) {
         if (!controller.signal.aborted) {
-          if (!hasLoadedDataRef.current) setError("Offline: showing saved work status when available.");
+          if (!hasCachedData) setError("Offline: this work-status list is not saved on this device yet.");
           setLoading(false);
         }
         return;
       }
       const response = await fetchPipeWorkStatus({ projectId, material, workflowStatus: tab === "all" ? undefined : tab, search: search.trim() || undefined, page: 1, pageSize: 100, signal: controller.signal });
       if (!controller.signal.aborted) {
-        hasLoadedDataRef.current = true;
         setData(response);
         await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: response });
       }
@@ -360,7 +395,10 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       if (cached?.payload) {
         hasCachedDetail = true;
         if (typeof __DEV__ !== "undefined" && __DEV__) {
-          console.info(`[PipeWorkStatus] showing cached submission detail (${item.submissionId})`);
+          console.log("[PipeWorkStatus] showing CACHED submission detail; waiting for API", {
+            submissionId: item.submissionId,
+            cachedAt: cached.refreshedAt,
+          });
         }
         setDetail(normalizeSubmissionDetail(cached.payload));
       }
@@ -370,15 +408,41 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     try {
       const networkState = await NetInfo.fetch();
       if (networkState.isConnected === false || networkState.isInternetReachable === false) {
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.log("[PipeWorkStatus] submission details API skipped: offline", { submissionId: item.submissionId });
+        }
         if (!hasCachedDetail) Alert.alert("Offline", "This submission’s checklist has not been saved on this device yet.");
         return;
       }
-      const response = await fetchPipeSubmission({ submissionId: item.submissionId });
+      const startedAt = Date.now();
+      const response = await fetchPipeSubmission({
+        submissionId: item.submissionId,
+        onResponse: ({ status, body, url }) => {
+          if (typeof __DEV__ === "undefined" || !__DEV__) return;
+          console.log("[PipeWorkStatus] submission details HTTP response", {
+            submissionId: item.submissionId,
+            method: "GET",
+            url,
+            status,
+            elapsedMs: Date.now() - startedAt,
+          });
+          logSubmissionPayload("[PipeWorkStatus] RAW API RESPONSE", body);
+        },
+      });
       logSubmissionDetail(item.submissionId, response);
       const normalizedDetail = normalizeSubmissionDetail(response);
       setDetail(normalizedDetail);
       await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: normalizedDetail });
     } catch (detailError) {
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.warn("[PipeWorkStatus] submission details API failed", {
+          submissionId: item.submissionId,
+          status: detailError?.status || 0,
+          code: detailError?.code || null,
+          message: detailError?.message,
+        });
+        if (detailError?.details) logSubmissionPayload("[PipeWorkStatus] ERROR API RESPONSE", detailError.details);
+      }
       if (!hasCachedDetail) Alert.alert("Could not open request", detailError?.message || "Please try again.");
     } finally {
       setDetailLoading(false);
@@ -434,52 +498,37 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.search}>
-        <Icon source="magnify" size={moderateScale(20)} color={colors.textSecondary} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search node or pipe label"
-          placeholderTextColor={colors.textSecondary}
-          returnKeyType="search"
-          style={styles.searchInput}
-        />
-        {search ? (
-          <Pressable accessibilityLabel="Clear search" hitSlop={8} onPress={() => setSearch("")}>
-            <Icon source="close-circle" size={moderateScale(18)} color={colors.textSecondary} />
-          </Pressable>
-        ) : null}
+    <SafeAreaView style={omsStyles.safeArea}>
+      <View style={omsStyles.header}>
+        <View style={omsStyles.headerActionSlot}>
+          <IconButton icon="arrow-left" size={22} onPress={() => navigation.goBack()} accessibilityLabel="Go back" />
+        </View>
+        <Text style={omsStyles.headerTitle}>Work Status</Text>
+        <View style={omsStyles.headerActionSlot}>
+          <IconButton icon="information-outline" iconColor={colors.primaryBlue} size={22} style={omsStyles.headerInfoButton} onPress={() => setShowStatusInfo(true)} accessibilityLabel="Status information" />
+        </View>
       </View>
 
-      <ScrollView
-        horizontal
-        style={styles.tabsScroll}
-        contentContainerStyle={styles.tabs}
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {TABS.map((item) => {
-          const active = tab === item;
-          const count = item === "all" ? counts.total || 0 : counts[item] || 0;
-          return (
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              key={item}
-              onPress={() => setTab(item)}
-              style={({ pressed }) => [styles.tab, active && styles.tabActive, pressed && styles.pressed]}
-            >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{TAB_LABELS[item]}</Text>
-              <View style={[styles.tabCount, active && styles.tabCountActive]}>
-                <Text style={[styles.tabCountText, active && styles.tabCountTextActive]}>{count}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View style={omsStyles.searchRow}>
+        <Searchbar
+          placeholder="Search node, pipe or process"
+          onChangeText={setSearch}
+          value={search}
+          style={omsStyles.searchbar}
+          inputStyle={omsStyles.searchInput}
+          iconColor={colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
+        />
+      </View>
 
-      {!!error && (
+      <CustomTabBar
+        tabs={OMS_TABS}
+        activeTabIndex={TABS.indexOf(tab)}
+        onTabPress={(index) => setTab(TABS[index])}
+        countsByTab={Object.fromEntries(OMS_TABS.map((name, index) => [name, index === 0 ? counts.total || 0 : counts[TABS[index]] || 0]))}
+      />
+
+      {!!error && data !== null && (
         <View style={styles.error}>
           <Icon source="alert-circle-outline" size={18} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
@@ -492,7 +541,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
         keyExtractor={(item) => item.submissionId}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={loading && data !== null} onRefresh={load} tintColor={colors.primaryBlue} colors={[colors.primaryBlue]} />}
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + verticalScale(20) }]}
+        contentContainerStyle={[omsStyles.sceneContent, { paddingBottom: insets.bottom + verticalScale(20) }]}
         renderItem={({ item }) => {
           const statusTheme = getStatusTheme(item.workflowStatus || item.status);
           const pendingResubmission = pendingResubmissions.get(String(item.submissionId));
@@ -501,101 +550,130 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
             item.processDescription || item.processCode,
             item.material,
           ].filter(Boolean).join(" · ");
-          const submitted = [item.submittedByName, formatDate(item.submittedAt || item.createdAt)].filter(Boolean).join(" · ");
           const hasChainage = item.chainageFromM != null && item.chainageToM != null;
           return (
-            <Pressable onPress={() => openItem(item)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIdentity}>
-                  <View style={styles.cardIcon}><Icon source="pipe" size={22} color={colors.primaryBlue} /></View>
-                  <View style={styles.cardTitleWrap}>
-                    <Text style={styles.title} numberOfLines={1}>{item.startNode || "—"} → {item.stopNode || "—"}</Text>
-                    <Text style={styles.subtitle} numberOfLines={2}>{reference}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={`View checklist for ${item.startNode || "start"} to ${item.stopNode || "end"}`} onPress={() => openItem(item)} style={({ pressed }) => [omsStyles.card, pressed && styles.pressed]}>
+              <View style={omsStyles.cardTopRow}>
+                <View style={omsStyles.cardHeaderRow}>
+                  <View style={omsStyles.cardIdentityRow}>
+                    <View style={omsStyles.cardIdentityIcon}><Icon source="pipe" size={18} color={colors.primaryBlue} /></View>
+                    <View style={omsStyles.cardTextWrap}>
+                      <Text style={omsStyles.cardPrimaryTitle} numberOfLines={2}>{item.startNode || "—"} → {item.stopNode || "—"}</Text>
+                      <Text style={omsStyles.cardProcessText} numberOfLines={2}>{reference}{hasChainage ? ` · Ch ${item.chainageFromM}–${item.chainageToM} m` : ""}</Text>
+                    </View>
+                  </View>
+                  <View style={omsStyles.cardStatusWrap}>
+                    <View style={[omsStyles.statusPill, { backgroundColor: statusTheme.backgroundColor, borderColor: statusTheme.borderColor }]}>
+                      <Icon source={statusTheme.icon} size={16} color={statusTheme.color} />
+                      <Text style={[omsStyles.statusPillText, { color: statusTheme.color }]}>{statusTheme.label}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={[styles.statusPill, { backgroundColor: statusTheme.backgroundColor, borderColor: statusTheme.borderColor }]}>
-                  <View style={[styles.statusDot, { backgroundColor: statusTheme.borderColor }]} />
-                  <Text style={[styles.statusText, { color: statusTheme.color }]}>{statusTheme.label}</Text>
+
+                <View style={omsStyles.cardBodyWrap}>
+                  <View style={omsStyles.cardMetaGroup}>
+                    <View style={omsStyles.workflowMetaRow}>
+                      <View style={[omsStyles.workflowMetaTag, { backgroundColor: statusTheme.backgroundColor }]}>
+                        <Text style={[omsStyles.workflowMetaTagText, { color: statusTheme.color }]}>Submitted</Text>
+                      </View>
+                      <View style={omsStyles.workflowMetaContent}>
+                        <Text style={omsStyles.workflowMetaActor} numberOfLines={1}>{item.submittedByName || "Unknown"}</Text>
+                        {item.submittedAt || item.createdAt ? <Text style={omsStyles.workflowMetaSeparator}>•</Text> : null}
+                        {item.submittedAt || item.createdAt ? <Text style={omsStyles.workflowMetaDate} numberOfLines={1}>{formatDate(item.submittedAt || item.createdAt)}</Text> : null}
+                      </View>
+                    </View>
+                    <View style={omsStyles.workflowMetaRow}>
+                      <View style={[omsStyles.workflowMetaTag, { backgroundColor: colors.surfaceBluePale }]}>
+                        <Text style={[omsStyles.workflowMetaTagText, { color: colors.primaryBlue }]}>Reviewers</Text>
+                      </View>
+                      <View style={omsStyles.workflowMetaContent}>
+                        <Text style={omsStyles.workflowMetaActor} numberOfLines={1}>{item.assignedEngineerName || "No engineer"}</Text>
+                        <Text style={omsStyles.workflowMetaSeparator}>→</Text>
+                        <Text style={omsStyles.workflowMetaDate} numberOfLines={1}>{item.assignedManagerName || "No manager"}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  {pendingResubmission ? (
+                    <View style={styles.pendingSyncNotice}>
+                      <Icon source="cloud-upload-outline" size={16} color={colors.primaryBlue} />
+                      <Text style={styles.pendingSyncText}>{pendingResubmission.needsPhoto && (item.workflowStatus || item.status) === "rejected" ? "Correction photo needed to sync" : "Resubmission saved · waiting to sync"}</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
-
-              {hasChainage ? (
-                <View style={styles.chainagePill}>
-                  <Icon source="map-marker-distance" size={14} color={colors.textSecondary} />
-                  <Text style={styles.chainageText}>Chainage {item.chainageFromM}–{item.chainageToM} m</Text>
-                </View>
-              ) : null}
-
-              {pendingResubmission ? (
-                <View style={styles.pendingSyncNotice}>
-                  <Icon source="cloud-upload-outline" size={16} color={colors.primaryBlue} />
-                  <Text style={styles.pendingSyncText}>{pendingResubmission.needsPhoto && (item.workflowStatus || item.status) === "rejected" ? "Correction photo needed to sync" : "Resubmission saved · waiting to sync"}</Text>
-                </View>
-              ) : null}
-
-              <View style={styles.cardDivider} />
-              <View style={styles.activityRow}>
-                <Icon source="account-clock-outline" size={19} color={colors.textSecondary} />
-                <View style={styles.activityCopy}>
-                  <Text style={styles.activityPrimary} numberOfLines={1}>{submitted || "Submission activity unavailable"}</Text>
-                  <Text style={styles.activitySecondary} numberOfLines={1}>
-                    {item.assignedEngineerName || "No engineer"} → {item.assignedManagerName || "No manager"}
-                  </Text>
-                </View>
-                <Icon source="chevron-right" size={22} color={colors.textSecondary} />
+              <View style={omsStyles.cardOpenRow}>
+                <Text style={omsStyles.cardOpenText}>View checklist</Text>
+                <Icon source="chevron-right" size={18} color={colors.primaryBlue} />
               </View>
             </Pressable>
           );
         }}
         ListEmptyComponent={loading && data === null ? (
-          <View style={styles.state}><ActivityIndicator color={colors.primaryBlue} /><Text style={styles.stateText}>Loading work status…</Text></View>
+          <View style={omsStyles.stateWrap}><ActivityIndicator size="large" color={colors.primaryBlue} /><Text style={omsStyles.stateText}>Loading board…</Text></View>
+        ) : error && data === null ? (
+          <View style={omsStyles.stateWrap}>
+            <View style={omsStyles.emptyIconShell}><Icon source="alert-circle-outline" size={28} color={colors.primaryOrange} /></View>
+            <Text style={omsStyles.stateText}>{error}</Text>
+            <Pressable accessibilityRole="button" onPress={load} style={omsStyles.retryButton}><Text style={omsStyles.retryButtonText}>Retry</Text></Pressable>
+          </View>
         ) : (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIcon}><Icon source="clipboard-search-outline" size={28} color={colors.primaryBlue} /></View>
-            <Text style={styles.emptyTitle}>No matching requests</Text>
-            <Text style={styles.emptyText}>Try another status or clear the search.</Text>
+          <View style={omsStyles.emptyState}>
+            <View style={omsStyles.emptyIconShell}><Icon source="layers-search-outline" size={28} color={colors.primaryBlue} /></View>
+            <Text style={omsStyles.emptyTitle}>No matching requests</Text>
+            <Text style={omsStyles.emptyText}>Try another status or clear the search.</Text>
           </View>
         )}
       />
 
       <Modal visible={Boolean(selected)} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View style={[styles.modalBackdrop, { paddingTop: insets.top + verticalScale(12) }]}>
-          <Pressable style={styles.modalDismissArea} onPress={() => setSelected(null)} />
-          <View style={[styles.sheet, { maxHeight: sheetMaxHeight, paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <View style={styles.sheetHeaderCopy}>
-                <Text style={styles.sheetEyebrow}>SUBMISSION DETAILS</Text>
-                <Text style={styles.sheetTitle}>{selected?.startNode || "—"} → {selected?.stopNode || "—"}</Text>
+        <View style={[omsStyles.sheetOverlay, { paddingTop: insets.top + verticalScale(12) }]}>
+          <Pressable style={omsStyles.sheetBackdrop} onPress={() => setSelected(null)} />
+          <View style={[omsStyles.bottomSheet, { maxHeight: sheetMaxHeight, paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
+            <View style={omsStyles.sheetHandle} />
+            <View style={omsStyles.sheetHeader}>
+              <View style={omsStyles.sheetHeaderCopy}>
+                <Text style={omsStyles.sheetTitle}>Submission details</Text>
+                <Text style={omsStyles.sheetSubtitle}>Review checklist and workflow activity</Text>
               </View>
-              <Pressable accessibilityLabel="Close details" hitSlop={8} onPress={() => setSelected(null)} style={styles.closeButton}>
-                <Icon source="close" size={21} color={colors.textDark} />
-              </Pressable>
+              <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={() => setSelected(null)} accessibilityLabel="Close details" />
+            </View>
+
+            <View style={omsStyles.sheetSummaryCard}>
+              <View style={omsStyles.sheetSummaryTopRow}>
+                <View style={omsStyles.sheetSummaryIcon}><Icon source="pipe" size={19} color={colors.primaryBlue} /></View>
+                <View style={omsStyles.sheetSummaryCopy}>
+                  <Text style={omsStyles.sheetSummaryTitle}>{selected?.startNode || "—"} → {selected?.stopNode || "—"}</Text>
+                  <Text style={omsStyles.sheetSummaryDetails}>{[selected?.segmentLabel || selected?.packageTitle, selected?.processDescription || selected?.processCode, selected?.material].filter(Boolean).join(" · ")}</Text>
+                </View>
+              </View>
+              <View style={omsStyles.sheetStatusRow}>
+                {(() => {
+                  const theme = getStatusTheme(selected?.workflowStatus || selected?.status);
+                  return <View style={[omsStyles.statusPill, { backgroundColor: theme.backgroundColor, borderColor: theme.borderColor }]}>
+                    <Icon source={theme.icon} size={13} color={theme.color} />
+                    <Text style={[omsStyles.statusPillText, { color: theme.color }]}>{theme.label}</Text>
+                  </View>;
+                })()}
+              </View>
             </View>
 
             {!detail && detailLoading ? (
-              <View style={styles.state}><ActivityIndicator color={colors.primaryBlue} /><Text style={styles.stateText}>Loading checklist…</Text></View>
+              <View style={omsStyles.sheetStateCard}><ActivityIndicator color={colors.primaryBlue} /><Text style={omsStyles.sheetStateText}>Loading checklist…</Text></View>
             ) : !detail ? (
-              <View style={styles.state}><Icon source="cloud-off-outline" size={24} color={colors.textSecondary} /><Text style={styles.stateText}>Checklist details are unavailable offline on this device.</Text></View>
+              <View style={omsStyles.sheetStateCard}>
+                <Icon source={isOnline ? "alert-circle-outline" : "cloud-off-outline"} size={24} color={colors.textSecondary} />
+                <Text style={omsStyles.sheetStateText}>{isOnline ? "Checklist details could not be loaded." : "Checklist details are unavailable offline on this device."}</Text>
+                {isOnline && selected ? <Pressable accessibilityRole="button" onPress={() => openItem(selected)} style={omsStyles.retryButton}><Text style={omsStyles.retryButtonText}>Retry</Text></Pressable> : null}
+              </View>
             ) : (
               <FlatList
                 data={detail.items || []}
                 keyExtractor={(item, index) => String(item.checklistId || index)}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.detailList}
+                style={[omsStyles.sheetScroll, styles.sheetList]}
+                contentContainerStyle={[omsStyles.sheetScrollContent, { paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}
                 ListHeaderComponent={(
                   <>
-                    <View style={styles.sheetSummary}>
-                      <View style={styles.summaryTopRow}>
-                        <Text style={styles.summaryReference} numberOfLines={1}>{selected?.segmentLabel || selected?.packageTitle || "Unlabelled pipe"}</Text>
-                        {(() => {
-                          const theme = getStatusTheme(selected?.workflowStatus || selected?.status);
-                          return <View style={[styles.statusPill, { backgroundColor: theme.backgroundColor, borderColor: theme.borderColor }]}><Text style={[styles.statusText, { color: theme.color }]}>{theme.label}</Text></View>;
-                        })()}
-                      </View>
-                      <Text style={styles.summaryProcess}>{[selected?.processDescription || selected?.processCode, selected?.material].filter(Boolean).join(" · ")}</Text>
-                      <Text style={styles.summaryPeople}>{selected?.assignedEngineerName || "No engineer"} → {selected?.assignedManagerName || "No manager"}</Text>
-                    </View>
                     {selectedPending ? (
                       <View style={styles.pendingSyncNotice}>
                         <Icon source="cloud-upload-outline" size={16} color={colors.primaryBlue} />
@@ -603,17 +681,19 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                       </View>
                     ) : null}
                     {resubmitImages.length ? (
-                      <View style={styles.resubmitPhotosSection}>
-                        <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>Resubmitted photos</Text>
-                          <View style={styles.itemCount}><Text style={styles.itemCountText}>{resubmitImages.length}</Text></View>
+                      <View style={omsStyles.reviewDetailsSection}>
+                        <View style={omsStyles.sectionTitleRow}>
+                          <Text style={omsStyles.sectionTitleText}>Resubmitted photos</Text>
+                          <Text style={omsStyles.sectionCountText}>{resubmitImages.length}</Text>
                         </View>
-                        <ChecklistImageGallery images={resubmitImages} onViewImages={openChecklistImages} />
+                        <ChecklistImageGallery images={resubmitImages} onViewImages={openChecklistImages} variant="gallery" />
                       </View>
                     ) : null}
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Checklist</Text>
-                      <View style={styles.itemCount}><Text style={styles.itemCountText}>{detail.items?.length || 0} items</Text></View>
+                    <View style={omsStyles.pipeLayingSectionHeader}>
+                      <View style={omsStyles.pipeLayingTitleWrap}>
+                        <Text style={omsStyles.pipeLayingTitle}>Checklist</Text>
+                      </View>
+                      <View style={omsStyles.pipeLayingCountBadge}><Text style={omsStyles.pipeLayingCountText}>{detail.items?.length || 0} items</Text></View>
                     </View>
                   </>
                 )}
@@ -621,14 +701,14 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                   const checklistValue = unwrapChecklistValue(item);
                   const isBoolean = typeof checklistValue === "boolean";
                   return (
-                    <View style={styles.answer}>
-                      <View style={styles.answerIndex}><Text style={styles.answerIndexText}>{index + 1}</Text></View>
-                      <View style={styles.answerCopy}>
-                        <View style={styles.answerHeadingRow}>
-                          <Text style={styles.answerRequirement}>{item.requirement || item.title || `Checklist ${item.checklistId}`}</Text>
-                          {isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
+                    <View style={[omsStyles.checklistCard, isBoolean && omsStyles.checklistCardCompact, index === (detail.items?.length || 0) - 1 && omsStyles.checklistCardLast]}>
+                      <View style={isBoolean ? omsStyles.checklistInlineRow : omsStyles.checklistHead}>
+                        <View style={isBoolean ? omsStyles.checklistInlineCopy : omsStyles.checklistCopy}>
+                          <Text style={omsStyles.checklistTitle}>{item.requirement || item.title || `Checklist ${item.checklistId}`}</Text>
+                          {item.description ? <Text style={omsStyles.checklistDescription}>{item.description}</Text> : null}
+                          {!isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
                         </View>
-                        {!isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
+                        {isBoolean ? <ChecklistAnswer item={item} onViewImages={openChecklistImages} /> : null}
                       </View>
                     </View>
                   );
@@ -670,32 +750,40 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                           </Pressable>
                         </View>
                       </View>
-                    ) : actions.length ? actions.map((action) => (
+                    ) : actions.length ? [...actions].sort((first, second) => Number(second.key.startsWith("modify")) - Number(first.key.startsWith("modify"))).map((action) => {
+                      const isReject = ["reject", "modify_rejected"].includes(action.key);
+                      const isVerify = action.key === "verify";
+                      const isModify = ["modify_request", "modify_approved"].includes(action.key);
+                      const isPrimary = ["approve", "edit_resubmit"].includes(action.key);
+                      const icon = isReject ? "close-circle" : isVerify ? "shield-check-outline" : isModify || action.key === "edit_resubmit" ? "file-edit-outline" : "check-decagram-outline";
+                      const iconColor = isReject ? "#C44728" : isVerify ? "#135EAF" : isModify ? "#5B21B6" : colors.white;
+                      return (
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={action.label}
                         disabled={actionBusy}
                         key={action.key}
                         onPress={() => runAction(action.key)}
                         style={({ pressed }) => [
-                          styles.action,
-                          styles.workflowAction,
-                          action.key === "edit_resubmit" && styles.editResubmitAction,
-                          action.key === "modify_request" && styles.modifyRequestAction,
-                          action.key === "modify_approved" && styles.modifyApproveAction,
-                          action.key === "modify_rejected" && styles.modifyRejectAction,
-                          action.key === "reject" && styles.rejectAction,
+                          omsStyles.reviewActionButton,
+                          isReject && omsStyles.reviewRejectButton,
+                          isVerify && omsStyles.reviewVerifyButton,
+                          isModify && omsStyles.needModificationButton,
+                          isModify && styles.fullWidthAction,
+                          isPrimary && omsStyles.reviewApproveButton,
+                          actionBusy && omsStyles.reviewActionButtonDisabled,
                           pressed && styles.pressed,
                         ]}
                       >
-                        <Text style={[
-                          styles.actionText,
-                          action.key === "edit_resubmit" && styles.editResubmitActionText,
-                          action.key === "modify_request" && styles.modifyRequestActionText,
-                          action.key === "modify_approved" && styles.modifyApproveActionText,
-                          action.key === "modify_rejected" && styles.modifyRejectActionText,
-                          action.key === "reject" && styles.rejectActionText,
-                        ]}>{selectedNeedsPhoto && action.key === "edit_resubmit" ? "Add correction photo" : action.label}</Text>
+                        <View style={omsStyles.actionButtonContent}>
+                          <Icon source={icon} size={16} color={iconColor} style={omsStyles.actionButtonIcon} />
+                          <Text style={isReject ? omsStyles.reviewRejectText : isVerify ? omsStyles.reviewVerifyText : isModify ? omsStyles.needModificationText : omsStyles.reviewApproveText}>
+                            {selectedNeedsPhoto && action.key === "edit_resubmit" ? "Add correction photo" : action.label}
+                          </Text>
+                        </View>
                       </Pressable>
-                    )) : (
+                      );
+                    }) : (
                       <View style={styles.viewOnlyNotice}>
                         <Icon source={isOnline ? "eye-outline" : "cloud-off-outline"} size={18} color={colors.textSecondary} />
                         <Text style={styles.viewOnlyText}>{isOnline ? "This request is view-only for your role or assignment." : "Review actions are unavailable offline. Cached request data is shown."}</Text>
@@ -708,13 +796,43 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
+      <Modal visible={showStatusInfo} transparent animationType="fade" onRequestClose={() => setShowStatusInfo(false)}>
+        <View style={omsStyles.modalOverlay}>
+          <View style={omsStyles.infoModalCard}>
+            <Text style={omsStyles.modalTitle}>Process Indicator Info</Text>
+            <Text style={omsStyles.infoModalSubtitle}>Color meaning used in Work Status:</Text>
+            <View style={omsStyles.legendList}>
+              {[
+                ["Submitted", "Waiting for engineer review."],
+                ["Verified", "Verified and waiting for manager approval."],
+                ["Approved", "Approved after review."],
+                ["Commented", "Sent back for correction."],
+                ["Modify request", "A change has been requested."],
+                ["Modify approved", "Changes are allowed; resubmit the checklist."],
+              ].map(([label, description]) => {
+                const theme = getStatusTheme(label.toLowerCase().replace(/ /g, "_"));
+                return <View key={label} style={omsStyles.legendItem}>
+                  <View style={[omsStyles.legendSwatch, { backgroundColor: theme.borderColor }]} />
+                  <View style={omsStyles.legendTextWrap}>
+                    <Text style={omsStyles.legendTitle}>{label}</Text>
+                    <Text style={omsStyles.legendSubtitle}>{description}</Text>
+                  </View>
+                </View>;
+              })}
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => setShowStatusInfo(false)} style={omsStyles.infoModalCloseButton}>
+              <Text style={omsStyles.infoModalCloseText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <ImageViewerModal
         visible={imageViewerState.visible}
         items={imageViewerState.items}
         initialIndex={imageViewerState.initialIndex}
         onRequestClose={closeImageViewer}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -801,6 +919,8 @@ const styles = StyleSheet.create({
   answerImageUnavailableText: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: fontScale(9) },
   answerImageOpenHint: { position: "absolute", right: moderateScale(4), bottom: moderateScale(4), width: moderateScale(22), height: moderateScale(22), borderRadius: moderateScale(11), alignItems: "center", justifyContent: "center", backgroundColor: "rgba(18,59,99,0.78)" },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: moderateScale(9), paddingTop: verticalScale(16) },
+  fullWidthAction: { flexBasis: "100%", flexGrow: 0 },
+  sheetList: { flexShrink: 1, minHeight: 0 },
   actionRow: { flexDirection: "row", gap: moderateScale(9) },
   action: { minHeight: verticalScale(43), backgroundColor: colors.primaryBlue, paddingHorizontal: moderateScale(17), borderRadius: moderateScale(11), alignItems: "center", justifyContent: "center" },
   workflowAction: { flexGrow: 1 },

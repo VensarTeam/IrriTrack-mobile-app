@@ -20,6 +20,19 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
   },
 
+  iosHeader: {
+    minHeight: verticalScale(56),
+    paddingHorizontal: moderateScale(16),
+  },
+
+  iosBackButton: {
+    margin: 0,
+  },
+
+  iosHeaderTitle: {
+    fontSize: fontScale(18),
+  },
+
   headerTitle: {
     flex: 1,
     fontSize: fontScale(16),
@@ -47,14 +60,22 @@ export default StyleSheet.create({
     position: "relative",
     overflow: "hidden",
     minHeight: verticalScale(88),
-    flexDirection: "row",
-    alignItems: "center",
-    gap: moderateScale(11),
-    paddingHorizontal: moderateScale(13),
-    paddingVertical: verticalScale(11),
     borderRadius: moderateScale(17),
     borderCurve: "continuous",
     boxShadow: "0 7px 20px rgba(18,59,99,0.2)",
+  },
+  
+  projectCardGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  projectCardContent: {
+    minHeight: verticalScale(88),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(11),
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
 
   projectGlow: {
@@ -70,6 +91,7 @@ export default StyleSheet.create({
   projectIcon: {
     width: moderateScale(42),
     height: moderateScale(42),
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: moderateScale(13),
@@ -82,6 +104,7 @@ export default StyleSheet.create({
   projectCopy: {
     flex: 1,
     minWidth: 0,
+    flexShrink: 1,
   },
 
   projectEyebrow: {
@@ -144,6 +167,7 @@ export default StyleSheet.create({
   },
 
   moduleCardShell: {
+    width: "100%",
     overflow: "hidden",
     borderRadius: moderateScale(17),
     borderCurve: "continuous",
@@ -159,6 +183,7 @@ export default StyleSheet.create({
 
   moduleCard: {
     position: "relative",
+    minWidth: 0,
     minHeight: verticalScale(92),
     flexDirection: "row",
     alignItems: "center",
@@ -166,6 +191,10 @@ export default StyleSheet.create({
     paddingLeft: moderateScale(15),
     paddingRight: moderateScale(12),
     paddingVertical: verticalScale(11),
+  },
+
+  moduleCardGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   moduleAccent: {
@@ -212,6 +241,7 @@ export default StyleSheet.create({
   moduleArrow: {
     width: moderateScale(32),
     height: moderateScale(32),
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: moderateScale(11),

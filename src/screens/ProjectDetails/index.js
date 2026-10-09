@@ -24,6 +24,7 @@ import { moderateScale, verticalScale } from "../../constants/metrics";
 import useProjectDetailsViewModel from "../../viewmodels/useProjectDetailsViewModel";
 import { ROUTES } from "../../navigation/routes";
 import { useAuth } from "../../context/AuthContext";
+import { isProjectAllowed } from "../../services/authPermissions";
 import usePipeDashboardViewModel from "../../viewmodels/usePipeDashboardViewModel";
 
 const CHART_SECTION_PADDING = 58;
@@ -48,7 +49,7 @@ const RING_TRACK_COLORS = {
   partial: "#F6E6BF",
 };
 
-const ProjectDetailsScreen = ({ route }) => {
+const ProjectDetailsContent = ({ route }) => {
   const navigation = useNavigation();
   const selectedProjectModule = route?.params?.selectedModule || "omsRms";
   const isPipeNetworkModule = selectedProjectModule === "pipeNetwork";
@@ -57,7 +58,7 @@ const ProjectDetailsScreen = ({ route }) => {
   const isPipeSupervisor = roleAccess?.role === "supervisor";
   const isPipeDeveloper = roleAccess?.role === "developer";
   const hasPipeScreenPermission = (permission) =>
-    pipePermissions.has(permission) || isPipeDeveloper;
+    roleAccess?.isAuthorizationReady && pipePermissions.has(permission);
   const {
     isOnline,
     projectId,
@@ -1293,9 +1294,11 @@ const ProjectDetailsScreen = ({ route }) => {
             error={pipeDashboard.error}
             isCached={pipeDashboard.isCached}
             onRefresh={pipeDashboard.refresh}
-            canAddEntry={isPipeSupervisor || isPipeDeveloper}
+            canAddEntry={(isPipeSupervisor || isPipeDeveloper) &&
+              hasPipeScreenPermission("pipe_laying.screen.checklist") &&
+              pipePermissions.has("pipe_laying.create")}
             canViewReports={!isPipeSupervisor && hasPipeScreenPermission("pipe_laying.screen.daily_report")}
-            canViewWorkStatus={isPipeSupervisor || hasPipeScreenPermission("pipe_laying.screen.checklist_requests")}
+            canViewWorkStatus={hasPipeScreenPermission("pipe_laying.screen.checklist_requests")}
             onPipeLayingReports={() =>
               navigation.navigate(ROUTES.ROOT.PIPE_DAILY_REPORT, {
                 projectId,
@@ -1347,6 +1350,35 @@ const ProjectDetailsScreen = ({ route }) => {
       ) : null}
     </SafeAreaView>
   );
+};
+
+const ProjectDetailsScreen = ({ route }) => {
+  const navigation = useNavigation();
+  const { authorization, roleAccess } = useAuth();
+  const project = route?.params?.project;
+  const selectedModule = route?.params?.selectedModule || "omsRms";
+  const hasProjectAccess =
+    roleAccess.isAuthorizationReady && isProjectAllowed(authorization, project);
+  const hasModuleAccess = selectedModule === "pipeNetwork"
+    ? roleAccess.canViewPipeLaying
+    : roleAccess.canViewOms;
+
+  if (!hasProjectAccess || !hasModuleAccess) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: "center", padding: 24 }]}>
+        <IconButton
+          icon="arrow-left"
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Back to modules"
+        />
+        <Text style={{ color: colors.textDark, textAlign: "center", fontSize: 16 }}>
+          This project or module is not available for your account.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  return <ProjectDetailsContent route={route} />;
 };
 
 export default ProjectDetailsScreen;

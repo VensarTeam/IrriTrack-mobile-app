@@ -1374,6 +1374,12 @@ const syncQueue = async ({
 };
 
 export const syncQueuedChecklistSubmissions = (options = {}) => {
+  if (syncPromise && options.ensureLatest) {
+    return syncPromise.then(() => syncQueuedChecklistSubmissions({
+      ...options,
+      ensureLatest: false,
+    }));
+  }
   if (!syncPromise) {
     //logSync("Creating sync promise", options);
     syncPromise = syncQueue(options).finally(() => {
@@ -1522,4 +1528,31 @@ export const getPendingChecklistSubmissionCount = async ({
   //   ownerUserId: targetOwnerUserId,
   // });
   return pendingCount;
+};
+
+export const getPendingChecklistSubmissionSummaries = async ({
+  ownerUserId = "",
+} = {}) => {
+  const db = await getDatabase();
+  const targetOwnerUserId = getOwnerUserId(ownerUserId);
+  const placeholders = LOCAL_DRAFT_STATUSES.map(() => "?").join(", ");
+  const ownerCondition = targetOwnerUserId
+    ? "(owner_user_id = ? OR owner_user_id = '' OR owner_user_id IS NULL) AND "
+    : "";
+  const params = targetOwnerUserId
+    ? [targetOwnerUserId, ...LOCAL_DRAFT_STATUSES]
+    : LOCAL_DRAFT_STATUSES;
+  const [result] = await db.executeSql(
+    `SELECT id, status, last_error, attempts
+     FROM checklist_submission_queue
+     WHERE ${ownerCondition}status IN (${placeholders})
+     ORDER BY created_at ASC;`,
+    params
+  );
+  return rowsToArray(result.rows).map((row) => ({
+    id: row.id,
+    state: row.status,
+    lastError: row.last_error || "",
+    attempts: Number(row.attempts || 0),
+  }));
 };

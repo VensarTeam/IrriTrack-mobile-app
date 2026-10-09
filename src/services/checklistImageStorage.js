@@ -11,6 +11,7 @@ const RESIZE_ATTEMPTS = [
   { maxWidth: 960, maxHeight: 1280, quality: 70 },
   { maxWidth: 720, maxHeight: 960, quality: 60 },
   { maxWidth: 640, maxHeight: 900, quality: 55 },
+  { maxWidth: 540, maxHeight: 720, quality: 48 },
 ];
 
 const stripFileScheme = (uri = "") => String(uri).replace(/^file:\/\//, "");
@@ -153,6 +154,7 @@ export const compressChecklistImage = async (
   {
     takenAt = "",
     captureLocation = null,
+    targetSizeBytes = TARGET_SIZE_BYTES,
   } = {}
 ) => {
   if (!asset?.uri || !isImageAsset(asset)) {
@@ -162,8 +164,47 @@ export const compressChecklistImage = async (
   const originalFilePath = getAssetFilePath(asset);
   const originalSizeBytes =
     asset.fileSize || (await getFileSizeBytes(originalFilePath || asset.uri));
+  const width = Number(asset.width);
+  const height = Number(asset.height);
+  const isSafeToWatermarkWithoutResize =
+    Number.isFinite(width) && Number.isFinite(height) &&
+    width > 0 && height > 0 &&
+    width <= 1280 && height <= 1280;
+  const finalizeWatermarkedAsset = async (candidate) => {
+    const marked = await applyChecklistImageWatermark(candidate, {
+      takenAt,
+      captureLocation,
+    });
+    if (marked.fileSize > 0 && marked.fileSize <= targetSizeBytes) return marked;
 
-  if (originalSizeBytes > 0 && originalSizeBytes <= TARGET_SIZE_BYTES) {
+    // The watermark renderer can make an already-compressed image large again.
+    // Check the actual upload file and resize it once more when necessary.
+    let smallest = marked;
+    for (const resizeConfig of RESIZE_ATTEMPTS) {
+      const resized = await ImageResizer.createResizedImage(
+        marked.uri,
+        resizeConfig.maxWidth,
+        resizeConfig.maxHeight,
+        "JPEG",
+        resizeConfig.quality,
+        0,
+        undefined,
+        false,
+        { mode: "contain", onlyScaleDown: true }
+      );
+      const prepared = await buildPhotoAsset(marked, resized, resizeConfig);
+      if (prepared.fileSize > 0 &&
+          (!smallest.fileSize || prepared.fileSize < smallest.fileSize)) {
+        smallest = prepared;
+      }
+      if (prepared.fileSize > 0 && prepared.fileSize <= targetSizeBytes) {
+        return prepared;
+      }
+    }
+    return smallest;
+  };
+
+  if (originalSizeBytes > 0 && originalSizeBytes <= targetSizeBytes && isSafeToWatermarkWithoutResize) {
     const normalizedAsset = {
       ...asset,
       uri: asset.uri,
@@ -179,10 +220,7 @@ export const compressChecklistImage = async (
       compressed: false,
     };
 
-    return applyChecklistImageWatermark(normalizedAsset, {
-      takenAt,
-      captureLocation,
-    });
+    return finalizeWatermarkedAsset(normalizedAsset);
   }
 
   let smallestResult = null;
@@ -211,15 +249,9 @@ export const compressChecklistImage = async (
     }
 
     if (currentSize > 0 && currentSize <= TARGET_SIZE_BYTES) {
-      return applyChecklistImageWatermark(normalizedAsset, {
-        takenAt,
-        captureLocation,
-      });
+      return finalizeWatermarkedAsset(normalizedAsset);
     }
   }
 
-  return applyChecklistImageWatermark(smallestResult || asset, {
-    takenAt,
-    captureLocation,
-  });
+  return finalizeWatermarkedAsset(smallestResult || asset);
 };

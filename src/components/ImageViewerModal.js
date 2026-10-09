@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, StyleSheet, Text, View } from "react-native";
 import ImageViewer from "react-native-image-zoom-viewer";
 import { IconButton } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ const normalizeItems = (items = []) =>
         : item.uri
           ? { url: item.uri }
           : null,
+      fallbackUri: item.fallbackUri && item.fallbackUri !== item.uri ? item.fallbackUri : "",
       title: item.title || "",
       meta: item.meta || "",
     }))
@@ -36,6 +37,39 @@ const ImageViewerModal = ({
 }) => {
   const viewerItems = React.useMemo(() => normalizeItems(items), [items]);
   const [activeIndex, setActiveIndex] = React.useState(initialIndex);
+  const [fallbackIds, setFallbackIds] = React.useState({});
+  const resolvedViewerItems = React.useMemo(() => viewerItems.map((item) =>
+    fallbackIds[item.id]
+      ? { ...item, viewerSource: { url: item.fallbackUri } }
+      : item,
+  ), [fallbackIds, viewerItems]);
+  const hasFallbackImages = viewerItems.some((item) => item.fallbackUri);
+
+  React.useEffect(() => {
+    if (!visible) setFallbackIds({});
+  }, [visible, items]);
+
+  const useFallback = React.useCallback((item) => {
+    if (!item?.fallbackUri) return;
+    setFallbackIds((current) => current[item.id] ? current : { ...current, [item.id]: true });
+    if (typeof __DEV__ !== "undefined" && __DEV__) {
+      console.warn("[ImageViewer] primary image failed; trying storageKey", {
+        imageId: item.id,
+        fallbackUri: item.fallbackUri,
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!visible) return undefined;
+    const item = viewerItems[activeIndex];
+    if (!item?.fallbackUri || fallbackIds[item.id] || !item.viewerSource?.url) return undefined;
+    let active = true;
+    Image.getSize(item.viewerSource.url, () => {}, () => {
+      if (active) useFallback(item);
+    });
+    return () => { active = false; };
+  }, [activeIndex, fallbackIds, useFallback, viewerItems, visible]);
 
   React.useEffect(() => {
     if (!visible) {
@@ -122,14 +156,23 @@ const ImageViewerModal = ({
       onRequestClose={onRequestClose}
     >
       <ImageViewer
-        key={`${visible ? "visible" : "hidden"}-${activeIndex}-${viewerItems.length}`}
-        imageUrls={viewerItems.map((item) => item.viewerSource)}
+        key={`${visible ? "visible" : "hidden"}-${activeIndex}-${viewerItems.length}-${Object.keys(fallbackIds).join(",")}`}
+        imageUrls={resolvedViewerItems.map((item) => item.viewerSource)}
         index={activeIndex}
         onCancel={onRequestClose}
         onChange={handleIndexChange}
         renderHeader={(imageIndex) => <HeaderComponent imageIndex={imageIndex || 0} />}
         renderFooter={() => <FooterComponent />}
         renderIndicator={() => null}
+        renderImage={hasFallbackImages ? (props) => (
+          <Image
+            {...props}
+            onError={() => {
+              const item = viewerItems.find((candidate) => candidate.viewerSource?.url === props?.source?.uri);
+              if (item && !fallbackIds[item.id]) useFallback(item);
+            }}
+          />
+        ) : undefined}
         enableSwipeDown={false}
         saveToLocalByLongPress={false}
         enablePreload

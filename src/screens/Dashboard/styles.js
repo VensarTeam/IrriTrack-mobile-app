@@ -13,13 +13,8 @@ export default StyleSheet.create({
     backgroundColor: colors.white,
   },
 
-  header: {
-    paddingTop: verticalScale(38),
-    paddingBottom: verticalScale(16),
-    paddingHorizontal: moderateScale(18),
-    borderBottomLeftRadius: moderateScale(18),
-    borderBottomRightRadius: moderateScale(18),
-    overflow: "hidden",
+  iosScreen: {
+    backgroundColor: colors.loginHeroGradientStart,
   },
 
   headerTopRow: {

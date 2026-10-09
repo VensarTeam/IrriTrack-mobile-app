@@ -36,5 +36,5 @@ export const showAppAlert = ({
     onPress: action.onPress,
   }));
 
-  Alert.alert(title, nativeButtons, { cancelable });
+  Alert.alert(title, message, nativeButtons, { cancelable });
 };

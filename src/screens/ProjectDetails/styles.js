@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 import {
@@ -7,7 +7,6 @@ import {
   scale,
   verticalScale,
 } from "../../constants/metrics";
-import { mod } from "@react-native-firebase/app/dist/module/internal/web/firebaseFirestorePipelines";
 
 export default StyleSheet.create({
   safeArea: {
@@ -34,17 +33,17 @@ export default StyleSheet.create({
 
   headerTitle: {
     flex: 1,
-    fontSize: fontScale(13),
+    fontSize: fontScale(Platform.OS === "ios" ? 15 : 13),
     fontFamily: fonts.bold,
     color: colors.textDark,
     textAlign: "center",
-    lineHeight: fontScale(18),
+    lineHeight: fontScale(Platform.OS === "ios" ? 21 : 18),
     includeFontPadding: false,
     paddingHorizontal: moderateScale(4),
   },
 
   headerSpacer: {
-    width: moderateScale(40), // matches IconButton width so title stays truly centered
+    width: moderateScale(Platform.OS === "ios" ? 48 : 40), // matches IconButton width so title stays truly centered
   },
 
   projectOverviewScroll: {

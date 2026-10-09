@@ -88,7 +88,7 @@ export const createRoleAccess = (role, authorization = null) => {
         authorization?.permissions?.canViewOms ||
           effectivePermissions.has("oms.view")
       )
-    : isManagedRole;
+    : false;
 
   if (!isManagedRole) {
     return {
@@ -151,7 +151,7 @@ export const createRoleAccess = (role, authorization = null) => {
               permission.startsWith("pipe_laying.screen.")
             )
         )
-      : normalizedRole === "supervisor",
+      : false,
     effectivePermissions,
     projectDetailsNotice: isContributor
       ? "Module-wise analytics are available for super admin, admin, manager, and engineer roles. You can continue with OMS checklist work from the cards below."

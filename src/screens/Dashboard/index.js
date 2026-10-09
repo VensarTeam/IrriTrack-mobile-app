@@ -5,18 +5,22 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Platform,
   TextInput,
   RefreshControl,
 } from "react-native";
-import LinearGradient from "react-native-linear-gradient";
 import styles from "./styles";
 import colors from "../../constants/colors";
+import GradientScreenHeader from "../../components/GradientScreenHeader";
 import useDashboardViewModel from "../../viewmodels/useDashboardViewModel";
 import { Icon } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DashboardScreen = ({ navigation }) => {
   const {
     filteredProjects,
+    isProjectListLoading,
+    isAuthorizationReady,
     searchQuery,
     isRefreshingProjects,
     refreshProjects,
@@ -27,18 +31,11 @@ const DashboardScreen = ({ navigation }) => {
   } = useDashboardViewModel(navigation);
 
   return (
-    <View style={styles.screen}>
-      <LinearGradient
-        colors={[
-          colors.loginHeroGradientStart,
-          colors.loginHeroGradientMid,
-          colors.loginHeroGradientEnd,
-        ]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.header}
-      >
+    <SafeAreaView
+      style={[styles.screen, Platform.OS === "ios" && styles.iosScreen]}
+      edges={Platform.OS === "ios" ? ["top"] : []}
+    >
+      <GradientScreenHeader>
         <View style={styles.headerTopRow}>
           <View style={styles.logoWrap}>
             <Image
@@ -49,7 +46,7 @@ const DashboardScreen = ({ navigation }) => {
           </View>
 
           <Text style={styles.headerTitle} numberOfLines={1}>
-            IRRITRACK DASHBOARD
+            {Platform.OS === "ios" ? "Dashboard" : "IRRITRACK DASHBOARD"}
           </Text>
 
           <TouchableOpacity
@@ -62,7 +59,7 @@ const DashboardScreen = ({ navigation }) => {
             <Icon source="logout" size={25} color={colors.navyFreshDark} />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </GradientScreenHeader>
 
       <View style={styles.bodyWrapper}>
         <ScrollView
@@ -115,15 +112,27 @@ const DashboardScreen = ({ navigation }) => {
           {filteredProjects.length === 0 ? (
             <View style={styles.emptySearchCard}>
               <Icon source="map-search-outline" size={30} color={colors.primaryBlue} />
-              <Text style={styles.emptySearchTitle}>No projects found</Text>
+              <Text style={styles.emptySearchTitle}>
+                {!isAuthorizationReady
+                  ? "Project access unavailable"
+                  : isProjectListLoading
+                    ? "Loading projects"
+                    : "No projects found"}
+              </Text>
               <Text style={styles.emptySearchText}>
-                Try searching by project name or client.
+                {!isAuthorizationReady
+                  ? "Connect and pull down to refresh your permissions."
+                  : isProjectListLoading
+                    ? "Checking your saved projects."
+                    : searchQuery
+                      ? "Try searching by project name or client."
+                      : "No projects are assigned to your account."}
               </Text>
             </View>
           ) : null}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

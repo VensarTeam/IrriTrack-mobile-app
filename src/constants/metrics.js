@@ -38,5 +38,11 @@ export const moderateScale = (size, factor = 0.5) => {
   return round(size + (scaled - size) * factor);
 };
 
-export const fontScale = (size) =>
-  round(size * PixelRatio.getFontScale());
+export const fontScale = (size) => {
+  if (Platform.OS === "ios") {
+    // Text/TextInput apply Dynamic Type themselves. Multiplying by the system
+    // font scale here applies it twice and can make small labels unreadable.
+    return round(size + (size < 12 ? 2.5 : 1.5));
+  }
+  return round(size * PixelRatio.getFontScale());
+};

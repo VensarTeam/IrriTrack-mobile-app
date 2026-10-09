@@ -36,13 +36,15 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Allow camera access for face verification during login.</string>
+	<string>IrriTrack uses the camera to verify your identity and capture project checklist photos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>IrriTrack uses Face ID to unlock your saved session on this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Allow location access to update and verify node location.</string>
+	<string>IrriTrack uses your location while you work to record site coordinates, update node locations, and add location details to checklist photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Allow saving captured photos to your library.</string>
+	<string>IrriTrack saves submitted checklist photos to your photo library when you choose to save them.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow photo library access to upload progress photos.</string>
+	<string>IrriTrack accesses photos you select for project checklists and work-progress submissions.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
@@ -95,6 +97,6 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
+	<true/>
 </dict>
 </plist>

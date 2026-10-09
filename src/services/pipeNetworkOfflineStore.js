@@ -85,7 +85,7 @@ export const queuePipeMutation = async ({ id, ownerUserId, projectId, operation,
 export const listPendingPipeMutations = async (ownerUserId, { force = false } = {}) => {
   const db = await getDatabase();
   const [result] = await db.executeSql(
-    `SELECT * FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry') ORDER BY created_at ASC;`,
+    `SELECT * FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry', 'needs_attention', 'waiting_prerequisite') ORDER BY created_at ASC;`,
     [ownerUserId],
   );
   const now = Date.now();
@@ -93,6 +93,10 @@ export const listPendingPipeMutations = async (ownerUserId, { force = false } = 
     const row = result.rows.item(index);
     return { ...row, payload: JSON.parse(row.payload_json) };
   }).filter((row) => {
+    if (row.state === "needs_attention") return force;
+    if (row.state === "waiting_prerequisite" && !force) {
+      return now - Date.parse(row.updated_at || "") >= 5 * 60_000;
+    }
     if (force || row.state !== "retry") return true;
     const attempts = Math.max(1, Number(row.attempts || 1));
     const retryDelayMs = Math.min(15 * 60_000, 30_000 * (2 ** Math.min(attempts - 1, 5)));
@@ -105,17 +109,39 @@ export const getPendingPipeMutationCount = async (ownerUserId) => {
   if (!ownerUserId) return 0;
   const db = await getDatabase();
   const [result] = await db.executeSql(
-    `SELECT COUNT(*) AS count FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry');`,
+    `SELECT COUNT(*) AS count FROM pipe_network_sync_queue WHERE owner_user_id = ? AND state IN ('pending', 'retry', 'needs_attention', 'waiting_prerequisite');`,
     [ownerUserId],
   );
   return Number(result.rows.item(0)?.count || 0);
+};
+
+export const getPendingPipeMutationSummaries = async (ownerUserId) => {
+  if (!ownerUserId) return [];
+  const db = await getDatabase();
+  const [result] = await db.executeSql(
+    `SELECT id, operation, state, last_error, attempts
+     FROM pipe_network_sync_queue
+     WHERE owner_user_id = ? AND state IN ('pending', 'retry', 'needs_attention', 'waiting_prerequisite')
+     ORDER BY created_at ASC;`,
+    [ownerUserId]
+  );
+  return Array.from({ length: result.rows.length }, (_, index) => {
+    const row = result.rows.item(index);
+    return {
+      id: row.id,
+      operation: row.operation,
+      state: row.state,
+      lastError: row.last_error || "",
+      attempts: Number(row.attempts || 0),
+    };
+  });
 };
 
 export const cleanupPipeMutationFiles = async (payload = {}) => {
   const safeRoot = `${FileSystem.documentDirectory || ""}pipe-network-entries/`;
   if (!FileSystem.documentDirectory || !safeRoot) return;
 
-  const fileUris = [...Object.values(payload?.files || {}), payload?.resubmitFile]
+  const fileUris = [...Object.values(payload?.files || {}), payload?.resubmitFile, payload?.cleanupFiles]
     .flatMap((value) => Array.isArray(value) ? value : [value])
     .map((value) => String(value || ""))
     .filter((value) => value.startsWith(safeRoot));
@@ -140,6 +166,14 @@ export const failPipeMutation = async ({ id, error, blocked = false }) => {
   const db = await getDatabase();
   await db.executeSql(
     `UPDATE pipe_network_sync_queue SET state = ?, attempts = attempts + 1, last_error = ?, updated_at = ? WHERE id = ?;`,
-    [blocked ? "blocked" : "retry", error || "Sync failed", new Date().toISOString(), id],
+    [blocked ? "needs_attention" : "retry", error || "Sync failed", new Date().toISOString(), id],
+  );
+};
+
+export const deferPipeMutation = async ({ id, reason }) => {
+  const db = await getDatabase();
+  await db.executeSql(
+    `UPDATE pipe_network_sync_queue SET state = 'waiting_prerequisite', last_error = ?, updated_at = ? WHERE id = ?;`,
+    [reason || "Waiting for previous stage approval", new Date().toISOString(), id],
   );
 };

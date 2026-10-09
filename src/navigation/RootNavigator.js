@@ -1,4 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { Platform } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AuthStack from "./AuthStack";
 import { ROUTES } from "./routes";
@@ -20,18 +22,53 @@ import PermissionsSettingsScreen from "../screens/PermissionsSettings";
 import RolePermissionManagerScreen from "../screens/RolePermissionManager";
 import { useAuth } from "../context/AuthContext";
 import AppLockScreen from "../components/AppLockScreen";
-import { flushPendingNavigation } from "./navigationService";
+import { readPipeCameraRecovery, savePipeCameraCapturedAsset } from "../services/pipeCameraRecovery";
+import { flushPendingNavigation, navigate } from "./navigationService";
 
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
-  const { isAuthenticated, isRestoring, isAppLocked } = useAuth();
+  const { isAuthenticated, isRestoring, isAppLocked, user } = useAuth();
+  const recoveryHandledOwnerRef = useRef("");
 
   useEffect(() => {
     if (!isRestoring && isAuthenticated && !isAppLocked) {
       flushPendingNavigation();
     }
   }, [isAppLocked, isAuthenticated, isRestoring]);
+
+  useEffect(() => {
+    const ownerUserId = String(user?.id || user?.mobile || "").trim();
+    if (Platform.OS !== "android" || isRestoring || !isAuthenticated || isAppLocked || !ownerUserId
+      || recoveryHandledOwnerRef.current === ownerUserId) return;
+    recoveryHandledOwnerRef.current = ownerUserId;
+    void (async () => {
+      try {
+        let recovery = await readPipeCameraRecovery();
+        if (!recovery || recovery.ownerUserId !== ownerUserId) return;
+        if (!recovery.asset) {
+          try {
+            const pending = await ImagePicker.getPendingResultAsync();
+            if (pending?.assets?.[0] && !pending.canceled) {
+              recovery = await savePipeCameraCapturedAsset(recovery, pending.assets[0]);
+            }
+          } catch (error) {
+            console.warn("[PipeCameraRecovery] Pending camera result unavailable", error?.message);
+          }
+        }
+        console.info("[PipeCameraRecovery] Restoring interrupted entry", {
+          hasPhoto: Boolean(recovery.asset?.uri),
+          processingAttempts: recovery.processingAttempts || 0,
+        });
+        navigate(ROUTES.ROOT.PIPE_NETWORK_ENTRY, {
+          ...recovery.routeParams,
+          cameraRecovery: recovery,
+        });
+      } catch (error) {
+        console.warn("[PipeCameraRecovery] Restore failed", error?.message);
+      }
+    })();
+  }, [isAppLocked, isAuthenticated, isRestoring, user?.id, user?.mobile]);
 
   if (isRestoring) {
     return null;
@@ -71,6 +108,7 @@ const RootNavigator = () => {
           options={{
             headerShown: true,
             title: "Add entry",
+            headerBackButtonDisplayMode: "minimal",
             headerTitleAlign: "center",
             headerTintColor: "#123B63",
             headerShadowVisible: false,
@@ -84,12 +122,12 @@ const RootNavigator = () => {
         <Stack.Screen
           name={ROUTES.ROOT.PIPE_DAILY_REPORT}
           component={PipeDailyReportScreen}
-          options={{ headerShown: true, title: "Daily report", headerTitleAlign: "center", headerTintColor: "#123B63", headerShadowVisible: false, animation: "slide_from_right" }}
+          options={{ headerShown: true, title: "Daily report", headerBackButtonDisplayMode: "minimal", headerTitleAlign: "center", headerTintColor: "#123B63", headerShadowVisible: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
           name={ROUTES.ROOT.PIPE_WORK_STATUS}
           component={PipeWorkStatusScreen}
-          options={{ headerShown: true, title: "Pipe Work Status", headerTitleAlign: "center", animation: "slide_from_right" }}
+          options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
           name={ROUTES.ROOT.WORK_STATUS}

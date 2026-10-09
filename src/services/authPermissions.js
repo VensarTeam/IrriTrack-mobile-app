@@ -41,11 +41,24 @@ export const normalizeAuthorizationSnapshot = (
   ),
   projectIds: normalizePermissionList(
     (Array.isArray(menu.projects) ? menu.projects : []).map(
-      (item) => item?.projectId || item?.id
+      (item) => item?.id || item?.projectId
     )
   ),
   syncedAt: new Date().toISOString(),
 });
+
+export const isProjectAllowed = (authorization, project) => {
+  if (!authorization || !project) return false;
+
+  const allowedIds = new Set(
+    (authorization.projectIds || []).map((value) => normalizeId(value).toLowerCase())
+  );
+
+  // Older offline snapshots stored the project code rather than the UUID.
+  return [project.id, project.projectId].some(
+    (value) => value && allowedIds.has(normalizeId(value).toLowerCase())
+  );
+};
 
 export const isAuthorizationSnapshotForUser = (
   snapshot,

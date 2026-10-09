@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   RefreshControl,
   View,
   Text,
@@ -10,6 +11,8 @@ import {
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { Icon } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
+import GradientScreenHeader from "../../components/GradientScreenHeader";
 import styles from "./styles";
 import colors from "../../constants/colors";
 import { APP_VERSION } from "../../constants/appInfo";
@@ -53,22 +56,15 @@ const ProfileScreen = ({ navigation }) => {
   const canManageRoles = String(user.role || "").toLowerCase() === "developer";
 
   return (
-    <View style={styles.screen}>
-      <LinearGradient
-        colors={[
-          colors.loginHeroGradientStart,
-          colors.loginHeroGradientMid,
-          colors.loginHeroGradientEnd,
-        ]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.header}
-      >
+    <SafeAreaView
+      style={[styles.screen, Platform.OS === "ios" && styles.iosScreen]}
+      edges={Platform.OS === "ios" ? ["top"] : []}
+    >
+      <GradientScreenHeader>
         <View style={styles.headerTitleRow}>
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
-      </LinearGradient>
+      </GradientScreenHeader>
 
       <ScrollView
         style={styles.bodyWrapper}
@@ -249,7 +245,7 @@ const ProfileScreen = ({ navigation }) => {
 
         <Text style={styles.version}>App Version {APP_VERSION}</Text>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

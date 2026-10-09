@@ -5,11 +5,24 @@ import { showAppAlert } from "../services/alertService";
 import { useAuth } from "../context/AuthContext";
 import {
   getPendingChecklistSubmissionCount,
+  getPendingChecklistSubmissionSummaries,
   syncQueuedChecklistSubmissions,
 } from "../services/checklistOfflineSync";
 import { refreshOfflineMasterData } from "../services/offlineMasterSync";
 import { flushPendingPipeMutations } from "../services/pipeNetworkSync";
-import { getPendingPipeMutationCount } from "../services/pipeNetworkOfflineStore";
+import {
+  getPendingPipeMutationCount,
+  getPendingPipeMutationSummaries,
+} from "../services/pipeNetworkOfflineStore";
+
+const describeSyncError = (error) => {
+  const message = String(error || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/\b413\b/.test(message)) return "Upload too large (HTTP 413)";
+  return message.length > 120 ? `${message.slice(0, 117)}...` : message;
+};
 
 const useProfileViewModel = (navigation) => {
   const { logout, refreshProfile, user: authenticatedUser, roleAccess } = useAuth();
@@ -102,8 +115,8 @@ const useProfileViewModel = (navigation) => {
     console.log("[ChecklistProfile]", "Manual all-module pending-work sync pressed");
 
     try {
-      const networkState = await NetInfo.fetch();
-      if (networkState.isConnected !== true || networkState.isInternetReachable === false) {
+      const networkState = await NetInfo.fetch().catch(() => ({}));
+      if (networkState.isConnected === false || networkState.isInternetReachable === false) {
         showAppAlert({
           type: "warning",
           title: "You’re offline",
@@ -132,23 +145,51 @@ const useProfileViewModel = (navigation) => {
 
       const [omsResult, pipeResult] = await Promise.all([
         pendingOmsCount
-          ? syncQueuedChecklistSubmissions({ ownerUserId })
+          ? syncQueuedChecklistSubmissions({ ownerUserId, ensureLatest: true })
           : Promise.resolve({ synced: 0, failed: 0, skippedOffline: false }),
         pendingPipeCount
           ? flushPendingPipeMutations(ownerUserId, { force: true })
           : Promise.resolve({ synced: 0, failed: 0 }),
       ]);
+      const [remainingOms, remainingPipe] = await Promise.all([
+        canSyncOmsChecklist
+          ? getPendingChecklistSubmissionSummaries({ ownerUserId })
+          : Promise.resolve([]),
+        getPendingPipeMutationSummaries(ownerUserId),
+      ]);
       const syncedCount = Number(omsResult.synced || 0) + Number(pipeResult.synced || 0);
-      const failedCount = Number(omsResult.failed || 0) + Number(pipeResult.failed || 0);
-      const stillQueuedCount = Math.max(0, pendingOmsCount + pendingPipeCount - syncedCount);
+      const stillQueuedCount = remainingOms.length + remainingPipe.length;
+      const errorDetails = [
+        ...remainingOms.map((entry, index) => ({
+          label: `OMS ${index + 1}`,
+          state: entry.state,
+          error: describeSyncError(entry.lastError),
+        })),
+        ...remainingPipe.map((entry, index) => ({
+          label: `Pipe ${index + 1}`,
+          state: entry.state,
+          error: describeSyncError(entry.lastError),
+        })),
+      ];
+      console.info("[PendingWorkSync] Manual sync result", {
+        oms: { checked: omsResult.checked, synced: omsResult.synced, remaining: remainingOms.length },
+        pipe: { checked: pipeResult.checked, synced: pipeResult.synced, remaining: remainingPipe.length },
+        failures: errorDetails,
+      });
+      const detailLines = errorDetails.slice(0, 3).map((item) =>
+        `${item.label} (${item.state}): ${item.error || "Not sent yet"}`
+      );
+      if (errorDetails.length > detailLines.length) {
+        detailLines.push(`+${errorDetails.length - detailLines.length} more saved item(s)`);
+      }
       const syncMessage = omsResult.skippedOffline
         ? "Network unavailable. Offline work remains saved locally."
-        : failedCount || stillQueuedCount
-          ? `${syncedCount} item(s) synced. ${stillQueuedCount} remain saved for retry.`
-          : `${syncedCount} offline item(s) synced across all available modules.`;
+        : stillQueuedCount
+          ? `${syncedCount} synced. ${stillQueuedCount} still saved on this device (OMS ${remainingOms.length}, Pipe ${remainingPipe.length}).\n${detailLines.join("\n")}`
+          : `${syncedCount} item(s) synced. No pending work remains.`;
 
       showAppAlert({
-        type: failedCount || omsResult.skippedOffline ? "warning" : "success",
+        type: stillQueuedCount || omsResult.skippedOffline ? "warning" : "success",
         title: "Pending work checked",
         message: syncMessage,
       });

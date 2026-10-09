@@ -2,35 +2,41 @@ import { useCallback, useMemo, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import NetInfo from "@react-native-community/netinfo";
 import { ROUTES } from "../navigation/routes";
-import { getProjects } from "../repositories/projectRepository";
 import { showAppAlert } from "../services/alertService";
 import { useAuth } from "../context/AuthContext";
+import { isProjectAllowed } from "../services/authPermissions";
 import {
   getCachedProjectList,
   refreshProjectList,
 } from "../services/projectOfflineStore";
 
 const useDashboardViewModel = (navigation) => {
-  const { logout } = useAuth();
-  const fallbackProjects = useMemo(() => getProjects(), []);
+  const { authorization, roleAccess, logout, refreshProfile } = useAuth();
   const [cachedProjects, setCachedProjects] = useState(null);
-  const projects = cachedProjects !== null ? cachedProjects : fallbackProjects;
+  const [isProjectListLoading, setIsProjectListLoading] = useState(true);
+  const projects = cachedProjects || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshingProjects, setIsRefreshingProjects] = useState(false);
 
   const loadCachedProjects = useCallback(async () => {
+    setIsProjectListLoading(true);
     try {
       const projectsFromCache = await getCachedProjectList();
+      setCachedProjects(projectsFromCache);
 
-      if (projectsFromCache.length) {
-        setCachedProjects(projectsFromCache);
-      } else {
-        setCachedProjects([]);
+      if (!projectsFromCache.length) {
+        const networkState = await NetInfo.fetch();
+        if (networkState.isConnected && networkState.isInternetReachable !== false) {
+          setCachedProjects(await refreshProjectList());
+        }
       }
     } catch (error) {
       console.log("[ProjectDashboard]", "Unable to load cached projects", {
         message: error?.message,
       });
+      setCachedProjects((current) => current || []);
+    } finally {
+      setIsProjectListLoading(false);
     }
   }, []);
 
@@ -42,17 +48,20 @@ const useDashboardViewModel = (navigation) => {
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
+    const accessibleProjects = roleAccess.isAuthorizationReady
+      ? projects.filter((project) => isProjectAllowed(authorization, project))
+      : [];
 
     if (!normalizedQuery) {
-      return projects;
+      return accessibleProjects;
     }
 
-    return projects.filter((project) =>
+    return accessibleProjects.filter((project) =>
       [project.name, project.client]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     );
-  }, [projects, searchQuery]);
+  }, [authorization, projects, roleAccess.isAuthorizationReady, searchQuery]);
   const clearSearch = () => setSearchQuery("");
 
   const refreshProjects = async () => {
@@ -78,6 +87,7 @@ const useDashboardViewModel = (navigation) => {
 
       const freshProjects = await refreshProjectList();
       setCachedProjects(freshProjects);
+      await refreshProfile({ force: true });
     } catch (error) {
       console.log("[ProjectDashboard]", "Project refresh failed", {
         message: error?.message,
@@ -94,6 +104,14 @@ const useDashboardViewModel = (navigation) => {
   };
 
   const openProject = (project) => {
+    if (!roleAccess.isAuthorizationReady || !isProjectAllowed(authorization, project)) {
+      showAppAlert({
+        type: "warning",
+        title: "Project access unavailable",
+        message: "Refresh your access and try again.",
+      });
+      return;
+    }
     navigation.navigate(ROUTES.ROOT.PROJECT_MODULES, {
       project,
       projectName: project?.name,
@@ -141,6 +159,8 @@ const useDashboardViewModel = (navigation) => {
   return {
     projects,
     filteredProjects,
+    isProjectListLoading,
+    isAuthorizationReady: roleAccess.isAuthorizationReady,
     searchQuery,
     isRefreshingProjects,
     refreshProjects,

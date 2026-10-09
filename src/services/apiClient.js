@@ -489,8 +489,22 @@ apiClient.interceptors.response.use(
 
 const requestApiPayload = async (config, errorOptions = {}) => {
   try {
-    const response = await apiClient.request(config);
+    const { onResponse, ...requestConfig } = config;
+    const response = await apiClient.request(requestConfig);
     const payload = response?.data;
+
+    if (typeof onResponse === "function") {
+      try {
+        onResponse({
+          status: response?.status,
+          body: payload,
+          url: response?.request?.responseURL || apiClient.getUri(response?.config || requestConfig),
+        });
+      } catch (logError) {
+        // A diagnostic callback must never change the result of an API request.
+        console.warn("[API] response diagnostic failed", logError?.message);
+      }
+    }
 
     if (payload?.success === false) {
       throw createPayloadApiError(payload, {

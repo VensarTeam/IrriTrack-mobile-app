@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
   },
 
   materialKpiLabel: {
-    fontSize: fontScale(12.5),
+    fontSize: fontScale(14),
     fontFamily: fonts.bold,
     letterSpacing: 0.45,
     color: colors.textDark,
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
   },
 
   materialKpiPercent: {
-    fontSize: fontScale(9),
+    fontSize: fontScale(12),
     fontFamily: fonts.bold,
     fontVariant: ["tabular-nums"],
     color: colors.textSecondary,
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   materialKpiValue: {
     flex: 1,
     minWidth: 0,
-    fontSize: fontScale(14),
+    fontSize: fontScale(14.5),
     lineHeight: fontScale(17),
     fontFamily: fonts.bold,
     color: colors.textDark,
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
   materialKpiPlanned: {
     width: "100%",
     marginTop: verticalScale(2),
-    fontSize: fontScale(10),
+    fontSize: fontScale(12),
     fontFamily: fonts.medium,
     color: colors.textSecondary,
     fontVariant: ["tabular-nums"],
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   },
 
   progressMaterialTabText: {
-    fontSize: fontScale(11),
+    fontSize: fontScale(16),
     fontFamily: fonts.semiBold,
     color: colors.textSecondary,
   },

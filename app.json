@@ -20,7 +20,12 @@
         "aps-environment": "production"
       },
       "infoPlist": {
-        "NSPhotoLibraryAddUsageDescription": "Allow IrriTrack to save submitted checklist photos to your phone gallery.",
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "NSCameraUsageDescription": "IrriTrack uses the camera to verify your identity and capture project checklist photos.",
+        "NSFaceIDUsageDescription": "IrriTrack uses Face ID to unlock your saved session on this device.",
+        "NSLocationWhenInUseUsageDescription": "IrriTrack uses your location while you work to record site coordinates, update node locations, and add location details to checklist photos.",
+        "NSPhotoLibraryUsageDescription": "IrriTrack accesses photos you select for project checklists and work-progress submissions.",
+        "NSPhotoLibraryAddUsageDescription": "IrriTrack saves submitted checklist photos to your photo library when you choose to save them.",
         "UIBackgroundModes": [
           "remote-notification"
         ]
@@ -34,8 +39,8 @@
         "android.permission.POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#fafafa"
       }
     },
     "plugins": [
@@ -43,15 +48,15 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow IrriTrack to access your photos.",
-          "savePhotosPermission": "Allow IrriTrack to save submitted checklist photos to your phone gallery.",
+          "photosPermission": "IrriTrack accesses photos you select for project checklists and work-progress submissions.",
+          "savePhotosPermission": "IrriTrack saves submitted checklist photos to your photo library when you choose to save them.",
           "isAccessMediaLocationEnabled": true
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow IrriTrack to use Face ID to unlock your session."
+          "faceIDPermission": "IrriTrack uses Face ID to unlock your saved session on this device."
         }
       ],
       "@react-native-firebase/app",

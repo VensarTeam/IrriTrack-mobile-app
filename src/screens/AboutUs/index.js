@@ -1,30 +1,23 @@
 import React from "react";
-import { View, Text, ScrollView, Image } from "react-native";
-import LinearGradient from "react-native-linear-gradient";
+import { View, Text, ScrollView, Image, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import GradientScreenHeader from "../../components/GradientScreenHeader";
 import styles from "./styles";
-import colors from "../../constants/colors";
 import useAboutUsViewModel from "../../viewmodels/useAboutUsViewModel";
 
 const AboutScreen = () => {
   const { sections } = useAboutUsViewModel();
 
   return (
-    <View style={styles.screen}>
-      <LinearGradient
-        colors={[
-          colors.loginHeroGradientStart,
-          colors.loginHeroGradientMid,
-          colors.loginHeroGradientEnd,
-        ]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.header}
-      >
+    <SafeAreaView
+      style={[styles.screen, Platform.OS === "ios" && styles.iosScreen]}
+      edges={Platform.OS === "ios" ? ["top"] : []}
+    >
+      <GradientScreenHeader>
         <View style={styles.headerTitleRow}>
           <Text style={styles.headerTitle}>About Us</Text>
         </View>
-      </LinearGradient>
+      </GradientScreenHeader>
 
       <View style={styles.bodyWrapper}>
         <ScrollView
@@ -48,7 +41,7 @@ const AboutScreen = () => {
           ))}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

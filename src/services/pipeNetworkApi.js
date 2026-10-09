@@ -14,6 +14,35 @@ export const fetchPipeSegments = ({ projectId, material, signal }) =>
 export const fetchPipeDailyWorks = ({ signal, ...params }) =>
   apiRequest({ url: "pipe-laying/works", method: "GET", params: cleanParams(params), signal });
 
+export const fetchPipeCoveredIntervals = async ({ projectId, segmentId, workType, signal }) => {
+  const limit = 500;
+  const covered = [];
+  let page = 1;
+  while (true) {
+    const response = await fetchPipeDailyWorks({
+      projectId,
+      segmentId,
+      workType,
+      page,
+      limit,
+      signal,
+    });
+    const items = Array.isArray(response?.items) ? response.items : [];
+    for (const work of items) {
+      const from = Number(work.chainageFromM);
+      const to = Number(work.chainageToM);
+      const length = Number(work.lengthLaidM);
+      if (Number.isFinite(from) && Number.isFinite(to) && Number.isFinite(length) && to > from && length > 0) {
+        covered.push([from, from + Math.min(length, to - from)]);
+      }
+    }
+    if (!items.length || items.length < limit || page * limit >= Number(response?.totalCount || 0)) {
+      return covered;
+    }
+    page += 1;
+  }
+};
+
 export const fetchPipeWorkFilterOptions = ({ signal, ...params }) =>
   apiRequest({ url: "pipe-laying/works/filter-options", method: "GET", params: cleanParams(params), signal });
 
@@ -112,8 +141,8 @@ export const fetchPipeWorkStatus = ({ signal, ...params }) =>
     signal,
   });
 
-export const fetchPipeSubmission = ({ submissionId, signal }) =>
-  apiRequest({ url: `pipe-laying-checklist/submissions/${submissionId}`, method: "GET", signal });
+export const fetchPipeSubmission = ({ submissionId, signal, onResponse }) =>
+  apiRequest({ url: `pipe-laying-checklist/submissions/${submissionId}`, method: "GET", signal, onResponse });
 
 export const updatePipeSubmissionWorkflow = ({ submissionId, action, remark }) =>
   apiRequest({
