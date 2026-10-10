@@ -13,13 +13,15 @@
     },
     "ios": {
       "icon": "./assets/icon.png",
-      "bundleIdentifier": "org.vensar.irritrack",
+      "bundleIdentifier": "com.vensar.irritrack",
       "googleServicesFile": "./GoogleService-Info.plist",
       "deploymentTarget": "15.5",
       "entitlements": {
         "aps-environment": "production"
       },
       "infoPlist": {
+        "CFBundleName": "IrriTrack",
+        "CFBundleDisplayName": "IrriTrack",
         "UIViewControllerBasedStatusBarAppearance": true,
         "NSCameraUsageDescription": "IrriTrack uses the camera to verify your identity and capture project checklist photos.",
         "NSFaceIDUsageDescription": "IrriTrack uses Face ID to unlock your saved session on this device.",

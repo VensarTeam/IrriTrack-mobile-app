@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyB7ykrknYOeIpmgF3jokymMGjyxWax79Vo</string>
+	<string>AIzaSyCta-GnvigdlB4KF4hDlVwGIrNWYG_L-ho</string>
 	<key>GCM_SENDER_ID</key>
-	<string>605469248325</string>
+	<string>569819789858</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>org.vensar.irritrack</string>
+	<string>com.vensar.irritrack</string>
 	<key>PROJECT_ID</key>
-	<string>irritrack-8d4b5</string>
+	<string>irritrack-app</string>
 	<key>STORAGE_BUCKET</key>
-	<string>irritrack-8d4b5.firebasestorage.app</string>
+	<string>irritrack-app.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:605469248325:ios:f44c0d980431d9fcd50c2c</string>
+	<string>1:569819789858:ios:377949ad98968a7dfee87b</string>
 </dict>
 </plist>

@@ -102,24 +102,13 @@ const ACTIONS = [
   },
 ];
 
-const formatLength = (value) =>
-  `${Number(value || 0).toLocaleString("en-IN", {
-    minimumFractionDigits: Number(value) % 1 ? 1 : 0,
-    maximumFractionDigits: 1,
-  })} m`;
+const formatLengthKm = (value) => {
+  const meters = Number(value);
+  const kilometers = Number.isFinite(meters) ? Math.max(meters, 0) / 1000 : 0;
 
-const formatCompactLength = (value) => {
-  const safeValue = Number(value || 0);
-
-  if (safeValue >= 1000000) {
-    return `${(safeValue / 1000000).toFixed(2)}M m`;
-  }
-
-  if (safeValue >= 1000) {
-    return `${(safeValue / 1000).toFixed(1)}k m`;
-  }
-
-  return `${safeValue.toFixed(0)} m`;
+  return `${kilometers.toLocaleString("en-IN", {
+    maximumFractionDigits: kilometers < 1 ? 3 : 2,
+  })} km`;
 };
 
 const getPercent = (value, total) =>
@@ -152,7 +141,7 @@ const MaterialKpiCard = ({ item, compact, isLast, stacked }) => {
           adjustsFontSizeToFit
           minimumFontScale={0.72}
         >
-          {formatCompactLength(item.laid)}
+          {formatLengthKm(item.laid)}
         </Text>
         <Text selectable style={styles.materialKpiPercent}>{progress}%</Text>
       </View>
@@ -163,7 +152,7 @@ const MaterialKpiCard = ({ item, compact, isLast, stacked }) => {
         adjustsFontSizeToFit
         minimumFontScale={0.72}
       >
-        / {formatCompactLength(item.planned)}
+        / {formatLengthKm(item.planned)}
       </Text>
 
       <View style={styles.materialKpiTrack}>
@@ -240,10 +229,10 @@ const StageProgressList = ({ material, largeText }) => (
             </View>
             <View style={[styles.stageRowMetrics, largeText && styles.stageRowMetricsStacked]}>
               <Text selectable style={styles.stageCardMetricValue} numberOfLines={1} adjustsFontSizeToFit>
-                {formatCompactLength(completed)}
+                {formatLengthKm(completed)}
               </Text>
               <Text style={styles.stageCardPlanned} numberOfLines={1} adjustsFontSizeToFit>
-                / {formatCompactLength(planned)} planned
+                / {formatLengthKm(planned)} planned
               </Text>
             </View>
             <View style={styles.stageCardTrack}>
@@ -476,13 +465,13 @@ const PipeDistributoryOverview = ({
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.networkSummaryLabel}>Laid</Text>
             <Text selectable style={styles.networkSummaryValue}>
-              {formatLength(totalLaid)}
+              {formatLengthKm(totalLaid)}
             </Text>
           </View>
           <View style={[styles.networkSummaryPlan, systemFontScale >= 1.3 && styles.largeTextAlignLeft]}>
             <Text style={styles.networkSummaryLabel}>Planned</Text>
             <Text selectable style={styles.networkSummaryPlanValue}>
-              {formatLength(totalPlanned)}
+              {formatLengthKm(totalPlanned)}
             </Text>
           </View>
         </View>
@@ -555,7 +544,7 @@ const PipeDistributoryOverview = ({
           <View style={[styles.chartPlannedWrap, systemFontScale >= 1.3 && styles.largeTextAlignLeft]}>
             <Text style={styles.chartPlannedLabel}>Planned</Text>
             <Text selectable style={styles.chartPlannedValue}>
-              {formatCompactLength(selectedMaterial.planned)}
+              {formatLengthKm(selectedMaterial.planned)}
             </Text>
           </View>
         </View>
