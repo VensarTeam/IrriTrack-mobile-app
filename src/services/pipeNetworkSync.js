@@ -13,6 +13,7 @@ import {
   failPipeMutation,
   listPendingPipeMutations,
   queuePipeMutation,
+  savePipeCache,
 } from "./pipeNetworkOfflineStore";
 import {
   fetchAndCachePipeStagePackages,
@@ -90,6 +91,21 @@ const optimizeSavedPhotos = async (entry, payload) => {
   return updated;
 };
 
+const cacheSyncedSubmission = async (entry, response) => {
+  const detail = response?.submissionId ? response : response?.data;
+  if (!detail?.submissionId) return;
+  try {
+    await savePipeCache({
+      ownerUserId: entry.owner_user_id,
+      projectId: entry.project_id,
+      resource: `submission-detail:${detail.submissionId}`,
+      payload: detail,
+    });
+  } catch {
+    // The server accepted the work. Cache failures must not repeat the upload.
+  }
+};
+
 const syncPipeEntry = async (entry) => {
   const payload = await atSyncPhase("photo preparation", () =>
     optimizeSavedPhotos(entry, { ...entry.payload })
@@ -112,7 +128,7 @@ const syncPipeEntry = async (entry) => {
       if (!payload.resubmitFile) {
         throw new Error("This saved correction needs one new photo. Open the rejected request in Work Status and save it again.");
       }
-      await atSyncPhase("correction upload", () => resubmitRejectedPipeChecklist({
+      const response = await atSyncPhase("correction upload", () => resubmitRejectedPipeChecklist({
         submissionId: payload.submissionId,
         payload: {
           ...payload.checklistPayload,
@@ -122,13 +138,15 @@ const syncPipeEntry = async (entry) => {
         resubmitFile: payload.resubmitFile,
         files: payload.files || {},
       }));
+      await cacheSyncedSubmission(entry, response);
       return payload;
     }
     if (resubmitMode !== "modify_approved") throw new Error(`Unsupported resubmission mode: ${resubmitMode}`);
-    await atSyncPhase("resubmission upload", () => submitPipeChecklist({
+    const response = await atSyncPhase("resubmission upload", () => submitPipeChecklist({
       payload: { ...payload.checklistPayload, packageId: payload.packageId, clientMutationId: entry.id },
       files: payload.files || {},
     }));
+    await cacheSyncedSubmission(entry, response);
     return payload;
   }
   let stagePackages = null;
@@ -238,7 +256,7 @@ export const flushPendingPipeMutations = (ownerUserId, { force = false, onlyIds 
         // Validation/permission/upload-limit errors need user attention; an
         // unchanged automatic retry would just repeat the same server error.
         const status = Number(error?.status || 0);
-        const needsAttention = status >= 400 && status < 500 && status !== 408 && status !== 429;
+        const needsAttention = status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429;
         const phase = error?.syncPhase || "sync";
         await failPipeMutation({
           id: entry.id,

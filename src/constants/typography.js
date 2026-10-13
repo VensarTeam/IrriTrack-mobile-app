@@ -6,6 +6,10 @@ const typography = {
   h2: moderateScale(20),
   body: moderateScale(16),
   small: moderateScale(14),
+  caption: 12,
+  // Native text scaling handles accessibility; keep onboarding stable on tablets.
+  onboardingTitle: 30,
+  onboardingBody: 15,
 
   regular: {
     fontFamily: fonts.regular,

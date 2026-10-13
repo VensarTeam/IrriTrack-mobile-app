@@ -657,7 +657,7 @@ const FaceVerificationSheet = ({
         {isReady ? "Verifying face" : "Verify it's you with your face"}
       </Text>
       <Text style={styles.subtitle}>
-        {isReady ? "Almost done." : "Center your face and blink once."}
+        {isReady ? "Almost done." : "Your photo is sent to Vensar to verify your identity. On first sign-in, a face photo and verification template are saved for later sign-ins. To scan, center your face and blink once."}
       </Text>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -675,7 +675,7 @@ const FaceVerificationSheet = ({
           <ActivityIndicator size="small" color={colors.white} />
         ) : (
           <Text style={styles.primaryButtonText}>
-            {isReady ? "Continue" : "Scan my face"}
+            {isReady ? "Continue" : "Agree & scan my face"}
           </Text>
         )}
       </TouchableOpacity>

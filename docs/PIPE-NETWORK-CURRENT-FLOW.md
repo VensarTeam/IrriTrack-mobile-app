@@ -40,7 +40,7 @@ The backend also permits a manager to verify/reject/handle modification if they 
 
 ## Status and actions
 
-`submitted → verified → approved` is the normal path. `reject` sets `rejected` and requires a remark. `modify_approved` is the reviewer’s “Need modification” action from submitted/verified, or approval of a supervisor’s `modify_request`; the supervisor may edit and submit again. `modify_request` is requested by the submitting supervisor from verified/approved. `modify_rejected` rejects that request and returns the workflow to approved. Review actions require network connectivity. Cached Work Status detail is viewable offline, and a supervisor can edit and queue a resubmission offline when its detail and checklist masters are already cached.
+`submitted → verified → approved` is the normal path. `reject` sets `rejected` and requires a remark. `modify_approved` is the reviewer’s “Need modification” action from submitted/verified, or approval of a supervisor’s `modify_request`; the supervisor may edit and submit again. `modify_request` is requested by the submitting supervisor from verified/approved. `modify_rejected` rejects that request and restores its previous verified/approved state; it does not approve verified work. Review updates and history are committed in one transaction, with a current-status check to reject conflicting actions. Review actions require network connectivity. Cached Work Status detail is viewable offline, and a supervisor can edit and queue a resubmission offline when its detail and checklist masters are already cached.
 
 The intended process order is excavation → pipe laying → backfilling. The backend's `assertProcessGate` is currently a temporary no-op for Work Status testing, so prior-stage approval is **not enforced at submission time** until that gate is restored.
 
@@ -73,3 +73,12 @@ Profile has two distinct controls: **Master Data** refreshes reference data only
 5. Confirm background retries preserve a failed submission and later retry it; Profile’s shared Pending Work action can force a retry across module queues.
 6. Reject a submission, open Work Status offline, correct it with one new photo, save, reconnect, and confirm the same submission returns to `submitted`, one new `resubmitImages[]` item appears, and the queue/photo clear.
 7. Retry the same saved mutation after a simulated lost server response; the backend must return the existing result using `clientMutationId` without adding another resubmit image or history event.
+
+## Modification/correction reliability checks
+
+- Opening a request online caches its checklist masters for later offline editing. Offline status/search filters can use the saved All list; they cover only requests already cached on that device.
+- Fresh submission details supply the current action state. Review remarks survive failed saves, and all review requests check connectivity immediately before sending.
+- Review history and modification/correction remarks are visible in details and the resubmission form.
+- Modification resubmission requires the original supervisor. Both resubmission paths preserve already assigned reviewers.
+- Successful correction/modification sync refreshes the cached detail. Session-expiry failures remain retryable; validation errors remain saved for attention/manual retry.
+- Regression commands: `node scripts/test-pipe-offline.cjs` in the app (Node 22.13+ with node:sqlite), and `npm run build && node scripts/test-pipe-workflow.cjs` in the API repository. These exercise actual queue code with SQLite and simulated device/network boundaries, plus backend service logic with a simulated transaction boundary. They do not replace physical-device or deployed-PostgreSQL acceptance testing.

@@ -487,7 +487,7 @@ const PipeDistributoryOverview = ({
 
       <View style={styles.materialSection}>
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Materials</Text>
+          <Text style={styles.sectionTitle}>Materials Laid</Text>
           <Text style={styles.sectionHint}>Laid / planned</Text>
         </View>
         <View style={[styles.materialKpiGrid, systemFontScale >= 1.3 && { flexDirection: "column" }]}>

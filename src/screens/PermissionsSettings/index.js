@@ -11,7 +11,7 @@ import {
 import { Icon, Switch } from "react-native-paper";
 import { Camera } from "react-native-vision-camera";
 import * as Location from "expo-location";
-import * as MediaLibrary from "expo-media-library";
+import { getPhotoSavePermission, requestPhotoSavePermission, photoSaveNeedsPermission } from "../../services/deviceGallery";
 import { requestPushNotificationPermission, checkPushNotificationPermission } from "../../services/pushNotificationService";
 import { showAppAlert } from "../../services/alertService";
 import styles from "./styles";
@@ -22,7 +22,7 @@ const PermissionsSettingsScreen = ({ navigation }) => {
     {
       id: "camera",
       title: "Camera",
-      description: "For barcode scanning & unit photos.",
+      description: "For facial verification and site photos.",
       icon: "camera-outline",
       status: "undetermined", // granted, denied, undetermined
     },
@@ -35,8 +35,8 @@ const PermissionsSettingsScreen = ({ navigation }) => {
     },
     {
       id: "media",
-      title: "Media Library",
-      description: "To save unit photos to your gallery.",
+      title: "Save Photos",
+      description: photoSaveNeedsPermission() ? "Add checklist photos to your gallery." : "Photo picker shares only the images you choose.",
       icon: "image-outline",
       status: "undetermined",
     },
@@ -53,7 +53,7 @@ const PermissionsSettingsScreen = ({ navigation }) => {
     try {
       const cameraStatus = await Camera.getCameraPermissionStatus();
       const locationStatus = await Location.getForegroundPermissionsAsync();
-      const mediaStatus = await MediaLibrary.getPermissionsAsync();
+      const mediaStatus = await getPhotoSavePermission();
       const notifStatus = await checkPushNotificationPermission();
 
       setPermissions((prev) =>
@@ -124,7 +124,7 @@ const PermissionsSettingsScreen = ({ navigation }) => {
           checkPermissions();
         }
       } else if (id === "media") {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await requestPhotoSavePermission();
         if (status !== "granted") {
           Linking.openSettings();
         } else {
@@ -195,6 +195,7 @@ const PermissionsSettingsScreen = ({ navigation }) => {
               <View style={styles.switchContainer}>
                 <Switch
                   value={isGranted}
+                  disabled={item.id === "media" && !photoSaveNeedsPermission()}
                   onValueChange={() => handleTogglePermission(item.id, item.status)}
                   color={colors.primaryGreen}
                 />

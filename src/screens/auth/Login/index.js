@@ -15,6 +15,7 @@ import FaceVerificationSheet from "../../../components/FaceVerificationSheet";
 import WelcomeModal from "../../../components/WelcomeModal";
 import NotificationPromptModal from "../../../components/NotificationPromptModal";
 import BrandText from "../../../components/BrandText";
+import LegalLinks from "../../../components/LegalLinks";
 
 const LoginScreen = ({ navigation }) => {
   const {
@@ -147,6 +148,7 @@ const LoginScreen = ({ navigation }) => {
             Log In
           </Button>
 
+          <LegalLinks />
           <Text style={styles.version}>App Version {APP_VERSION}</Text>
         </KeyboardAwareScrollView>
       </View>

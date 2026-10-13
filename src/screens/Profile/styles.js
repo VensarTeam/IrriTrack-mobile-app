@@ -1,356 +1,56 @@
 import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
-import { fontScale, moderateScale, verticalScale } from "../../constants/metrics";
 
+// Logical spacing is platform-independent; text scales and rows grow without clipping.
 export default StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-
-  iosScreen: {
-    backgroundColor: colors.loginHeroGradientStart,
-  },
-
-  headerTitleRow: {
-    minHeight: moderateScale(48),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  headerTitle: {
-    fontSize: fontScale(20),
-    fontFamily: fonts.bold,
-    color: colors.navyFreshDark,
-    textAlign: "center",
-  },
-
-  bodyWrapper: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-
-  detailsContainer: {
-    flexGrow: 1,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    paddingHorizontal: moderateScale(20),
-    paddingTop: verticalScale(22),
-    paddingBottom: verticalScale(24),
-  },
-
-  avatarWrap: {
-    position: "relative",
-    marginBottom: verticalScale(16),
-  },
-
-  avatarBorder: {
-    width: moderateScale(108),
-    height: moderateScale(108),
-    borderRadius: moderateScale(54),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.primaryGreen,
-    shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-
-  avatar: {
-    width: moderateScale(100),
-    height: moderateScale(100),
-    borderRadius: moderateScale(50),
-    backgroundColor: colors.surfaceBlue,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(18, 59, 99, 0.08)",
-  },
-
-  activeDot: {
-    position: "absolute",
-    right: moderateScale(8),
-    bottom: moderateScale(8),
-    width: moderateScale(16),
-    height: moderateScale(16),
-    borderRadius: moderateScale(8),
-    backgroundColor: colors.primaryGreen,
-    borderWidth: 3,
-    borderColor: colors.white,
-  },
-
-  avatarImage: {
-    width: moderateScale(100),
-    height: moderateScale(100),
-    borderRadius: moderateScale(50),
-    backgroundColor: colors.surfaceBlue,
-  },
-
-  initials: {
-    fontSize: moderateScale(28),
-    fontFamily: fonts.bold,
-    color: colors.navyFreshDark,
-  },
-
-  name: {
-    fontSize: moderateScale(20),
-    fontFamily: fonts.medium,
-    color: colors.navyFreshDark,
-    marginBottom: verticalScale(10),
-  },
-
-  designationPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "center",
-    maxWidth: "88%",
-    backgroundColor: "rgba(255,255,255,0.58)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.84)",
-    borderRadius: moderateScale(999),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(7),
-    shadowColor: colors.primaryBlue,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 3,
-  },
-
-  designationText: {
-    color: colors.navyFreshDark,
-    fontSize: moderateScale(12.5),
-    lineHeight: moderateScale(17),
-    fontFamily: fonts.semiBold,
-    textAlign: "center",
-  },
-
-  infoCard: {
-    width: "100%",
-    marginTop: verticalScale(22),
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(12),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(6),
-    shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-
-  actionCard: {
-    width: "100%",
-    marginTop: verticalScale(18),
-    paddingHorizontal: moderateScale(14),
-    paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(14),
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: "#F6FBFF",
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-
-  actionCardIconWrap: {
-    width: moderateScale(44),
-    height: moderateScale(44),
-    borderRadius: moderateScale(12),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#EAF4FF",
-    borderWidth: 1,
-    borderColor: "#D7E7F8",
-  },
-
-  actionCardCopy: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: moderateScale(12),
-    marginRight: moderateScale(12),
-  },
-
-  actionCardTitle: {
-    fontSize: moderateScale(15),
-    lineHeight: moderateScale(20),
-    color: colors.navyFreshDark,
-    fontFamily: fonts.bold,
-  },
-
-  actionCardSubtitle: {
-    marginTop: verticalScale(3),
-    fontSize: moderateScale(11.3),
-    lineHeight: moderateScale(16),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
-  },
-
-  actionCardArrowWrap: {
-    width: moderateScale(34),
-    height: moderateScale(34),
-    borderRadius: moderateScale(17),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F0F6FD",
-  },
-
-  infoRow: {
-    minHeight: verticalScale(66),
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(217, 232, 245, 0.8)",
-  },
-
-  infoIconWrap: {
-    width: moderateScale(38),
-    height: moderateScale(38),
-    borderRadius: moderateScale(8),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.switchBgFresh,
-    marginRight: moderateScale(12),
-  },
-
-  infoCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  infoLabel: {
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
-  },
-
-  infoValue: {
-    fontSize: moderateScale(15),
-    lineHeight: moderateScale(20),
-    fontFamily: fonts.semiBold,
-    marginTop: verticalScale(4),
-    color: colors.textDark,
-  },
-
-  syncCard: {
-    width: "100%",
-    marginTop: verticalScale(18),
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: moderateScale(8),
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: verticalScale(12),
-    shadowColor: "#0C2E4D",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-
-  syncHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: verticalScale(10),
-  },
-
-  syncTitle: {
-    fontSize: moderateScale(16),
-    lineHeight: moderateScale(21),
-    fontFamily: fonts.semiBold,
-    color: colors.navyFreshDark,
-  },
-
-  syncSubtitle: {
-    marginTop: verticalScale(2),
-    fontSize: moderateScale(12),
-    lineHeight: moderateScale(17),
-    fontFamily: fonts.regular,
-    color: colors.textSecondary,
-  },
-
-  syncActionsRow: {
-    flexDirection: "row",
-    gap: moderateScale(10),
-  },
-
-  syncButton: {
-    flex: 1,
-    minHeight: verticalScale(48),
-    flexDirection: "row",
-    gap: moderateScale(6),
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: moderateScale(8),
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.surfaceBlue,
-    paddingHorizontal: moderateScale(6),
-    paddingVertical: verticalScale(10),
-  },
-
-  syncButtonPrimary: {
-    backgroundColor: colors.primaryGreen,
-    borderColor: colors.primaryGreen,
-  },
-
-  syncButtonText: {
-    color: colors.navyFreshDark,
-    fontSize: moderateScale(13),
-    lineHeight: moderateScale(18),
-    fontFamily: fonts.semiBold,
-  },
-
-  syncButtonPrimaryText: {
-    color: colors.white,
-    fontSize: moderateScale(13),
-    lineHeight: moderateScale(18),
-    fontFamily: fonts.semiBold,
-  },
-
-  actionButtonDisabled: {
-    opacity: 0.68,
-  },
-
-  logoutButton: {
-    width: "100%",
-    flexDirection: "row",
-    gap: moderateScale(8),
-    marginTop: verticalScale(22),
-    backgroundColor: colors.navyFreshDark,
-    paddingVertical: verticalScale(14),
-    borderRadius: moderateScale(8),
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: colors.navyFreshDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-
-  logoutText: {
-    color: colors.white,
-    fontSize: moderateScale(15),
-    fontFamily: fonts.semiBold,
-  },
-
-  version: {
-    textAlign: "center",
-    marginTop: verticalScale(20),
-    fontSize: moderateScale(12),
-    color: colors.textSecondary,
-  },
+  screen: { flex: 1, backgroundColor: colors.filterPanelSurface },
+  iosScreen: { backgroundColor: colors.loginHeroGradientStart },
+  header: { minHeight: 48, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.navyFreshDark, textAlign: "center" },
+  body: { backgroundColor: colors.filterPanelSurface },
+  content: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 20 },
+  identityCard: { backgroundColor: colors.surfaceBluePale, borderRadius: 22, borderWidth: 1, borderColor: colors.cardBorder, padding: 20,
+    boxShadow: "0 4px 16px rgba(18, 59, 99, 0.06)" },
+  identityRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  avatar: { width: 72, height: 72, borderRadius: 24, backgroundColor: colors.surfaceBlue, borderWidth: 2, borderColor: colors.white, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  avatarImage: { width: "100%", height: "100%" },
+  initials: { fontFamily: fonts.bold, fontSize: 23, color: colors.primaryBlue },
+  identityCopy: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.bold, fontSize: 21, color: colors.navyFreshDark },
+  roleBadge: { alignSelf: "flex-start", backgroundColor: colors.surfaceBlue, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 6, maxWidth: "100%" },
+  role: { fontFamily: fonts.medium, fontSize: 12, color: colors.primaryBlue },
+  status: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.primaryGreen },
+  statusText: { fontFamily: fonts.medium, fontSize: 11, color: colors.primaryGreen },
+  contactDetails: { marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder, gap: 10 },
+  contactLine: { flexDirection: "row", alignItems: "center", gap: 9 },
+  contactCopy: { flex: 1, minWidth: 0, gap: 3 },
+  contactLabel: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary },
+  contactText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textDark },
+  section: { marginTop: 22 },
+  sectionHeading: { marginBottom: 9, paddingHorizontal: 3 },
+  sectionTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textDark },
+  sectionCaption: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  syncRow: { flexDirection: "row", gap: 10 },
+  syncTile: { flex: 1, minWidth: 0, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.white },
+  syncIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.surfaceMintSoft, alignItems: "center", justifyContent: "center", marginBottom: 9, alignSelf: "flex-start" },
+  syncTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.primaryBlue },
+  syncCaption: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  disabled: { opacity: 0.65 },
+  group: { borderRadius: 18, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.white, overflow: "hidden" },
+  actionRow: { flexDirection: "row", alignItems: "center", paddingLeft: 13, minHeight: 52, gap: 11 },
+  rowIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.surfaceBluePale, alignItems: "center", justifyContent: "center" },
+  rowBody: { flex: 1, minWidth: 0, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 14, paddingRight: 13 },
+  rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.cardBorder },
+  rowCopy: { flex: 1, minWidth: 0, gap: 4 },
+  rowTitle: { fontFamily: fonts.medium, fontSize: 14, color: colors.textDark },
+  rowSubtitle: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  footer: { marginTop: "auto", paddingTop: 10 },
+  logout: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12 },
+  logoutText: { fontFamily: fonts.medium, fontSize: 14, color: colors.danger },
+  legalRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 18 },
+  legalLink: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
+  legalText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  version: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary, textAlign: "center", marginTop: 2 },
 });

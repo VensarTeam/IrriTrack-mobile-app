@@ -44,6 +44,7 @@ import {
   queuePipeMutation,
   savePipeCache,
 } from "../../services/pipeNetworkOfflineStore";
+import { getPipeReviewRemark } from "../../services/pipeWorkflow";
 import { flushPendingPipeMutations } from "../../services/pipeNetworkSync";
 import { availableChainageRanges, validateDailyWork } from "../../services/pipeDailyWorkInput";
 import { compressChecklistImage } from "../../services/checklistImageStorage";
@@ -372,6 +373,7 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
   const isResubmission = Boolean(resubmitSubmission?.submissionId && resubmitDetail?.packageId);
   const isRejectedResubmission = isResubmission &&
     (resubmitSubmission?.workflowStatus || resubmitSubmission?.status) === "rejected";
+  const reviewRemark = getPipeReviewRemark(resubmitDetail, resubmitSubmission?.workflowStatus || resubmitSubmission?.status);
   const routeMaterial = route?.params?.material || resubmitSubmission?.material;
   const materialKey = String(routeMaterial?.label || routeMaterial?.key || routeMaterial || "MS").toUpperCase();
   const material = CHECKLISTS[materialKey] ? materialKey : "MS";
@@ -987,12 +989,12 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
 
   const choosePhoto = async (check, source, replaceIndex = null) => {
     try {
-      const permission = source === "camera"
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert("Permission required", `Please allow ${source} access to add this photo.`);
-        return;
+      if (source === "camera") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("Permission required", "Please allow camera access to add this photo.");
+          return;
+        }
       }
       const existingPhotos = normalizePhotoAssets(responses[check.id]);
       const isReplacing = Number.isInteger(replaceIndex) && replaceIndex >= 0 && replaceIndex < existingPhotos.length;
@@ -1625,8 +1627,8 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
               <Icon source="information-outline" size={19} color={colors.primaryBlue} />
               <View style={styles.resubmitNoticeCopy}>
                 <Text style={styles.resubmitNoticeTitle}>{isRejectedResubmission ? "Correction requested" : "Modification approved"}</Text>
-                {isRejectedResubmission && (resubmitSubmission.rejectionRemark || resubmitDetail.rejectionRemark) ? (
-                  <Text style={styles.resubmitNoticeRemark}>{resubmitSubmission.rejectionRemark || resubmitDetail.rejectionRemark}</Text>
+                {reviewRemark ? (
+                  <Text style={styles.resubmitNoticeRemark}>{reviewRemark}</Text>
                 ) : null}
                 <Text style={styles.resubmitNoticeText}>{isRejectedResubmission ? "Update the checklist and add one new correction photo. Existing checklist photos stay attached." : "Update the checklist values and submit. Existing photos stay attached."}</Text>
               </View>

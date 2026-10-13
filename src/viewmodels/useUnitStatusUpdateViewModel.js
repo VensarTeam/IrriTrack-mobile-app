@@ -2986,21 +2986,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
     return true;
   };
 
-  const requestGalleryPermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== "granted") {
-      showAppAlert({
-        type: "warning",
-        title: "Permission needed",
-        message: "Please allow gallery access to choose a photo.",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const getPhotoCaptureLocation = async () => {
     const fallbackLocation =
       activeValues.updatedLocation ||
@@ -3160,9 +3145,6 @@ const useUnitStatusUpdateViewModel = (navigation, route) => {
 
   const pickFromGallery = async (requirement) => {
     if (isReadOnly) return;
-    const hasPermission = await requestGalleryPermission();
-    if (!hasPermission) return;
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: requirement.allowVideo
         ? ImagePicker.MediaTypeOptions.All

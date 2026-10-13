@@ -16,6 +16,7 @@ import { PieChart } from "react-native-gifted-charts";
 import { Icon, IconButton } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import SearchableFilterModal from "../../components/SearchableFilterModal";
+import ModuleStatusHeader from "../../components/ModuleStatusHeader";
 import PipeDistributoryOverview from "./pipe-distributory-overview";
 import styles from "./styles";
 import colors from "../../constants/colors";
@@ -661,6 +662,7 @@ const ProjectDetailsContent = ({ route }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {isPipeNetworkModule ? <ModuleStatusHeader title="Pipe Network" projectName={route?.params?.project?.shortName || route?.params?.projectName || projectHeaderTitle} onBack={handleBack} /> : (
         <View style={styles.header}>
           <IconButton
             icon="arrow-left"
@@ -674,6 +676,7 @@ const ProjectDetailsContent = ({ route }) => {
 
           <View style={styles.headerSpacer} />
         </View>
+        )}
 
         {!isPipeNetworkModule ? (
           <ScrollView

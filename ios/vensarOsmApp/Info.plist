@@ -42,7 +42,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>IrriTrack uses your location while you work to record site coordinates, update node locations, and add location details to checklist photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>IrriTrack saves submitted checklist photos to your photo library when you choose to save them.</string>
+	<string>IrriTrack can add submitted checklist photos to your photo library so you can keep a copy of site work.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>IrriTrack accesses photos you select for project checklists and work-progress submissions.</string>
 	<key>RCTNewArchEnabled</key>

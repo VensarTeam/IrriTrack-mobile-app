@@ -173,6 +173,16 @@ const useLoginViewModel = (navigation) => {
         mobile: identifier.trim(),
         password,
       });
+      if (challenge?.requiredVerification === "none") {
+        void registerNotificationToken();
+        setIsVerificationVisible(false);
+        setWelcomeName(
+          challenge?.user?.name || challenge?.user?.mobile || getDefaultWelcomeName()
+        );
+        setShowWelcome(true);
+        return;
+      }
+
       const loginVerificationToken = getVerificationToken(challenge);
 
       if (!loginVerificationToken) {

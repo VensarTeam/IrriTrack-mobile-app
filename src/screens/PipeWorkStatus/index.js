@@ -4,9 +4,13 @@ import {
   Alert,
   FlatList,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,16 +22,18 @@ import { Icon, IconButton, Searchbar } from "react-native-paper";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import NetInfo from "@react-native-community/netinfo";
 import { useAuth } from "../../context/AuthContext";
-import { fetchPipeSubmission, fetchPipeWorkStatus, updatePipeSubmissionWorkflow } from "../../services/pipeNetworkApi";
+import { fetchPipeChecklistMasters, fetchPipeSubmission, fetchPipeWorkStatus, updatePipeSubmissionWorkflow } from "../../services/pipeNetworkApi";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 import { fontScale, moderateScale, verticalScale } from "../../constants/metrics";
 import { getPipeCache, listPendingPipeMutations, savePipeCache } from "../../services/pipeNetworkOfflineStore";
 import { IMAGE_BASE_URL } from "../../config/env";
 import { getUnitStatusPalette } from "../../utils/unitStatusPalette";
+import PipeSubmissionHistory from "../../components/PipeSubmissionHistory";
 import ImageViewerModal from "../../components/ImageViewerModal";
 import { CustomTabBar } from "../../components/WorkStatusTabView";
 import omsStyles from "../WorkStatus/styles";
+import { filterCachedPipeWorkStatus, getPipeWorkflowActions } from "../../services/pipeWorkflow";
 
 const TABS = ["all", "submitted", "verified", "approved", "rejected", "modify_request", "modify_approved"];
 const OMS_TABS = ["Submitted", "Pending", "Verified", "Approved", "Commented", "Modify Request", "Modify Approved"];
@@ -40,10 +46,17 @@ const TAB_LABELS = {
   modify_request: "Modify request",
   modify_approved: "Modify approved",
 };
-const roleCode = (value) => String(value || "").trim().toLowerCase().replace(/[ -]+/g, "_");
+
 const isRemarkRequired = (action, status) =>
   ["reject", "modify_rejected"].includes(action) ||
   (action === "modify_approved" && status !== "modify_request");
+
+const REMARK_ACTION_TITLES = {
+  reject: "Request correction",
+  modify_request: "Request modification",
+  modify_approved: "Allow modification",
+  modify_rejected: "Reject modification",
+};
 
 const getStatusLabel = (value = "") => TAB_LABELS[String(value).toLowerCase()] || String(value || "Pending").replace(/_/g, " ");
 
@@ -249,37 +262,6 @@ const ChecklistAnswer = ({ item, onViewImages }) => {
   return <View style={omsStyles.valueBlock}><View style={omsStyles.valueHighlight}><Text style={omsStyles.valueHighlightText}>{displayValue}</Text></View></View>;
 };
 
-const getActions = (item, user) => {
-  const role = roleCode(user?.role);
-  const userId = String(user?.id || "");
-  const status = item?.workflowStatus || item?.status;
-  const engineer = userId && userId === String(item?.assignedEngineerId || "");
-  const manager = userId && userId === String(item?.assignedManagerId || "");
-  if ((role === "engineer" || role === "manager") && (engineer || manager)) {
-    if (status === "submitted") return [
-      { key: "verify", label: "Verify" },
-      { key: "modify_approved", label: "Need modification" },
-      { key: "reject", label: "Need correction" },
-    ];
-    if (status === "verified") return [
-      ...(role === "manager" && manager ? [{ key: "approve", label: "Approve" }] : []),
-      { key: "reject", label: "Need correction" },
-    ];
-    if (status === "modify_request") return [
-      { key: "modify_approved", label: "Allow modification" },
-      { key: "modify_rejected", label: "Reject modification" },
-    ];
-  }
-  if (role === "supervisor") {
-    if (["verified", "approved"].includes(status)) {
-      return [{ key: "modify_request", label: "Request modification" }];
-    }
-    if (["modify_approved", "rejected"].includes(status)) {
-      return [{ key: "edit_resubmit", label: "Edit & resubmit" }];
-    }
-  }
-  return [];
-};
 
 export default function PipeWorkStatusScreen({ navigation, route }) {
   const { projectId, material } = route.params || {};
@@ -294,6 +276,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [imageViewerState, setImageViewerState] = useState({ visible: false, items: [], initialIndex: 0 });
   const [actionBusy, setActionBusy] = useState(false);
@@ -302,8 +285,40 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   const [showStatusInfo, setShowStatusInfo] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingResubmissions, setPendingResubmissions] = useState(new Map());
+  const detailRequestRef = useRef(0);
+  const actionInFlightRef = useRef(false);
   const controllerRef = useRef(null);
   const activeResourceRef = useRef("");
+
+  const cancelRemark = useCallback(() => {
+    if (actionInFlightRef.current) return;
+    Keyboard.dismiss();
+    setPendingAction("");
+    setActionRemark("");
+  }, []);
+
+  const closeDetails = useCallback(() => {
+    if (actionInFlightRef.current) return;
+    Keyboard.dismiss();
+    detailRequestRef.current += 1;
+    setSelected(null);
+    setDetail(null);
+    setDetailLoading(false);
+    setShowHistory(false);
+    setPendingAction("");
+    setActionRemark("");
+  }, []);
+
+  const handleSheetBack = () => {
+    if (actionInFlightRef.current) return;
+    if (Keyboard.isVisible()) {
+      Keyboard.dismiss();
+      return;
+    }
+    if (pendingAction) return cancelRemark();
+    if (showHistory) return setShowHistory(false);
+    closeDetails();
+  };
 
   const openChecklistImages = useCallback((images = [], initialIndex = 0) => {
     const validImages = images.filter((image) => image?.uri);
@@ -349,7 +364,13 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       .catch(() => { if (!controller.signal.aborted) setPendingResubmissions(new Map()); });
     let hasCachedData = false;
     try {
-      const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      let cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
+      if (!cached?.payload && (tab !== "all" || search.trim())) {
+        const savedList = await getPipeCache({ ownerUserId: user?.id, projectId, resource: `work-status:${material || "all"}:all:` });
+        if (savedList?.payload) {
+          cached = { ...savedList, payload: filterCachedPipeWorkStatus(savedList.payload, { status: tab, search }) };
+        }
+      }
       if (cached?.payload && !controller.signal.aborted) {
         hasCachedData = true;
         setData(cached.payload);
@@ -385,6 +406,11 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   }, [load]));
 
   const openItem = async (item) => {
+    Keyboard.dismiss();
+    const requestId = ++detailRequestRef.current;
+    setShowHistory(false);
+    setPendingAction("");
+    setActionRemark("");
     setSelected(item);
     setDetail(null);
     setDetailLoading(true);
@@ -392,7 +418,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     let hasCachedDetail = false;
     try {
       const cached = await getPipeCache({ ownerUserId: user?.id, projectId, resource });
-      if (cached?.payload) {
+      if (cached?.payload && requestId === detailRequestRef.current) {
         hasCachedDetail = true;
         if (typeof __DEV__ !== "undefined" && __DEV__) {
           console.log("[PipeWorkStatus] showing CACHED submission detail; waiting for API", {
@@ -400,7 +426,11 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
             cachedAt: cached.refreshedAt,
           });
         }
-        setDetail(normalizeSubmissionDetail(cached.payload));
+        const cachedDetail = normalizeSubmissionDetail(cached.payload);
+        setDetail(cachedDetail);
+        if (Date.parse(cachedDetail?.updatedAt || "") >= Date.parse(item.updatedAt || item.createdAt || "")) {
+          setSelected((current) => current?.submissionId === item.submissionId ? { ...current, ...cachedDetail } : current);
+        }
       }
     } catch {
       // Detail API remains available when the local copy is missing or unreadable.
@@ -431,8 +461,19 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       });
       logSubmissionDetail(item.submissionId, response);
       const normalizedDetail = normalizeSubmissionDetail(response);
+      if (requestId !== detailRequestRef.current) return;
       setDetail(normalizedDetail);
+      setSelected((current) => current?.submissionId === item.submissionId ? { ...current, ...normalizedDetail } : current);
       await savePipeCache({ ownerUserId: user?.id, projectId, resource, payload: normalizedDetail });
+      // Opening the request online also prepares its edit form for offline use.
+      try {
+        const checklistMaterial = normalizedDetail.package?.material || item.material;
+        const processCode = normalizedDetail.processCode || item.processCode;
+        const masters = await fetchPipeChecklistMasters({ material: checklistMaterial, processCode });
+        await savePipeCache({ ownerUserId: user?.id, projectId, resource: `masters:${checklistMaterial}:${processCode}`, payload: masters });
+      } catch {
+        // Existing cached masters remain available if this prefetch fails.
+      }
     } catch (detailError) {
       if (typeof __DEV__ !== "undefined" && __DEV__) {
         console.warn("[PipeWorkStatus] submission details API failed", {
@@ -445,11 +486,39 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       }
       if (!hasCachedDetail) Alert.alert("Could not open request", detailError?.message || "Please try again.");
     } finally {
-      setDetailLoading(false);
+      if (requestId === detailRequestRef.current) setDetailLoading(false);
+    }
+  };
+
+  const submitReviewAction = async (action, remark = "") => {
+    if (actionInFlightRef.current || !selected?.submissionId) return;
+    actionInFlightRef.current = true;
+    Keyboard.dismiss();
+    setActionBusy(true);
+    try {
+      const network = await NetInfo.fetch();
+      if (network.isConnected === false || network.isInternetReachable === false) {
+        throw new Error("Review actions require an internet connection. Your remark is kept; reconnect and retry.");
+      }
+      const response = await updatePipeSubmissionWorkflow({ submissionId: selected.submissionId, action, remark });
+      const updatedDetail = normalizeSubmissionDetail(response);
+      // A cache failure must not make a successful server action look unsuccessful.
+      await savePipeCache({ ownerUserId: user?.id, projectId, resource: `submission-detail:${selected.submissionId}`, payload: updatedDetail }).catch(() => {});
+      setPendingAction("");
+      setActionRemark("");
+      setSelected(null);
+      await load();
+    } catch (actionError) {
+      Alert.alert("Action failed", actionError?.message || "Please try again.");
+    } finally {
+      actionInFlightRef.current = false;
+      setActionBusy(false);
     }
   };
 
   const runAction = (action) => {
+    if (actionInFlightRef.current || detailLoading) return;
+    if (!getPipeWorkflowActions(selected, user).some((item) => item.key === action)) return;
     if (action === "edit_resubmit") {
       if (!detail?.packageId || !selected?.submissionId) {
         Alert.alert("Checklist unavailable", "Refresh this submission before editing it.");
@@ -466,16 +535,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     }
     const needsRemark = ["reject", "modify_request", "modify_rejected"].includes(action) ||
       isRemarkRequired(action, selected?.workflowStatus || selected?.status);
-    const submit = async (remark = "") => {
-      setActionBusy(true);
-      try {
-        await updatePipeSubmissionWorkflow({ submissionId: selected.submissionId, action, remark });
-        setSelected(null);
-        await load();
-      } catch (actionError) { Alert.alert("Action failed", actionError?.message || "Please try again."); }
-      finally { setActionBusy(false); }
-    };
-    if (!needsRemark) return submit();
+    if (!needsRemark) return submitReviewAction(action);
     setPendingAction(action);
     setActionRemark("");
   };
@@ -485,7 +545,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   const selectedPending = selected ? pendingResubmissions.get(String(selected.submissionId)) : null;
   const selectedNeedsPhoto = Boolean(selectedPending?.needsPhoto && (selected?.workflowStatus || selected?.status) === "rejected");
   const actions = useMemo(
-    () => getActions(selected, user).filter((action) => (isOnline || action.key === "edit_resubmit") && !((selectedPending && !selectedNeedsPhoto) && action.key === "edit_resubmit")),
+    () => getPipeWorkflowActions(selected, user).filter((action) => (isOnline || action.key === "edit_resubmit") && !((selectedPending && !selectedNeedsPhoto) && action.key === "edit_resubmit")),
     [isOnline, selected, selectedNeedsPhoto, selectedPending, user],
   );
   const pendingRemarkRequired = isRemarkRequired(
@@ -527,6 +587,13 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
         onTabPress={(index) => setTab(TABS[index])}
         countsByTab={Object.fromEntries(OMS_TABS.map((name, index) => [name, index === 0 ? counts.total || 0 : counts[TABS[index]] || 0]))}
       />
+
+      {!isOnline && (
+        <View style={styles.viewOnlyNotice}>
+          <Icon source="cloud-off-outline" size={18} color={colors.primaryBlue} />
+          <Text style={styles.viewOnlyText}>Offline: showing saved requests. You can save edits for sync; review actions require a connection.</Text>
+        </View>
+      )}
 
       {!!error && data !== null && (
         <View style={styles.error}>
@@ -625,20 +692,25 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
         )}
       />
 
-      <Modal visible={Boolean(selected)} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View style={[omsStyles.sheetOverlay, { paddingTop: insets.top + verticalScale(12) }]}>
-          <Pressable style={omsStyles.sheetBackdrop} onPress={() => setSelected(null)} />
-          <View style={[omsStyles.bottomSheet, { maxHeight: sheetMaxHeight, paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
-            <View style={omsStyles.sheetHandle} />
+      <Modal visible={Boolean(selected)} transparent animationType="slide" onRequestClose={handleSheetBack}>
+        {/* Android RN Modal already uses adjustResize; only iOS needs extra avoidance. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={[omsStyles.sheetOverlay, pendingAction && styles.remarkOverlay, { paddingTop: insets.top + verticalScale(12), paddingBottom: pendingAction ? Math.max(insets.bottom, verticalScale(12)) : 0 }]}
+        >
+          <Pressable style={omsStyles.sheetBackdrop} onPress={handleSheetBack} accessibilityLabel="Dismiss submission sheet" />
+          <View accessibilityViewIsModal style={pendingAction ? styles.remarkPopup : [omsStyles.bottomSheet, { maxHeight: sheetMaxHeight, flexShrink: 1, paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}>
+            {!pendingAction && <View style={omsStyles.sheetHandle} />}
             <View style={omsStyles.sheetHeader}>
               <View style={omsStyles.sheetHeaderCopy}>
-                <Text style={omsStyles.sheetTitle}>Submission details</Text>
-                <Text style={omsStyles.sheetSubtitle}>Review checklist and workflow activity</Text>
+                <Text style={omsStyles.sheetTitle}>{pendingAction ? REMARK_ACTION_TITLES[pendingAction] || "Add remark" : showHistory ? "Submission History" : "Submission details"}</Text>
+                <Text style={omsStyles.sheetSubtitle}>{pendingAction ? "Add a remark for this checklist." : showHistory ? "Track each workflow step for this submission." : "Review checklist and workflow activity"}</Text>
               </View>
-              <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={() => setSelected(null)} accessibilityLabel="Close details" />
+              {showHistory && <IconButton icon="arrow-left" size={20} iconColor={colors.textDark} onPress={() => setShowHistory(false)} accessibilityLabel="Back to checklist" />}
+              <IconButton icon="close" size={20} iconColor={colors.textDark} onPress={pendingAction ? cancelRemark : closeDetails} disabled={actionBusy} accessibilityLabel={pendingAction ? "Close remark popup" : "Close details"} />
             </View>
 
-            <View style={omsStyles.sheetSummaryCard}>
+            {!pendingAction && <View style={omsStyles.sheetSummaryCard}>
               <View style={omsStyles.sheetSummaryTopRow}>
                 <View style={omsStyles.sheetSummaryIcon}><Icon source="pipe" size={19} color={colors.primaryBlue} /></View>
                 <View style={omsStyles.sheetSummaryCopy}>
@@ -654,10 +726,61 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                     <Text style={[omsStyles.statusPillText, { color: theme.color }]}>{theme.label}</Text>
                   </View>;
                 })()}
+                {!showHistory && (
+                  <Pressable accessibilityRole="button" accessibilityLabel="View submission history" disabled={!detail || actionBusy} style={[omsStyles.historyButton, (!detail || actionBusy) && styles.actionDisabled]} onPress={() => setShowHistory(true)}>
+                    <Icon source="history" size={14} color={colors.white} />
+                    <Text style={omsStyles.historyButtonText}>History</Text>
+                  </Pressable>
+                )}
               </View>
-            </View>
+            </View>}
 
-            {!detail && detailLoading ? (
+            {pendingAction ? (
+              <>
+                <ScrollView
+                  style={styles.remarkScroll}
+                  contentContainerStyle={styles.remarkContent}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                  automaticallyAdjustKeyboardInsets={false}
+                >
+                  <Text style={styles.answerTitle}>{pendingRemarkRequired ? "Remark (required)" : "Remark (optional)"}</Text>
+                  <TextInput
+                    key={pendingAction}
+                    autoFocus
+                    editable={!actionBusy}
+                    accessibilityLabel="Workflow remark"
+                    value={actionRemark}
+                    onChangeText={setActionRemark}
+                    placeholder="Write your remark"
+                    placeholderTextColor={colors.textSecondary}
+                    multiline
+                    textAlignVertical="top"
+                    style={styles.remarkInput}
+                  />
+                  {!isOnline && <Text style={styles.viewOnlyText}>Reconnect to submit. Your remark stays here.</Text>}
+                </ScrollView>
+                <View style={styles.remarkActions}>
+                  <Pressable accessibilityRole="button" disabled={actionBusy} onPress={cancelRemark} style={[styles.secondaryAction, actionBusy && styles.actionDisabled]}><Text style={styles.secondaryActionText}>Cancel</Text></Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={(pendingRemarkRequired && !actionRemark.trim()) || actionBusy || !isOnline}
+                    onPress={() => submitReviewAction(pendingAction, actionRemark.trim())}
+                    style={[styles.action, styles.remarkSubmit, ((pendingRemarkRequired && !actionRemark.trim()) || actionBusy || !isOnline) && styles.actionDisabled]}
+                  >
+                    <Text style={styles.actionText}>{actionBusy ? "Submitting…" : "Submit"}</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : showHistory && detail ? (
+              <PipeSubmissionHistory
+                detail={detail}
+                currentStatus={selected?.workflowStatus || selected?.status}
+                bottomPadding={Math.max(insets.bottom, verticalScale(14))}
+                isOnline={isOnline}
+                isPendingSync={Boolean(selectedPending)}
+              />
+            ) : !detail && detailLoading ? (
               <View style={omsStyles.sheetStateCard}><ActivityIndicator color={colors.primaryBlue} /><Text style={omsStyles.sheetStateText}>Loading checklist…</Text></View>
             ) : !detail ? (
               <View style={omsStyles.sheetStateCard}>
@@ -671,6 +794,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                 keyExtractor={(item, index) => String(item.checklistId || index)}
                 showsVerticalScrollIndicator={false}
                 style={[omsStyles.sheetScroll, styles.sheetList]}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={[omsStyles.sheetScrollContent, { paddingBottom: Math.max(insets.bottom, verticalScale(14)) }]}
                 ListHeaderComponent={(
                   <>
@@ -720,36 +844,6 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                         <Icon source="cloud-upload-outline" size={18} color={colors.primaryBlue} />
                         <Text style={styles.viewOnlyText}>Resubmission is queued. Use Profile → Pending Work to retry now.</Text>
                       </View>
-                    ) : pendingAction ? (
-                      <View style={styles.remarkBox}>
-                        <Text style={styles.answerTitle}>Remark</Text>
-                        <TextInput value={actionRemark} onChangeText={setActionRemark} placeholder={pendingRemarkRequired ? "Remark (required)" : "Remark (optional)"} placeholderTextColor={colors.textSecondary} multiline style={styles.remarkInput} />
-                        <View style={styles.actionRow}>
-                          <Pressable onPress={() => setPendingAction("")} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}><Text style={styles.secondaryActionText}>Cancel</Text></Pressable>
-                          <Pressable
-                            disabled={(pendingRemarkRequired && !actionRemark.trim()) || actionBusy}
-                            onPress={async () => {
-                              const action = pendingAction;
-                              const remark = actionRemark.trim();
-                              setPendingAction("");
-                              setActionRemark("");
-                              setActionBusy(true);
-                              try {
-                                await updatePipeSubmissionWorkflow({ submissionId: selected.submissionId, action, remark });
-                                setSelected(null);
-                                await load();
-                              } catch (actionError) {
-                                Alert.alert("Action failed", actionError?.message || "Please try again.");
-                              } finally {
-                                setActionBusy(false);
-                              }
-                            }}
-                            style={({ pressed }) => [styles.action, ((pendingRemarkRequired && !actionRemark.trim()) || actionBusy) && styles.actionDisabled, pressed && styles.pressed]}
-                          >
-                            <Text style={styles.actionText}>{actionBusy ? "Submitting…" : "Submit"}</Text>
-                          </Pressable>
-                        </View>
-                      </View>
                     ) : actions.length ? [...actions].sort((first, second) => Number(second.key.startsWith("modify")) - Number(first.key.startsWith("modify"))).map((action) => {
                       const isReject = ["reject", "modify_rejected"].includes(action.key);
                       const isVerify = action.key === "verify";
@@ -761,7 +855,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={action.label}
-                        disabled={actionBusy}
+                        disabled={actionBusy || detailLoading}
                         key={action.key}
                         onPress={() => runAction(action.key)}
                         style={({ pressed }) => [
@@ -794,7 +888,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
               />
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       <Modal visible={showStatusInfo} transparent animationType="fade" onRequestClose={() => setShowStatusInfo(false)}>
         <View style={omsStyles.modalOverlay}>
@@ -938,8 +1032,13 @@ const styles = StyleSheet.create({
   modifyRejectActionText: { color: colors.danger },
   rejectAction: { backgroundColor: "#FFF1F1", borderWidth: 1, borderColor: "#F2C6C6" },
   rejectActionText: { color: colors.danger },
-  remarkBox: { width: "100%", gap: verticalScale(9) },
-  remarkInput: { minHeight: verticalScale(82), borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBg, borderRadius: moderateScale(11), padding: moderateScale(11), color: colors.textDark, fontFamily: fonts.regular, fontSize: fontScale(12), textAlignVertical: "top" },
+  remarkOverlay: { justifyContent: "center", alignItems: "center", paddingHorizontal: moderateScale(20) },
+  remarkPopup: { width: "100%", maxWidth: 440, maxHeight: "100%", flexShrink: 1, backgroundColor: colors.white, borderRadius: moderateScale(18), padding: moderateScale(16), elevation: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16 },
+  remarkScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
+  remarkContent: { gap: verticalScale(9), paddingBottom: verticalScale(12) },
+  remarkActions: { flexDirection: "row", gap: moderateScale(9), paddingTop: verticalScale(8), flexShrink: 0 },
+  remarkSubmit: { flex: 1 },
+  remarkInput: { minHeight: verticalScale(82), maxHeight: verticalScale(150), borderWidth: 1, borderColor: colors.border, backgroundColor: colors.inputBg, borderRadius: moderateScale(11), padding: moderateScale(11), color: colors.textDark, fontFamily: fonts.regular, fontSize: fontScale(12), textAlignVertical: "top" },
   viewOnlyNotice: { width: "100%", flexDirection: "row", alignItems: "center", gap: moderateScale(8), padding: moderateScale(11), borderRadius: moderateScale(11), backgroundColor: colors.surfaceBluePale },
   viewOnlyText: { flex: 1, color: colors.textSecondary, fontFamily: fonts.regular, fontSize: fontScale(10.5), lineHeight: fontScale(14) },
 });

@@ -1,3 +1,4 @@
+import { clearCivilCache } from "../services/civilOfflineStore";
 import React, {
   createContext,
   useCallback,
@@ -95,6 +96,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const clearSession = useCallback(async () => {
+    const civilOwner = sessionRef.current?.user?.id;
+    const civilCleanup = clearCivilCache(civilOwner).catch(() => {});
     refreshPromiseRef.current = null;
     profileRefreshPromiseRef.current = null;
     lastProfileRefreshAttemptAtRef.current = 0;
@@ -105,6 +108,7 @@ export const AuthProvider = ({ children }) => {
     setUnlockError("");
     setActiveSession(null);
     await clearStoredAuthSession();
+    await civilCleanup;
   }, [setActiveSession]);
 
   const persistSession = useCallback(
@@ -234,6 +238,22 @@ export const AuthProvider = ({ children }) => {
   const beginSignIn = useCallback(async (credentials) => {
     const data = await startFaceLogin(credentials);
 
+    // Some API deployments use null instead of "none" for a completed login.
+    // Require session tokens before treating that response as authenticated.
+    if (
+      data?.requiredVerification === "none" ||
+      (data?.requiredVerification == null && data?.accessToken)
+    ) {
+      const verifiedSession = normalizeSession(data);
+      if (!verifiedSession) {
+        throw new Error(API_MESSAGES.sessionIncomplete);
+      }
+      await persistSession(verifiedSession);
+      setIsAppLocked(false);
+      setUnlockError("");
+      return { ...verifiedSession, requiredVerification: "none" };
+    }
+
     if (data?.requiredVerification && data.requiredVerification !== "face") {
       throw new Error(
         getUnsupportedVerificationMessage(data.requiredVerification)
@@ -241,7 +261,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return data;
-  }, []);
+  }, [persistSession]);
 
   const finishFaceVerification = useCallback(
     async ({ verificationToken, faceImage }) => {

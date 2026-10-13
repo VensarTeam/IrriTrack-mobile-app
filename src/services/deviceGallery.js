@@ -1,4 +1,19 @@
 import * as MediaLibrary from "expo-media-library";
+import { Platform } from "react-native";
+
+export const photoSaveNeedsPermission = () =>
+  // SDK 54 MediaLibrary still checks write permission on Android <= 12L.
+  Platform.OS !== "android" || Number(Platform.Version) < 33;
+
+export const getPhotoSavePermission = async () =>
+  photoSaveNeedsPermission()
+    ? MediaLibrary.getPermissionsAsync(true, ["photo"])
+    : { granted: true, status: "granted" };
+
+export const requestPhotoSavePermission = async () =>
+  photoSaveNeedsPermission()
+    ? MediaLibrary.requestPermissionsAsync(true, ["photo"])
+    : { granted: true, status: "granted" };
 
 const normalizeUri = (value = "") => String(value || "").trim();
 
@@ -25,7 +40,7 @@ export const saveChecklistMediaToDeviceGallery = async ({
     };
   }
 
-  const permission = await MediaLibrary.requestPermissionsAsync(true);
+  const permission = await requestPhotoSavePermission();
 
   if (permission.status !== "granted") {
     return {

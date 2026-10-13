@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Platform, StatusBar, Text, TextInput } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { Provider as PaperProvider } from "react-native-paper";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { paperTheme } from "./src/constants/paperTheme";
 import fonts from "./src/constants/fonts";
@@ -13,6 +14,7 @@ import AppUpdateGate from "./src/components/AppUpdateGate";
 import { AuthProvider } from "./src/context/AuthContext";
 import OfflineChecklistSyncGate from "./src/components/OfflineChecklistSyncGate";
 import PushNotificationBootstrap from "./src/components/PushNotificationBootstrap";
+import ConsentGate from "./src/components/ConsentGate";
 import { InAppNotificationProvider } from "./src/context/InAppNotificationProvider";
 import {
   flushPendingNavigation,
@@ -99,27 +101,31 @@ const App = () => {
   }
 
   return (
-    <PaperProvider theme={paperTheme}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={colors.loginHeroGradientStart}
-      />
-      <AuthProvider>
-        <AppAlertProvider>
-          <InAppNotificationProvider>
-            <PushNotificationBootstrap />
-            <OfflineChecklistSyncGate />
-            <AppUpdateGate />
-            <NavigationContainer
-              ref={navigationRef}
-              onReady={flushPendingNavigation}
-            >
-              <RootNavigator />
-            </NavigationContainer>
-          </InAppNotificationProvider>
-        </AppAlertProvider>
-      </AuthProvider>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={paperTheme}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={colors.loginHeroGradientStart}
+        />
+        <ConsentGate>
+          <AuthProvider>
+            <AppAlertProvider>
+              <InAppNotificationProvider>
+                <PushNotificationBootstrap />
+                <OfflineChecklistSyncGate />
+                <AppUpdateGate />
+                <NavigationContainer
+                  ref={navigationRef}
+                  onReady={flushPendingNavigation}
+                >
+                  <RootNavigator />
+                </NavigationContainer>
+              </InAppNotificationProvider>
+            </AppAlertProvider>
+          </AuthProvider>
+        </ConsentGate>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 };
 

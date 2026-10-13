@@ -5,6 +5,7 @@ export const ROUTES = {
     ADD_CONTRACTOR: "AddContractor",
     PROJECT_MODULES: "ProjectModules",
     PROJECT_DETAILS: "ProjectDetails",
+    CIVIL_STATUS: "CivilStatus",
     PIPE_NETWORK_ENTRY: "PipeNetworkEntry",
     PIPE_DAILY_REPORT: "PipeDailyReport",
     PIPE_WORK_STATUS: "PipeWorkStatus",

@@ -132,15 +132,8 @@ const useUnitGalleryViewModel = (navigation, route) => {
       return false;
     }
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status === "granted") return true;
-
-    showAppAlert({
-      type: "warning",
-      title: "Permission required",
-      message: "Gallery permission is required to select photo.",
-    });
-    return false;
+    // The system image picker grants access only to the selected photo.
+    return true;
   };
 
   const pickPhoto = async (source) => {

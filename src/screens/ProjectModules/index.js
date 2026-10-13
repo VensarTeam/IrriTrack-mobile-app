@@ -13,7 +13,7 @@ import styles from "./styles";
 const PROJECT_MODULES = [
   {
     key: "omsRms",
-    title: "OMS / RMS",
+    title: "OMS / RMS / GW",
     description: "Outlet and regulating system progress",
     icon: "pipe-valve",
     color: "#255B8E",
@@ -29,6 +29,7 @@ const PROJECT_MODULES = [
     gradient: ["#E7F7FA", "#F8FDFE"],
     border: "#C5E7ED",
   },
+  { key: "civil", title: "Civil Structures", description: "Structure progress and work status", icon: "office-building-outline", color: colors.primaryBlue, gradient: ["#E9F3FC", "#F8FBFF"], border: colors.border },
 ];
 
 const ProjectModulesScreen = ({ navigation, route }) => {
@@ -39,7 +40,9 @@ const ProjectModulesScreen = ({ navigation, route }) => {
     roleAccess.isAuthorizationReady && isProjectAllowed(authorization, project);
   const visibleModules = hasProjectAccess
     ? PROJECT_MODULES.filter((module) =>
-        module.key === "omsRms"
+        module.key === "civil"
+          ? authorization?.effectivePermissions?.includes("civil_structure.view")
+          : module.key === "omsRms"
           ? roleAccess.canViewOms
           : roleAccess.canViewPipeLaying
       )
@@ -47,6 +50,10 @@ const ProjectModulesScreen = ({ navigation, route }) => {
 
   const openModule = (module) => {
     if (!hasProjectAccess || !visibleModules.some((item) => item.key === module.key)) {
+      return;
+    }
+    if (module.key === "civil") {
+      navigation.navigate(ROUTES.ROOT.CIVIL_STATUS, { project, projectName });
       return;
     }
     if (module.key === "omsRms") {
@@ -168,7 +175,7 @@ const ProjectModulesScreen = ({ navigation, route }) => {
               <Text style={styles.moduleTitle}>No available modules</Text>
               <Text style={styles.moduleDescription}>
                 {hasProjectAccess
-                  ? "Your account does not have OMS/RMS or Pipe Network access."
+                  ? "Your account does not have access to these modules."
                   : "Project access is unavailable. Connect and refresh your permissions."}
               </Text>
             </View>

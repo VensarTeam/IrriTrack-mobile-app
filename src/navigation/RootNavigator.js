@@ -7,6 +7,7 @@ import { ROUTES } from "./routes";
 import AppTabs from "./AppTabs";
 import ProjectDetailsScreen from "../screens/ProjectDetails";
 import ProjectModulesScreen from "../screens/ProjectModules";
+import CivilStatusScreen from "../screens/CivilStatus";
 import PipeNetworkEntryScreen from "../screens/PipeNetworkEntry";
 import PipeDailyReportScreen from "../screens/PipeDailyReport";
 import PipeWorkStatusScreen from "../screens/PipeWorkStatus";
@@ -87,6 +88,7 @@ const RootNavigator = () => {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name={ROUTES.ROOT.AUTH_STACK} component={AuthStack} />
+        <Stack.Screen name={ROUTES.ROOT.CIVIL_STATUS} component={CivilStatusScreen} options={{ animation: "slide_from_right" }} />
         <Stack.Screen name={ROUTES.ROOT.APP_TABS} component={AppTabs} />
         <Stack.Screen
           name={ROUTES.ROOT.PROJECT_MODULES}
