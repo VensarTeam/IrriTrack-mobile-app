@@ -1,6 +1,11 @@
 package com.vensar.irritrack
 
 import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import android.os.Bundle
 import android.view.WindowManager
 
@@ -13,6 +18,52 @@ import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
+  private val playUpdateManager by lazy { AppUpdateManagerFactory.create(this) }
+  private var updateCheckRunning = false
+  private var updateFlowRunning = false
+  private var updatePromptShown = false
+  private val playUpdateLauncher = registerForActivityResult(
+    ActivityResultContracts.StartIntentSenderForResult()
+  ) {
+    // Cancellation/failure does not block the app or immediately re-prompt.
+    updateFlowRunning = false
+  }
+
+  override fun onResume() {
+    super.onResume()
+    checkPlayUpdate()
+  }
+
+  private fun checkPlayUpdate() {
+    if (BuildConfig.DEBUG || updateCheckRunning || updateFlowRunning) return
+    updateCheckRunning = true
+    playUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+      updateCheckRunning = false
+      if (isFinishing || isDestroyed || !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return@addOnSuccessListener
+      val resumeUpdate = info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+      val newUpdate = !updatePromptShown && info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+        info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+      if (resumeUpdate || newUpdate) {
+        updatePromptShown = true
+        try {
+          updateFlowRunning = playUpdateManager.startUpdateFlowForResult(
+            info, playUpdateLauncher, AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+          )
+        } catch (_: Exception) {
+          updateFlowRunning = false
+        }
+      }
+    }.addOnFailureListener {
+      // Offline, sideloaded and Play-ineligible installs continue normally.
+      updateCheckRunning = false
+    }
+  }
+
+  override fun onSaveInstanceState(outState: Bundle) {
+    outState.putBoolean("playUpdatePromptShown", updatePromptShown)
+    super.onSaveInstanceState(outState)
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
@@ -20,6 +71,7 @@ class MainActivity : ReactActivity() {
     setTheme(R.style.AppTheme);
     supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
     super.onCreate(savedInstanceState)
+    updatePromptShown = savedInstanceState?.getBoolean("playUpdatePromptShown") ?: false
     //  window.setFlags(
     //    WindowManager.LayoutParams.FLAG_SECURE,
     //    WindowManager.LayoutParams.FLAG_SECURE

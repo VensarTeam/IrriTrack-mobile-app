@@ -2,8 +2,6 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-import com.android.build.OutputFile
-
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 if (file("google-services.json").exists()) {
@@ -78,7 +76,28 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
 def releaseTaskRequested = gradle.startParameter.taskNames.any {
     it.toLowerCase().contains("release")
 }
+// Resource shrinking for AAB requires a single output, not ABI APK splits.
+def bundleTaskRequested = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains("bundle")
+}
+def releaseApkTaskRequested = gradle.startParameter.taskNames.any {
+    def task = it.tokenize(':').last().toLowerCase()
+    task in ["assemblerelease", "installrelease"]
+}
 def releaseApkAbis = ["armeabi-v7a", "arm64-v8a"]
+
+// Keep upload credentials in ~/.gradle/gradle.properties or environment variables.
+def uploadSigning = ["STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"].collectEntries { suffix ->
+    def name = "IRRITRACK_UPLOAD_${suffix}"
+    [(suffix): (findProperty(name) ?: System.getenv(name))]
+}
+if (releaseTaskRequested && uploadSigning.values().any { !it }) {
+    throw new GradleException("Release signing is missing. Set IRRITRACK_UPLOAD_STORE_FILE, STORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD in ~/.gradle/gradle.properties (all with the IRRITRACK_UPLOAD_ prefix).")
+}
+if (releaseTaskRequested && !file(uploadSigning.STORE_FILE).exists()) {
+    throw new GradleException("The configured IrriTrack upload keystore does not exist.")
+}
+
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -104,21 +123,29 @@ android {
         applicationId "com.vensar.irritrack"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.6"
+        versionCode 2
+        versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
         resValue "string", "app_name", "IrriTrack"
     }
     splits {
         abi {
-            enable releaseTaskRequested
+            enable (releaseApkTaskRequested && !bundleTaskRequested)
             reset()
             include(*releaseApkAbis)
             universalApk true
         }
     }
     signingConfigs {
+        release {
+            if (uploadSigning.values().every { it }) {
+                storeFile file(uploadSigning.STORE_FILE)
+                storePassword uploadSigning.STORE_PASSWORD
+                keyAlias uploadSigning.KEY_ALIAS
+                keyPassword uploadSigning.KEY_PASSWORD
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -131,9 +158,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
@@ -156,7 +181,7 @@ android {
         if (variant.buildType.name != "release") return
 
         variant.outputs.configureEach { output ->
-            def abiName = output.getFilter(OutputFile.ABI)
+            def abiName = output.getFilter("ABI")
             def abiSuffix = abiName ? "-${abiName}" : ""
             outputFileName = "IrriTrack(${variant.versionName})${abiSuffix}.apk"
         }
@@ -184,6 +209,7 @@ android {
 }
 
 dependencies {
+    implementation "com.google.android.play:app-update:2.1.0"
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
