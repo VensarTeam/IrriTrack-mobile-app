@@ -1,8 +1,8 @@
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
 import colors from "../../constants/colors";
 import fonts from "../../constants/fonts";
 
-const { width } = Dimensions.get("window");
+
 
 export default StyleSheet.create({
   container: {
@@ -17,29 +17,33 @@ export default StyleSheet.create({
     width: "100%",
   },
   bannerContent: {
-    width: width - 32,
+    width: "100%",
+    maxWidth: 480,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderCurve: "continuous",
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 14,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 6,
     },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.09,
     shadowRadius: 8,
     elevation: 8,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 24,
     backgroundColor: colors.loginHeroGradientStart,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
@@ -47,13 +51,13 @@ export default StyleSheet.create({
   },
   title: {
     fontFamily: fonts.bold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.navyFreshDark,
     marginBottom: 4,
   },
   message: {
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 20,
   },

@@ -1,3 +1,4 @@
+import { useInAppNotification } from "../../context/InAppNotificationProvider";
 import React from "react";
 import {
   ActivityIndicator,
@@ -361,6 +362,7 @@ const FormLoadingSkeleton = () => {
 };
 
 const PipeNetworkEntryScreen = ({ navigation, route }) => {
+  const { showNotification } = useInAppNotification();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width, fontScale: textScale } = useWindowDimensions();
@@ -1326,11 +1328,8 @@ const PipeNetworkEntryScreen = ({ navigation, route }) => {
       const stillPending = (await listPendingPipeMutations(ownerUserId, { force: true }))
         .some((entry) => entry.id === entryId);
       if (result.syncedIds.includes(entryId) || (!result.failed && !stillPending)) {
-        Alert.alert(
-          isResubmission ? "Resubmitted" : "Submitted",
-          `${material} checklist was received by the server.`,
-          [{ text: "Done", onPress: () => navigation.goBack() }],
-        );
+        navigation.goBack();
+        showNotification({ title: isResubmission ? "Checklist resubmitted" : "Checklist submitted", message: `${material} checklist received successfully.`, type: "success" });
         return;
       }
 

@@ -1,3 +1,4 @@
+import { useInAppNotification } from "../../context/InAppNotificationProvider";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -51,6 +52,14 @@ const isRemarkRequired = (action, status) =>
   ["reject", "modify_rejected"].includes(action) ||
   (action === "modify_approved" && status !== "modify_request");
 
+const REVIEW_FEEDBACK = {
+  verify: { title: "Verify this checklist?", message: "This will mark the checklist as verified.", success: "Checklist verified", icon: "check-decagram-outline" },
+  approve: { title: "Approve this checklist?", message: "Confirm that the reviewed work is approved.", success: "Checklist approved", icon: "shield-check-outline" },
+  reject: { title: "Send for correction?", message: "The supervisor will receive your correction remark.", success: "Sent for correction", icon: "comment-edit-outline" },
+  modify_request: { title: "Request modification?", message: "Your request will be sent for review.", success: "Modification requested", icon: "file-edit-outline" },
+  modify_approved: { title: "Allow modification?", message: "The supervisor can edit and resubmit this checklist.", success: "Modification allowed", icon: "file-check-outline" },
+  modify_rejected: { title: "Reject modification?", message: "This modification request will be declined.", success: "Modification declined", icon: "file-cancel-outline" },
+};
 const REMARK_ACTION_TITLES = {
   reject: "Request correction",
   modify_request: "Request modification",
@@ -280,6 +289,8 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [imageViewerState, setImageViewerState] = useState({ visible: false, items: [], initialIndex: 0 });
   const [actionBusy, setActionBusy] = useState(false);
+  const { showNotification } = useInAppNotification();
+  const [confirmation, setConfirmation] = useState(null);
   const [pendingAction, setPendingAction] = useState("");
   const [actionRemark, setActionRemark] = useState("");
   const [showStatusInfo, setShowStatusInfo] = useState(false);
@@ -310,6 +321,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
   }, []);
 
   const handleSheetBack = () => {
+    if (confirmation && !actionInFlightRef.current) { setConfirmation(null); return; }
     if (actionInFlightRef.current) return;
     if (Keyboard.isVisible()) {
       Keyboard.dismiss();
@@ -490,8 +502,14 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     }
   };
 
+  const requestReviewConfirmation = (action, remark = "") => {
+    if (actionInFlightRef.current || confirmation || !selected?.submissionId) return;
+    Keyboard.dismiss();
+    setConfirmation({ action, remark, submissionId: selected.submissionId });
+  };
+
   const submitReviewAction = async (action, remark = "") => {
-    if (actionInFlightRef.current || !selected?.submissionId) return;
+    if (actionInFlightRef.current || !selected?.submissionId || confirmation?.submissionId !== selected.submissionId) return;
     actionInFlightRef.current = true;
     Keyboard.dismiss();
     setActionBusy(true);
@@ -506,9 +524,12 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
       await savePipeCache({ ownerUserId: user?.id, projectId, resource: `submission-detail:${selected.submissionId}`, payload: updatedDetail }).catch(() => {});
       setPendingAction("");
       setActionRemark("");
+      setConfirmation(null);
       setSelected(null);
+      showNotification({ title: REVIEW_FEEDBACK[action]?.success || "Status updated", message: "Checklist status updated successfully.", type: "success" });
       await load();
     } catch (actionError) {
+      setConfirmation(null);
       Alert.alert("Action failed", actionError?.message || "Please try again.");
     } finally {
       actionInFlightRef.current = false;
@@ -535,7 +556,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
     }
     const needsRemark = ["reject", "modify_request", "modify_rejected"].includes(action) ||
       isRemarkRequired(action, selected?.workflowStatus || selected?.status);
-    if (!needsRemark) return submitReviewAction(action);
+    if (!needsRemark) return requestReviewConfirmation(action);
     setPendingAction(action);
     setActionRemark("");
   };
@@ -765,7 +786,7 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
                   <Pressable
                     accessibilityRole="button"
                     disabled={(pendingRemarkRequired && !actionRemark.trim()) || actionBusy || !isOnline}
-                    onPress={() => submitReviewAction(pendingAction, actionRemark.trim())}
+                    onPress={() => requestReviewConfirmation(pendingAction, actionRemark.trim())}
                     style={[styles.action, styles.remarkSubmit, ((pendingRemarkRequired && !actionRemark.trim()) || actionBusy || !isOnline) && styles.actionDisabled]}
                   >
                     <Text style={styles.actionText}>{actionBusy ? "Submitting…" : "Submit"}</Text>
@@ -889,6 +910,20 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
             )}
           </View>
         </KeyboardAvoidingView>
+        {confirmation && <View style={styles.confirmOverlay} accessibilityViewIsModal>
+          <Pressable style={StyleSheet.absoluteFill} disabled={actionBusy} onPress={() => setConfirmation(null)} accessibilityLabel="Cancel confirmation" />
+          <View style={styles.confirmCard}>
+            <View style={styles.confirmIcon}><Icon source={REVIEW_FEEDBACK[confirmation.action]?.icon || "help-circle-outline"} size={30} color={colors.primaryBlue} /></View>
+            <Text style={styles.confirmTitle}>{REVIEW_FEEDBACK[confirmation.action]?.title || "Update status?"}</Text>
+            <Text style={styles.confirmMessage}>{REVIEW_FEEDBACK[confirmation.action]?.message}</Text>
+            <Text style={styles.confirmContext} numberOfLines={2}>{[selected?.startNode, selected?.stopNode].filter(Boolean).join(" → ")}</Text>
+            {!!confirmation.remark && <ScrollView style={{ maxHeight: 100 }}><Text style={styles.confirmRemark}>{confirmation.remark}</Text></ScrollView>}
+            <View style={styles.confirmActions}>
+              <Pressable accessibilityRole="button" disabled={actionBusy} onPress={() => setConfirmation(null)} style={[styles.confirmButton, styles.confirmNo]}><Text style={styles.secondaryActionText}>No, go back</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={actionBusy} onPress={() => submitReviewAction(confirmation.action, confirmation.remark)} style={[styles.confirmButton, styles.confirmYes, actionBusy && styles.actionDisabled]}>{actionBusy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.actionText}>Yes, confirm</Text>}</Pressable>
+            </View>
+          </View>
+        </View>}
       </Modal>
       <Modal visible={showStatusInfo} transparent animationType="fade" onRequestClose={() => setShowStatusInfo(false)}>
         <View style={omsStyles.modalOverlay}>
@@ -931,6 +966,17 @@ export default function PipeWorkStatusScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  confirmOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(12,30,48,0.48)", justifyContent: "center", alignItems: "center", padding: 24 },
+  confirmCard: { width: "100%", maxWidth: 400, maxHeight: "85%", backgroundColor: colors.white, borderRadius: 24, borderCurve: "continuous", padding: 22, gap: 12 },
+  confirmIcon: { width: 58, height: 58, borderRadius: 19, backgroundColor: colors.surfaceBlue, alignItems: "center", justifyContent: "center", alignSelf: "center" },
+  confirmTitle: { fontFamily: fonts.bold, color: colors.primaryBlue, fontSize: 20, textAlign: "center" },
+  confirmMessage: { fontFamily: fonts.regular, color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: "center" },
+  confirmContext: { fontFamily: fonts.medium, color: colors.textDark, fontSize: 12, textAlign: "center" },
+  confirmRemark: { fontFamily: fonts.regular, color: colors.textDark, fontSize: 13, lineHeight: 19, backgroundColor: colors.inputBg, padding: 12, borderRadius: 12 },
+  confirmActions: { flexDirection: "row", gap: 10, marginTop: 6 },
+  confirmButton: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", padding: 10, borderRadius: 14 },
+  confirmNo: { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border },
+  confirmYes: { backgroundColor: colors.primaryBlue },
   screen: { flex: 1, backgroundColor: colors.background },
   search: { marginHorizontal: moderateScale(16), marginTop: verticalScale(12), marginBottom: verticalScale(7), minHeight: verticalScale(46), backgroundColor: colors.white, borderRadius: moderateScale(14), borderCurve: "continuous", borderWidth: 1, borderColor: colors.border, paddingHorizontal: moderateScale(13), flexDirection: "row", alignItems: "center", gap: moderateScale(8), boxShadow: "0 2px 10px rgba(18, 59, 99, 0.05)" },
   searchInput: { flex: 1, paddingVertical: verticalScale(10), color: colors.textDark, fontFamily: fonts.regular, fontSize: fontScale(13) },

@@ -17,9 +17,12 @@ const InAppNotificationBanner = ({ visible, title, message, type = "info", onDis
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(-150)).current;
   const timeoutRef = useRef(null);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   useEffect(() => {
     if (visible) {
+      slideAnim.stopAnimation();
       Animated.spring(slideAnim, {
         toValue: insets.top + 10,
         friction: 8,
@@ -32,7 +35,8 @@ const InAppNotificationBanner = ({ visible, title, message, type = "info", onDis
         dismissNotification();
       }, NOTIFICATION_DURATION);
     } else {
-      dismissNotification();
+      slideAnim.stopAnimation();
+      slideAnim.setValue(-150);
     }
 
     return () => {
@@ -45,8 +49,8 @@ const InAppNotificationBanner = ({ visible, title, message, type = "info", onDis
       toValue: -150,
       duration: 300,
       useNativeDriver: true,
-    }).start(() => {
-      if (onDismiss) onDismiss();
+    }).start(({ finished }) => {
+      if (finished && visibleRef.current && onDismiss) onDismiss();
     });
   };
 
